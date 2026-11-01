@@ -137,7 +137,7 @@ Rules:
 /src-tauri/engines   the engines as their own crate: image, pdf, archive, text, subtitle, sheet, qr; later ffmpeg, libreoffice, ytdlp, exiftool, bgremove, ocr
 /src            frontend: windows/{main,wheel,shelf,toast,editors}, components, locales/{en,tr,...}
 /design         DESIGN.md, icons/
-/docs           SPEC.md, ROADMAP.md, ARCHITECTURE.md, FORMATS.md (generated from the catalog), IDEAS.md, integrations/pano.md
+/docs           SPEC.md, ROADMAP.md, ARCHITECTURE.md, FORMATS.md (generated from the catalog), IDEAS.md
 /scripts        fixture generation, catalog export, release helpers
 /website-kit    download section for the author's website + catalog.json
 /.github        workflows, issue and PR templates
@@ -371,48 +371,27 @@ Each tool opens in its own small window or panel, shows a preview and saves the 
 | Action | Behavior |
 | --- | --- |
 | Share | Windows Share (`IDataTransferManagerInterop`) on Windows; AirDrop and the share menu on macOS |
-| Put on shelf | Depends on the chosen shelf model (see 5.8) |
+| Put on shelf | Puts the file on Kento's own shelf (see 5.8) |
 | Copy | To a chosen folder |
 | Move | Moves the original: the one exception, with explicit confirmation |
 | Copy path | Copies the file path to the clipboard |
 | Open in terminal | Windows Terminal when present, otherwise PowerShell; Terminal on macOS |
 | **[+]** Show in Explorer / Finder | Reveals the file in the file manager |
 | **[+]** Archive (ZIP) | Packs the selection into a ZIP file |
-| Send to Pano | Only if the chosen shelf model needs it |
 
-### 5.8 Shelf and the Pano bridge
+### 5.8 Shelf
 
 The shelf is a small, temporary holding area at the screen edge. A file is dropped there, the user goes to another folder, then drags the file from the shelf to where it belongs.
 
-The author's separate app Pano (Panopin), a clipboard and screenshot shelf built with Tauri 2 + Rust around a cork board and pushpins, does the same job. Four models keep the two apps from duplicating it:
+Kento has its own shelf and no link to Pano (Panopin), the author's clipboard app. Pano keeps what is copied (text, links and screenshots); Kento's shelf holds files on their way somewhere. Decided at the start of Phase 3 (2026-11-02), after the four possible models (Pano if installed, own shelf plus "Send to Pano", Pano only, own shelf only) were compared.
 
-| Model | Behavior | Pros | Cons |
-| --- | --- | --- | --- |
-| A: Pano if installed, otherwise our shelf | "Put on shelf" sends the file to Pano when it is installed; otherwise the app's own mini shelf opens | Nobody sees two shelves; the apps introduce each other | Both paths must be written and tested |
-| B: Own shelf + "Send to Pano" | The app always has its own shelf; when Pano is installed, "Send to Pano" is added to the wheel | Independent and consistent | Users of both apps get two shelves |
-| C: No shelf, only Pano | "Put on shelf" always sends to Pano; without Pano the app offers to download it | Simplest; nothing duplicated | Users without Pano have no shelf |
-| D: Own shelf only | No link to Pano | Simplest code | No benefit across the apps |
-
-Process:
-
-1. Phase 1 puts the shelf behind a `ShelfProvider` interface with two implementations, the local shelf and the Pano bridge, so the architecture holds whichever model is chosen.
-2. The model is chosen at the start of Phase 3 and recorded here and in `DESIGN.md`.
-
-Local shelf (models A, B and D):
+The shelf:
 
 - A small, always-on-top window with a transparent background.
 - Files are dropped on it and dragged out of it: OLE on Windows, `NSDraggingSession` on macOS.
 - Search the history, reuse items (send to the wheel) and show them in Explorer/Finder.
 - The shelf keeps a reference to the file, not a copy, and shows when a file was moved or deleted.
 - An optional "keep a copy" setting.
-
-Pano bridge (models A, B and C): the contract is defined in `docs/integrations/pano.md`:
-
-- detection: registry, app path or a deep-link scheme
-- transfer: for example `pano://add?paths=...` or `pano --add <paths>`
-- error cases and version compatibility
-
-The contract is generic and two-way, so the same contract can be added on the Pano side.
 
 ### 5.9 Home and Library
 
@@ -799,7 +778,7 @@ Every phase ends with a test pass on Windows, and on macOS where it applies. Pro
 - **Phase 0: design.** Visual identity, the name, the design system (`design/DESIGN.md`) and the app icon.
 - **Phase 1: skeleton.** Tauri 2 + React/TS project, settings, design tokens and the pluggable theme system (default theme only, 5.20). Translation infrastructure (EN + TR), RTL infrastructure, pseudo-localization and pseudo-RTL test languages. Main window shell. Catalog skeleton, job queue, naming rules, logging. Single instance and tray icon. `ShelfProvider` interface. CI, license files, SPDX headers.
 - **Phase 2: core local engines (no downloads).** Image conversions. PDF tools: merge, split, edit, PDF from images, PDF to images. Archive extraction and creation. QR reading. Text, subtitle and spreadsheet conversions. In-app wheel, drop zone, paste, Library and success card.
-- **Phase 3: global wheel and desktop integration.** First the shelf model (5.8). Drag + modifier detection: Windows first, then macOS. The three wheels and file actions. The chosen shelf model. Selection shortcut, Send To and context menu. Sounds and haptics.
+- **Phase 3: global wheel and desktop integration.** Drag + modifier detection: Windows first, then macOS. The three wheels and file actions. The chosen shelf model. Selection shortcut, Send To and context menu. Sounds and haptics.
 - **Phase 4: media.** Tool setup wizard. FFmpeg conversions and the 15 media tools. Proxy preview, waveform, real progress.
 - **Phase 5: image editors and metadata.** Edit image, Mark up, Add frame, Crop, Collage, Redact image. Metadata with ExifTool. The Compress tool (including target size).
 - **Phase 6: office.** Document, spreadsheet and presentation conversions with LibreOffice. PDF to other formats. Apple and macOS-specific input formats.

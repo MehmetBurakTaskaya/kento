@@ -25,7 +25,7 @@ Every conversion and tool that needs no download. The crate knows nothing about 
 | `files.rs`, `library.rs` | Choosing and pasting files, previews, and the Library (`library.json`, the last 50 outputs) |
 | `settings.rs` | Settings as JSON in the data folder; broken files are kept aside, values are clamped |
 | `i18n.rs` | The languages, system-language matching, and the strings Rust shows (tray menu) |
-| `shelf/` | `ShelfProvider` with the local shelf and the Pano bridge (SPEC 5.8) |
+| `shelf/` | Kento's own shelf (SPEC 5.8) |
 | `paths.rs`, `logging.rs` | The data folder (`%LOCALAPPDATA%\Kento`, `~/Library/Application Support/Kento`), temp clean-up, rolling logs |
 | `window.rs`, `tray.rs` | The main window (built on demand, Mica on Windows 11) and the tray or menu bar icon |
 | `commands.rs` | What the page may call; links and folders are decided in Rust, never taken from the page as they are |

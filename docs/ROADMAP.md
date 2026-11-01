@@ -18,7 +18,7 @@ Progress against [SPEC.md](SPEC.md) section 9.
 - [x] Main window shell (Home, Library, Settings; Mica on Windows 11)
 - [x] Catalog skeleton (formats, routes, tools, actions; `docs/FORMATS.md`, `website-kit/catalog.json`), job queue, naming rules, logging
 - [x] Single instance and tray icon
-- [x] `ShelfProvider` interface (local shelf, Pano bridge)
+- [x] Shelf interface (`ShelfProvider`)
 - [x] CI (Windows and macOS, cargo-deny, Dependabot), license checks, SPDX headers, `kento --smoke-test`
 
 ## Phase 2: core local engines
@@ -37,7 +37,8 @@ Progress against [SPEC.md](SPEC.md) section 9.
 - [ ] Drag + modifier detection on Windows
 - [ ] Drag + modifier detection on macOS
 - [ ] The three wheels and file actions
-- [ ] The shelf (SPEC 5.8)
+- [x] Shelf model: Kento's own shelf, no link to Pano (SPEC 5.8)
+- [ ] The shelf
 - [ ] Selection shortcut, Send To and context menu
 - [ ] Sounds and haptics
 
