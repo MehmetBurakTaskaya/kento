@@ -29,7 +29,14 @@ const SHOTS = [
   ['wheel-images-dark-tr', { lang: 'tr', appearance: 'dark', files: 'demo' }, 'convert-image'],
   ['wheel-images-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', files: 'demo' }, 'convert-image'],
   ['panel-qr-light-en', { lang: 'en', appearance: 'light', files: 'demo' }, 'tools'],
+  // The windows outside the main one, at their own sizes.
+  ['surface-wheel-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'convert' }],
+  ['surface-wheel-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'actions' }],
+  ['surface-shelf-light-tr', { lang: 'tr', appearance: 'light', surface: 'shelf' }],
+  ['surface-toast-dark-en', { lang: 'en', appearance: 'dark', surface: 'toast' }],
 ];
+
+const SIZES = { wheel: [520, 520], shelf: [300, 480], toast: [400, 200] };
 
 /** Opens a wheel or a panel the way a person would with the keyboard. */
 async function act(page, action) {
@@ -55,11 +62,15 @@ const browser = await chromium.launch();
 const errors = [];
 for (const [name, params, action] of SHOTS) {
   const tall = params.section === 'settings';
-  const page = await browser.newPage({ viewport: { width: 1000, height: tall ? 1600 : 680 } });
+  const [width, height] = SIZES[params.surface] ?? [1000, tall ? 2200 : 680];
+  const page = await browser.newPage({ viewport: { width, height } });
   page.on('pageerror', (error) => errors.push(`${name}: ${error.message}`));
   page.on('console', (message) => message.type() === 'error' && errors.push(`${name}: ${message.text()}`));
   await page.goto(`${base}?${new URLSearchParams(params)}`);
-  await page.waitForSelector('.shell');
+  await page.waitForSelector(
+    params.surface ? (params.surface === 'wheel' ? '.wheel' : '.shelf, .corner-cards') : '.shell',
+  );
+  if (params.surface === 'wheel') await page.waitForTimeout(700);
   await page.evaluate(() => document.fonts.ready);
   await act(page, action);
   await page.screenshot({ path: path.join(out, `${name}.png`) });
