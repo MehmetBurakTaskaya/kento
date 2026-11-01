@@ -65,6 +65,58 @@ pub struct Output {
     pub folder: Option<PathBuf>,
 }
 
+/// The modifier key that opens a wheel while files are dragged (SPEC 5.2). `Command` is ⌘ on
+/// macOS and the Windows key elsewhere.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum Key {
+    Shift,
+    Control,
+    Alt,
+    Command,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Wheels {
+    /// The wheel opens while files are dragged anywhere on screen.
+    pub global: bool,
+    pub convert: Key,
+    pub tools: Key,
+    pub actions: Key,
+    /// Ctrl+Shift+Space (⌃⇧Space on macOS) opens the wheel for the files selected in Explorer or
+    /// Finder.
+    pub selection_shortcut: bool,
+}
+
+impl Default for Wheels {
+    fn default() -> Self {
+        let mac = cfg!(target_os = "macos");
+        Self {
+            global: true,
+            convert: Key::Shift,
+            tools: if mac { Key::Command } else { Key::Control },
+            actions: if mac { Key::Control } else { Key::Alt },
+            selection_shortcut: true,
+        }
+    }
+}
+
+/// Kento in Explorer (Windows): Send To and the classic context menu, off until switched on.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Shell {
+    pub send_to: bool,
+    pub context_menu: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ShelfSettings {
+    /// Keeps a copy of each shelved file, so moving or deleting the original loses nothing.
+    pub keep_copy: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -82,6 +134,9 @@ pub struct Settings {
     /// Jobs at the same time; None picks a number from the processor.
     pub concurrency: Option<u8>,
     pub wheel_size: u16,
+    pub wheels: Wheels,
+    pub shell: Shell,
+    pub shelf: ShelfSettings,
 }
 
 impl Default for Settings {
@@ -99,6 +154,9 @@ impl Default for Settings {
             output: Output::default(),
             concurrency: None,
             wheel_size: 360,
+            wheels: Wheels::default(),
+            shell: Shell::default(),
+            shelf: ShelfSettings::default(),
         }
     }
 }
@@ -126,6 +184,12 @@ impl Settings {
             .wheel_size
             .clamp(*WHEEL_SIZES.start(), *WHEEL_SIZES.end());
         self.concurrency = self.concurrency.map(|n| n.clamp(1, MAX_JOBS));
+        let keys = [self.wheels.convert, self.wheels.tools, self.wheels.actions];
+        if keys[0] == keys[1] || keys[0] == keys[2] || keys[1] == keys[2] {
+            let defaults = Wheels::default();
+            (self.wheels.convert, self.wheels.tools, self.wheels.actions) =
+                (defaults.convert, defaults.tools, defaults.actions);
+        }
         if self.output.location == OutputLocation::Folder && self.output.folder.is_none() {
             self.output.location = OutputLocation::NextToSource;
         }
