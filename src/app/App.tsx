@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: MIT
 // The main window: a navigation rail (Home, Library, Settings) and the open page. It follows the
 // appearance and motion settings, listens to the core's events and shows the window once painted.
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '../components/Icon';
+import { Toasts } from '../components/Toasts';
 import { api, type Section } from '../ipc';
 import { useApp } from '../state/store';
 import { applyTheme, getTheme, modeFor } from '../theme/registry';
+import { ToolPanel } from '../tools/ToolPanel';
+import { WheelDemo, wheelDemoRequested } from '../wheel';
 import { Home } from './Home';
+import { useFileInput } from './input';
 import { Library } from './Library';
 import { Settings } from './Settings';
+import { WheelHost } from './WheelHost';
 
 const NAV: { section: Section; icon: IconName; key: string; shortcut: string }[] = [
   { section: 'home', icon: 'home', key: 'nav.home', shortcut: '1' },
@@ -19,7 +24,8 @@ const NAV: { section: Section; icon: IconName; key: string; shortcut: string }[]
 
 export function App() {
   const { t } = useTranslation();
-  const { boot, settings, section, setSection, jobChanged, setPaused } = useApp();
+  const { boot, settings, section, setSection, jobChanged, setPaused, refreshLibrary } = useApp();
+  useFileInput(boot?.app.platform === 'macos');
 
   // Theme and motion follow the settings and the system.
   useEffect(() => {
@@ -42,9 +48,15 @@ export function App() {
 
   // Events from the core.
   useEffect(() => {
-    const stops = [api.onJob(jobChanged), api.onPaused(setPaused), api.onNavigate(setSection)];
+    const stops = [
+      api.onJob(jobChanged),
+      api.onPaused(setPaused),
+      api.onNavigate(setSection),
+      api.onLibrary(() => void refreshLibrary()),
+    ];
+    void refreshLibrary();
     return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
-  }, [jobChanged, setPaused, setSection]);
+  }, [jobChanged, setPaused, setSection, refreshLibrary]);
 
   // Ctrl+1, Ctrl+2 and Ctrl+, (⌘ on macOS) switch pages.
   useEffect(() => {
@@ -87,10 +99,21 @@ export function App() {
         ))}
       </nav>
       <main className="content">
-        {section === 'home' && <Home />}
-        {section === 'library' && <Library />}
-        {section === 'settings' && <Settings />}
+        {wheelDemoRequested() ? (
+          <Suspense fallback={null}>
+            <WheelDemo />
+          </Suspense>
+        ) : (
+          <>
+            {section === 'home' && <Home />}
+            {section === 'library' && <Library />}
+            {section === 'settings' && <Settings />}
+          </>
+        )}
       </main>
+      <WheelHost />
+      <ToolPanel />
+      <Toasts />
     </div>
   );
 }

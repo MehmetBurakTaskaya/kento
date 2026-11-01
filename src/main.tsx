@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 import '@fontsource-variable/ibm-plex-sans/wght.css';
 import './styles/global.css';
+import './styles/work.css';
 import './theme/steel';
+import { isTauri } from '@tauri-apps/api/core';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
@@ -23,6 +25,10 @@ async function start() {
   // Paint the first frame in the right theme; App keeps it in step afterwards.
   const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(document.documentElement, getTheme(boot.settings.theme), modeFor(boot.settings.appearance, dark));
+  // Screenshots and browser previews: ?files=demo fills Home with sample files.
+  if (!isTauri() && new URLSearchParams(window.location.search).get('files') === 'demo') {
+    await store.addFiles(await api.pickFiles());
+  }
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <App />

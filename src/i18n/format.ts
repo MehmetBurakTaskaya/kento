@@ -41,7 +41,8 @@ export function formatRelative(then: number, now: number, lang: string): string 
   ];
   let value = seconds;
   for (const [unit, size] of steps) {
-    if (Math.abs(value) < size) return rtf.format(Math.round(value), unit);
+    // Rounded first, so 59.9 minutes reads as an hour, not "60 minutes".
+    if (Math.abs(Math.round(value)) < size) return rtf.format(Math.round(value), unit);
     value /= size;
   }
   return rtf.format(Math.round(value), 'year');

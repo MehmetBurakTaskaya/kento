@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import { parse, TYPE, type MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import IntlMessageFormat from 'intl-messageformat';
 import { describe, expect, it } from 'vitest';
 import en from '../../locales/en.json';
@@ -9,9 +10,18 @@ import { pseudoLong, pseudoMirror } from './pseudo';
 
 const files = import.meta.glob<Record<string, string>>('../../locales/*.json', { eager: true, import: 'default' });
 
-/** The argument names an ICU message uses, such as count and name. */
+/** The argument names an ICU message uses, such as count and name (plural branches are not). */
 function argumentsOf(message: string): string[] {
-  return [...message.matchAll(/\{\s*(\w+)\s*[,}]/g)].map((m) => m[1]!).sort();
+  const found = new Set<string>();
+  const walk = (elements: MessageFormatElement[]) => {
+    for (const element of elements) {
+      if (element.type !== TYPE.literal && element.type !== TYPE.pound && 'value' in element) found.add(element.value);
+      if ('options' in element) Object.values(element.options).forEach((option) => walk(option.value));
+      if ('children' in element) walk(element.children);
+    }
+  };
+  walk(parse(message, { ignoreTag: true }));
+  return [...found].sort();
 }
 
 describe('locale files', () => {
@@ -35,13 +45,9 @@ describe('locale files', () => {
       for (const [key, text] of Object.entries(strings(file))) {
         expect(
           () =>
-            new IntlMessageFormat(text, code).format({
-              count: 2,
-              name: 'x',
-              language: 'x',
-              shortcut: 'x',
-              version: '1',
-            }),
+            new IntlMessageFormat(text, code).format(
+              Object.fromEntries(argumentsOf(text).map((argument) => [argument, 2])),
+            ),
           key,
         ).not.toThrow();
       }
@@ -86,6 +92,7 @@ describe('formatting', () => {
     expect(formatBytes(240_000, 'tr')).toBe('240 kB');
     expect(formatDuration(12_000, 'en')).toBe('12 sec');
     expect(formatRelative(Date.UTC(2026, 0, 1, 12, 0), Date.UTC(2026, 0, 1, 12, 2), 'en')).toBe('2 min. ago');
+    expect(formatRelative(Date.UTC(2026, 0, 1, 11, 0, 20), Date.UTC(2026, 0, 1, 12, 0), 'en')).toBe('1 hr. ago');
   });
 
   it('handles Turkish case and searches without accents', () => {

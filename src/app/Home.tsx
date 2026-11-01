@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
-// Home: the drop zone, recent results, the tool groups' setup state and running jobs. Dropping,
-// choosing and pasting files arrive with the engines in Phase 2.
+// Home (SPEC 5.9): the drop zone, the files to work on, recent results, the tool groups' setup
+// state and running jobs. Files arrive by dropping, choosing (Ctrl+O) or pasting (Ctrl+V).
 import { useTranslation } from 'react-i18next';
+import { FileIcon } from '../components/FileIcon';
 import { Icon } from '../components/Icon';
 import { formatDuration } from '../i18n/format';
 import { api } from '../ipc';
 import { useApp } from '../state/store';
+import { FileList } from './FileList';
+import { chooseFiles } from './input';
 
 /** The deposit slot of the steel theme, with the blue arrow going in. */
 function DepositSlot() {
@@ -41,30 +44,93 @@ const GROUPS = [
 
 export function Home() {
   const { t } = useTranslation();
-  const { boot, jobs, paused, language } = useApp();
+  const { boot, jobs, paused, language, files, selected, library, openWheel, target, removeFiles } = useApp();
   const mac = boot?.app.platform === 'macos';
   const active = Object.values(jobs).filter((job) => job.state === 'queued' || job.state === 'running');
+  const recent = library.filter((item) => item.exists).slice(0, 6);
+  const count = selected.size || files.length;
 
   return (
     <div className="page home">
-      <section className="drop" aria-labelledby="drop-title">
+      <section className={files.length ? 'drop compact' : 'drop'} aria-labelledby="drop-title">
         <DepositSlot />
         <h1 id="drop-title" className="drop-title">
           {t('home.drop.title')}
         </h1>
         <div className="drop-actions">
-          <button type="button" className="button primary" disabled>
+          <button
+            type="button"
+            className={files.length ? 'button' : 'button primary'}
+            aria-keyshortcuts={mac ? 'Meta+O' : 'Control+O'}
+            onClick={() => void chooseFiles()}
+          >
             {t('home.drop.choose')}
           </button>
           <span className="muted">{t('home.drop.paste', { shortcut: mac ? '⌘V' : 'Ctrl+V' })}</span>
         </div>
       </section>
 
+      {files.length > 0 && (
+        <section className="card files" aria-labelledby="files-title">
+          <div className="card-head">
+            <h2 id="files-title" className="card-title">
+              {t('home.files.title', { count: files.length })}
+            </h2>
+            <div className="card-actions">
+              <button
+                type="button"
+                className="button primary small"
+                aria-keyshortcuts="Enter"
+                onClick={() => openWheel('convert', target())}
+              >
+                <Icon name="dial" size={16} />
+                {t('home.files.convert', { count })}
+              </button>
+              <button
+                type="button"
+                className="button small"
+                aria-keyshortcuts={mac ? 'Meta+Space' : 'Control+Space'}
+                onClick={() => openWheel('tools', target())}
+              >
+                <Icon name="sliders" size={16} />
+                {t('home.files.tools')}
+              </button>
+              <button
+                type="button"
+                className="button quiet small"
+                onClick={() => removeFiles(files.map((f) => f.path))}
+              >
+                {t('home.files.clear')}
+              </button>
+            </div>
+          </div>
+          <FileList />
+        </section>
+      )}
+
       <section className="card recent" aria-labelledby="recent-title">
         <h2 id="recent-title" className="card-title">
           {t('home.recent.title')}
         </h2>
-        <p className="muted">{t('home.recent.empty')}</p>
+        {recent.length === 0 ? (
+          <p className="muted">{t('home.recent.empty')}</p>
+        ) : (
+          <ul className="recent-strip">
+            {recent.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className="recent-item"
+                  title={item.name}
+                  onClick={() => void api.libraryOpen(item.id)}
+                >
+                  <FileIcon path={item.path} category={item.category} folder={item.folder} size={48} />
+                  <bdi className="recent-name">{item.name}</bdi>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div className="home-row">
@@ -110,12 +176,18 @@ export function Home() {
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-valuenow={job.progress == null ? undefined : Math.round(job.progress * 100)}
+                        data-indeterminate={job.progress == null || undefined}
                       >
                         <span style={{ inlineSize: `${Math.round((job.progress ?? 0) * 100)}%` }} />
                       </span>
-                      {job.etaMs != null && <span className="muted">{formatDuration(job.etaMs, language)}</span>}
+                      {job.etaMs != null && (
+                        <span className="muted">
+                          {t('home.jobs.left', { time: formatDuration(job.etaMs, language) })}
+                        </span>
+                      )}
                     </>
                   )}
+                  {job.state === 'queued' && <span className="muted">{t('home.jobs.queued')}</span>}
                   <button
                     type="button"
                     className="icon-button"
