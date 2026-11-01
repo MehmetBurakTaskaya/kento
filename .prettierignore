@@ -1,0 +1,9 @@
+node_modules
+dist
+artifacts
+src-tauri
+design
+docs
+website-kit
+package-lock.json
+*.md
