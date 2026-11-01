@@ -275,6 +275,7 @@ pub fn run() {
             overlay::wheel::wheel_dropped,
             overlay::wheel::wheel_switch,
             overlay::wheel::wheel_closed,
+            overlay::wheel::wheel_haptic,
             overlay::toast::toast_cards,
             overlay::toast::toast_layout,
             overlay::toast::toast_dismiss,

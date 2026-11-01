@@ -270,6 +270,14 @@ pub fn wheel_switch(app: AppHandle, state: tauri::State<'_, AppState>, kind: Kin
     }
 }
 
+/// A light tap on a Force Touch trackpad when the wheel turns to a slice (macOS; SPEC 5.3).
+#[tauri::command]
+pub fn wheel_haptic(app: AppHandle, state: tauri::State<'_, AppState>) {
+    if cfg!(target_os = "macos") && state.settings().haptics {
+        let _ = app.run_on_main_thread(platform::haptic_tick);
+    }
+}
+
 /// The wheel finished closing: it moves away and forgets the session.
 #[tauri::command]
 pub fn wheel_closed(app: AppHandle, state: tauri::State<'_, AppState>) {

@@ -78,6 +78,8 @@ export interface WheelProps {
   /** Floating over other apps in its own transparent window: no dimmed backdrop. */
   overlay?: boolean;
   control?: Ref<WheelControl>;
+  /** Called when the dial turns to an available slice (a haptic tap on macOS trackpads). */
+  onTick?: () => void;
 }
 
 type Phase = 'opening' | 'open' | 'applying' | 'applied' | 'closing' | 'closed';
@@ -133,6 +135,7 @@ export function Wheel({
   size = 360,
   overlay = false,
   control,
+  onTick,
 }: WheelProps): JSX.Element {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
@@ -320,7 +323,10 @@ export function Wheel({
     setHover(index);
     if (index === null) return;
     setDial((angle) => turnTo(angle, geometry[index]!.mid));
-    if (!items[index]!.disabled) playWheelSound('tick', sound);
+    if (!items[index]!.disabled) {
+      playWheelSound('tick', sound);
+      onTick?.();
+    }
   };
 
   const goToPage = (target: number, onPaging: boolean) => {

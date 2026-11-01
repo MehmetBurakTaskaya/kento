@@ -29,13 +29,31 @@ pub fn plugin() -> TauriPlugin<Wry> {
 
 fn open_for_selection(app: &AppHandle) {
     let lang = app.state::<AppState>().lang();
-    match platform::file_manager_selection() {
+    match read_selection(app) {
         Ok(paths) if !paths.is_empty() => wheel::open_for(app, paths, wheel::Kind::Convert),
         Ok(_) => toast::note(app, i18n::text(&lang, "shortcut.nothing")),
         Err(PlatformError::Permission(_)) => {
             toast::note(app, i18n::text(&lang, "shortcut.permission"))
         }
         Err(err) => tracing::warn!("the selection could not be read: {err}"),
+    }
+}
+
+/// Finder answers Apple Events only from the main thread; Explorer's COM is set up per thread.
+fn read_selection(app: &AppHandle) -> platform::Result<Vec<std::path::PathBuf>> {
+    if cfg!(target_os = "macos") {
+        let (tx, rx) = std::sync::mpsc::channel();
+        app.run_on_main_thread(move || {
+            let _ = tx.send(platform::file_manager_selection());
+        })
+        .map_err(|err| PlatformError::Failed(err.to_string()))?;
+        rx.recv().unwrap_or_else(|_| {
+            Err(PlatformError::Failed(
+                "no answer from the main thread".into(),
+            ))
+        })
+    } else {
+        platform::file_manager_selection()
     }
 }
 

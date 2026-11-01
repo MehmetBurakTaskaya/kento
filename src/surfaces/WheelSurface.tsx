@@ -122,6 +122,7 @@ export function WheelSurface() {
       sound={settings.sound}
       reducedMotion={reducedMotion()}
       size={settings.wheelSize}
+      onTick={mac ? () => void api.haptic() : undefined}
       onBack={view.back ? () => setRing(view.back!()) : undefined}
       onClose={finish}
       onApply={(id) => {

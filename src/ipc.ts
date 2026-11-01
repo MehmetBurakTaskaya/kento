@@ -266,6 +266,7 @@ export interface Api {
   shelfDrag(ids: number[]): Promise<void>;
   onShelf(handler: () => void): Promise<UnlistenFn>;
   onSettings(handler: (saved: Saved) => void): Promise<UnlistenFn>;
+  haptic(): Promise<void>;
 }
 
 const tauriApi: Api = {
@@ -348,6 +349,7 @@ const tauriApi: Api = {
   shelfDrag: (ids) => invoke('shelf_drag', { ids }),
   onShelf: (handler) => listen('shelf', () => handler()),
   onSettings: (handler) => listen<Saved>('settings', (event) => handler(event.payload)),
+  haptic: () => invoke('wheel_haptic'),
 };
 
 /** PNG bytes from a command as an image Blob; a file without a preview gives null. */
@@ -549,6 +551,7 @@ export function browserApi(params: URLSearchParams): Api {
     shelfDrag: async () => {},
     onShelf: async () => () => {},
     onSettings: async () => () => {},
+    haptic: async () => {},
   };
 }
 

@@ -92,6 +92,7 @@ export function WheelHost() {
     reducedMotion: document.documentElement.classList.contains('reduce-motion'),
     size: settings.wheelSize,
     onClose: closeWheel,
+    onTick: mac ? () => void api.haptic() : undefined,
   };
   const failed = (error: unknown) => toast({ kind: 'info', message: String(error) });
 
