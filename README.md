@@ -23,9 +23,10 @@ You need Node.js 24, the stable Rust toolchain (with the MSVC build tools on Win
 
 ```sh
 npm ci
+npm run pdfium           # the pinned PDFium library Kento ships with
 npm run tauri dev        # run Kento with live reload
 npm test                 # page tests
-cargo test --manifest-path src-tauri/Cargo.toml
+cargo test --manifest-path src-tauri/Cargo.toml --workspace
 ```
 
 The design of the default theme is in [design/DESIGN.md](design/DESIGN.md), the specification in [docs/SPEC.md](docs/SPEC.md) and the code's structure in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

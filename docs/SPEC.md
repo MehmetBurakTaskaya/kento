@@ -93,15 +93,17 @@ Rust side (current versions are verified when added; a better option is proposed
 - Tauri plugins: global-shortcut, updater, dialog, fs, store, single-instance, autostart, clipboard-manager, deep-link, log, opener, notification.
 - Dragging out of the app (shelf/library → Explorer/Finder): the `drag` crate (CrabNebula).
 - Platform layer: the `windows` crate (Win32, COM, WinRT); on macOS `objc2`, `objc2-app-kit`, `objc2-foundation`.
-- Images: `image`, `resvg`/`usvg` (SVG), AVIF support. HEIC in this order of preference:
+- Images: `image`, `resvg`/`usvg` (SVG). AVIF is decoded in pure Rust (`avif-parse`, `rav1d`, `yuv`) and encoded with `ravif`, both without assembly code, so the build needs no assembler. Lossy WEBP through libwebp (`webp`). HEIC through the system:
   - macOS: ImageIO (read and write).
-  - Windows: WIC first (when the HEIF/HEVC extensions are installed), then a dynamically linked libheif DLL (LGPL), and reading through FFmpeg as a last resort.
-  - Writing HEIC is offered only when a reliable encoder exists.
+  - Windows: WIC with the free HEIF Image Extensions (read and write); without them the job says what to install. Reading through FFmpeg is added once the media tools exist (Phase 4). A bundled libheif was considered and left out: it would ship an LGPL library that WIC and FFmpeg make unnecessary.
+  - Writing HEIC is offered only when a reliable encoder exists (a test encode at start).
 - PDF:
-  - `pdfium-render` + a bundled PDFium binary (bblanchon/pdfium-binaries): page rendering and text extraction.
+  - `pdfium-render` + a bundled PDFium binary (bblanchon/pdfium-binaries, one pinned release checked by SHA-256, fetched by `npm run pdfium`): page rendering and text extraction. Every PDFium call goes through one lock.
   - `lopdf`: merge, split, rotate, reorder.
-- Archives: `zip`, `tar`, `flate2`, `sevenz-rust2`. RAR is extract-only (`unrar` crate); the UnRAR license allows extraction only, which the notices file states.
+- Archives: `zip`, `tar`, `flate2`, `sevenz-rust2`. RAR is extract-only, through the UnRAR library (`unrar_sys`) in its test mode, so the library writes nothing itself and Kento applies its own path and size checks; the UnRAR license allows extraction only, which the notices file states.
 - QR: `rxing` (read), `qrcode` (generate **[+]**).
+- Spreadsheets without an office suite: `calamine` (read XLS, XLSX, ODS), `rust_xlsxwriter` (write XLSX), `csv`.
+- Text: `pulldown-cmark`, `htmd`, `html2text`, `encoding_rs`, `plist` (TEXTCLIPPING).
 - Other: `notify`, `tokio`, `serde`, `thiserror`, `tracing`, `reqwest` (with rustls; resumable downloads with Range), `sha2`, `ort` (ONNX Runtime, downloaded on request).
 
 ### 4.2 External tools
@@ -129,10 +131,10 @@ Rules:
 /src-tauri/src
   catalog/      formats, routes, tools        ← the single source of truth
   jobs/         queue, progress, cancel, naming
-  engines/      image, pdf, archive, text, qr, ffmpeg, libreoffice, ytdlp, exiftool, bgremove, ocr
   toolchain/    manifest, download, verify, detect
   platform/     traits + windows/ + macos/ (drag detection, selection, sharing, terminal, tray, window layouts)
   shelf/ library/ automation/ recipes/ settings/ updater/ cli/
+/src-tauri/engines   the engines as their own crate: image, pdf, archive, text, subtitle, sheet, qr; later ffmpeg, libreoffice, ytdlp, exiftool, bgremove, ocr
 /src            frontend: windows/{main,wheel,shelf,toast,editors}, components, locales/{en,tr,...}
 /design         DESIGN.md, icons/
 /docs           SPEC.md, ROADMAP.md, ARCHITECTURE.md, FORMATS.md (generated from the catalog), IDEAS.md, integrations/pano.md
@@ -284,6 +286,8 @@ Notes:
 - **Apple formats.** PAGES, KEY and NUMBERS are read through LibreOffice. Writing Pages is not supported, because it is not reliable across platforms.
 - **macOS-specific formats.** RTFD and TEXTCLIPPING are read best-effort on both platforms.
 - **Complex documents.** The interface says honestly that not every feature can be preserved.
+- **Spreadsheets without an office suite.** CSV, TSV, XLS, XLSX and ODS convert to CSV, TSV, XLSX and HTML in the core (values only; to CSV and TSV the first sheet). ODS and PDF outputs use LibreOffice.
+- **Encrypted PDFs** are refused, also those with only an owner password, so no document loses its restrictions.
 - **Route count.** The total number of routes is computed in `FORMATS.md`.
 
 ### 5.5 Tools (27 core tools + enhancements)
@@ -724,7 +728,7 @@ Rules for every theme:
 
 **Size**
 
-- Release profile: `opt-level = "s"`, `lto = true`, `codegen-units = 1`, `strip = true`, `panic = "abort"`.
+- Release profile: `opt-level = "s"`, `lto = true`, `codegen-units = 1`, `strip = true`. Panics unwind rather than abort, so a parser that panics on a malformed file ends that job and not the app.
 - Default features of heavy crates are turned off.
 - The installer size is reported at the end of every phase.
 

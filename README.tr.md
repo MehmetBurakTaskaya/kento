@@ -23,9 +23,10 @@ Node.js 24, kararlı Rust araç zinciri (Windows'ta MSVC derleme araçlarıyla) 
 
 ```sh
 npm ci
+npm run pdfium           # Kento ile gelen sabit sürümlü PDFium kütüphanesi
 npm run tauri dev        # Kento'yu canlı yenilemeyle çalıştır
 npm test                 # sayfa testleri
-cargo test --manifest-path src-tauri/Cargo.toml
+cargo test --manifest-path src-tauri/Cargo.toml --workspace
 ```
 
 Varsayılan temanın tasarımı [design/DESIGN.md](design/DESIGN.md), şartname [docs/SPEC.md](docs/SPEC.md), kodun yapısı [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) dosyasında.

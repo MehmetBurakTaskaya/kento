@@ -23,12 +23,14 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 2: core local engines
 
-- [ ] Image conversions
-- [ ] PDF tools: merge, split, edit, PDF from images, PDF to images
-- [ ] Archive extraction and creation
-- [ ] QR reading
-- [ ] Text, subtitle and spreadsheet conversions
-- [ ] In-app wheel, drop zone, paste, Library and success card
+- [x] Engines crate (`src-tauri/engines`) and the pinned PDFium download
+- [x] Image conversions, with ICO [+] and HEIC through the system
+- [x] PDF tools: merge, split, edit, PDF from images, PDF to images and text
+- [x] Archive extraction and creation, with 7Z [+]
+- [x] QR reading
+- [x] Text, subtitle and spreadsheet conversions (spreadsheets without an office suite)
+- [x] In-app wheel (the steel safe dial), drop zone, paste, Library and success card
+- [x] Batch conversion [+]
 
 ## Phase 3: global wheel and desktop integration
 
