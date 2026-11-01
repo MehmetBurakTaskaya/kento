@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Every tracked source file starts with the SPDX line (in its first three lines).
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -11,11 +12,10 @@ const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclud
   encoding: 'utf8',
 })
   .split('\n')
-  .filter((file) => CODE.test(file));
+  // A file deleted but not yet committed is still listed by git.
+  .filter((file) => CODE.test(file) && existsSync(join(root, file)));
 const missing = files.filter((file) => {
-  const head = readFileSync(new URL(file, `file:///${root.replace(/\\/g, '/')}/`), 'utf8')
-    .split('\n', 3)
-    .join('\n');
+  const head = readFileSync(join(root, file), 'utf8').split('\n', 3).join('\n');
   return !head.includes('SPDX-License-Identifier: MIT');
 });
 if (missing.length) {

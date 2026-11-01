@@ -15,11 +15,22 @@ const codes = readdirSync(dir)
   .map((file) => file.slice(0, -5))
   .sort();
 const strings = (dict) => Object.fromEntries(Object.entries(dict).filter(([key]) => !key.startsWith('@')));
-const args = (text) =>
-  [...text.matchAll(/\{\s*(\w+)\s*[,}]/g)]
-    .map((m) => m[1])
-    .sort()
-    .join(',');
+// The argument names a message uses, from its ICU syntax tree (plural branches are not arguments).
+const names = (elements, found = new Set()) => {
+  for (const element of elements) {
+    if (element.type >= 1 && element.type <= 6) found.add(element.value);
+    for (const option of Object.values(element.options ?? {})) names(option.value, found);
+    if (element.children) names(element.children, found);
+  }
+  return found;
+};
+const args = (text) => {
+  try {
+    return [...names(parse(text, { ignoreTag: true }))].sort().join(',');
+  } catch {
+    return '';
+  }
+};
 
 const problems = [];
 const waiting = [];
