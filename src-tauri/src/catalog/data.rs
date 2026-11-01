@@ -1,0 +1,676 @@
+// SPDX-License-Identifier: MIT
+//! The catalog's entries, following the conversion matrix and the tool list of SPEC 5.4 and 5.5.
+
+use std::sync::OnceLock;
+
+use super::{Action, Category, Engine, Format, Platforms, Route, Status, Tool, ToolGroup};
+
+const fn f(
+    id: &'static str,
+    label: &'static str,
+    category: Category,
+    extensions: &'static [&'static str],
+    read: bool,
+    write: bool,
+    enhancement: bool,
+) -> Format {
+    Format {
+        id,
+        label,
+        category,
+        extensions,
+        read,
+        write,
+        enhancement,
+    }
+}
+
+use Category::*;
+
+const FORMATS: &[Format] = &[
+    // Image (9 inputs; ICO is an output only)
+    f("avif", "AVIF", Image, &["avif"], true, true, false),
+    f("bmp", "BMP", Image, &["bmp"], true, true, false),
+    f("gif", "GIF", Image, &["gif"], true, true, false),
+    f("heic", "HEIC", Image, &["heic", "heif"], true, true, false),
+    f("jpg", "JPG", Image, &["jpg", "jpeg"], true, true, false),
+    f("png", "PNG", Image, &["png"], true, true, false),
+    f("svg", "SVG", Image, &["svg"], true, false, false),
+    f("tiff", "TIFF", Image, &["tif", "tiff"], true, true, false),
+    f("webp", "WEBP", Image, &["webp"], true, true, false),
+    f("ico", "ICO", Image, &["ico"], false, true, true),
+    // Video (7 inputs with GIF)
+    f("avi", "AVI", Video, &["avi"], true, true, false),
+    f("mkv", "MKV", Video, &["mkv"], true, true, false),
+    f("mov", "MOV", Video, &["mov"], true, true, false),
+    f("mp4", "MP4", Video, &["mp4", "m4v"], true, true, false),
+    f("webm", "WEBM", Video, &["webm"], true, true, false),
+    f("wmv", "WMV", Video, &["wmv"], true, true, false),
+    // Audio (8)
+    f("aiff", "AIFF", Audio, &["aif", "aiff"], true, true, false),
+    f("flac", "FLAC", Audio, &["flac"], true, true, false),
+    f("m4a", "M4A", Audio, &["m4a"], true, true, false),
+    f("mp3", "MP3", Audio, &["mp3"], true, true, false),
+    f("ogg", "OGG", Audio, &["ogg", "oga"], true, true, false),
+    f("opus", "OPUS", Audio, &["opus"], true, true, false),
+    f("wav", "WAV", Audio, &["wav"], true, true, false),
+    f("wma", "WMA", Audio, &["wma"], true, true, false),
+    // Document and text (9 inputs, ODT and DOC as [+])
+    f("docx", "DOCX", Document, &["docx"], true, true, false),
+    f("rtf", "RTF", Document, &["rtf"], true, true, false),
+    f("rtfd", "RTFD", Document, &["rtfd"], true, false, false),
+    f("txt", "TXT", Document, &["txt"], true, true, false),
+    f("md", "MD", Document, &["md", "markdown"], true, true, false),
+    f(
+        "html",
+        "HTML",
+        Document,
+        &["html", "htm"],
+        true,
+        true,
+        false,
+    ),
+    f("epub", "EPUB", Document, &["epub"], true, true, false),
+    f("pages", "PAGES", Document, &["pages"], true, false, false),
+    f(
+        "textclipping",
+        "TEXTCLIPPING",
+        Document,
+        &["textclipping"],
+        true,
+        false,
+        false,
+    ),
+    f("odt", "ODT", Document, &["odt"], true, true, true),
+    f("doc", "DOC", Document, &["doc"], true, false, true),
+    // Spreadsheet (5 inputs, NUMBERS as [+])
+    f("csv", "CSV", Spreadsheet, &["csv"], true, true, false),
+    f("tsv", "TSV", Spreadsheet, &["tsv"], true, true, false),
+    f("xls", "XLS", Spreadsheet, &["xls"], true, false, false),
+    f("xlsx", "XLSX", Spreadsheet, &["xlsx"], true, true, false),
+    f("ods", "ODS", Spreadsheet, &["ods"], true, true, false),
+    f(
+        "numbers",
+        "NUMBERS",
+        Spreadsheet,
+        &["numbers"],
+        true,
+        false,
+        true,
+    ),
+    // Presentation (2 inputs, ODP and KEY as [+])
+    f("ppt", "PPT", Presentation, &["ppt"], true, false, false),
+    f("pptx", "PPTX", Presentation, &["pptx"], true, true, false),
+    f("odp", "ODP", Presentation, &["odp"], true, true, true),
+    f("key", "KEY", Presentation, &["key"], true, false, true),
+    // Subtitles
+    f("srt", "SRT", Subtitle, &["srt"], true, true, false),
+    f("vtt", "VTT", Subtitle, &["vtt"], true, true, false),
+    // PDF
+    f("pdf", "PDF", Pdf, &["pdf"], true, true, false),
+    // Archive (4 inputs, 7Z as [+]); a .tar.gz is read as GZ and written as TAR.GZ
+    f("zip", "ZIP", Archive, &["zip"], true, true, false),
+    f("tar", "TAR", Archive, &["tar"], true, true, false),
+    f("gz", "GZ", Archive, &["gz", "tgz"], true, false, false),
+    f("tar-gz", "TAR.GZ", Archive, &["tar.gz"], false, true, false),
+    f("rar", "RAR", Archive, &["rar"], true, false, false),
+    f("7z", "7Z", Archive, &["7z"], true, true, true),
+];
+
+pub fn formats() -> &'static [Format] {
+    FORMATS
+}
+
+struct Routes(Vec<Route>);
+
+impl Routes {
+    /// Adds every from → to pair that is not already there and not a conversion to itself.
+    #[allow(clippy::too_many_arguments)]
+    fn add(
+        &mut self,
+        from: &[&'static str],
+        to: &[&'static str],
+        engine: Engine,
+        group: ToolGroup,
+        enhancement: bool,
+        note: Option<&'static str>,
+    ) -> &mut Self {
+        for &a in from {
+            for &b in to {
+                let same = a == b || (a == "gz" && b == "tar-gz");
+                if same || self.0.iter().any(|r| r.from == a && r.to == b) {
+                    continue;
+                }
+                let enhancement = enhancement || is_enhancement(a) || is_enhancement(b);
+                self.0.push(Route {
+                    from: a,
+                    to: b,
+                    engine,
+                    group,
+                    platforms: Platforms::Both,
+                    status: Status::Planned,
+                    enhancement,
+                    note,
+                });
+            }
+        }
+        self
+    }
+}
+
+fn is_enhancement(id: &str) -> bool {
+    FORMATS
+        .iter()
+        .any(|format| format.id == id && format.enhancement)
+}
+
+const IMAGE_IN: &[&str] = &["avif", "bmp", "gif", "jpg", "png", "svg", "tiff", "webp"];
+const IMAGE_OUT: &[&str] = &["jpg", "png", "webp", "avif", "bmp", "tiff", "gif", "pdf"];
+// An animated GIF has no sound: it becomes a video only (MP4, WEBM, MOV).
+const VIDEO_IN: &[&str] = &["avi", "mkv", "mov", "mp4", "webm", "wmv"];
+const VIDEO_OUT: &[&str] = &["mp4", "mov", "mkv", "webm", "avi", "wmv", "gif", "mp3"];
+const AUDIO: &[&str] = &["aiff", "flac", "m4a", "mp3", "ogg", "opus", "wav", "wma"];
+const TEXT: &[&str] = &["txt", "md", "html"];
+const DOC_IN: &[&str] = &[
+    "docx",
+    "rtf",
+    "rtfd",
+    "txt",
+    "md",
+    "html",
+    "epub",
+    "pages",
+    "textclipping",
+    "odt",
+    "doc",
+];
+const DOC_OUT: &[&str] = &["pdf", "docx", "odt", "rtf", "txt", "md", "html", "epub"];
+const SHEET_IN: &[&str] = &["csv", "tsv", "xls", "xlsx", "ods", "numbers"];
+const SHEET_OUT: &[&str] = &["xlsx", "ods", "csv", "tsv", "pdf", "html"];
+const SLIDES_IN: &[&str] = &["ppt", "pptx", "odp", "key"];
+const ARCHIVE_IN: &[&str] = &["zip", "tar", "gz", "rar", "7z"];
+const ARCHIVE_OUT: &[&str] = &["zip", "tar", "tar-gz", "7z"];
+
+pub fn routes() -> &'static [Route] {
+    static ROUTES: OnceLock<Vec<Route>> = OnceLock::new();
+    ROUTES.get_or_init(|| {
+        use Engine as E;
+        use ToolGroup as G;
+        let mut r = Routes(Vec::new());
+        r.add(IMAGE_IN, IMAGE_OUT, E::Image, G::Core, false, None)
+            .add(
+                &["heic"],
+                IMAGE_OUT,
+                E::Heif,
+                G::Core,
+                false,
+                Some("read with the system's HEIF support"),
+            )
+            .add(
+                IMAGE_IN,
+                &["heic"],
+                E::Heif,
+                G::Core,
+                false,
+                Some("only where a reliable HEIC encoder exists"),
+            )
+            .add(
+                IMAGE_IN,
+                &["ico"],
+                E::Image,
+                G::Core,
+                true,
+                Some("several sizes in one icon"),
+            )
+            .add(&["heic"], &["ico"], E::Heif, G::Core, true, None)
+            .add(
+                &["gif"],
+                &["mp4", "webm", "mov"],
+                E::Ffmpeg,
+                G::Media,
+                false,
+                Some("animated GIF"),
+            )
+            .add(VIDEO_IN, VIDEO_OUT, E::Ffmpeg, G::Media, false, None)
+            .add(VIDEO_IN, &["m4a", "wav"], E::Ffmpeg, G::Media, true, None)
+            .add(AUDIO, AUDIO, E::Ffmpeg, G::Media, false, None)
+            .add(TEXT, TEXT, E::Text, G::Core, false, None)
+            .add(
+                &["textclipping"],
+                &["txt"],
+                E::Text,
+                G::Core,
+                false,
+                Some("best effort"),
+            )
+            .add(DOC_IN, DOC_OUT, E::LibreOffice, G::Office, false, None)
+            .add(
+                &["csv", "tsv"],
+                &["csv", "tsv"],
+                E::Text,
+                G::Core,
+                false,
+                None,
+            )
+            .add(SHEET_IN, SHEET_OUT, E::LibreOffice, G::Office, false, None)
+            .add(
+                SLIDES_IN,
+                &["pdf", "pptx", "odp"],
+                E::LibreOffice,
+                G::Office,
+                false,
+                None,
+            )
+            .add(
+                SLIDES_IN,
+                &["png", "jpg"],
+                E::LibreOffice,
+                G::Office,
+                false,
+                Some("one image per slide"),
+            )
+            .add(
+                &["srt", "vtt"],
+                &["srt", "vtt", "txt"],
+                E::Text,
+                G::Core,
+                false,
+                None,
+            )
+            .add(
+                &["pdf"],
+                &["jpg", "png"],
+                E::Pdf,
+                G::Core,
+                false,
+                Some("one image per page"),
+            )
+            .add(
+                &["pdf"],
+                &["txt", "md"],
+                E::Pdf,
+                G::Core,
+                false,
+                Some("text only"),
+            )
+            .add(
+                &["pdf"],
+                &["pptx"],
+                E::LibreOffice,
+                G::Office,
+                false,
+                Some("with page images"),
+            )
+            .add(
+                &["pdf"],
+                &["xlsx"],
+                E::LibreOffice,
+                G::Office,
+                false,
+                Some("best effort"),
+            )
+            .add(
+                &["pdf"],
+                &["docx", "epub", "html"],
+                E::LibreOffice,
+                G::Office,
+                false,
+                None,
+            )
+            .add(ARCHIVE_IN, ARCHIVE_OUT, E::Archive, G::Core, false, None);
+        for route in &mut r.0 {
+            if matches!(route.from, "rtfd" | "textclipping") && route.note.is_none() {
+                route.note = Some("best effort");
+            }
+            if route.from == "rar" {
+                route.note = Some("extract only (UnRAR licence)");
+            }
+        }
+        r.0
+    })
+}
+
+const fn tool(
+    id: &'static str,
+    categories: &'static [Category],
+    engine: Engine,
+    group: ToolGroup,
+    icon: &'static str,
+    enhancement: bool,
+    note: Option<&'static str>,
+) -> Tool {
+    Tool {
+        id,
+        categories,
+        engine,
+        group,
+        platforms: Platforms::Both,
+        status: Status::Planned,
+        enhancement,
+        icon,
+        note,
+    }
+}
+
+const TOOLS: &[Tool] = &[
+    // Image
+    tool(
+        "compress",
+        &[Image, Video, Audio, Pdf],
+        Engine::Image,
+        ToolGroup::Core,
+        "compress",
+        false,
+        Some("video and audio need the Media tools; PDF compression is [+]"),
+    ),
+    tool(
+        "metadata",
+        &[Image, Pdf, Video, Audio],
+        Engine::ExifTool,
+        ToolGroup::Extras,
+        "tag",
+        false,
+        Some("media files also use ffprobe from the Media tools"),
+    ),
+    tool(
+        "edit-image",
+        &[Image],
+        Engine::Image,
+        ToolGroup::Core,
+        "sliders",
+        false,
+        None,
+    ),
+    tool(
+        "markup",
+        &[Image],
+        Engine::Image,
+        ToolGroup::Core,
+        "pen",
+        false,
+        None,
+    ),
+    tool(
+        "frame",
+        &[Image],
+        Engine::Image,
+        ToolGroup::Core,
+        "frame",
+        false,
+        None,
+    ),
+    tool(
+        "crop-image",
+        &[Image],
+        Engine::Image,
+        ToolGroup::Core,
+        "crop",
+        false,
+        None,
+    ),
+    tool(
+        "collage",
+        &[Image],
+        Engine::Image,
+        ToolGroup::Core,
+        "grid",
+        false,
+        None,
+    ),
+    tool(
+        "redact-image",
+        &[Image],
+        Engine::Image,
+        ToolGroup::Core,
+        "redact",
+        false,
+        None,
+    ),
+    tool(
+        "read-qr",
+        &[Image, Pdf],
+        Engine::Qr,
+        ToolGroup::Core,
+        "qr",
+        false,
+        None,
+    ),
+    tool(
+        "make-qr",
+        &[],
+        Engine::Qr,
+        ToolGroup::Core,
+        "qr",
+        true,
+        Some("from text or a link"),
+    ),
+    // PDF
+    tool(
+        "split-pdf",
+        &[Pdf],
+        Engine::Pdf,
+        ToolGroup::Core,
+        "doc",
+        false,
+        None,
+    ),
+    tool(
+        "edit-pdf",
+        &[Pdf],
+        Engine::Pdf,
+        ToolGroup::Core,
+        "doc",
+        false,
+        None,
+    ),
+    tool(
+        "merge-pdf",
+        &[Pdf],
+        Engine::Pdf,
+        ToolGroup::Core,
+        "doc",
+        false,
+        None,
+    ),
+    tool(
+        "images-to-pdf",
+        &[Image],
+        Engine::Pdf,
+        ToolGroup::Core,
+        "doc",
+        false,
+        None,
+    ),
+    // Archive
+    tool(
+        "extract",
+        &[Archive],
+        Engine::Archive,
+        ToolGroup::Core,
+        "zip",
+        false,
+        None,
+    ),
+    // Video
+    tool(
+        "mute",
+        &[Video],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "video",
+        false,
+        None,
+    ),
+    tool(
+        "trim-video",
+        &[Video],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "video",
+        false,
+        None,
+    ),
+    tool(
+        "crop-video",
+        &[Video],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "crop",
+        false,
+        None,
+    ),
+    tool(
+        "speed",
+        &[Video],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "video",
+        false,
+        None,
+    ),
+    tool(
+        "merge-video",
+        &[Video],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "video",
+        false,
+        None,
+    ),
+    tool(
+        "frames",
+        &[Video],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "image",
+        false,
+        None,
+    ),
+    tool(
+        "split-video",
+        &[Video],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "video",
+        false,
+        None,
+    ),
+    tool(
+        "redact-video",
+        &[Video],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "redact",
+        false,
+        None,
+    ),
+    // Audio
+    tool(
+        "normalize",
+        &[Audio],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "music",
+        false,
+        None,
+    ),
+    tool(
+        "trim-audio",
+        &[Audio],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "music",
+        false,
+        None,
+    ),
+    tool(
+        "channels",
+        &[Audio],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "music",
+        false,
+        None,
+    ),
+    tool(
+        "redact-audio",
+        &[Audio],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "music",
+        false,
+        None,
+    ),
+    tool(
+        "audio-to-video",
+        &[Audio],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "video",
+        false,
+        None,
+    ),
+    // Enhancements
+    tool(
+        "remove-background",
+        &[Image],
+        Engine::BackgroundRemoval,
+        ToolGroup::Extras,
+        "cutout",
+        true,
+        Some("permissively licensed models only"),
+    ),
+    tool(
+        "ocr",
+        &[Image, Pdf],
+        Engine::Ocr,
+        ToolGroup::Core,
+        "doc",
+        true,
+        Some("Windows OCR and Apple Vision"),
+    ),
+    tool(
+        "burn-subtitles",
+        &[Video, Subtitle],
+        Engine::Ffmpeg,
+        ToolGroup::Media,
+        "video",
+        true,
+        None,
+    ),
+];
+
+pub fn tools() -> &'static [Tool] {
+    TOOLS
+}
+
+const fn action(
+    id: &'static str,
+    icon: &'static str,
+    enhancement: bool,
+    per_platform: bool,
+) -> Action {
+    Action {
+        id,
+        platforms: Platforms::Both,
+        status: Status::Planned,
+        enhancement,
+        icon,
+        per_platform,
+    }
+}
+
+const ACTIONS: &[Action] = &[
+    action("share", "share", false, false),
+    action("shelf", "shelf", false, false),
+    action("copy", "copy", false, false),
+    action("move", "move", false, false),
+    action("copy-path", "link", false, false),
+    action("terminal", "terminal", false, false),
+    action("reveal", "folder", true, true),
+    action("zip", "zip", true, false),
+];
+
+pub fn actions() -> &'static [Action] {
+    ACTIONS
+}

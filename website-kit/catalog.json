@@ -1,0 +1,4916 @@
+{
+  "actions": [
+    {
+      "enhancement": false,
+      "icon": "share",
+      "id": "share",
+      "names": [
+        {
+          "en": "Share",
+          "tr": "Paylaş"
+        }
+      ],
+      "perPlatform": false,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "enhancement": false,
+      "icon": "shelf",
+      "id": "shelf",
+      "names": [
+        {
+          "en": "Put on shelf",
+          "tr": "Rafa koy"
+        }
+      ],
+      "perPlatform": false,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "enhancement": false,
+      "icon": "copy",
+      "id": "copy",
+      "names": [
+        {
+          "en": "Copy to…",
+          "tr": "Kopyala…"
+        }
+      ],
+      "perPlatform": false,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "enhancement": false,
+      "icon": "move",
+      "id": "move",
+      "names": [
+        {
+          "en": "Move to…",
+          "tr": "Taşı…"
+        }
+      ],
+      "perPlatform": false,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "enhancement": false,
+      "icon": "link",
+      "id": "copy-path",
+      "names": [
+        {
+          "en": "Copy path",
+          "tr": "Yolu kopyala"
+        }
+      ],
+      "perPlatform": false,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "enhancement": false,
+      "icon": "terminal",
+      "id": "terminal",
+      "names": [
+        {
+          "en": "Open in terminal",
+          "tr": "Terminalde aç"
+        }
+      ],
+      "perPlatform": false,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "enhancement": true,
+      "icon": "folder",
+      "id": "reveal",
+      "names": [
+        {
+          "en": "Show in Explorer",
+          "tr": "Explorer'da göster"
+        },
+        {
+          "en": "Show in Finder",
+          "tr": "Finder'da göster"
+        }
+      ],
+      "perPlatform": true,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "enhancement": true,
+      "icon": "zip",
+      "id": "zip",
+      "names": [
+        {
+          "en": "Archive (ZIP)",
+          "tr": "Arşivle (ZIP)"
+        }
+      ],
+      "perPlatform": false,
+      "platforms": "both",
+      "status": "planned"
+    }
+  ],
+  "categories": [
+    {
+      "id": "image",
+      "names": {
+        "en": "Image",
+        "tr": "Görsel"
+      }
+    },
+    {
+      "id": "video",
+      "names": {
+        "en": "Video",
+        "tr": "Video"
+      }
+    },
+    {
+      "id": "audio",
+      "names": {
+        "en": "Audio",
+        "tr": "Ses"
+      }
+    },
+    {
+      "id": "document",
+      "names": {
+        "en": "Document",
+        "tr": "Belge"
+      }
+    },
+    {
+      "id": "spreadsheet",
+      "names": {
+        "en": "Spreadsheet",
+        "tr": "Tablo"
+      }
+    },
+    {
+      "id": "presentation",
+      "names": {
+        "en": "Presentation",
+        "tr": "Sunum"
+      }
+    },
+    {
+      "id": "subtitle",
+      "names": {
+        "en": "Subtitles",
+        "tr": "Altyazı"
+      }
+    },
+    {
+      "id": "pdf",
+      "names": {
+        "en": "PDF",
+        "tr": "PDF"
+      }
+    },
+    {
+      "id": "archive",
+      "names": {
+        "en": "Archive",
+        "tr": "Arşiv"
+      }
+    }
+  ],
+  "formats": [
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "avif"
+      ],
+      "id": "avif",
+      "label": "AVIF",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "bmp"
+      ],
+      "id": "bmp",
+      "label": "BMP",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "gif"
+      ],
+      "id": "gif",
+      "label": "GIF",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "heic",
+        "heif"
+      ],
+      "id": "heic",
+      "label": "HEIC",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "jpg",
+        "jpeg"
+      ],
+      "id": "jpg",
+      "label": "JPG",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "png"
+      ],
+      "id": "png",
+      "label": "PNG",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "svg"
+      ],
+      "id": "svg",
+      "label": "SVG",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "tif",
+        "tiff"
+      ],
+      "id": "tiff",
+      "label": "TIFF",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "image",
+      "enhancement": false,
+      "extensions": [
+        "webp"
+      ],
+      "id": "webp",
+      "label": "WEBP",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "image",
+      "enhancement": true,
+      "extensions": [
+        "ico"
+      ],
+      "id": "ico",
+      "label": "ICO",
+      "read": false,
+      "write": true
+    },
+    {
+      "category": "video",
+      "enhancement": false,
+      "extensions": [
+        "avi"
+      ],
+      "id": "avi",
+      "label": "AVI",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "video",
+      "enhancement": false,
+      "extensions": [
+        "mkv"
+      ],
+      "id": "mkv",
+      "label": "MKV",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "video",
+      "enhancement": false,
+      "extensions": [
+        "mov"
+      ],
+      "id": "mov",
+      "label": "MOV",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "video",
+      "enhancement": false,
+      "extensions": [
+        "mp4",
+        "m4v"
+      ],
+      "id": "mp4",
+      "label": "MP4",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "video",
+      "enhancement": false,
+      "extensions": [
+        "webm"
+      ],
+      "id": "webm",
+      "label": "WEBM",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "video",
+      "enhancement": false,
+      "extensions": [
+        "wmv"
+      ],
+      "id": "wmv",
+      "label": "WMV",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "audio",
+      "enhancement": false,
+      "extensions": [
+        "aif",
+        "aiff"
+      ],
+      "id": "aiff",
+      "label": "AIFF",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "audio",
+      "enhancement": false,
+      "extensions": [
+        "flac"
+      ],
+      "id": "flac",
+      "label": "FLAC",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "audio",
+      "enhancement": false,
+      "extensions": [
+        "m4a"
+      ],
+      "id": "m4a",
+      "label": "M4A",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "audio",
+      "enhancement": false,
+      "extensions": [
+        "mp3"
+      ],
+      "id": "mp3",
+      "label": "MP3",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "audio",
+      "enhancement": false,
+      "extensions": [
+        "ogg",
+        "oga"
+      ],
+      "id": "ogg",
+      "label": "OGG",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "audio",
+      "enhancement": false,
+      "extensions": [
+        "opus"
+      ],
+      "id": "opus",
+      "label": "OPUS",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "audio",
+      "enhancement": false,
+      "extensions": [
+        "wav"
+      ],
+      "id": "wav",
+      "label": "WAV",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "audio",
+      "enhancement": false,
+      "extensions": [
+        "wma"
+      ],
+      "id": "wma",
+      "label": "WMA",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "docx"
+      ],
+      "id": "docx",
+      "label": "DOCX",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "rtf"
+      ],
+      "id": "rtf",
+      "label": "RTF",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "rtfd"
+      ],
+      "id": "rtfd",
+      "label": "RTFD",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "txt"
+      ],
+      "id": "txt",
+      "label": "TXT",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "md",
+        "markdown"
+      ],
+      "id": "md",
+      "label": "MD",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "html",
+        "htm"
+      ],
+      "id": "html",
+      "label": "HTML",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "epub"
+      ],
+      "id": "epub",
+      "label": "EPUB",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "pages"
+      ],
+      "id": "pages",
+      "label": "PAGES",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "document",
+      "enhancement": false,
+      "extensions": [
+        "textclipping"
+      ],
+      "id": "textclipping",
+      "label": "TEXTCLIPPING",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "document",
+      "enhancement": true,
+      "extensions": [
+        "odt"
+      ],
+      "id": "odt",
+      "label": "ODT",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "document",
+      "enhancement": true,
+      "extensions": [
+        "doc"
+      ],
+      "id": "doc",
+      "label": "DOC",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "spreadsheet",
+      "enhancement": false,
+      "extensions": [
+        "csv"
+      ],
+      "id": "csv",
+      "label": "CSV",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "spreadsheet",
+      "enhancement": false,
+      "extensions": [
+        "tsv"
+      ],
+      "id": "tsv",
+      "label": "TSV",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "spreadsheet",
+      "enhancement": false,
+      "extensions": [
+        "xls"
+      ],
+      "id": "xls",
+      "label": "XLS",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "spreadsheet",
+      "enhancement": false,
+      "extensions": [
+        "xlsx"
+      ],
+      "id": "xlsx",
+      "label": "XLSX",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "spreadsheet",
+      "enhancement": false,
+      "extensions": [
+        "ods"
+      ],
+      "id": "ods",
+      "label": "ODS",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "spreadsheet",
+      "enhancement": true,
+      "extensions": [
+        "numbers"
+      ],
+      "id": "numbers",
+      "label": "NUMBERS",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "presentation",
+      "enhancement": false,
+      "extensions": [
+        "ppt"
+      ],
+      "id": "ppt",
+      "label": "PPT",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "presentation",
+      "enhancement": false,
+      "extensions": [
+        "pptx"
+      ],
+      "id": "pptx",
+      "label": "PPTX",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "presentation",
+      "enhancement": true,
+      "extensions": [
+        "odp"
+      ],
+      "id": "odp",
+      "label": "ODP",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "presentation",
+      "enhancement": true,
+      "extensions": [
+        "key"
+      ],
+      "id": "key",
+      "label": "KEY",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "subtitle",
+      "enhancement": false,
+      "extensions": [
+        "srt"
+      ],
+      "id": "srt",
+      "label": "SRT",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "subtitle",
+      "enhancement": false,
+      "extensions": [
+        "vtt"
+      ],
+      "id": "vtt",
+      "label": "VTT",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "pdf",
+      "enhancement": false,
+      "extensions": [
+        "pdf"
+      ],
+      "id": "pdf",
+      "label": "PDF",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "archive",
+      "enhancement": false,
+      "extensions": [
+        "zip"
+      ],
+      "id": "zip",
+      "label": "ZIP",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "archive",
+      "enhancement": false,
+      "extensions": [
+        "tar"
+      ],
+      "id": "tar",
+      "label": "TAR",
+      "read": true,
+      "write": true
+    },
+    {
+      "category": "archive",
+      "enhancement": false,
+      "extensions": [
+        "gz",
+        "tgz"
+      ],
+      "id": "gz",
+      "label": "GZ",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "archive",
+      "enhancement": false,
+      "extensions": [
+        "tar.gz"
+      ],
+      "id": "tar-gz",
+      "label": "TAR.GZ",
+      "read": false,
+      "write": true
+    },
+    {
+      "category": "archive",
+      "enhancement": false,
+      "extensions": [
+        "rar"
+      ],
+      "id": "rar",
+      "label": "RAR",
+      "read": true,
+      "write": false
+    },
+    {
+      "category": "archive",
+      "enhancement": true,
+      "extensions": [
+        "7z"
+      ],
+      "id": "7z",
+      "label": "7Z",
+      "read": true,
+      "write": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "core",
+      "names": {
+        "en": "Core",
+        "tr": "Çekirdek"
+      }
+    },
+    {
+      "id": "media",
+      "names": {
+        "en": "Media",
+        "tr": "Medya"
+      }
+    },
+    {
+      "id": "office",
+      "names": {
+        "en": "Office",
+        "tr": "Ofis"
+      }
+    },
+    {
+      "id": "extras",
+      "names": {
+        "en": "Extras",
+        "tr": "Ekstra"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "avif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "avif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "avif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "avif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "bmp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "avif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tiff"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "avif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "avif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "bmp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "bmp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "bmp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "bmp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "bmp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tiff"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "bmp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "bmp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "gif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "gif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "gif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "gif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "gif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "bmp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "gif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tiff"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "gif",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "jpg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "jpg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "jpg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "jpg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "bmp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "jpg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tiff"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "jpg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "jpg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "png",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "png",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "png",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "png",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "bmp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "png",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tiff"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "png",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "png",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "bmp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tiff"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "tiff",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "tiff",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "tiff",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "tiff",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "tiff",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "bmp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "tiff",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "tiff",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "webp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "webp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "webp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "webp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "bmp"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "webp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tiff"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "webp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "image",
+      "enhancement": false,
+      "from": "webp",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "heic",
+      "group": "core",
+      "note": "read with the system's HEIF support",
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "heic",
+      "group": "core",
+      "note": "read with the system's HEIF support",
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "heic",
+      "group": "core",
+      "note": "read with the system's HEIF support",
+      "platforms": "both",
+      "status": "planned",
+      "to": "webp"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "heic",
+      "group": "core",
+      "note": "read with the system's HEIF support",
+      "platforms": "both",
+      "status": "planned",
+      "to": "avif"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "heic",
+      "group": "core",
+      "note": "read with the system's HEIF support",
+      "platforms": "both",
+      "status": "planned",
+      "to": "bmp"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "heic",
+      "group": "core",
+      "note": "read with the system's HEIF support",
+      "platforms": "both",
+      "status": "planned",
+      "to": "tiff"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "heic",
+      "group": "core",
+      "note": "read with the system's HEIF support",
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "heic",
+      "group": "core",
+      "note": "read with the system's HEIF support",
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "avif",
+      "group": "core",
+      "note": "only where a reliable HEIC encoder exists",
+      "platforms": "both",
+      "status": "planned",
+      "to": "heic"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "bmp",
+      "group": "core",
+      "note": "only where a reliable HEIC encoder exists",
+      "platforms": "both",
+      "status": "planned",
+      "to": "heic"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "gif",
+      "group": "core",
+      "note": "only where a reliable HEIC encoder exists",
+      "platforms": "both",
+      "status": "planned",
+      "to": "heic"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "jpg",
+      "group": "core",
+      "note": "only where a reliable HEIC encoder exists",
+      "platforms": "both",
+      "status": "planned",
+      "to": "heic"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "png",
+      "group": "core",
+      "note": "only where a reliable HEIC encoder exists",
+      "platforms": "both",
+      "status": "planned",
+      "to": "heic"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "svg",
+      "group": "core",
+      "note": "only where a reliable HEIC encoder exists",
+      "platforms": "both",
+      "status": "planned",
+      "to": "heic"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "tiff",
+      "group": "core",
+      "note": "only where a reliable HEIC encoder exists",
+      "platforms": "both",
+      "status": "planned",
+      "to": "heic"
+    },
+    {
+      "engine": "heif",
+      "enhancement": false,
+      "from": "webp",
+      "group": "core",
+      "note": "only where a reliable HEIC encoder exists",
+      "platforms": "both",
+      "status": "planned",
+      "to": "heic"
+    },
+    {
+      "engine": "image",
+      "enhancement": true,
+      "from": "avif",
+      "group": "core",
+      "note": "several sizes in one icon",
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "image",
+      "enhancement": true,
+      "from": "bmp",
+      "group": "core",
+      "note": "several sizes in one icon",
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "image",
+      "enhancement": true,
+      "from": "gif",
+      "group": "core",
+      "note": "several sizes in one icon",
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "image",
+      "enhancement": true,
+      "from": "jpg",
+      "group": "core",
+      "note": "several sizes in one icon",
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "image",
+      "enhancement": true,
+      "from": "png",
+      "group": "core",
+      "note": "several sizes in one icon",
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "image",
+      "enhancement": true,
+      "from": "svg",
+      "group": "core",
+      "note": "several sizes in one icon",
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "image",
+      "enhancement": true,
+      "from": "tiff",
+      "group": "core",
+      "note": "several sizes in one icon",
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "image",
+      "enhancement": true,
+      "from": "webp",
+      "group": "core",
+      "note": "several sizes in one icon",
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "heif",
+      "enhancement": true,
+      "from": "heic",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ico"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "gif",
+      "group": "media",
+      "note": "animated GIF",
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp4"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "gif",
+      "group": "media",
+      "note": "animated GIF",
+      "platforms": "both",
+      "status": "planned",
+      "to": "webm"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "gif",
+      "group": "media",
+      "note": "animated GIF",
+      "platforms": "both",
+      "status": "planned",
+      "to": "mov"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp4"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mov"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mkv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webm"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wmv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp4"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mov"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webm"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avi"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wmv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp4"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mkv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webm"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avi"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wmv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mov"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mkv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webm"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avi"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wmv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp4"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mov"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mkv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avi"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wmv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp4"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mov"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mkv"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "webm"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "avi"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "gif"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "avi",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "mkv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "mov",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "mp4",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "webm",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "from": "wmv",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "aiff",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "flac"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "aiff",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "aiff",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "aiff",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ogg"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "aiff",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "opus"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "aiff",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "aiff",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wma"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "flac",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "aiff"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "flac",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "flac",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "flac",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ogg"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "flac",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "opus"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "flac",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "flac",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wma"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "m4a",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "aiff"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "m4a",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "flac"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "m4a",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "m4a",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ogg"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "m4a",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "opus"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "m4a",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "m4a",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wma"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp3",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "aiff"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp3",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "flac"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp3",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp3",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ogg"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp3",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "opus"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp3",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "mp3",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wma"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "ogg",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "aiff"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "ogg",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "flac"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "ogg",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "ogg",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "ogg",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "opus"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "ogg",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "ogg",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wma"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "opus",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "aiff"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "opus",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "flac"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "opus",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "opus",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "opus",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ogg"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "opus",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "opus",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wma"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wav",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "aiff"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wav",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "flac"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wav",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wav",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wav",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ogg"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wav",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "opus"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wav",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wma"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wma",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "aiff"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wma",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "flac"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wma",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "m4a"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wma",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "mp3"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wma",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ogg"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wma",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "opus"
+    },
+    {
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "from": "wma",
+      "group": "media",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "wav"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "txt",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "txt",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "md",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "md",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "html",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "html",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "textclipping",
+      "group": "core",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "docx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "docx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "docx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "docx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "docx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "docx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "docx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "rtf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtfd",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtfd",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "rtfd",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtfd",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtfd",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtfd",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtfd",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "rtfd",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "txt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "txt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "txt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "txt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "txt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "md",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "md",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "md",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "md",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "md",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "html",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "html",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "html",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "html",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "html",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "epub",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "epub",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "epub",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "epub",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "epub",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "epub",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "epub",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pages",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pages",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "pages",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pages",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pages",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pages",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pages",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pages",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "textclipping",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "textclipping",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "textclipping",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "textclipping",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "textclipping",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "textclipping",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "textclipping",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "doc",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "doc",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "doc",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "doc",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "rtf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "doc",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "doc",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "doc",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "doc",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "csv",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tsv"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "tsv",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "csv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "csv",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "xlsx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "csv",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ods"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "csv",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "csv",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "tsv",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "xlsx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "tsv",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ods"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "tsv",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "tsv",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xls",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "xlsx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xls",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ods"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xls",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "csv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xls",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tsv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xls",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xls",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xlsx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ods"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xlsx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "csv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xlsx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tsv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xlsx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "xlsx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ods",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "xlsx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ods",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "csv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ods",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tsv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ods",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ods",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "numbers",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "xlsx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "numbers",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "ods"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "numbers",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "csv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "numbers",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tsv"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "numbers",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "numbers",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ppt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ppt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pptx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "ppt",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odp"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pptx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "pptx",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odp"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odp",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odp",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pptx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "key",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pdf"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "key",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "pptx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "key",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "odp"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ppt",
+      "group": "office",
+      "note": "one image per slide",
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "ppt",
+      "group": "office",
+      "note": "one image per slide",
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pptx",
+      "group": "office",
+      "note": "one image per slide",
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pptx",
+      "group": "office",
+      "note": "one image per slide",
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odp",
+      "group": "office",
+      "note": "one image per slide",
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "odp",
+      "group": "office",
+      "note": "one image per slide",
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "key",
+      "group": "office",
+      "note": "one image per slide",
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": true,
+      "from": "key",
+      "group": "office",
+      "note": "one image per slide",
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "srt",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "vtt"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "srt",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "vtt",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "srt"
+    },
+    {
+      "engine": "text",
+      "enhancement": false,
+      "from": "vtt",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "pdf",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "core",
+      "note": "one image per page",
+      "platforms": "both",
+      "status": "planned",
+      "to": "jpg"
+    },
+    {
+      "engine": "pdf",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "core",
+      "note": "one image per page",
+      "platforms": "both",
+      "status": "planned",
+      "to": "png"
+    },
+    {
+      "engine": "pdf",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "core",
+      "note": "text only",
+      "platforms": "both",
+      "status": "planned",
+      "to": "txt"
+    },
+    {
+      "engine": "pdf",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "core",
+      "note": "text only",
+      "platforms": "both",
+      "status": "planned",
+      "to": "md"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "office",
+      "note": "with page images",
+      "platforms": "both",
+      "status": "planned",
+      "to": "pptx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "office",
+      "note": "best effort",
+      "platforms": "both",
+      "status": "planned",
+      "to": "xlsx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "docx"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "epub"
+    },
+    {
+      "engine": "libre-office",
+      "enhancement": false,
+      "from": "pdf",
+      "group": "office",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "html"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "zip",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tar"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "zip",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tar-gz"
+    },
+    {
+      "engine": "archive",
+      "enhancement": true,
+      "from": "zip",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "7z"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "tar",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "zip"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "tar",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tar-gz"
+    },
+    {
+      "engine": "archive",
+      "enhancement": true,
+      "from": "tar",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "7z"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "gz",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "zip"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "gz",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tar"
+    },
+    {
+      "engine": "archive",
+      "enhancement": true,
+      "from": "gz",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "7z"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "rar",
+      "group": "core",
+      "note": "extract only (UnRAR licence)",
+      "platforms": "both",
+      "status": "planned",
+      "to": "zip"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "rar",
+      "group": "core",
+      "note": "extract only (UnRAR licence)",
+      "platforms": "both",
+      "status": "planned",
+      "to": "tar"
+    },
+    {
+      "engine": "archive",
+      "enhancement": false,
+      "from": "rar",
+      "group": "core",
+      "note": "extract only (UnRAR licence)",
+      "platforms": "both",
+      "status": "planned",
+      "to": "tar-gz"
+    },
+    {
+      "engine": "archive",
+      "enhancement": true,
+      "from": "rar",
+      "group": "core",
+      "note": "extract only (UnRAR licence)",
+      "platforms": "both",
+      "status": "planned",
+      "to": "7z"
+    },
+    {
+      "engine": "archive",
+      "enhancement": true,
+      "from": "7z",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "zip"
+    },
+    {
+      "engine": "archive",
+      "enhancement": true,
+      "from": "7z",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tar"
+    },
+    {
+      "engine": "archive",
+      "enhancement": true,
+      "from": "7z",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "planned",
+      "to": "tar-gz"
+    }
+  ],
+  "summary": {
+    "actions": 8,
+    "coreInputs": 46,
+    "formats": 54,
+    "ready": 0,
+    "routes": 355,
+    "tools": 31
+  },
+  "tools": [
+    {
+      "categories": [
+        "image",
+        "video",
+        "audio",
+        "pdf"
+      ],
+      "engine": "image",
+      "enhancement": false,
+      "group": "core",
+      "icon": "compress",
+      "id": "compress",
+      "names": {
+        "en": "Compress",
+        "tr": "Sıkıştır"
+      },
+      "note": "video and audio need the Media tools; PDF compression is [+]",
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image",
+        "pdf",
+        "video",
+        "audio"
+      ],
+      "engine": "exif-tool",
+      "enhancement": false,
+      "group": "extras",
+      "icon": "tag",
+      "id": "metadata",
+      "names": {
+        "en": "Metadata",
+        "tr": "Meta veri"
+      },
+      "note": "media files also use ffprobe from the Media tools",
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "engine": "image",
+      "enhancement": false,
+      "group": "core",
+      "icon": "sliders",
+      "id": "edit-image",
+      "names": {
+        "en": "Edit image",
+        "tr": "Görseli düzenle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "engine": "image",
+      "enhancement": false,
+      "group": "core",
+      "icon": "pen",
+      "id": "markup",
+      "names": {
+        "en": "Mark up",
+        "tr": "İşaretle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "engine": "image",
+      "enhancement": false,
+      "group": "core",
+      "icon": "frame",
+      "id": "frame",
+      "names": {
+        "en": "Add frame",
+        "tr": "Çerçeve ekle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "engine": "image",
+      "enhancement": false,
+      "group": "core",
+      "icon": "crop",
+      "id": "crop-image",
+      "names": {
+        "en": "Crop image",
+        "tr": "Görseli kırp"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "engine": "image",
+      "enhancement": false,
+      "group": "core",
+      "icon": "grid",
+      "id": "collage",
+      "names": {
+        "en": "Make a collage",
+        "tr": "Kolaj oluştur"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "engine": "image",
+      "enhancement": false,
+      "group": "core",
+      "icon": "redact",
+      "id": "redact-image",
+      "names": {
+        "en": "Redact image",
+        "tr": "Görselde gizle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image",
+        "pdf"
+      ],
+      "engine": "qr",
+      "enhancement": false,
+      "group": "core",
+      "icon": "qr",
+      "id": "read-qr",
+      "names": {
+        "en": "Read QR codes",
+        "tr": "QR kod oku"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [],
+      "engine": "qr",
+      "enhancement": true,
+      "group": "core",
+      "icon": "qr",
+      "id": "make-qr",
+      "names": {
+        "en": "Make a QR code",
+        "tr": "QR kod oluştur"
+      },
+      "note": "from text or a link",
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "pdf"
+      ],
+      "engine": "pdf",
+      "enhancement": false,
+      "group": "core",
+      "icon": "doc",
+      "id": "split-pdf",
+      "names": {
+        "en": "Split PDF",
+        "tr": "PDF'yi böl"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "pdf"
+      ],
+      "engine": "pdf",
+      "enhancement": false,
+      "group": "core",
+      "icon": "doc",
+      "id": "edit-pdf",
+      "names": {
+        "en": "Edit PDF",
+        "tr": "PDF'yi düzenle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "pdf"
+      ],
+      "engine": "pdf",
+      "enhancement": false,
+      "group": "core",
+      "icon": "doc",
+      "id": "merge-pdf",
+      "names": {
+        "en": "Merge PDFs",
+        "tr": "PDF'leri birleştir"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "engine": "pdf",
+      "enhancement": false,
+      "group": "core",
+      "icon": "doc",
+      "id": "images-to-pdf",
+      "names": {
+        "en": "PDF from images",
+        "tr": "Görsellerden PDF"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "archive"
+      ],
+      "engine": "archive",
+      "enhancement": false,
+      "group": "core",
+      "icon": "zip",
+      "id": "extract",
+      "names": {
+        "en": "Extract archive",
+        "tr": "Arşivi aç"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "mute",
+      "names": {
+        "en": "Remove audio",
+        "tr": "Videonun sesini kaldır"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "trim-video",
+      "names": {
+        "en": "Trim video",
+        "tr": "Videoyu kes"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "crop",
+      "id": "crop-video",
+      "names": {
+        "en": "Crop video area",
+        "tr": "Video alanını kırp"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "speed",
+      "names": {
+        "en": "Change video speed",
+        "tr": "Video hızını değiştir"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "merge-video",
+      "names": {
+        "en": "Merge videos",
+        "tr": "Videoları birleştir"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "image",
+      "id": "frames",
+      "names": {
+        "en": "Extract frames",
+        "tr": "Video karelerini çıkar"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "split-video",
+      "names": {
+        "en": "Split video",
+        "tr": "Videoyu böl"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "redact",
+      "id": "redact-video",
+      "names": {
+        "en": "Redact video",
+        "tr": "Videoda gizle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "normalize",
+      "names": {
+        "en": "Normalize loudness",
+        "tr": "Ses seviyesini normalize et"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "trim-audio",
+      "names": {
+        "en": "Trim audio",
+        "tr": "Sesi kes"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "channels",
+      "names": {
+        "en": "Audio channels",
+        "tr": "Ses kanalları"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "redact-audio",
+      "names": {
+        "en": "Redact audio",
+        "tr": "Seste gizle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "audio-to-video",
+      "names": {
+        "en": "Audio to video",
+        "tr": "Sesten video"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image"
+      ],
+      "engine": "background-removal",
+      "enhancement": true,
+      "group": "extras",
+      "icon": "cutout",
+      "id": "remove-background",
+      "names": {
+        "en": "Remove background",
+        "tr": "Arka planı kaldır"
+      },
+      "note": "permissively licensed models only",
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "image",
+        "pdf"
+      ],
+      "engine": "ocr",
+      "enhancement": true,
+      "group": "core",
+      "icon": "doc",
+      "id": "ocr",
+      "names": {
+        "en": "Extract text",
+        "tr": "Metni çıkar"
+      },
+      "note": "Windows OCR and Apple Vision",
+      "platforms": "both",
+      "status": "planned"
+    },
+    {
+      "categories": [
+        "video",
+        "subtitle"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": true,
+      "group": "media",
+      "icon": "video",
+      "id": "burn-subtitles",
+      "names": {
+        "en": "Burn in subtitles",
+        "tr": "Altyazı göm"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "planned"
+    }
+  ]
+}
