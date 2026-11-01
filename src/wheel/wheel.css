@@ -1,0 +1,866 @@
+/* SPDX-License-Identifier: MIT */
+/* The wheel in the steel theme (design/DESIGN.md, sections 5, 6, 8 and 9). Every part is drawn in the
+   400-unit space and scales with --wheel-size. Colors come from theme tokens; the moving parts (dial,
+   handle, bolts, glint) are layers of their own, so the static steel is rasterized once and only moved. */
+
+.wheel-scrim {
+  /* Entrances settle with a detent overshoot; exits accelerate away. The handle and bolt easings are
+     written into their keyframes. */
+  --ease-detent: cubic-bezier(0.12, 0.75, 0.3, 1.06);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--wheel-shadow) 70%, transparent);
+  animation: wheel-fade-in var(--wheel-open) linear both;
+}
+.wheel-scrim.is-closing {
+  animation: wheel-fade-out var(--wheel-close) linear both;
+}
+
+.wheel {
+  position: relative;
+  font-family: var(--font-brand);
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.wheel-shake {
+  position: relative;
+}
+.wheel-disc {
+  position: relative;
+  inline-size: var(--wheel-size);
+  block-size: var(--wheel-size);
+  container-type: size;
+  touch-action: none;
+}
+.wheel-layer {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+}
+svg.wheel-layer {
+  display: block;
+}
+.wheel text {
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.wheel-face,
+.wheel-slice {
+  outline: none;
+}
+
+/* ---------------------------------------------------------------- steel and bolts */
+/* The cast shadow on the desk, then the bolts, then the brushed steel that hides them at rest. */
+.wheel-cast,
+.wheel-steel {
+  position: absolute;
+  inset: 0.75%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.wheel-cast {
+  background: var(--bezel-ring);
+  box-shadow:
+    0 1px 2px var(--wheel-shadow-near),
+    0 14px 34px var(--wheel-shadow);
+}
+.wheel-steel {
+  background: var(--bezel-lines), var(--bezel-ring);
+}
+.wheel-defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+}
+/* A bolt is 25 units square with its outer end at radius 195; thrown, it moves out 18 (72 % of it). */
+.wheel-bolt {
+  position: absolute;
+  inset-block-start: 1.25%;
+  inset-inline-start: 46.875%;
+  inline-size: 6.25%;
+  block-size: 6.25%;
+  border-radius: calc(var(--wheel-size) * 0.005);
+  will-change: transform;
+}
+.wheel-bolt svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.wheel-bolt-chamfer {
+  stroke: var(--bolt-line);
+  stroke-width: 0.7;
+  stroke-opacity: 0.6;
+}
+.wheel-bolt-spec {
+  stroke: #fff;
+  stroke-width: 1.4;
+  stroke-opacity: 0.55;
+  stroke-linecap: round;
+}
+.wheel-bolt-edge {
+  fill: none;
+  stroke: var(--bolt-line);
+  stroke-width: 0.8;
+}
+.wheel.has-selected .wheel-bolt {
+  transform: translateY(-72%);
+}
+
+/* ---------------------------------------------------------------- face and slices */
+.wheel-cell,
+.wheel-window {
+  fill: transparent;
+  transition: fill 110ms;
+}
+.wheel-inlay {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+.wheel-keyline {
+  fill: none;
+  stroke: var(--index);
+  stroke-width: 2.6;
+  opacity: 0;
+  transition: opacity 110ms;
+}
+.wheel-slice.is-hover .wheel-window {
+  fill: var(--wheel-slice-hover);
+}
+.wheel-slice:is(.is-hover, .is-selected) .wheel-cell {
+  fill: var(--chapter-hover);
+}
+.wheel-slice.is-hover:not(.is-off) .wheel-keyline {
+  opacity: 1;
+}
+.wheel-slice.is-selected .wheel-inlay {
+  opacity: 1;
+}
+.wheel-slice.is-selected .wheel-keyline {
+  opacity: 0;
+}
+.wheel-slice.is-off.is-hover :is(.wheel-window, .wheel-cell) {
+  fill: var(--off-hover);
+}
+.wheel-hatch-line {
+  stroke: var(--wheel-tick);
+  stroke-opacity: 0.3;
+  stroke-width: 0.8;
+}
+.wheel-content {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+.wheel-slice.is-selected .wheel-content {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+.wheel-slice.is-off .wheel-content {
+  opacity: 0.42;
+}
+.wheel-content .icon {
+  stroke-width: 1.55;
+}
+.wheel-label {
+  font-weight: 500;
+}
+.wheel-format {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.wheel-sub {
+  fill: var(--wheel-text-muted);
+  font-weight: 450;
+  letter-spacing: 0.01em;
+}
+.wheel-slice.is-selected .wheel-sub {
+  fill: var(--wheel-text-selected);
+}
+.wheel-numeral {
+  fill: var(--wheel-num);
+  font-size: 10.5px;
+  font-weight: 600;
+  transition: fill 110ms;
+}
+.wheel-slice.is-hover:not(.is-off) .wheel-numeral {
+  fill: var(--index);
+  font-weight: 700;
+}
+.wheel-slice.is-off .wheel-numeral {
+  opacity: 0.45;
+}
+.wheel-latch {
+  fill: var(--index);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.wheel-lock {
+  fill: none;
+  stroke: var(--index);
+  stroke-width: 1.4;
+  opacity: 0;
+}
+.wheel-slice.is-selected .wheel-latch {
+  opacity: 1;
+}
+.wheel-slice.is-selected .wheel-numeral {
+  fill: var(--on-index);
+  font-weight: 700;
+}
+.wheel-division {
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+}
+.wheel-chapter {
+  fill: none;
+  stroke: var(--wheel-tick);
+  stroke-width: 0.7;
+}
+.wheel-tick-minor {
+  stroke: var(--wheel-tick);
+  stroke-width: 0.8;
+}
+.wheel-tick-major {
+  stroke: var(--wheel-tick);
+  stroke-width: 1.5;
+}
+.wheel-face-shade {
+  fill: none;
+  stroke: var(--face-shade);
+  stroke-width: 3;
+}
+
+/* ---------------------------------------------------------------- the turning dial */
+.wheel-turn {
+  will-change: transform;
+  transition: transform 170ms var(--ease-detent);
+}
+.wheel-edge-in {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 1.1;
+}
+.wheel-dial-fine {
+  stroke: var(--dial-tick);
+  stroke-width: 0.7;
+}
+.wheel-dial-major {
+  stroke: var(--dial-tick);
+  stroke-width: 1.2;
+}
+.wheel-dial-number {
+  fill: var(--dial-num);
+  font-size: 7.8px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.wheel-groove {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 0.6;
+}
+.wheel-knurl {
+  fill: none;
+  stroke: var(--knurl-dark);
+  stroke-width: 6;
+}
+.wheel-knurl-hi {
+  fill: none;
+  stroke: var(--knurl-light);
+  stroke-width: 6;
+}
+.wheel-pointer {
+  fill: var(--index-idle);
+  stroke: var(--pointer-edge);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+  transition: fill 120ms;
+}
+.wheel.is-live .wheel-pointer {
+  fill: var(--index);
+}
+.wheel-pointer-hi {
+  fill: #fff;
+  fill-opacity: 0.32;
+}
+/* Below 300 px the dial numbers and fine ticks drop out. */
+@container (max-width: 299.98px) {
+  .wheel-dial-number,
+  .wheel-dial-fine {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- fixed ring */
+.wheel-ring-steel {
+  opacity: var(--ring-opacity);
+}
+.wheel-ring-hi {
+  fill: none;
+  stroke: #fff;
+  stroke-opacity: 0.45;
+  stroke-width: 0.8;
+}
+.wheel-ring-step {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 1.1;
+}
+.wheel-edge-out {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 1;
+}
+.wheel-notch {
+  fill: var(--notch);
+}
+.wheel-channel {
+  fill: var(--channel);
+}
+.wheel-lip {
+  stroke: #fff;
+  stroke-opacity: 0.35;
+  stroke-width: 0.7;
+}
+.wheel-glint {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* ---------------------------------------------------------------- handle and hub */
+.wheel-handle {
+  will-change: transform;
+}
+.wheel.has-selected .wheel-handle {
+  transform: rotate(45deg);
+}
+.wheel-spoke-edge {
+  stroke: var(--spoke-edge);
+  stroke-width: 7.6;
+  stroke-linecap: round;
+}
+.wheel-spoke {
+  stroke: var(--spoke);
+  stroke-width: 6.2;
+  stroke-linecap: round;
+}
+.wheel-spoke-hi {
+  stroke: var(--spoke-hi);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.wheel-knob {
+  stroke: var(--spoke-edge);
+  stroke-width: 0.8;
+}
+.wheel-hub-face {
+  fill: var(--hub-face);
+}
+.wheel-hub-edge {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 0.9;
+}
+.wheel-title {
+  fill: var(--wheel-text);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+.wheel:is(:lang(ar), :lang(ja), :lang(zh), :lang(ko)) .wheel-title {
+  letter-spacing: 0;
+}
+.wheel-subtitle {
+  fill: var(--wheel-text-muted);
+  font-weight: 450;
+}
+/* Back, for category sub-wheels: a keycap under the hub text. */
+.wheel-back {
+  position: absolute;
+  inset-block-start: 53.5%;
+  inset-inline: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  inline-size: fit-content;
+  min-block-size: 22px;
+  margin-inline: auto;
+  padding-block: 0;
+  padding-inline: 6px 8px;
+  border: 1px solid var(--edge-dark);
+  border-radius: var(--radius-sm);
+  background: var(--keycap);
+  color: var(--keycap-text);
+  font: 650 max(10px, calc(var(--wheel-size) * 0.026)) / 1 var(--font-brand);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.wheel-back:hover:not(:disabled) {
+  background: var(--chapter-hover);
+}
+.wheel-back:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.wheel[dir='rtl'] .wheel-back .flip {
+  transform: scaleX(-1);
+}
+
+/* ---------------------------------------------------------------- focus, tooltip, screen readers */
+.wheel-focus {
+  position: absolute;
+  inset: -0.5%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--focus);
+  opacity: 0;
+  pointer-events: none;
+}
+.wheel.is-keyboard:focus-within .wheel-focus {
+  opacity: 1;
+}
+.wheel-tip {
+  position: absolute;
+  inset-block-start: calc(100% + 18px);
+  inset-inline: 0;
+  inline-size: max-content;
+  max-inline-size: min(340px, calc(100vw - 32px));
+  margin-inline: auto;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 6px 18px var(--shadow);
+  font: 13px/18px var(--font-brand);
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 120ms,
+    visibility 0s 120ms;
+  pointer-events: none;
+}
+.wheel-tip.is-shown {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 120ms;
+}
+.wheel-tip.is-off {
+  color: var(--text-muted);
+}
+.wheel-sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- open and close */
+/* Open: on screen at once from 92 % and 40 % opacity, while the numbered dial spins in from almost a
+   full turn back and settles with a detent; the labels fade in one after another. */
+.wheel.is-opening .wheel-disc {
+  animation: wheel-in var(--wheel-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.wheel.is-opening .wheel-spin {
+  animation: wheel-spin-in calc(var(--wheel-open) * 1.2) var(--ease-detent) both;
+}
+.wheel-fade {
+  animation: wheel-label-in calc(var(--wheel-open) * 0.7) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * var(--wheel-stagger) + 30ms);
+}
+/* Close: the bolts pull back in the first 70 ms while the wheel fades to 95 %. */
+.wheel.is-closing .wheel-disc {
+  animation: wheel-out var(--wheel-close) var(--ease-exit) both;
+}
+.wheel.is-closing .wheel-spin {
+  animation: wheel-spin-out var(--wheel-close) var(--ease-exit) both;
+}
+.wheel.is-closing.has-selected .wheel-bolt {
+  animation: wheel-retract var(--wheel-close) cubic-bezier(0.35, 0, 0.3, 1) both;
+}
+.wheel.is-closing .wheel-tip {
+  opacity: 0;
+}
+
+/* ---------------------------------------------------------------- apply: the lock */
+/* 640 ms. The dial snaps past the slice and back; the handle turns an eighth while the bolts are
+   thrown in two stages (9, then 19.5 units, seating at 18); the latch drops, a ring closes on the
+   numeral and a glint runs once round the steel. */
+.wheel.is-applying .wheel-snap {
+  animation: wheel-snap var(--wheel-apply) linear both;
+}
+.wheel.is-applying .wheel-handle {
+  animation: wheel-handle var(--wheel-apply) linear both;
+}
+.wheel.is-applying .wheel-bolt {
+  animation: wheel-throw var(--wheel-apply) linear both;
+}
+.wheel.is-applying .wheel-index {
+  animation: wheel-latch var(--wheel-apply) linear both;
+}
+.wheel.is-applying .wheel-glint {
+  animation: wheel-glint var(--wheel-apply) linear both;
+}
+.wheel.is-applying .is-selected .wheel-inlay {
+  animation: wheel-inlay var(--wheel-apply) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.wheel.is-applying .is-selected .wheel-content {
+  animation: wheel-ink var(--wheel-apply) linear both;
+}
+.wheel.is-applying .is-selected .wheel-sub {
+  animation: wheel-sub-ink var(--wheel-apply) linear both;
+}
+.wheel.is-applying .is-selected .wheel-lock {
+  animation: wheel-lock var(--wheel-apply) ease-out both;
+}
+.wheel.is-applying .is-selected .wheel-latch {
+  animation: wheel-latch-disc var(--wheel-apply) ease-out both;
+}
+.wheel.is-applying .is-selected .wheel-numeral {
+  animation: wheel-numeral var(--wheel-apply) linear both;
+}
+
+/* ---------------------------------------------------------------- reduced motion */
+/* Short fades only: the dial jumps instead of turning, and on apply the bolts and the latch appear
+   without travel. */
+.wheel.is-reduced .wheel-turn {
+  transition: none;
+}
+.wheel.is-reduced .wheel-fade,
+.wheel.is-reduced.is-opening .wheel-spin,
+.wheel.is-reduced.is-closing :is(.wheel-spin, .wheel-bolt) {
+  animation: none;
+}
+.wheel.is-reduced.is-opening .wheel-disc {
+  animation: wheel-fade-in var(--wheel-open) linear both;
+}
+.wheel.is-reduced.is-closing .wheel-disc {
+  animation: wheel-fade-out var(--wheel-close) linear both;
+}
+.wheel.is-reduced :is(.wheel-cell, .wheel-window, .wheel-keyline, .wheel-numeral, .wheel-pointer) {
+  transition: none;
+}
+
+/* ---------------------------------------------------------------- Windows High Contrast */
+/* System colors, no steel textures and no shadows; the wheel keeps its structure as plain outlines. */
+@media (forced-colors: active) {
+  .wheel-scrim {
+    background: transparent;
+  }
+  .wheel-cast,
+  .wheel-steel {
+    background: Canvas;
+    box-shadow: none;
+    outline: 1px solid CanvasText;
+  }
+  .wheel-bolt {
+    box-shadow: none;
+  }
+  .wheel :is(.wheel-enamel, .wheel-collar, .wheel-hub-face, .wheel-ring-steel, .wheel-knob, .wheel-bolt-body) {
+    fill: Canvas;
+    stroke: CanvasText;
+    stroke-width: 1;
+  }
+  .wheel :is(.wheel-dome, .wheel-bolt-cap, .wheel-bolt-spec, .wheel-pointer-hi, .wheel-ring-hi, .wheel-lip) {
+    display: none;
+  }
+  .wheel :is(.wheel-knurl, .wheel-knurl-hi, .wheel-face-shade, .wheel-channel) {
+    display: none;
+  }
+  .wheel
+    :is(
+      .wheel-division,
+      .wheel-chapter,
+      .wheel-tick-minor,
+      .wheel-tick-major,
+      .wheel-dial-fine,
+      .wheel-dial-major,
+      .wheel-edge-in,
+      .wheel-edge-out,
+      .wheel-ring-step,
+      .wheel-groove,
+      .wheel-hub-edge,
+      .wheel-bolt-edge,
+      .wheel-spoke-edge,
+      .wheel-hatch-line
+    ) {
+    stroke: CanvasText;
+  }
+  .wheel :is(.wheel-spoke, .wheel-spoke-hi) {
+    stroke: Canvas;
+  }
+  .wheel :is(.wheel-content, .wheel-numeral, .wheel-sub, .wheel-title, .wheel-subtitle, .wheel-dial-number) {
+    fill: CanvasText;
+    color: CanvasText;
+  }
+  .wheel :is(.wheel-pointer, .wheel-notch, .wheel-latch) {
+    fill: CanvasText;
+  }
+  .wheel-slice.is-hover .wheel-window,
+  .wheel-slice.is-selected .wheel-inlay {
+    fill: Highlight;
+  }
+  .wheel-slice:is(.is-hover, .is-selected) :is(.wheel-content, .wheel-sub) {
+    fill: HighlightText;
+    color: HighlightText;
+  }
+  .wheel :is(.wheel-keyline, .wheel-lock) {
+    stroke: Highlight;
+  }
+  .wheel-slice.is-selected .wheel-numeral {
+    fill: Canvas;
+  }
+  .wheel-focus {
+    box-shadow: 0 0 0 2px Highlight;
+  }
+}
+
+/* ---------------------------------------------------------------- keyframes */
+@keyframes wheel-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes wheel-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes wheel-in {
+  from {
+    opacity: 0.4;
+    transform: scale(0.92);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes wheel-spin-in {
+  from {
+    transform: rotate(-300deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes wheel-label-in {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes wheel-out {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+@keyframes wheel-spin-out {
+  to {
+    transform: rotate(24deg);
+  }
+}
+@keyframes wheel-retract {
+  from {
+    transform: translateY(-72%);
+  }
+  58%,
+  to {
+    transform: none;
+  }
+}
+@keyframes wheel-snap {
+  0% {
+    transform: none;
+    animation-timing-function: ease-out;
+  }
+  9% {
+    transform: rotate(4.5deg);
+    animation-timing-function: ease-in-out;
+  }
+  20% {
+    transform: rotate(-1.5deg);
+  }
+  28% {
+    transform: rotate(0.4deg);
+  }
+  34%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes wheel-handle {
+  0%,
+  8% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.35, 1);
+  }
+  52% {
+    transform: rotate(47deg);
+    animation-timing-function: ease-out;
+  }
+  60%,
+  100% {
+    transform: rotate(45deg);
+  }
+}
+/* Bolt travel as a share of its 25-unit length: 9 units is 36 %, 19.5 is 78 %, 18 is 72 %. */
+@keyframes wheel-throw {
+  0%,
+  16% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  27% {
+    transform: translateY(-36%);
+  }
+  40% {
+    transform: translateY(-36%);
+    animation-timing-function: cubic-bezier(0.35, 0, 0.2, 1);
+  }
+  50% {
+    transform: translateY(-78%);
+    animation-timing-function: ease-out;
+  }
+  57%,
+  100% {
+    transform: translateY(-72%);
+  }
+}
+/* The latch drops 4 units (1 % of the dial) onto the numeral and springs back. */
+@keyframes wheel-latch {
+  0%,
+  52% {
+    transform: none;
+    animation-timing-function: ease-in;
+  }
+  58% {
+    transform: translateY(1%);
+    animation-timing-function: ease-out;
+  }
+  72%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes wheel-glint {
+  0%,
+  54% {
+    opacity: 0;
+    transform: rotate(-40deg);
+  }
+  62% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(290deg);
+  }
+}
+@keyframes wheel-inlay {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.55);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+  26%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes wheel-ink {
+  0%,
+  7% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  10%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes wheel-sub-ink {
+  0%,
+  7% {
+    fill: var(--wheel-text-muted);
+  }
+  10%,
+  100% {
+    fill: var(--wheel-text-selected);
+  }
+}
+@keyframes wheel-lock {
+  0%,
+  52% {
+    r: 22px;
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  72% {
+    r: 8.6px;
+    opacity: 1;
+  }
+  86%,
+  100% {
+    r: 8.6px;
+    opacity: 0;
+  }
+}
+@keyframes wheel-latch-disc {
+  0%,
+  66% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  76% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+  84%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes wheel-numeral {
+  0%,
+  68% {
+    fill: var(--index);
+  }
+  72%,
+  100% {
+    fill: var(--on-index);
+  }
+}
