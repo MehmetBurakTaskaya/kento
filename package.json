@@ -24,6 +24,7 @@
     "check:licenses": "node scripts/check-npm-licenses.mjs",
     "catalog:export": "cargo run --quiet --manifest-path src-tauri/Cargo.toml --bin catalog-export",
     "icons": "node scripts/icons.mjs",
+    "pdfium": "node scripts/fetch-pdfium.mjs",
     "shots": "node scripts/shoot-app.mjs"
   },
   "dependencies": {

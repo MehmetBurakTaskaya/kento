@@ -22,10 +22,14 @@ path = "src/main.rs"
 name = "catalog-export"
 path = "src/bin/catalog_export.rs"
 
+[workspace]
+members = ["engines"]
+
 [build-dependencies]
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
+kento-engines = { path = "engines" }
 tauri = { version = "2.12.5", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2.7.0"
 tauri-plugin-dialog = "2.6"
