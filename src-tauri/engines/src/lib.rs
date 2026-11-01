@@ -13,6 +13,7 @@ pub mod qr;
 pub mod sheet;
 pub mod subtitle;
 pub mod text;
+pub mod thumb;
 
 use std::path::{Path, PathBuf};
 
