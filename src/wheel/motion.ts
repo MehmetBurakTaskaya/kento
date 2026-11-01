@@ -3,6 +3,8 @@
 // these drive the state changes around them.
 
 export const MOTION = {
+  /** Resting on a ring-opening slice during a drag opens it. */
+  dwell: 520,
   open: 180,
   /** Each slice's labels fade in this much after the one before. */
   stagger: 7,

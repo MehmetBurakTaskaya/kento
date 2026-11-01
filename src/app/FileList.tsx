@@ -50,6 +50,7 @@ export function FileList() {
     else if (event.key === 'ArrowUp') move(current - 1);
     else if (event.key === 'Home') move(0);
     else if (event.key === 'End') move(paths.length - 1);
+    else if (event.key === 'Enter' && event.altKey) openWheel('actions', chosen);
     else if (event.key === 'Enter') openWheel('convert', chosen);
     else if (event.key === ' ' && command) openWheel('tools', chosen);
     else if (event.key === 'Delete' || (mac && event.key === 'Backspace')) removeFiles(chosen);

@@ -93,6 +93,7 @@ describe('formatting', () => {
     expect(formatDuration(12_000, 'en')).toBe('12 sec');
     expect(formatRelative(Date.UTC(2026, 0, 1, 12, 0), Date.UTC(2026, 0, 1, 12, 2), 'en')).toBe('2 min. ago');
     expect(formatRelative(Date.UTC(2026, 0, 1, 11, 0, 20), Date.UTC(2026, 0, 1, 12, 0), 'en')).toBe('1 hr. ago');
+    expect(formatRelative(Date.UTC(2026, 0, 1, 12, 0, 40), Date.UTC(2026, 0, 1, 12, 0), 'en')).toBe('now');
   });
 
   it('handles Turkish case and searches without accents', () => {

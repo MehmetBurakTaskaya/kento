@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import mark from '../../src-tauri/icons/128x128.png';
 import { Icon } from '../components/Icon';
 import { intlLocale, PSEUDO_LANGUAGES } from '../i18n';
-import { api, type Settings as SettingsData } from '../ipc';
+import { api, type Settings as SettingsData, type WheelKey } from '../ipc';
 import { useApp } from '../state/store';
 import { listThemes } from '../theme/registry';
 
@@ -81,10 +81,13 @@ function Switch({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
+const WHEEL_KINDS = ['convert', 'tools', 'actions'] as const;
+const WHEEL_KEYS: WheelKey[] = ['shift', 'control', 'alt', 'command'];
+
 export function Settings() {
   const { t } = useTranslation();
   const { boot, settings, update, language } = useApp();
-  const ids = { language: useId(), theme: useId(), volume: useId(), jobs: useId() };
+  const ids = { language: useId(), theme: useId(), volume: useId(), jobs: useId(), keys: useId() };
   if (!boot || !settings) return null;
   const set = (patch: Partial<SettingsData>) => void update(patch);
   const mac = boot.app.platform === 'macos';
@@ -142,6 +145,77 @@ export function Settings() {
             )}
           </select>
         </Row>
+      </Group>
+
+      <Group title={t('settings.wheel.title')}>
+        <Row label={t('settings.wheel.global')}>
+          <Switch
+            label={t('settings.wheel.global')}
+            checked={settings.wheels.global}
+            onChange={(global) => set({ wheels: { ...settings.wheels, global } })}
+          />
+        </Row>
+        {WHEEL_KINDS.map((kind) => (
+          <Row key={kind} label={t(`settings.wheel.${kind}`)} htmlFor={`${ids.keys}-${kind}`}>
+            <select
+              id={`${ids.keys}-${kind}`}
+              value={settings.wheels[kind]}
+              disabled={!settings.wheels.global}
+              onChange={(e) => {
+                const key = e.target.value as WheelKey;
+                // Two wheels never share a key: the one that had it takes this wheel's old key.
+                const other = WHEEL_KINDS.find((k) => k !== kind && settings.wheels[k] === key);
+                const wheels = { ...settings.wheels, [kind]: key };
+                if (other) wheels[other] = settings.wheels[kind];
+                set({ wheels });
+              }}
+            >
+              {WHEEL_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {t(`key.${key}.${mac ? 'mac' : 'windows'}`)}
+                </option>
+              ))}
+            </select>
+          </Row>
+        ))}
+        <Row label={t('settings.wheel.selection', { shortcut: mac ? '⌃⇧Space' : 'Ctrl+Shift+Space' })}>
+          <Switch
+            label={t('settings.wheel.selection', { shortcut: mac ? '⌃⇧Space' : 'Ctrl+Shift+Space' })}
+            checked={settings.wheels.selectionShortcut}
+            onChange={(selectionShortcut) => set({ wheels: { ...settings.wheels, selectionShortcut } })}
+          />
+        </Row>
+        <p className="note muted">{t('settings.wheel.note')}</p>
+      </Group>
+
+      {!mac && (
+        <Group title={t('settings.shell.title')}>
+          <Row label={t('settings.shell.sendTo')}>
+            <Switch
+              label={t('settings.shell.sendTo')}
+              checked={settings.shell.sendTo}
+              onChange={(sendTo) => set({ shell: { ...settings.shell, sendTo } })}
+            />
+          </Row>
+          <Row label={t('settings.shell.contextMenu')}>
+            <Switch
+              label={t('settings.shell.contextMenu')}
+              checked={settings.shell.contextMenu}
+              onChange={(contextMenu) => set({ shell: { ...settings.shell, contextMenu } })}
+            />
+          </Row>
+        </Group>
+      )}
+
+      <Group title={t('settings.shelf.title')}>
+        <Row label={t('settings.shelf.keepCopy')}>
+          <Switch
+            label={t('settings.shelf.keepCopy')}
+            checked={settings.shelf.keepCopy}
+            onChange={(keepCopy) => set({ shelf: { keepCopy } })}
+          />
+        </Row>
+        <p className="note muted">{t('settings.shelf.note')}</p>
       </Group>
 
       <Group title={t('settings.feedback.title')}>

@@ -14,7 +14,7 @@ import {
   type Settings,
 } from '../ipc';
 
-export type WheelKind = 'convert' | 'tools';
+export type WheelKind = 'convert' | 'tools' | 'actions';
 
 /** A tool that needs choices before it runs. */
 export type PanelTool = 'merge-pdf' | 'split-pdf' | 'edit-pdf' | 'images-to-pdf' | 'read-qr';

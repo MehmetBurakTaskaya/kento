@@ -19,6 +19,10 @@
 .wheel-scrim.is-closing {
   animation: wheel-fade-out var(--wheel-close) linear both;
 }
+/* Over other apps the window itself is the frame: nothing is dimmed. */
+.wheel-scrim.is-overlay {
+  background: transparent;
+}
 
 .wheel {
   position: relative;

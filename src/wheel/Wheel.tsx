@@ -6,10 +6,12 @@
 import {
   useEffect,
   useId,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
   type CSSProperties,
+  type Ref,
   type JSX,
   type KeyboardEvent,
   type MouseEvent,
@@ -39,6 +41,19 @@ export interface WheelSlice {
   /** The description bubble, for example "PNG: lossless, keeps transparency". */
   hint?: string;
   disabled?: boolean;
+  /** Opens another ring (a category). During a drag, resting on it opens it, since a drop ends the drag. */
+  opens?: boolean;
+}
+
+/** Drives the wheel from outside during a system drag, when no pointer events reach the page. */
+export interface WheelControl {
+  /** The drag is over this point, in CSS pixels of the window. */
+  point(x: number, y: number): void;
+  /** The drag dropped here: the slice under it applies, anywhere else the wheel closes. */
+  drop(x: number, y: number): void;
+  /** The drag left the window. */
+  leave(): void;
+  close(): void;
 }
 
 export interface WheelProps {
@@ -60,6 +75,9 @@ export interface WheelProps {
   reducedMotion: boolean;
   /** CSS pixels, 300 to 440; the wheel also shrinks to fit a small window. */
   size?: number;
+  /** Floating over other apps in its own transparent window: no dimmed backdrop. */
+  overlay?: boolean;
+  control?: Ref<WheelControl>;
 }
 
 type Phase = 'opening' | 'open' | 'applying' | 'applied' | 'closing' | 'closed';
@@ -72,6 +90,7 @@ interface Item {
   icon?: IconName;
   hint?: string;
   disabled: boolean;
+  opens?: boolean;
   paging: { target: number } | null;
 }
 
@@ -112,6 +131,8 @@ export function Wheel({
   sound,
   reducedMotion,
   size = 360,
+  overlay = false,
+  control,
 }: WheelProps): JSX.Element {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
@@ -396,6 +417,44 @@ export function Wheel({
     if (interactive && event.pointerType !== 'touch') hoverTo(null);
   };
 
+  // Resting on a ring-opening slice, "More…" or the hub (Back) during a drag acts on it.
+  const dwell = useRef<{ target: number | 'hub' | null; timer: number }>({ target: null, timer: 0 });
+  const dwellOn = (target: number | 'hub' | null) => {
+    if (dwell.current.target === target) return;
+    window.clearTimeout(dwell.current.timer);
+    dwell.current = { target, timer: 0 };
+    if (target === null) return;
+    const item = target === 'hub' ? null : items[target];
+    const acts = target === 'hub' ? !!onBack : !!item && !item.disabled && (!!item.paging || !!item.opens);
+    if (!acts) return;
+    dwell.current.timer = window.setTimeout(() => {
+      dwell.current = { target: null, timer: 0 };
+      if (target === 'hub') onBack?.();
+      else activate(target);
+    }, MOTION.dwell);
+  };
+  useEffect(() => () => window.clearTimeout(dwell.current.timer), []);
+
+  useImperativeHandle(control, () => ({
+    point(x, y) {
+      if (!interactive) return;
+      const { index, radius } = pointAt({ clientX: x, clientY: y });
+      hoverTo(index);
+      dwellOn(index ?? (radius < R.WINDOW ? 'hub' : null));
+    },
+    drop(x, y) {
+      dwellOn(null);
+      const { index } = pointAt({ clientX: x, clientY: y });
+      if (index !== null && interactive && !items[index]?.paging && !items[index]?.opens) activate(index);
+      else close();
+    },
+    leave() {
+      dwellOn(null);
+      if (interactive) hoverTo(null);
+    },
+    close,
+  }));
+
   const onDiscClick = (event: MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const { index, radius } = pointAt(event);
@@ -428,7 +487,7 @@ export function Wheel({
 
   return createPortal(
     <div
-      className={`wheel-scrim is-${phase}`}
+      className={`wheel-scrim is-${phase}${overlay ? ' is-overlay' : ''}`}
       style={style}
       onClick={(event) => event.target === event.currentTarget && close()}
     >

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '../components/Icon';
 import { Toasts } from '../components/Toasts';
 import { api, type Section } from '../ipc';
-import { useApp } from '../state/store';
+import { useApp, type PanelTool } from '../state/store';
 import { applyTheme, getTheme, modeFor } from '../theme/registry';
 import { ToolPanel } from '../tools/ToolPanel';
 import { WheelDemo, wheelDemoRequested } from '../wheel';
@@ -57,6 +57,24 @@ export function App() {
     void refreshLibrary();
     return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
   }, [jobChanged, setPaused, setSection, refreshLibrary]);
+
+  // A tool chosen on the floating wheel opens its panel here.
+  useEffect(() => {
+    const open = (tool: string, paths: string[]) => {
+      void useApp
+        .getState()
+        .addFiles(paths)
+        .then((entries) =>
+          useApp.getState().openPanel(
+            tool as PanelTool,
+            entries.map((entry) => entry.path),
+          ),
+        );
+    };
+    void api.takePendingTool().then((pending) => pending && open(...pending));
+    const stop = api.onOpenTool(open);
+    return () => void stop.then((unlisten) => unlisten());
+  }, []);
 
   // Ctrl+1, Ctrl+2 and Ctrl+, (⌘ on macOS) switch pages.
   useEffect(() => {

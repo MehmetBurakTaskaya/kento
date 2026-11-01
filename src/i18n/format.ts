@@ -30,7 +30,8 @@ export function formatDuration(ms: number, lang: string): string {
 /** "2 min ago", "yesterday" and so on, from a time in milliseconds. */
 export function formatRelative(then: number, now: number, lang: string): string {
   const rtf = new Intl.RelativeTimeFormat(intlLocale(lang), { numeric: 'auto', style: 'short' });
-  const seconds = Math.round((then - now) / 1000);
+  // A moment ahead of a clock that ticks by the minute still reads as now, never "in 30 seconds".
+  const seconds = Math.min(0, Math.round((then - now) / 1000));
   const steps: [Intl.RelativeTimeFormatUnit, number][] = [
     ['second', 60],
     ['minute', 60],

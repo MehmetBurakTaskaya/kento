@@ -97,6 +97,15 @@ export function Home() {
               </button>
               <button
                 type="button"
+                className="button small"
+                aria-keyshortcuts="Alt+Enter"
+                onClick={() => openWheel('actions', target())}
+              >
+                <Icon name="share" size={16} />
+                {t('wheel.actions')}
+              </button>
+              <button
+                type="button"
                 className="button quiet small"
                 onClick={() => removeFiles(files.map((f) => f.path))}
               >

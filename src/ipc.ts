@@ -23,7 +23,18 @@ export interface Settings {
   output: { location: 'next-to-source' | 'folder'; folder: string | null };
   concurrency: number | null;
   wheelSize: number;
+  wheels: {
+    global: boolean;
+    convert: WheelKey;
+    tools: WheelKey;
+    actions: WheelKey;
+    selectionShortcut: boolean;
+  };
+  shell: { sendTo: boolean; contextMenu: boolean };
+  shelf: { keepCopy: boolean };
 }
+
+export type WheelKey = 'shift' | 'control' | 'alt' | 'command';
 
 export interface Language {
   code: string;
@@ -149,6 +160,48 @@ export interface QrFound {
 }
 export type QrReport = 'txt' | 'csv' | 'json';
 
+export interface ActionEntry {
+  id: string;
+  icon: string;
+}
+
+export type WheelKind = 'convert' | 'tools' | 'actions';
+
+/** What the floating wheel shows; paths are known up front only without a drag. */
+export interface WheelSession {
+  id: number;
+  kind: WheelKind;
+  mode: 'drag' | 'click';
+  paths: string[];
+}
+
+/** A system drag over a window: positions in CSS pixels of that window. */
+export type DragOver =
+  | { type: 'enter'; paths: string[]; x: number; y: number }
+  | { type: 'over'; x: number; y: number }
+  | { type: 'drop'; paths: string[]; x: number; y: number }
+  | { type: 'leave' };
+
+export type CornerCard =
+  | { kind: 'done'; id: number; title: string; outputs: string[] }
+  | { kind: 'failed'; id: number; title: string; message: string; details: string | null }
+  | { kind: 'info'; id: number; message: string };
+
+export interface ShelfItem {
+  id: number;
+  path: string;
+  name: string;
+  added: number;
+  copy: boolean;
+  present: boolean;
+  category: Category | null;
+}
+
+export interface ShelfView {
+  items: ShelfItem[];
+  history: ShelfItem[];
+}
+
 export interface Api {
   bootstrap(): Promise<Bootstrap>;
   saveSettings(settings: Settings): Promise<Saved>;
@@ -187,6 +240,32 @@ export interface Api {
   pdfThumbnail(path: string, index: number, size: number): Promise<Blob | null>;
   scanQr(paths: string[]): Promise<QrFound[]>;
   saveQrReport(found: QrFound[], report: QrReport): Promise<LibraryEntry>;
+  actions(): Promise<ActionEntry[]>;
+  runAction(action: string, paths: string[]): Promise<number[]>;
+  openTool(tool: string, paths: string[]): Promise<void>;
+  takePendingTool(): Promise<[string, string[]] | null>;
+  onOpenTool(handler: (tool: string, paths: string[]) => void): Promise<UnlistenFn>;
+  onDragOver(handler: (event: DragOver) => void): Promise<UnlistenFn>;
+  wheelSession(): Promise<WheelSession | null>;
+  wheelDropped(): Promise<void>;
+  wheelSwitch(kind: WheelKind): Promise<void>;
+  wheelClosed(): Promise<void>;
+  onWheelOpen(handler: (session: WheelSession) => void): Promise<UnlistenFn>;
+  onWheelClose(handler: () => void): Promise<UnlistenFn>;
+  toastCards(): Promise<CornerCard[]>;
+  toastLayout(height: number): Promise<void>;
+  toastDismiss(id: number): Promise<void>;
+  onToast(handler: (card: CornerCard) => void): Promise<UnlistenFn>;
+  shelfView(): Promise<ShelfView>;
+  shelfAdd(paths: string[]): Promise<void>;
+  shelfRemove(id: number): Promise<void>;
+  shelfClear(): Promise<void>;
+  shelfHide(): Promise<void>;
+  shelfReveal(id: number): Promise<void>;
+  shelfToWheel(ids: number[]): Promise<void>;
+  shelfDrag(ids: number[]): Promise<void>;
+  onShelf(handler: () => void): Promise<UnlistenFn>;
+  onSettings(handler: (saved: Saved) => void): Promise<UnlistenFn>;
 }
 
 const tauriApi: Api = {
@@ -232,6 +311,43 @@ const tauriApi: Api = {
   pdfThumbnail: (path, index, size) => blob(invoke<ArrayBuffer>('pdf_thumbnail', { path, index, size })),
   scanQr: (paths) => invoke('scan_qr', { paths }),
   saveQrReport: (found, report) => invoke('save_qr_report', { found, report }),
+  actions: () => invoke('actions'),
+  runAction: (action, paths) => invoke('run_action', { action, paths }),
+  openTool: (tool, paths) => invoke('open_tool', { tool, paths }),
+  takePendingTool: () => invoke('take_pending_tool'),
+  onOpenTool: (handler) =>
+    listen<[string, string[]]>('open-tool', (event) => handler(event.payload[0], event.payload[1])),
+  onDragOver: (handler) =>
+    getCurrentWebview().onDragDropEvent((event) => {
+      const scale = window.devicePixelRatio || 1;
+      const payload = event.payload;
+      if (payload.type === 'leave') return handler({ type: 'leave' });
+      const x = payload.position.x / scale;
+      const y = payload.position.y / scale;
+      if (payload.type === 'enter') handler({ type: 'enter', paths: payload.paths, x, y });
+      else if (payload.type === 'over') handler({ type: 'over', x, y });
+      else handler({ type: 'drop', paths: payload.paths, x, y });
+    }),
+  wheelSession: () => invoke('wheel_session'),
+  wheelDropped: () => invoke('wheel_dropped'),
+  wheelSwitch: (kind) => invoke('wheel_switch', { kind }),
+  wheelClosed: () => invoke('wheel_closed'),
+  onWheelOpen: (handler) => listen<WheelSession>('wheel-open', (event) => handler(event.payload)),
+  onWheelClose: (handler) => listen('wheel-close', () => handler()),
+  toastCards: () => invoke('toast_cards'),
+  toastLayout: (height) => invoke('toast_layout', { height }),
+  toastDismiss: (id) => invoke('toast_dismiss', { id }),
+  onToast: (handler) => listen<CornerCard>('toast', (event) => handler(event.payload)),
+  shelfView: () => invoke('shelf_view'),
+  shelfAdd: (paths) => invoke('shelf_add', { paths }),
+  shelfRemove: (id) => invoke('shelf_remove', { id }),
+  shelfClear: () => invoke('shelf_clear'),
+  shelfHide: () => invoke('shelf_hide'),
+  shelfReveal: (id) => invoke('shelf_reveal', { id }),
+  shelfToWheel: (ids) => invoke('shelf_to_wheel', { ids }),
+  shelfDrag: (ids) => invoke('shelf_drag', { ids }),
+  onShelf: (handler) => listen('shelf', () => handler()),
+  onSettings: (handler) => listen<Saved>('settings', (event) => handler(event.payload)),
 };
 
 /** PNG bytes from a command as an image Blob; a file without a preview gives null. */
@@ -256,6 +372,9 @@ export const DEFAULT_SETTINGS: Settings = {
   output: { location: 'next-to-source', folder: null },
   concurrency: null,
   wheelSize: 360,
+  wheels: { global: true, convert: 'shift', tools: 'control', actions: 'alt', selectionShortcut: true },
+  shell: { sendTo: false, contextMenu: false },
+  shelf: { keepCopy: false },
 };
 
 /** The browser stand-in: the same answers the core would give, from memory. */
@@ -370,6 +489,66 @@ export function browserApi(params: URLSearchParams): Api {
     pdfThumbnail: async () => null,
     scanQr: async (paths) => paths.map((file) => ({ file, page: null, text: 'https://mehmetburaktaskaya.com' })),
     saveQrReport: async () => DEMO_LIBRARY[0]!,
+    actions: async () =>
+      ['share', 'shelf', 'copy', 'move', 'copy-path', 'terminal', 'reveal', 'zip'].map((id) => ({ id, icon: id })),
+    runAction: async () => [],
+    openTool: async () => {},
+    takePendingTool: async () => null,
+    onOpenTool: async () => () => {},
+    onDragOver: async () => () => {},
+    // ?surface=wheel&wheel=convert shows the floating wheel for the demo files.
+    wheelSession: async () => {
+      const kind = params.get('wheel') as WheelKind | null;
+      return kind ? { id: 1, kind, mode: 'click', paths: DEMO_FILES } : null;
+    },
+    wheelDropped: async () => {},
+    wheelSwitch: async () => {},
+    wheelClosed: async () => {},
+    onWheelOpen: async () => () => {},
+    onWheelClose: async () => () => {},
+    toastCards: async () =>
+      params.get('surface') === 'toast'
+        ? [
+            { kind: 'done', id: 1, title: 'Kapadokya 🎈.heic → JPG', outputs: [DEMO_LIBRARY[0]!.path] },
+            {
+              kind: 'failed',
+              id: 2,
+              title: 'Rapor 2026.pdf → PNG',
+              message: 'This file is password protected.',
+              details: 'encrypted',
+            },
+          ]
+        : [],
+    toastLayout: async () => {},
+    toastDismiss: async () => {},
+    onToast: async () => () => {},
+    shelfView: async () => ({
+      items: DEMO_FILES.map((path, index) => ({
+        ...demoEntry(path),
+        id: index + 1,
+        added: Date.now(),
+        copy: false,
+        present: true,
+      })),
+      history: [
+        {
+          ...demoEntry('C:\\Users\\me\\Desktop\\eski not.txt'),
+          id: 9,
+          added: Date.now() - 86_400_000,
+          copy: false,
+          present: false,
+        },
+      ],
+    }),
+    shelfAdd: async () => {},
+    shelfRemove: async () => {},
+    shelfClear: async () => {},
+    shelfHide: async () => {},
+    shelfReveal: async () => {},
+    shelfToWheel: async () => {},
+    shelfDrag: async () => {},
+    onShelf: async () => () => {},
+    onSettings: async () => () => {},
   };
 }
 

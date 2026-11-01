@@ -1,0 +1,107 @@
+/* SPDX-License-Identifier: MIT */
+/* The windows outside the main one: the floating wheel, the shelf and the corner cards. Their
+   windows are transparent, so only what is drawn here shows over other apps. */
+
+:root[data-surface],
+:root[data-surface] body {
+  background: transparent;
+}
+:root[data-surface] body {
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------- corner cards */
+.corner-cards {
+  display: grid;
+  gap: 8px;
+  padding: 6px;
+}
+.corner-cards .toast {
+  box-shadow: 0 6px 18px var(--shadow);
+}
+.corner-cards .toast-text {
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- shelf */
+.shelf {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+  block-size: calc(100vh - 12px);
+  margin: 6px;
+  padding: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--steel-hi) 55%, transparent), transparent 64px), var(--surface);
+  box-shadow: 0 10px 28px var(--shadow);
+}
+.shelf[data-over] {
+  border-color: var(--accent);
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
+.shelf-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: grab;
+}
+.shelf-head .icon-button {
+  margin-inline-start: auto;
+}
+.shelf-title {
+  font: var(--type-subtitle);
+}
+.shelf-list {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.shelf-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  cursor: grab;
+}
+.shelf-item:hover {
+  background: var(--surface-2);
+}
+.shelf-item[data-missing] {
+  opacity: 0.55;
+  cursor: default;
+}
+.shelf-text {
+  display: grid;
+  min-inline-size: 0;
+}
+.shelf-text .muted {
+  font: var(--type-caption);
+}
+.shelf-actions {
+  display: flex;
+  opacity: 0;
+}
+.shelf-item:hover .shelf-actions,
+.shelf-item:focus-within .shelf-actions {
+  opacity: 1;
+}
+.shelf-empty {
+  align-self: center;
+  text-align: center;
+}
+.shelf-history {
+  display: grid;
+  gap: 4px;
+  max-block-size: 40vh;
+  overflow-y: auto;
+}
