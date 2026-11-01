@@ -22,17 +22,24 @@ rav1d = { version = "1.1.0", default-features = false, features = ["bitdepth_8",
 avif-parse = "2.1.0"
 yuv = "0.8.20"
 webp = { version = "0.3.1", default-features = false }
+ravif = { version = "0.13.0", default-features = false, features = ["threading"] }
+libc = "0.2.191"
 
 # PDF
-pdfium-render = "0.9.5"
-lopdf = "0.46.0"
+# The API features match the bundled PDFium (pdfium-binaries chromium/8125); thread_safe
+# serialises every PDFium call, since several jobs run at once.
+pdfium-render = { version = "0.9.5", default-features = false, features = ["pdfium_8125", "thread_safe"] }
+lopdf = { version = "0.46.0", default-features = false, features = ["rayon"] }
 
 # Archives
-zip = { version = "9.2.1", default-features = false, features = ["deflate"] }
+# Reading also takes the methods other tools write (Deflate64 from Windows, BZIP2 and LZMA).
+zip = { version = "9.2.1", default-features = false, features = ["deflate", "deflate64", "bzip2", "lzma"] }
 tar = "0.4.46"
 flate2 = "1.1.10"
 sevenz-rust2 = "0.24.2"
-unrar = "0.5.8"
+# The UnRAR library itself (the `unrar` crate's sys layer): its test mode streams each entry to a
+# callback, so the library never writes files or links of its own.
+unrar_sys = "0.5.8"
 
 # Text, subtitles, spreadsheets and QR codes
 rxing = { version = "0.9.3", default-features = false, features = ["qrcode", "decoders", "multi_barcode_readers", "encoding_rs"] }
@@ -45,6 +52,20 @@ html2text = "0.17.4"
 encoding_rs = "0.8.44"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+plist = { version = "1.10.3", default-features = false }
+
+# Images: HEIC through the system codecs (WIC on Windows; ImageIO on macOS needs no crate)
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Imaging",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Ole",
+    "Win32_System_Variant",
+    "Win32_UI_Shell",
+] }
 
 [dev-dependencies]
 tempfile = "3.27.0"
+qrcode = { version = "0.14.1", default-features = false }

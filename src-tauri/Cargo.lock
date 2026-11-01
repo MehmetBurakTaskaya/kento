@@ -1124,6 +1124,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7eed2c4702fa172d1ce21078faa7c5203e69f5394d48cc436d25928394a867a2"
 
 [[package]]
+name = "deflate64"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac6b926516df9c60bfa16e107b21086399f8285a44ca9711344b9e553c5146e2"
+
+[[package]]
 name = "defmt"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2697,6 +2703,8 @@ name = "kento"
 version = "0.1.0"
 dependencies = [
  "kento-engines",
+ "objc2-app-kit",
+ "objc2-foundation",
  "serde",
  "serde_json",
  "sys-locale",
@@ -2727,10 +2735,14 @@ dependencies = [
  "htmd",
  "html2text",
  "image",
+ "libc",
  "lopdf",
  "pdfium-render",
+ "plist",
  "pulldown-cmark",
+ "qrcode",
  "rav1d",
+ "ravif",
  "resvg",
  "rust_xlsxwriter",
  "rxing",
@@ -2741,8 +2753,9 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tracing",
- "unrar",
+ "unrar_sys",
  "webp",
+ "windows",
  "yuv",
  "zip",
 ]
@@ -2923,7 +2936,6 @@ dependencies = [
  "bitflags 2.13.2",
  "brotli-decompressor 5.0.3",
  "cbc",
- "chrono",
  "ecb",
  "encoding_rs",
  "flate2",
@@ -2947,6 +2959,9 @@ name = "lzma-rust2"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1c46f3fcd2e888afdb01a07efc071cb21300e07c68d32c3e8b01b5c8cb1fcaa"
+dependencies = [
+ "sha2 0.11.1",
+]
 
 [[package]]
 name = "markup5ever"
@@ -3658,7 +3673,6 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "console_log",
- "image",
  "itertools 0.15.0",
  "js-sys",
  "libloading",
@@ -4032,6 +4046,12 @@ name = "pxfm"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
+
+[[package]]
+name = "qrcode"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d68782463e408eb1e668cf6152704bd856c78c5b6417adaee3203d8f4c1fc9ec"
 
 [[package]]
 name = "quick-error"
@@ -6052,18 +6072,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca718471876992059f251e33aafc334346ada08042b7661dd1fe313a9bced557"
 
 [[package]]
-name = "unrar"
-version = "0.5.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92ec61343a630d2b50d13216dea5125e157d3fc180a7d3f447d22fe146b648fc"
-dependencies = [
- "bitflags 2.13.2",
- "regex",
- "unrar_sys",
- "widestring",
-]
-
-[[package]]
 name = "unrar_sys"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6459,12 +6467,6 @@ name = "weezl"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4ca08e5ef825b65b056d9efbd95c8750683f0a6d0466d02e96dc2e4e360f3d2"
-
-[[package]]
-name = "widestring"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72069c3113ab32ab29e5584db3c6ec55d416895e60715417b5b883a357c3e471"
 
 [[package]]
 name = "winapi"
@@ -7057,10 +7059,13 @@ version = "9.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "848dad21639597378c3be94c59fd4de683f0f6d8a5387575896e1245737d4f37"
 dependencies = [
+ "bzip2",
  "crc32fast",
+ "deflate64",
  "flate2",
  "getrandom 0.4.3",
  "indexmap 2.14.2",
+ "lzma-rust2",
  "memchr",
  "nix",
  "typed-path",

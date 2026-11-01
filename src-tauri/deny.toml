@@ -11,7 +11,10 @@ all-features = false
 no-default-features = false
 
 [advisories]
-ignore = []
+ignore = [
+    # paste: a compile-time macro of the AV1 codecs, unmaintained but with no known flaw and no successor in use there.
+    { id = "RUSTSEC-2024-0436", reason = "build-time macro of rav1d and rav1e; no replacement upstream yet" },
+]
 
 [licenses]
 allow = [
@@ -27,6 +30,9 @@ allow = [
     "CDLA-Permissive-2.0",
     "BSL-1.0",
     "0BSD",
+    "MIT-0",
+    "CC0-1.0",
+    "bzip2-1.0.6",
 ]
 confidence-threshold = 0.9
 # The allow-list is policy, not an inventory: entries may be unused today.
