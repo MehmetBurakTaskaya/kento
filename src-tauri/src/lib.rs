@@ -106,7 +106,7 @@ fn load_pdfium(app: &AppHandle) {
         .filter(|path| path.is_file())
         .or_else(|| (cfg!(debug_assertions) && fetched.is_file()).then_some(fetched));
     match library.map(|path| kento_engines::pdf::init(&path)) {
-        Some(Ok(())) => tracing::info!("PDFium loaded"),
+        Some(Ok(())) => {}
         Some(Err(err)) => tracing::error!("PDFium could not be loaded: {err}"),
         None => tracing::error!("PDFium is missing"),
     }
@@ -162,6 +162,11 @@ fn setup(
     }
     if tray_icon {
         tray::create(app)?;
+    }
+    // The window position in tauri.conf.json is not always honoured at creation; the floating
+    // wheel must never wait on screen, where its transparent area would swallow clicks.
+    if let Some(wheel) = app.get_webview_window(overlay::wheel::LABEL) {
+        overlay::park(&wheel);
     }
     if !smoke_test {
         overlay::wheel::sync_watcher(app);
