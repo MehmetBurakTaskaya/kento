@@ -23,7 +23,6 @@ export interface Settings {
   output: { location: 'next-to-source' | 'folder'; folder: string | null };
   concurrency: number | null;
   wheelSize: number;
-  shelfModel: string;
 }
 
 export interface Language {
@@ -257,7 +256,6 @@ export const DEFAULT_SETTINGS: Settings = {
   output: { location: 'next-to-source', folder: null },
   concurrency: null,
   wheelSize: 360,
-  shelfModel: 'local-only',
 };
 
 /** The browser stand-in: the same answers the core would give, from memory. */

@@ -41,22 +41,6 @@ pub enum OutputLocation {
     Folder,
 }
 
-/// How "Put on shelf" works (SPEC 5.8). The model is chosen at the start of Phase 3; until then
-/// Kento keeps its own shelf.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
-#[serde(rename_all = "kebab-case")]
-pub enum ShelfModel {
-    /// A: Pano when it is installed, otherwise the local shelf.
-    PanoFirst,
-    /// B: the local shelf, plus "Send to Pano" when Pano is installed.
-    LocalPlusPano,
-    /// C: Pano only.
-    PanoOnly,
-    /// D: the local shelf only.
-    #[default]
-    LocalOnly,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Sound {
@@ -98,7 +82,6 @@ pub struct Settings {
     /// Jobs at the same time; None picks a number from the processor.
     pub concurrency: Option<u8>,
     pub wheel_size: u16,
-    pub shelf_model: ShelfModel,
 }
 
 impl Default for Settings {
@@ -116,7 +99,6 @@ impl Default for Settings {
             output: Output::default(),
             concurrency: None,
             wheel_size: 360,
-            shelf_model: ShelfModel::LocalOnly,
         }
     }
 }
@@ -200,10 +182,7 @@ mod tests {
         save(&path, &settings).unwrap();
         assert_eq!(load(&path), settings);
         let json = fs::read_to_string(&path).unwrap();
-        assert!(
-            json.contains("\"reducedMotion\": \"system\"")
-                && json.contains("\"shelfModel\": \"local-only\"")
-        );
+        assert!(json.contains("\"reducedMotion\": \"system\"") && !json.contains("shelfModel"));
     }
 
     #[test]

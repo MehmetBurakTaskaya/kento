@@ -11,6 +11,7 @@ pub mod jobs;
 pub mod library;
 pub mod logging;
 pub mod paths;
+pub mod platform;
 pub mod settings;
 pub mod shelf;
 mod smoke;
@@ -28,14 +29,14 @@ use crate::jobs::{JobInfo, JobQueue, Listener, Spawner};
 use crate::library::Library;
 use crate::paths::AppPaths;
 use crate::settings::Settings;
-use crate::shelf::ShelfProvider;
+use crate::shelf::Shelf;
 
 pub struct AppState {
     pub paths: AppPaths,
     settings: Mutex<Settings>,
     pub system_locale: Option<String>,
     pub queue: JobQueue,
-    pub shelf: Mutex<Box<dyn ShelfProvider>>,
+    pub shelf: Shelf,
     pub library: Library,
     _log: Option<WorkerGuard>,
 }
@@ -128,7 +129,6 @@ fn setup(
     let listener: Listener = Arc::new(move |info: &JobInfo| {
         let _ = handle.emit("job", info);
     });
-    let shelf = shelf::select(settings.shelf_model, false);
     let library = Library::load(paths.data.join("library.json"));
     load_pdfium(app);
     let launch_at_login = settings.launch_at_login;
@@ -138,7 +138,7 @@ fn setup(
         settings: Mutex::new(settings),
         system_locale: i18n::system_locale(),
         queue: JobQueue::new(limit, spawn, listener),
-        shelf: Mutex::new(shelf),
+        shelf: Shelf::default(),
         library,
         _log: log,
     });
