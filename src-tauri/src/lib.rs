@@ -5,15 +5,19 @@
 pub mod catalog;
 pub mod commands;
 pub mod error;
+pub mod files;
 pub mod i18n;
 pub mod jobs;
+pub mod library;
 pub mod logging;
 pub mod paths;
 pub mod settings;
 pub mod shelf;
 mod smoke;
+pub mod tools;
 mod tray;
 mod window;
+pub mod work;
 
 use std::sync::{Arc, Mutex};
 
@@ -21,6 +25,7 @@ use tauri::{AppHandle, Emitter, Manager, RunEvent};
 use tracing_appender::non_blocking::WorkerGuard;
 
 use crate::jobs::{JobInfo, JobQueue, Listener, Spawner};
+use crate::library::Library;
 use crate::paths::AppPaths;
 use crate::settings::Settings;
 use crate::shelf::ShelfProvider;
@@ -31,6 +36,7 @@ pub struct AppState {
     pub system_locale: Option<String>,
     pub queue: JobQueue,
     pub shelf: Mutex<Box<dyn ShelfProvider>>,
+    pub library: Library,
     _log: Option<WorkerGuard>,
 }
 
@@ -70,6 +76,34 @@ pub(crate) fn sync_autostart(app: &AppHandle, enabled: bool) {
     }
 }
 
+/// Loads the bundled PDFium (SPEC 4.1). Without it PDF work fails with a plain message; the rest
+/// of Kento runs on.
+fn load_pdfium(app: &AppHandle) {
+    let name = if cfg!(windows) {
+        "pdfium.dll"
+    } else {
+        "libpdfium.dylib"
+    };
+    let bundled = app
+        .path()
+        .resource_dir()
+        .map(|dir| dir.join("pdfium").join(name));
+    // A development build runs from target/, next to the fetched copy.
+    let fetched = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("resources")
+        .join("pdfium")
+        .join(name);
+    let library = bundled
+        .ok()
+        .filter(|path| path.is_file())
+        .or_else(|| (cfg!(debug_assertions) && fetched.is_file()).then_some(fetched));
+    match library.map(|path| kento_engines::pdf::init(&path)) {
+        Some(Ok(())) => tracing::info!("PDFium loaded"),
+        Some(Err(err)) => tracing::error!("PDFium could not be loaded: {err}"),
+        None => tracing::error!("PDFium is missing"),
+    }
+}
+
 fn setup(
     app: &AppHandle,
     smoke_test: bool,
@@ -95,6 +129,8 @@ fn setup(
         let _ = handle.emit("job", info);
     });
     let shelf = shelf::select(settings.shelf_model, false);
+    let library = Library::load(paths.data.join("library.json"));
+    load_pdfium(app);
     let launch_at_login = settings.launch_at_login;
     let tray_icon = settings.tray_icon;
     app.manage(AppState {
@@ -103,6 +139,7 @@ fn setup(
         system_locale: i18n::system_locale(),
         queue: JobQueue::new(limit, spawn, listener),
         shelf: Mutex::new(shelf),
+        library,
         _log: log,
     });
     tracing::info!("Kento {} started", app.package_info().version);
@@ -156,6 +193,30 @@ pub fn run() {
             commands::set_jobs_paused,
             commands::cancel_job,
             commands::log_message,
+            work::inspect,
+            work::targets,
+            work::tools,
+            work::convert,
+            files::pick_files,
+            files::paste_files,
+            files::import_text,
+            files::import_image,
+            files::thumbnail,
+            files::reveal_path,
+            files::library_list,
+            files::library_remove,
+            files::library_reveal,
+            files::library_open,
+            files::library_find,
+            tools::merge_pdfs,
+            tools::split_pdf,
+            tools::edit_pdf,
+            tools::images_to_pdf,
+            tools::extract_archives,
+            tools::pdf_pages,
+            tools::pdf_thumbnail,
+            tools::scan_qr,
+            tools::save_qr_report,
         ])
         .build(tauri::generate_context!())
         .expect("Kento could not start")

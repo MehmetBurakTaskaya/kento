@@ -2,7 +2,7 @@
 
 Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export`; do not edit by hand.
 
-Every entry is *planned* until its engine ships (Phase 2 onwards). **[+]** marks an enhancement beyond the core feature set. Core needs no download; Media, Office and Extras are optional tool groups (SPEC 4.2).
+**Status:** *ready* works today; *preview* depends on the computer (HEIC needs the system's HEIF support); *planned* arrives in a later phase. **[+]** marks an enhancement beyond the core feature set. Core needs no download; Media, Office and Extras are optional tool groups (SPEC 4.2).
 
 | | Count |
 | --- | ---: |
@@ -14,108 +14,119 @@ Every entry is *planned* until its engine ships (Phase 2 onwards). **[+]** marks
 
 ## Image
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| AVIF | JPG, PNG, WEBP, BMP, TIFF, GIF, PDF, HEIC, ICO [+] | Core | HEIC: only where a reliable HEIC encoder exists; ICO: several sizes in one icon |
-| BMP | JPG, PNG, WEBP, AVIF, TIFF, GIF, PDF, HEIC, ICO [+] | Core | HEIC: only where a reliable HEIC encoder exists; ICO: several sizes in one icon |
-| GIF | JPG, PNG, WEBP, AVIF, BMP, TIFF, PDF, HEIC, ICO [+] | Core | HEIC: only where a reliable HEIC encoder exists; ICO: several sizes in one icon |
-| GIF | MP4, WEBM, MOV | Media | animated GIF |
-| HEIC | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF: read with the system's HEIF support |
-| JPG | PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, HEIC, ICO [+] | Core | HEIC: only where a reliable HEIC encoder exists; ICO: several sizes in one icon |
-| PNG | JPG, WEBP, AVIF, BMP, TIFF, GIF, PDF, HEIC, ICO [+] | Core | HEIC: only where a reliable HEIC encoder exists; ICO: several sizes in one icon |
-| SVG | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, HEIC, ICO [+] | Core | HEIC: only where a reliable HEIC encoder exists; ICO: several sizes in one icon |
-| TIFF | JPG, PNG, WEBP, AVIF, BMP, GIF, PDF, HEIC, ICO [+] | Core | HEIC: only where a reliable HEIC encoder exists; ICO: several sizes in one icon |
-| WEBP | JPG, PNG, AVIF, BMP, TIFF, GIF, PDF, HEIC, ICO [+] | Core | HEIC: only where a reliable HEIC encoder exists; ICO: several sizes in one icon |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| AVIF | JPG, PNG, WEBP, BMP, TIFF, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
+| AVIF | HEIC | Core | preview | only where a reliable HEIC encoder exists |
+| BMP | JPG, PNG, WEBP, AVIF, TIFF, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
+| BMP | HEIC | Core | preview | only where a reliable HEIC encoder exists |
+| GIF | JPG, PNG, WEBP, AVIF, BMP, TIFF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
+| GIF | HEIC | Core | preview | only where a reliable HEIC encoder exists |
+| GIF | MP4, WEBM, MOV | Media | planned | animated GIF |
+| HEIC | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | preview | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF: read with the system's HEIF support |
+| JPG | PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
+| JPG | HEIC | Core | preview | only where a reliable HEIC encoder exists |
+| PNG | JPG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
+| PNG | HEIC | Core | preview | only where a reliable HEIC encoder exists |
+| SVG | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
+| SVG | HEIC | Core | preview | only where a reliable HEIC encoder exists |
+| TIFF | JPG, PNG, WEBP, AVIF, BMP, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
+| TIFF | HEIC | Core | preview | only where a reliable HEIC encoder exists |
+| WEBP | JPG, PNG, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
+| WEBP | HEIC | Core | preview | only where a reliable HEIC encoder exists |
 
 ## Video
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| AVI | MP4, MOV, MKV, WEBM, WMV, GIF, MP3, M4A [+], WAV [+] | Media |  |
-| MKV | MP4, MOV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media |  |
-| MOV | MP4, MKV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media |  |
-| MP4 | MOV, MKV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media |  |
-| WEBM | MP4, MOV, MKV, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media |  |
-| WMV | MP4, MOV, MKV, WEBM, AVI, GIF, MP3, M4A [+], WAV [+] | Media |  |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| AVI | MP4, MOV, MKV, WEBM, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
+| MKV | MP4, MOV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
+| MOV | MP4, MKV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
+| MP4 | MOV, MKV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
+| WEBM | MP4, MOV, MKV, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
+| WMV | MP4, MOV, MKV, WEBM, AVI, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
 
 ## Audio
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| AIFF | FLAC, M4A, MP3, OGG, OPUS, WAV, WMA | Media |  |
-| FLAC | AIFF, M4A, MP3, OGG, OPUS, WAV, WMA | Media |  |
-| M4A | AIFF, FLAC, MP3, OGG, OPUS, WAV, WMA | Media |  |
-| MP3 | AIFF, FLAC, M4A, OGG, OPUS, WAV, WMA | Media |  |
-| OGG | AIFF, FLAC, M4A, MP3, OPUS, WAV, WMA | Media |  |
-| OPUS | AIFF, FLAC, M4A, MP3, OGG, WAV, WMA | Media |  |
-| WAV | AIFF, FLAC, M4A, MP3, OGG, OPUS, WMA | Media |  |
-| WMA | AIFF, FLAC, M4A, MP3, OGG, OPUS, WAV | Media |  |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| AIFF | FLAC, M4A, MP3, OGG, OPUS, WAV, WMA | Media | planned |  |
+| FLAC | AIFF, M4A, MP3, OGG, OPUS, WAV, WMA | Media | planned |  |
+| M4A | AIFF, FLAC, MP3, OGG, OPUS, WAV, WMA | Media | planned |  |
+| MP3 | AIFF, FLAC, M4A, OGG, OPUS, WAV, WMA | Media | planned |  |
+| OGG | AIFF, FLAC, M4A, MP3, OPUS, WAV, WMA | Media | planned |  |
+| OPUS | AIFF, FLAC, M4A, MP3, OGG, WAV, WMA | Media | planned |  |
+| WAV | AIFF, FLAC, M4A, MP3, OGG, OPUS, WMA | Media | planned |  |
+| WMA | AIFF, FLAC, M4A, MP3, OGG, OPUS, WAV | Media | planned |  |
 
 ## Document
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| DOCX | PDF, ODT [+], RTF, TXT, MD, HTML, EPUB | Office |  |
-| RTF | PDF, DOCX, ODT [+], TXT, MD, HTML, EPUB | Office |  |
-| RTFD | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | best effort |
-| TXT | MD, HTML | Core |  |
-| TXT | PDF, DOCX, ODT [+], RTF, EPUB | Office |  |
-| MD | TXT, HTML | Core |  |
-| MD | PDF, DOCX, ODT [+], RTF, EPUB | Office |  |
-| HTML | TXT, MD | Core |  |
-| HTML | PDF, DOCX, ODT [+], RTF, EPUB | Office |  |
-| EPUB | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML | Office |  |
-| PAGES | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML, EPUB | Office |  |
-| TEXTCLIPPING | TXT | Core | best effort |
-| TEXTCLIPPING | PDF, DOCX, ODT [+], RTF, MD, HTML, EPUB | Office | best effort |
-| ODT [+] | PDF, DOCX, RTF, TXT, MD, HTML, EPUB | Office |  |
-| DOC [+] | PDF, DOCX, ODT, RTF, TXT, MD, HTML, EPUB | Office |  |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| DOCX | PDF, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | planned |  |
+| RTF | PDF, DOCX, ODT [+], TXT, MD, HTML, EPUB | Office | planned |  |
+| RTFD | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | planned | best effort |
+| TXT | MD, HTML | Core | ready |  |
+| TXT | PDF, DOCX, ODT [+], RTF, EPUB | Office | planned |  |
+| MD | TXT, HTML | Core | ready |  |
+| MD | PDF, DOCX, ODT [+], RTF, EPUB | Office | planned |  |
+| HTML | TXT, MD | Core | ready |  |
+| HTML | PDF, DOCX, ODT [+], RTF, EPUB | Office | planned |  |
+| EPUB | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML | Office | planned |  |
+| PAGES | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | planned |  |
+| TEXTCLIPPING | TXT | Core | ready | best effort |
+| TEXTCLIPPING | PDF, DOCX, ODT [+], RTF, MD, HTML, EPUB | Office | planned | best effort |
+| ODT [+] | PDF, DOCX, RTF, TXT, MD, HTML, EPUB | Office | planned |  |
+| DOC [+] | PDF, DOCX, ODT, RTF, TXT, MD, HTML, EPUB | Office | planned |  |
 
 ## Spreadsheet
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| CSV | TSV | Core |  |
-| CSV | XLSX, ODS, PDF, HTML | Office |  |
-| TSV | CSV | Core |  |
-| TSV | XLSX, ODS, PDF, HTML | Office |  |
-| XLS | XLSX, ODS, CSV, TSV, PDF, HTML | Office |  |
-| XLSX | ODS, CSV, TSV, PDF, HTML | Office |  |
-| ODS | XLSX, CSV, TSV, PDF, HTML | Office |  |
-| NUMBERS [+] | XLSX, ODS, CSV, TSV, PDF, HTML | Office |  |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| CSV | TSV, XLSX, HTML | Core | ready |  |
+| CSV | ODS, PDF | Office | planned |  |
+| TSV | CSV, XLSX, HTML | Core | ready |  |
+| TSV | ODS, PDF | Office | planned |  |
+| XLS | CSV, TSV, XLSX, HTML | Core | ready | CSV, TSV: the first sheet; XLSX, HTML: values only |
+| XLS | ODS, PDF | Office | planned |  |
+| XLSX | CSV, TSV, HTML | Core | ready | CSV, TSV: the first sheet; HTML: values only |
+| XLSX | ODS, PDF | Office | planned |  |
+| ODS | CSV, TSV, XLSX, HTML | Core | ready | CSV, TSV: the first sheet; XLSX, HTML: values only |
+| ODS | PDF | Office | planned |  |
+| NUMBERS [+] | XLSX, ODS, CSV, TSV, PDF, HTML | Office | planned |  |
 
 ## Presentation
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| PPT | PDF, PPTX, ODP [+], PNG, JPG | Office | PNG, JPG: one image per slide |
-| PPTX | PDF, ODP [+], PNG, JPG | Office | PNG, JPG: one image per slide |
-| ODP [+] | PDF, PPTX, PNG, JPG | Office | PNG, JPG: one image per slide |
-| KEY [+] | PDF, PPTX, ODP, PNG, JPG | Office | PNG, JPG: one image per slide |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| PPT | PDF, PPTX, ODP [+], PNG, JPG | Office | planned | PNG, JPG: one image per slide |
+| PPTX | PDF, ODP [+], PNG, JPG | Office | planned | PNG, JPG: one image per slide |
+| ODP [+] | PDF, PPTX, PNG, JPG | Office | planned | PNG, JPG: one image per slide |
+| KEY [+] | PDF, PPTX, ODP, PNG, JPG | Office | planned | PNG, JPG: one image per slide |
 
 ## Subtitles
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| SRT | VTT, TXT | Core |  |
-| VTT | SRT, TXT | Core |  |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| SRT | VTT, TXT | Core | ready |  |
+| VTT | SRT, TXT | Core | ready |  |
 
 ## PDF
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| PDF | JPG, PNG, TXT, MD | Core | JPG, PNG: one image per page; TXT, MD: text only |
-| PDF | PPTX, XLSX, DOCX, EPUB, HTML | Office | PPTX: with page images; XLSX: best effort |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| PDF | JPG, PNG, TXT, MD | Core | ready | JPG, PNG: one image per page; TXT, MD: text only |
+| PDF | PPTX, XLSX, DOCX, EPUB, HTML | Office | planned | PPTX: with page images; XLSX: best effort |
 
 ## Archive
 
-| From | To | Needs | Notes |
-| --- | --- | --- | --- |
-| ZIP | TAR, TAR.GZ, 7Z [+] | Core |  |
-| TAR | ZIP, TAR.GZ, 7Z [+] | Core |  |
-| GZ | ZIP, TAR, 7Z [+] | Core |  |
-| RAR | ZIP, TAR, TAR.GZ, 7Z [+] | Core | extract only (UnRAR licence) |
-| 7Z [+] | ZIP, TAR, TAR.GZ | Core |  |
+| From | To | Needs | Status | Notes |
+| --- | --- | --- | --- | --- |
+| ZIP | TAR, TAR.GZ, 7Z [+] | Core | ready |  |
+| TAR | ZIP, TAR.GZ, 7Z [+] | Core | ready |  |
+| GZ | ZIP, TAR, 7Z [+] | Core | ready |  |
+| RAR | ZIP, TAR, TAR.GZ, 7Z [+] | Core | ready | extract only (UnRAR licence) |
+| 7Z [+] | ZIP, TAR, TAR.GZ | Core | ready |  |
 
 ## Tools
 
@@ -129,13 +140,13 @@ Every entry is *planned* until its engine ships (Phase 2 onwards). **[+]** marks
 | Crop image | Image | Core | planned |  |
 | Make a collage | Image | Core | planned |  |
 | Redact image | Image | Core | planned |  |
-| Read QR codes | Image, PDF | Core | planned |  |
+| Read QR codes | Image, PDF | Core | ready |  |
 | Make a QR code [+] | text or a link | Core | planned | from text or a link |
-| Split PDF | PDF | Core | planned |  |
-| Edit PDF | PDF | Core | planned |  |
-| Merge PDFs | PDF | Core | planned |  |
-| PDF from images | Image | Core | planned |  |
-| Extract archive | Archive | Core | planned |  |
+| Split PDF | PDF | Core | ready |  |
+| Edit PDF | PDF | Core | ready |  |
+| Merge PDFs | PDF | Core | ready |  |
+| PDF from images | Image | Core | ready |  |
+| Extract archive | Archive | Core | ready |  |
 | Remove audio | Video | Media | planned |  |
 | Trim video | Video | Media | planned |  |
 | Crop video area | Video | Media | planned |  |

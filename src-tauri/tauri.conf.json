@@ -12,12 +12,14 @@
   "app": {
     "windows": [],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "category": "Utility",
     "copyright": "Copyright (c) 2026 Mehmet Burak Taşkaya",
     "publisher": "Mehmet Burak Taşkaya",
@@ -25,13 +27,25 @@
     "license": "MIT",
     "shortDescription": "Drop a file on the wheel to convert it",
     "longDescription": "Drag a file, press a modifier key and drop it on a slice of the wheel: Kento converts, compresses and edits files on your own computer.",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["English", "Turkish"],
+        "languages": [
+          "English",
+          "Turkish"
+        ],
         "displayLanguageSelector": false
       }
+    },
+    "resources": {
+      "resources/pdfium/": "pdfium/"
     }
   }
 }

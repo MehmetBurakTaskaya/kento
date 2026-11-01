@@ -2,6 +2,7 @@
 //! The catalog as Markdown (docs/FORMATS.md) and JSON (website-kit/catalog.json). Both outputs are
 //! deterministic, so CI can check that the committed files are current.
 
+use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashMap};
 
 use serde_json::{json, Value};
@@ -37,7 +38,7 @@ pub fn markdown(en: &Dictionary) -> String {
     let mut out = String::new();
     out.push_str("# Formats, tools and file actions\n\n");
     out.push_str("Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export`; do not edit by hand.\n\n");
-    out.push_str("Every entry is *planned* until its engine ships (Phase 2 onwards). **[+]** marks an enhancement beyond the core feature set. Core needs no download; Media, Office and Extras are optional tool groups (SPEC 4.2).\n\n");
+    out.push_str("**Status:** *ready* works today; *preview* depends on the computer (HEIC needs the system's HEIF support); *planned* arrives in a later phase. **[+]** marks an enhancement beyond the core feature set. Core needs no download; Media, Office and Extras are optional tool groups (SPEC 4.2).\n\n");
     out.push_str("| | Count |\n| --- | ---: |\n");
     out.push_str(&format!("| Formats | {} |\n| Core input formats | {} |\n| Conversion routes | {} |\n| Tools | {} |\n| File actions | {} |\n\n", s.formats, s.core_inputs, s.routes, s.tools, s.actions));
 
@@ -53,17 +54,21 @@ pub fn markdown(en: &Dictionary) -> String {
             "## {}\n\n",
             name(&format!("category.{}", category.key()))
         ));
-        out.push_str("| From | To | Needs | Notes |\n| --- | --- | --- | --- |\n");
+        out.push_str("| From | To | Needs | Status | Notes |\n| --- | --- | --- | --- | --- |\n");
         for source in sources {
             // Per tool group: the targets, and each note with the targets it applies to.
             type Notes = Vec<(&'static str, Vec<String>)>;
-            let mut rows: BTreeMap<ToolGroup, (Vec<String>, Notes)> = BTreeMap::new();
+            // Ready rows first within a group.
+            let mut rows: BTreeMap<(ToolGroup, Reverse<Status>), (Vec<String>, Notes)> =
+                BTreeMap::new();
             for route in routes().iter().filter(|r| r.from == source.id) {
                 let mut target = label(route.to);
                 if route.enhancement && !source.enhancement {
                     target.push_str(" [+]");
                 }
-                let row = rows.entry(route.group).or_default();
+                let row = rows
+                    .entry((route.group, Reverse(route.status)))
+                    .or_default();
                 row.0.push(target);
                 if let Some(note) = route.note {
                     match row.1.iter_mut().find(|(text, _)| *text == note) {
@@ -77,10 +82,10 @@ pub fn markdown(en: &Dictionary) -> String {
                 from.push_str(" [+]");
             }
             if rows.is_empty() {
-                out.push_str(&format!("| {from} | (tools only) | | |\n"));
+                out.push_str(&format!("| {from} | (tools only) | | | |\n"));
                 continue;
             }
-            for (group, (targets, notes)) in rows {
+            for ((group, Reverse(status)), (targets, notes)) in rows {
                 let notes: Vec<String> = notes
                     .into_iter()
                     .map(|(text, on)| {
@@ -92,9 +97,10 @@ pub fn markdown(en: &Dictionary) -> String {
                     })
                     .collect();
                 out.push_str(&format!(
-                    "| {from} | {} | {} | {} |\n",
+                    "| {from} | {} | {} | {} | {} |\n",
                     targets.join(", "),
                     group_word(group),
+                    status_word(status),
                     notes.join("; ")
                 ));
             }

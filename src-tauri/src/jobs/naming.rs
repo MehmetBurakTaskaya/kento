@@ -138,6 +138,69 @@ impl Drop for Reservation {
     }
 }
 
+/// A claimed output folder (PDF pages, extracted archives). The final folder exists, empty, from
+/// the start so no other job takes the name; the work fills `temp`, a hidden sibling. `commit`
+/// swaps it into place; dropping the reservation without committing removes both.
+#[derive(Debug)]
+pub struct FolderReservation {
+    final_path: PathBuf,
+    temp_path: PathBuf,
+    committed: bool,
+}
+
+impl FolderReservation {
+    /// Claims the first free folder name for `name` in `dir` ("photos", then "photos (2)").
+    pub fn claim(dir: &Path, name: &str) -> io::Result<Self> {
+        for n in 1..=10_000u32 {
+            let name = numbered(name, "", n);
+            let final_path = dir.join(&name);
+            match fs::create_dir(long_path(&final_path)) {
+                Ok(()) => {
+                    let temp_path = dir.join(format!(".{name}.kento-part"));
+                    fs::create_dir(long_path(&temp_path))?;
+                    return Ok(Self {
+                        final_path,
+                        temp_path,
+                        committed: false,
+                    });
+                }
+                Err(err) if err.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(err) => return Err(err),
+            }
+        }
+        Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "no free folder name",
+        ))
+    }
+
+    pub fn final_path(&self) -> &Path {
+        &self.final_path
+    }
+
+    pub fn temp_path(&self) -> &Path {
+        &self.temp_path
+    }
+
+    /// Replaces the empty placeholder with the filled folder. A folder cannot be renamed over
+    /// another, so the placeholder goes first; the name stays ours for that moment.
+    pub fn commit(mut self) -> io::Result<PathBuf> {
+        fs::remove_dir(long_path(&self.final_path))?;
+        fs::rename(long_path(&self.temp_path), long_path(&self.final_path))?;
+        self.committed = true;
+        Ok(self.final_path.clone())
+    }
+}
+
+impl Drop for FolderReservation {
+    fn drop(&mut self) {
+        if !self.committed {
+            let _ = fs::remove_dir_all(long_path(&self.temp_path));
+            let _ = fs::remove_dir(long_path(&self.final_path));
+        }
+    }
+}
+
 /// Windows paths of 260 characters or more need the \\?\ prefix; everything else stays as is.
 pub fn long_path(path: &Path) -> PathBuf {
     #[cfg(windows)]
@@ -187,6 +250,22 @@ mod tests {
         assert_eq!(fs::read(dir.path().join("foto.jpg")).unwrap(), b"original");
         drop(second);
         assert!(!dir.path().join("foto (3).jpg").exists());
+    }
+
+    #[test]
+    fn folders_are_claimed_filled_and_swapped_into_place() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir(dir.path().join("rapor")).unwrap();
+        let first = FolderReservation::claim(dir.path(), "rapor").unwrap();
+        assert_eq!(first.final_path().file_name().unwrap(), "rapor (2)");
+        fs::write(first.temp_path().join("rapor-1.png"), b"page").unwrap();
+        let done = first.commit().unwrap();
+        assert_eq!(fs::read(done.join("rapor-1.png")).unwrap(), b"page");
+        let dropped = FolderReservation::claim(dir.path(), "Klasör 🧪").unwrap();
+        fs::write(dropped.temp_path().join("half.png"), b"x").unwrap();
+        drop(dropped);
+        let left: Vec<_> = fs::read_dir(dir.path()).unwrap().collect();
+        assert_eq!(left.len(), 2, "only rapor and rapor (2) remain");
     }
 
     #[test]

@@ -3,6 +3,7 @@
 //! run one at a time. Every job can be cancelled, and a failed or cancelled job's temporary files
 //! are deleted. Pausing stops new jobs from starting; running ones finish.
 
+pub mod engine;
 pub mod naming;
 
 use std::collections::{BTreeMap, VecDeque};
@@ -46,7 +47,10 @@ pub enum JobState {
         outputs: Vec<PathBuf>,
     },
     Failed {
+        /// Plain language, in the interface language.
         message: String,
+        /// The technical reason, for "Copy details".
+        details: Option<String>,
     },
     Cancelled,
 }
@@ -76,6 +80,8 @@ pub enum JobError {
     Cancelled,
     #[error("{0}")]
     Failed(String),
+    #[error("{message} ({details})")]
+    Explained { message: String, details: String },
 }
 
 /// A unit of work. `run` gets a context for progress, cancellation and temporary files.
@@ -341,7 +347,14 @@ impl JobQueue {
                 let final_state = match result {
                     Ok(outputs) if !token.is_cancelled() => JobState::Done { outputs },
                     Ok(_) | Err(JobError::Cancelled) => JobState::Cancelled,
-                    Err(JobError::Failed(message)) => JobState::Failed { message },
+                    Err(JobError::Failed(message)) => JobState::Failed {
+                        message,
+                        details: None,
+                    },
+                    Err(JobError::Explained { message, details }) => JobState::Failed {
+                        message,
+                        details: Some(details),
+                    },
                 };
                 if !matches!(final_state, JobState::Done { .. }) {
                     for path in lock(&temps).drain(..) {

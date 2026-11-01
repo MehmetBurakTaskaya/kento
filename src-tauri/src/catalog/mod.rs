@@ -90,6 +90,8 @@ pub enum Engine {
     Pdf,
     Archive,
     Text,
+    /// Spreadsheets without an office suite (calamine, rust_xlsxwriter).
+    Sheet,
     Qr,
     Ocr,
     Ffmpeg,

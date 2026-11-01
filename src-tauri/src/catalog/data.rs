@@ -185,6 +185,9 @@ const DOC_IN: &[&str] = &[
     "doc",
 ];
 const DOC_OUT: &[&str] = &["pdf", "docx", "odt", "rtf", "txt", "md", "html", "epub"];
+// Workbooks without an office suite: values in, values out.
+const SHEET_NATIVE_IN: &[&str] = &["csv", "tsv", "xls", "xlsx", "ods"];
+const SHEET_NATIVE_OUT: &[&str] = &["csv", "tsv", "xlsx", "html"];
 const SHEET_IN: &[&str] = &["csv", "tsv", "xls", "xlsx", "ods", "numbers"];
 const SHEET_OUT: &[&str] = &["xlsx", "ods", "csv", "tsv", "pdf", "html"];
 const SLIDES_IN: &[&str] = &["ppt", "pptx", "odp", "key"];
@@ -245,9 +248,9 @@ pub fn routes() -> &'static [Route] {
             )
             .add(DOC_IN, DOC_OUT, E::LibreOffice, G::Office, false, None)
             .add(
-                &["csv", "tsv"],
-                &["csv", "tsv"],
-                E::Text,
+                SHEET_NATIVE_IN,
+                SHEET_NATIVE_OUT,
+                E::Sheet,
                 G::Core,
                 false,
                 None,
@@ -325,6 +328,18 @@ pub fn routes() -> &'static [Route] {
             if route.from == "rar" {
                 route.note = Some("extract only (UnRAR licence)");
             }
+            if route.engine == E::Sheet && matches!(route.from, "xls" | "xlsx" | "ods") {
+                route.note = Some(match route.to {
+                    "csv" | "tsv" => "the first sheet",
+                    _ => "values only",
+                });
+            }
+            route.status = match route.engine {
+                E::Image | E::Pdf | E::Archive | E::Text | E::Sheet => Status::Ready,
+                // Depends on the computer's HEIF support.
+                E::Heif => Status::Preview,
+                _ => Status::Planned,
+            };
         }
         r.0
     })
@@ -640,8 +655,30 @@ const TOOLS: &[Tool] = &[
     ),
 ];
 
+/// Tools whose engine has shipped.
+const READY_TOOLS: &[&str] = &[
+    "read-qr",
+    "split-pdf",
+    "edit-pdf",
+    "merge-pdf",
+    "images-to-pdf",
+    "extract",
+];
+
 pub fn tools() -> &'static [Tool] {
-    TOOLS
+    static READY: OnceLock<Vec<Tool>> = OnceLock::new();
+    READY.get_or_init(|| {
+        TOOLS
+            .iter()
+            .cloned()
+            .map(|mut tool| {
+                if READY_TOOLS.contains(&tool.id) {
+                    tool.status = Status::Ready;
+                }
+                tool
+            })
+            .collect()
+    })
 }
 
 const fn action(

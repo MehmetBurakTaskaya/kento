@@ -825,7 +825,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "jpg"
     },
     {
@@ -835,7 +835,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "png"
     },
     {
@@ -845,7 +845,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webp"
     },
     {
@@ -855,7 +855,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "bmp"
     },
     {
@@ -865,7 +865,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tiff"
     },
     {
@@ -875,7 +875,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -885,7 +885,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "pdf"
     },
     {
@@ -895,7 +895,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "jpg"
     },
     {
@@ -905,7 +905,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "png"
     },
     {
@@ -915,7 +915,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webp"
     },
     {
@@ -925,7 +925,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avif"
     },
     {
@@ -935,7 +935,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tiff"
     },
     {
@@ -945,7 +945,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -955,7 +955,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "pdf"
     },
     {
@@ -965,7 +965,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "jpg"
     },
     {
@@ -975,7 +975,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "png"
     },
     {
@@ -985,7 +985,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webp"
     },
     {
@@ -995,7 +995,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avif"
     },
     {
@@ -1005,7 +1005,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "bmp"
     },
     {
@@ -1015,7 +1015,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tiff"
     },
     {
@@ -1025,7 +1025,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "pdf"
     },
     {
@@ -1035,7 +1035,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "png"
     },
     {
@@ -1045,7 +1045,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webp"
     },
     {
@@ -1055,7 +1055,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avif"
     },
     {
@@ -1065,7 +1065,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "bmp"
     },
     {
@@ -1075,7 +1075,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tiff"
     },
     {
@@ -1085,7 +1085,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1095,7 +1095,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "pdf"
     },
     {
@@ -1105,7 +1105,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "jpg"
     },
     {
@@ -1115,7 +1115,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webp"
     },
     {
@@ -1125,7 +1125,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avif"
     },
     {
@@ -1135,7 +1135,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "bmp"
     },
     {
@@ -1145,7 +1145,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tiff"
     },
     {
@@ -1155,7 +1155,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1165,7 +1165,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "pdf"
     },
     {
@@ -1175,7 +1175,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "jpg"
     },
     {
@@ -1185,7 +1185,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "png"
     },
     {
@@ -1195,7 +1195,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webp"
     },
     {
@@ -1205,7 +1205,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avif"
     },
     {
@@ -1215,7 +1215,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "bmp"
     },
     {
@@ -1225,7 +1225,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tiff"
     },
     {
@@ -1235,7 +1235,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1245,7 +1245,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "pdf"
     },
     {
@@ -1255,7 +1255,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "jpg"
     },
     {
@@ -1265,7 +1265,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "png"
     },
     {
@@ -1275,7 +1275,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webp"
     },
     {
@@ -1285,7 +1285,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avif"
     },
     {
@@ -1295,7 +1295,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "bmp"
     },
     {
@@ -1305,7 +1305,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1315,7 +1315,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "pdf"
     },
     {
@@ -1325,7 +1325,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "jpg"
     },
     {
@@ -1335,7 +1335,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "png"
     },
     {
@@ -1345,7 +1345,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avif"
     },
     {
@@ -1355,7 +1355,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "bmp"
     },
     {
@@ -1365,7 +1365,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tiff"
     },
     {
@@ -1375,7 +1375,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1385,7 +1385,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "pdf"
     },
     {
@@ -1395,7 +1395,7 @@
       "group": "core",
       "note": "read with the system's HEIF support",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "jpg"
     },
     {
@@ -1405,7 +1405,7 @@
       "group": "core",
       "note": "read with the system's HEIF support",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "png"
     },
     {
@@ -1415,7 +1415,7 @@
       "group": "core",
       "note": "read with the system's HEIF support",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "webp"
     },
     {
@@ -1425,7 +1425,7 @@
       "group": "core",
       "note": "read with the system's HEIF support",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "avif"
     },
     {
@@ -1435,7 +1435,7 @@
       "group": "core",
       "note": "read with the system's HEIF support",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "bmp"
     },
     {
@@ -1445,7 +1445,7 @@
       "group": "core",
       "note": "read with the system's HEIF support",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "tiff"
     },
     {
@@ -1455,7 +1455,7 @@
       "group": "core",
       "note": "read with the system's HEIF support",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "gif"
     },
     {
@@ -1465,7 +1465,7 @@
       "group": "core",
       "note": "read with the system's HEIF support",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "pdf"
     },
     {
@@ -1475,7 +1475,7 @@
       "group": "core",
       "note": "only where a reliable HEIC encoder exists",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "heic"
     },
     {
@@ -1485,7 +1485,7 @@
       "group": "core",
       "note": "only where a reliable HEIC encoder exists",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "heic"
     },
     {
@@ -1495,7 +1495,7 @@
       "group": "core",
       "note": "only where a reliable HEIC encoder exists",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "heic"
     },
     {
@@ -1505,7 +1505,7 @@
       "group": "core",
       "note": "only where a reliable HEIC encoder exists",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "heic"
     },
     {
@@ -1515,7 +1515,7 @@
       "group": "core",
       "note": "only where a reliable HEIC encoder exists",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "heic"
     },
     {
@@ -1525,7 +1525,7 @@
       "group": "core",
       "note": "only where a reliable HEIC encoder exists",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "heic"
     },
     {
@@ -1535,7 +1535,7 @@
       "group": "core",
       "note": "only where a reliable HEIC encoder exists",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "heic"
     },
     {
@@ -1545,7 +1545,7 @@
       "group": "core",
       "note": "only where a reliable HEIC encoder exists",
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "heic"
     },
     {
@@ -1555,7 +1555,7 @@
       "group": "core",
       "note": "several sizes in one icon",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ico"
     },
     {
@@ -1565,7 +1565,7 @@
       "group": "core",
       "note": "several sizes in one icon",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ico"
     },
     {
@@ -1575,7 +1575,7 @@
       "group": "core",
       "note": "several sizes in one icon",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ico"
     },
     {
@@ -1585,7 +1585,7 @@
       "group": "core",
       "note": "several sizes in one icon",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ico"
     },
     {
@@ -1595,7 +1595,7 @@
       "group": "core",
       "note": "several sizes in one icon",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ico"
     },
     {
@@ -1605,7 +1605,7 @@
       "group": "core",
       "note": "several sizes in one icon",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ico"
     },
     {
@@ -1615,7 +1615,7 @@
       "group": "core",
       "note": "several sizes in one icon",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ico"
     },
     {
@@ -1625,7 +1625,7 @@
       "group": "core",
       "note": "several sizes in one icon",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ico"
     },
     {
@@ -1635,7 +1635,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "preview",
       "to": "ico"
     },
     {
@@ -2775,7 +2775,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "md"
     },
     {
@@ -2785,7 +2785,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "html"
     },
     {
@@ -2795,7 +2795,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "txt"
     },
     {
@@ -2805,7 +2805,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "html"
     },
     {
@@ -2815,7 +2815,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "txt"
     },
     {
@@ -2825,7 +2825,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "md"
     },
     {
@@ -2835,7 +2835,7 @@
       "group": "core",
       "note": "best effort",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "txt"
     },
     {
@@ -3579,34 +3579,174 @@
       "to": "epub"
     },
     {
-      "engine": "text",
+      "engine": "sheet",
       "enhancement": false,
       "from": "csv",
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tsv"
     },
     {
-      "engine": "text",
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "csv",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "ready",
+      "to": "xlsx"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "csv",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "ready",
+      "to": "html"
+    },
+    {
+      "engine": "sheet",
       "enhancement": false,
       "from": "tsv",
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "csv"
     },
     {
-      "engine": "libre-office",
+      "engine": "sheet",
       "enhancement": false,
-      "from": "csv",
-      "group": "office",
+      "from": "tsv",
+      "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "xlsx"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "tsv",
+      "group": "core",
+      "note": null,
+      "platforms": "both",
+      "status": "ready",
+      "to": "html"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "xls",
+      "group": "core",
+      "note": "the first sheet",
+      "platforms": "both",
+      "status": "ready",
+      "to": "csv"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "xls",
+      "group": "core",
+      "note": "the first sheet",
+      "platforms": "both",
+      "status": "ready",
+      "to": "tsv"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "xls",
+      "group": "core",
+      "note": "values only",
+      "platforms": "both",
+      "status": "ready",
+      "to": "xlsx"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "xls",
+      "group": "core",
+      "note": "values only",
+      "platforms": "both",
+      "status": "ready",
+      "to": "html"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "xlsx",
+      "group": "core",
+      "note": "the first sheet",
+      "platforms": "both",
+      "status": "ready",
+      "to": "csv"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "xlsx",
+      "group": "core",
+      "note": "the first sheet",
+      "platforms": "both",
+      "status": "ready",
+      "to": "tsv"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "xlsx",
+      "group": "core",
+      "note": "values only",
+      "platforms": "both",
+      "status": "ready",
+      "to": "html"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "ods",
+      "group": "core",
+      "note": "the first sheet",
+      "platforms": "both",
+      "status": "ready",
+      "to": "csv"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "ods",
+      "group": "core",
+      "note": "the first sheet",
+      "platforms": "both",
+      "status": "ready",
+      "to": "tsv"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "ods",
+      "group": "core",
+      "note": "values only",
+      "platforms": "both",
+      "status": "ready",
+      "to": "xlsx"
+    },
+    {
+      "engine": "sheet",
+      "enhancement": false,
+      "from": "ods",
+      "group": "core",
+      "note": "values only",
+      "platforms": "both",
+      "status": "ready",
+      "to": "html"
     },
     {
       "engine": "libre-office",
@@ -3631,26 +3771,6 @@
     {
       "engine": "libre-office",
       "enhancement": false,
-      "from": "csv",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "html"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "tsv",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "xlsx"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
       "from": "tsv",
       "group": "office",
       "note": null,
@@ -3671,26 +3791,6 @@
     {
       "engine": "libre-office",
       "enhancement": false,
-      "from": "tsv",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "html"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "xls",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "xlsx"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
       "from": "xls",
       "group": "office",
       "note": null,
@@ -3706,37 +3806,7 @@
       "note": null,
       "platforms": "both",
       "status": "planned",
-      "to": "csv"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "xls",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "tsv"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "xls",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
       "to": "pdf"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "xls",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "html"
     },
     {
       "engine": "libre-office",
@@ -3756,76 +3826,6 @@
       "note": null,
       "platforms": "both",
       "status": "planned",
-      "to": "csv"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "xlsx",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "tsv"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "xlsx",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "pdf"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "xlsx",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "html"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "ods",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "xlsx"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "ods",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "csv"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "ods",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
-      "to": "tsv"
-    },
-    {
-      "engine": "libre-office",
-      "enhancement": false,
-      "from": "ods",
-      "group": "office",
-      "note": null,
-      "platforms": "both",
-      "status": "planned",
       "to": "pdf"
     },
     {
@@ -3836,7 +3836,7 @@
       "note": null,
       "platforms": "both",
       "status": "planned",
-      "to": "html"
+      "to": "pdf"
     },
     {
       "engine": "libre-office",
@@ -4085,7 +4085,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "vtt"
     },
     {
@@ -4095,7 +4095,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "txt"
     },
     {
@@ -4105,7 +4105,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "srt"
     },
     {
@@ -4115,7 +4115,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "txt"
     },
     {
@@ -4125,7 +4125,7 @@
       "group": "core",
       "note": "one image per page",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "jpg"
     },
     {
@@ -4135,7 +4135,7 @@
       "group": "core",
       "note": "one image per page",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "png"
     },
     {
@@ -4145,7 +4145,7 @@
       "group": "core",
       "note": "text only",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "txt"
     },
     {
@@ -4155,7 +4155,7 @@
       "group": "core",
       "note": "text only",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "md"
     },
     {
@@ -4215,7 +4215,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tar"
     },
     {
@@ -4225,7 +4225,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tar-gz"
     },
     {
@@ -4235,7 +4235,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "7z"
     },
     {
@@ -4245,7 +4245,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "zip"
     },
     {
@@ -4255,7 +4255,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tar-gz"
     },
     {
@@ -4265,7 +4265,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "7z"
     },
     {
@@ -4275,7 +4275,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "zip"
     },
     {
@@ -4285,7 +4285,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tar"
     },
     {
@@ -4295,7 +4295,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "7z"
     },
     {
@@ -4305,7 +4305,7 @@
       "group": "core",
       "note": "extract only (UnRAR licence)",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "zip"
     },
     {
@@ -4315,7 +4315,7 @@
       "group": "core",
       "note": "extract only (UnRAR licence)",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tar"
     },
     {
@@ -4325,7 +4325,7 @@
       "group": "core",
       "note": "extract only (UnRAR licence)",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tar-gz"
     },
     {
@@ -4335,7 +4335,7 @@
       "group": "core",
       "note": "extract only (UnRAR licence)",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "7z"
     },
     {
@@ -4345,7 +4345,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "zip"
     },
     {
@@ -4355,7 +4355,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tar"
     },
     {
@@ -4365,7 +4365,7 @@
       "group": "core",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "tar-gz"
     }
   ],
@@ -4373,7 +4373,7 @@
     "actions": 8,
     "coreInputs": 46,
     "formats": 54,
-    "ready": 0,
+    "ready": 119,
     "routes": 355,
     "tools": 31
   },
@@ -4536,7 +4536,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [],
@@ -4568,7 +4568,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4585,7 +4585,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4602,7 +4602,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4619,7 +4619,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4636,7 +4636,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [

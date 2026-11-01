@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 //! `kento --smoke-test`: starts the app without showing it, checks the parts that exist so far and
 //! writes a JSON report to the data folder (smoke-test.json), then quits with 0 when all passed.
-//! Later phases add the wheel, drag and drop, the editors and exports.
+//! Later phases add the global wheel, drag and drop, the editors and exports.
 
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -55,6 +55,63 @@ impl Job for Probe {
             Ok(vec![reservation.commit().map_err(fail)?])
         })
     }
+}
+
+/// Runs a chain of real conversions through the engines: an SVG drawn to PNG, then JPG and PDF,
+/// the PDF's page back to PNG (this needs the bundled PDFium), Markdown to HTML, and a ZIP made
+/// and extracted. Names carry Turkish letters and an emoji (SPEC 5.14).
+fn engines(dir: &Path) -> Result<String, String> {
+    use kento_engines as e;
+    let options = e::Options::default();
+    let progress = e::Progress::none();
+    let run = |input: &Path, from: &str, to: &str, dest: &Path| {
+        e::convert(&e::Conversion {
+            input,
+            from,
+            to,
+            dest,
+            temp: dir,
+            options: &options,
+            progress: &progress,
+        })
+        .map_err(|err| format!("{from} → {to}: {err}"))
+    };
+    let io = |err: std::io::Error| err.to_string();
+    let svg = dir.join("Kento ğüşıöç 🧪.svg");
+    std::fs::write(
+        &svg,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48"><rect width="64" height="48" fill="#2a4ea6"/></svg>"##,
+    )
+    .map_err(io)?;
+    let png = dir.join("logo.png");
+    run(&svg, "svg", "png", &png)?;
+    run(&png, "png", "jpg", &dir.join("logo.jpg"))?;
+    let pdf = dir.join("logo.pdf");
+    run(&png, "png", "pdf", &pdf)?;
+    let pages = dir.join("sayfalar");
+    std::fs::create_dir(&pages).map_err(io)?;
+    let shots = run(&pdf, "pdf", "png", &pages)?;
+    let md = dir.join("not ğüş.md");
+    std::fs::write(&md, "# Kento\n\n- çark\n").map_err(io)?;
+    let html = dir.join("not ğüş.html");
+    run(&md, "md", "html", &html)?;
+    if !std::fs::read_to_string(&html).map_err(io)?.contains("<h1>") {
+        return Err("md → html lost the heading".into());
+    }
+    let zip = dir.join("paket.zip");
+    e::archive::create_zip(&[md, png], &zip, &progress).map_err(|err| err.to_string())?;
+    let out = dir.join("açılan");
+    std::fs::create_dir(&out).map_err(io)?;
+    let files = e::archive::extract(&zip, "zip", &out, &options.archive_limits, &progress)
+        .map_err(|err| err.to_string())?;
+    if shots.len() != 1 || files.len() != 2 {
+        return Err(format!(
+            "{} page images, {} extracted files",
+            shots.len(),
+            files.len()
+        ));
+    }
+    Ok("svg → png → jpg and pdf, pdf → png with PDFium, md → html, zip made and extracted".into())
 }
 
 fn check(name: &'static str, result: Result<String, String>) -> Check {
@@ -149,7 +206,7 @@ pub async fn run(app: AppHandle) -> bool {
                     };
                     break;
                 }
-                JobState::Failed { message } => {
+                JobState::Failed { message, .. } => {
                     outcome = Err(message);
                     break;
                 }
@@ -163,6 +220,15 @@ pub async fn run(app: AppHandle) -> bool {
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
     checks.push(check("job queue and naming", outcome));
+
+    let dir = scratch.join("engines");
+    let engine_result = match std::fs::create_dir_all(&dir) {
+        Ok(()) => tauri::async_runtime::spawn_blocking(move || engines(&dir))
+            .await
+            .unwrap_or_else(|err| Err(err.to_string())),
+        Err(err) => Err(err.to_string()),
+    };
+    checks.push(check("engines", engine_result));
 
     let settings = state.settings();
     checks.push(check(
