@@ -11,6 +11,7 @@ pub mod i18n;
 pub mod jobs;
 pub mod library;
 pub mod logging;
+pub mod media;
 pub mod overlay;
 pub mod paths;
 pub mod platform;
@@ -18,6 +19,7 @@ pub mod settings;
 pub mod shelf;
 mod shortcut;
 mod smoke;
+pub mod toolchain;
 pub mod tools;
 mod tray;
 mod window;
@@ -41,6 +43,8 @@ pub struct AppState {
     pub queue: JobQueue,
     pub shelf: Shelf,
     pub library: Library,
+    /// The optional external tools: detection, custom paths and installs.
+    pub toolchain: toolchain::Toolchain,
     pub wheel: overlay::wheel::WheelState,
     pub toasts: overlay::toast::ToastState,
     /// A tool panel the main window should open once it is ready (from the global wheel).
@@ -138,6 +142,7 @@ fn setup(
         overlay::toast::on_job(&handle, info);
     });
     let library = Library::load(paths.data.join("library.json"));
+    let toolchain = toolchain::Toolchain::new(&paths.data);
     let shelf = Shelf::load(paths.data.join("shelf.json"), paths.data.join("shelf"));
     let launch = launch_request(&std::env::args().collect::<Vec<_>>());
     load_pdfium(app);
@@ -150,6 +155,7 @@ fn setup(
         queue: JobQueue::new(limit, spawn, listener),
         shelf,
         library,
+        toolchain,
         wheel: Default::default(),
         toasts: Default::default(),
         pending_tool: Mutex::new(None),
@@ -168,6 +174,11 @@ fn setup(
     if let Some(wheel) = app.get_webview_window(overlay::wheel::LABEL) {
         overlay::park(&wheel);
     }
+    // Finding the media tools runs each candidate once; the first wheel should not wait for it.
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        let _ = toolchain::engine_tools(&handle.state::<AppState>());
+    });
     if !smoke_test {
         overlay::wheel::sync_watcher(app);
         shortcut::sync(app);
@@ -275,12 +286,22 @@ pub fn run() {
             actions::actions,
             actions::run_action,
             actions::open_tool,
+            actions::open_setup,
             actions::take_pending_tool,
             overlay::wheel::wheel_session,
             overlay::wheel::wheel_dropped,
             overlay::wheel::wheel_switch,
             overlay::wheel::wheel_closed,
             overlay::wheel::wheel_haptic,
+            media::media_probe,
+            media::media_preview,
+            media::media_peaks,
+            media::media_frame,
+            media::run_media_tool,
+            toolchain::tools_status,
+            toolchain::tools_install,
+            toolchain::tools_cancel,
+            toolchain::tools_set_path,
             overlay::toast::toast_cards,
             overlay::toast::toast_layout,
             overlay::toast::toast_dismiss,

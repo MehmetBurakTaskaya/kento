@@ -9,6 +9,7 @@ import { api } from '../ipc';
 import { useApp } from '../state/store';
 import { FileList } from './FileList';
 import { chooseFiles } from './input';
+import { useToolStatus } from './Setup';
 
 /** The deposit slot of the steel theme, with the blue arrow going in. */
 function DepositSlot() {
@@ -35,16 +36,19 @@ function DepositSlot() {
   );
 }
 
-const GROUPS = [
-  { id: 'core', status: 'ready' },
-  { id: 'media', status: 'missing' },
-  { id: 'office', status: 'missing' },
-  { id: 'extras', status: 'optional' },
-] as const;
-
 export function Home() {
   const { t } = useTranslation();
-  const { boot, jobs, paused, language, files, selected, library, openWheel, target, removeFiles } = useApp();
+  const { boot, jobs, paused, language, files, selected, library, openWheel, target, removeFiles, openSetup } =
+    useApp();
+  const [status] = useToolStatus();
+  // Core needs nothing; Media can be installed now; Office and Extras arrive later (optional).
+  const groups = [
+    { id: 'core', status: 'ready' },
+    ...(status ?? []).map((group) => ({
+      id: group.id,
+      status: group.ready ? 'ready' : group.available ? 'missing' : 'optional',
+    })),
+  ];
   const mac = boot?.app.platform === 'macos';
   const active = Object.values(jobs).filter((job) => job.state === 'queued' || job.state === 'running');
   const recent = library.filter((item) => item.exists).slice(0, 6);
@@ -148,7 +152,7 @@ export function Home() {
             {t('home.tools.title')}
           </h2>
           <ul className="groups">
-            {GROUPS.map((group) => (
+            {groups.map((group) => (
               <li key={group.id} className="group" data-status={group.status}>
                 <span className="dot" aria-hidden="true" />
                 <span className="group-name">{t(`group.${group.id}`)}</span>
@@ -157,6 +161,11 @@ export function Home() {
               </li>
             ))}
           </ul>
+          {groups.some((group) => group.status === 'missing') && (
+            <button type="button" className="button small" onClick={openSetup}>
+              {t('setup.open')}
+            </button>
+          )}
         </section>
 
         <section className="card" aria-labelledby="jobs-title">

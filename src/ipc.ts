@@ -2,7 +2,7 @@
 // The page's only door to the app core. Inside Kento it calls the Rust commands; in a plain browser
 // (vite dev, screenshot tests) it answers from an in-memory stand-in driven by the URL
 // (?lang=tr&appearance=dark&section=settings&platform=macos).
-import { invoke, isTauri } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke, isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 
@@ -113,6 +113,8 @@ export interface ConvertTarget {
   group: ToolGroup;
   enhancement: boolean;
   note: string | null;
+  /** The tool group to install first. */
+  needs: ToolGroup | null;
 }
 
 /** The Convert wheel's targets for one category of the selection. */
@@ -127,6 +129,8 @@ export interface ToolEntry {
   icon: string;
   group: ToolGroup;
   enhancement: boolean;
+  /** The tool group to install first. */
+  needs: ToolGroup | null;
 }
 
 export interface LibraryEntry {
@@ -336,6 +340,8 @@ export interface Api {
   onShelf(handler: () => void): Promise<UnlistenFn>;
   onSettings(handler: (saved: Saved) => void): Promise<UnlistenFn>;
   haptic(): Promise<void>;
+  openSetup(): Promise<void>;
+  onOpenSetup(handler: () => void): Promise<UnlistenFn>;
   mediaProbe(path: string): Promise<MediaInfo>;
   mediaPreview(path: string): Promise<MediaPreview>;
   mediaPeaks(path: string, buckets: number): Promise<number[]>;
@@ -429,8 +435,14 @@ const tauriApi: Api = {
   onShelf: (handler) => listen('shelf', () => handler()),
   onSettings: (handler) => listen<Saved>('settings', (event) => handler(event.payload)),
   haptic: () => invoke('wheel_haptic'),
+  openSetup: () => invoke('open_setup'),
+  onOpenSetup: (handler) => listen('open-setup', () => handler()),
   mediaProbe: (path) => invoke('media_probe', { path }),
-  mediaPreview: (path) => invoke('media_preview', { path }),
+  mediaPreview: (path) =>
+    invoke<{ path: string; proxy: boolean }>('media_preview', { path }).then((preview) => ({
+      url: convertFileSrc(preview.path),
+      proxy: preview.proxy,
+    })),
   mediaPeaks: (path, buckets) => invoke('media_peaks', { path, buckets }),
   mediaFrame: (path, at, size) => blob(invoke<ArrayBuffer>('media_frame', { path, at, size })),
   runMediaTool: (tool, paths) => invoke('run_media_tool', { tool, paths }),
@@ -544,6 +556,7 @@ export function browserApi(params: URLSearchParams): Api {
           group: 'core' as const,
           enhancement: to === 'ico' || to === '7z',
           note: null,
+          needs: null,
         })),
       }));
     },
@@ -557,7 +570,7 @@ export function browserApi(params: URLSearchParams): Api {
         ...([...categories].every((c) => c === 'image' || c === 'pdf') ? ['read-qr'] : []),
         ...(only('archive') ? ['extract'] : []),
       ];
-      return ids.map((id) => ({ id, icon: 'doc', group: 'core' as const, enhancement: false }));
+      return ids.map((id) => ({ id, icon: 'doc', group: 'core' as const, enhancement: false, needs: null }));
     },
     convert: async (paths) => paths.map((_, index) => index + 1),
     pickFiles: async () => DEMO_FILES,
@@ -641,6 +654,8 @@ export function browserApi(params: URLSearchParams): Api {
     onShelf: async () => () => {},
     onSettings: async () => () => {},
     haptic: async () => {},
+    openSetup: async () => {},
+    onOpenSetup: async () => () => {},
     mediaProbe: async (path) =>
       /\.(mp3|wav|m4a|flac|ogg|opus|aiff|wma)$/i.test(path)
         ? { duration: 184.2, video: null, audio: { channels: 2, sampleRate: 44100, codec: 'mp3' } }

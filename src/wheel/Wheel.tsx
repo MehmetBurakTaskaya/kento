@@ -41,6 +41,8 @@ export interface WheelSlice {
   /** The description bubble, for example "PNG: lossless, keeps transparency". */
   hint?: string;
   disabled?: boolean;
+  /** Shown faded but still applies (its tool group is not installed; applying offers the setup). */
+  dimmed?: boolean;
   /** Opens another ring (a category). During a drag, resting on it opens it, since a drop ends the drag. */
   opens?: boolean;
 }
@@ -92,6 +94,7 @@ interface Item {
   icon?: IconName;
   hint?: string;
   disabled: boolean;
+  dimmed?: boolean;
   opens?: boolean;
   paging: { target: number } | null;
 }
@@ -208,6 +211,7 @@ export function Wheel({
         icon: item.icon,
         flipIcon: dir === 'rtl' && !!item.icon && DIRECTIONAL.has(item.icon),
         disabled: item.disabled,
+        dimmed: !!item.dimmed,
         format,
         block: layoutBlock(
           { label: item.label, sublabel: item.sublabel, icon: !!item.icon, format },

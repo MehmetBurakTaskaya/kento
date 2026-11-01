@@ -335,7 +335,7 @@ pub fn routes() -> &'static [Route] {
                 });
             }
             route.status = match route.engine {
-                E::Image | E::Pdf | E::Archive | E::Text | E::Sheet => Status::Ready,
+                E::Image | E::Pdf | E::Archive | E::Text | E::Sheet | E::Ffmpeg => Status::Ready,
                 // Depends on the computer's HEIF support.
                 E::Heif => Status::Preview,
                 _ => Status::Planned,
@@ -663,6 +663,19 @@ const READY_TOOLS: &[&str] = &[
     "merge-pdf",
     "images-to-pdf",
     "extract",
+    "mute",
+    "trim-video",
+    "crop-video",
+    "speed",
+    "merge-video",
+    "frames",
+    "split-video",
+    "redact-video",
+    "normalize",
+    "trim-audio",
+    "channels",
+    "redact-audio",
+    "audio-to-video",
 ];
 
 pub fn tools() -> &'static [Tool] {

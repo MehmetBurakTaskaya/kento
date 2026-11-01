@@ -5,7 +5,7 @@
 // selection shortcut, Send To) the files come with the session and the wheel takes the keyboard.
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { slicesFor, type Ring } from '../app/slices';
+import { NEEDS_SETUP, slicesFor, type Ring } from '../app/slices';
 import { api, type DragOver, type FileEntry, type WheelKey, type WheelKind, type WheelSession } from '../ipc';
 import { useApp } from '../state/store';
 import { Wheel, type WheelControl } from '../wheel/Wheel';
@@ -132,9 +132,12 @@ export function WheelSurface() {
           setRing(next);
           return;
         }
-        if (session.kind === 'convert') run(api.convert(view.paths, id));
+        if (id.startsWith(NEEDS_SETUP)) run(api.openSetup());
+        else if (session.kind === 'convert') run(api.convert(view.paths, id));
         else if (session.kind === 'tools') {
-          run(id === 'extract' ? api.extract(view.paths) : api.openTool(id, view.paths));
+          if (id === 'extract') run(api.extract(view.paths));
+          else if (id === 'mute') run(api.runMediaTool({ tool: 'mute' }, view.paths));
+          else run(api.openTool(id, view.paths));
         } else run(api.runAction(id, view.paths));
       }}
     />

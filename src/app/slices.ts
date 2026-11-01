@@ -25,6 +25,19 @@ export const TOOL_ICONS: Record<string, IconName> = {
   'images-to-pdf': 'layers',
   'read-qr': 'qr',
   extract: 'zip',
+  mute: 'mute',
+  'trim-video': 'scissors',
+  'crop-video': 'crop',
+  speed: 'speed',
+  'merge-video': 'merge',
+  frames: 'image',
+  'split-video': 'split',
+  'redact-video': 'redact',
+  normalize: 'music',
+  'trim-audio': 'scissors',
+  channels: 'music',
+  'redact-audio': 'redact',
+  'audio-to-video': 'video',
 };
 
 const ACTION_ICONS: Record<string, IconName> = {
@@ -40,6 +53,29 @@ const ACTION_ICONS: Record<string, IconName> = {
 
 /** Tools that ask for choices in a panel of the main window before they run. */
 export const PANEL_TOOLS = ['merge-pdf', 'split-pdf', 'edit-pdf', 'images-to-pdf', 'read-qr'];
+
+/** Media tools with an editor; Remove audio runs at once. */
+export const MEDIA_PANELS = [
+  'trim-video',
+  'crop-video',
+  'speed',
+  'merge-video',
+  'frames',
+  'split-video',
+  'redact-video',
+  'normalize',
+  'trim-audio',
+  'channels',
+  'redact-audio',
+  'audio-to-video',
+];
+
+/** The id of a slice whose tool group is not installed: choosing it opens the setup. */
+export const NEEDS_SETUP = '\u0001setup';
+
+function needsHint(t: TFunction, group: string | null) {
+  return group ? t('wheel.needs', { name: t(`group.${group}`) }) : undefined;
+}
 
 function recent(): Record<string, string[]> {
   try {
@@ -81,17 +117,20 @@ export function categorySlices(groups: TargetGroup[], t: TFunction): WheelSlice[
 
 export function targetSlices(group: TargetGroup, t: TFunction, has: (key: string) => boolean): WheelSlice[] {
   return byRecent(group.targets, (target) => target.to, group.category).map((target) => ({
-    id: target.to,
+    id: target.needs ? `${NEEDS_SETUP}:${target.to}` : target.to,
     label: target.label,
-    hint: has(`format.hint.${target.to}`) ? t(`format.hint.${target.to}`) : undefined,
+    hint: needsHint(t, target.needs) ?? (has(`format.hint.${target.to}`) ? t(`format.hint.${target.to}`) : undefined),
+    dimmed: !!target.needs,
   }));
 }
 
 export function toolSlices(tools: ToolEntry[], t: TFunction): WheelSlice[] {
   return byRecent(tools, (tool) => tool.id, 'tools').map((tool) => ({
-    id: tool.id,
+    id: tool.needs ? `${NEEDS_SETUP}:${tool.id}` : tool.id,
     label: t(`tool.${tool.id}`),
     icon: TOOL_ICONS[tool.id] ?? 'sliders',
+    hint: needsHint(t, tool.needs),
+    dimmed: !!tool.needs,
   }));
 }
 

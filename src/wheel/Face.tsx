@@ -15,6 +15,7 @@ export interface FaceSlice {
   /** Directional icons mirror in right-to-left layouts. */
   flipIcon: boolean;
   disabled: boolean;
+  dimmed?: boolean;
   format: boolean;
   block: LabelBlock;
   name: string;
@@ -129,6 +130,7 @@ export function Face({ uid, slices, hover, selected, generation, label, describe
         if (i === hover) classes.push('is-hover');
         if (i === selected) classes.push('is-selected');
         if (slice.disabled) classes.push('is-off');
+        if (slice.dimmed) classes.push('is-dimmed');
         return (
           <g
             key={slice.key}

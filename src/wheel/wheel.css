@@ -172,6 +172,9 @@ svg.wheel-layer {
   fill: var(--wheel-text-selected);
   color: var(--wheel-text-selected);
 }
+.wheel-slice.is-dimmed:not(.is-hover) .wheel-content {
+  opacity: 0.5;
+}
 .wheel-slice.is-off .wheel-content {
   opacity: 0.42;
 }

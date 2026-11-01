@@ -7,7 +7,16 @@ import { useTranslation } from 'react-i18next';
 import { api, type ActionEntry, type Category, type TargetGroup, type ToolEntry } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
 import { Wheel } from '../wheel/Wheel';
-import { actionSlices, categorySlices, PANEL_TOOLS, remember, targetSlices, toolSlices } from './slices';
+import {
+  actionSlices,
+  categorySlices,
+  MEDIA_PANELS,
+  NEEDS_SETUP,
+  PANEL_TOOLS,
+  remember,
+  targetSlices,
+  toolSlices,
+} from './slices';
 
 type Opened = NonNullable<ReturnType<typeof useApp.getState>['wheel']>;
 
@@ -20,7 +29,7 @@ interface Loaded {
 
 export function WheelHost() {
   const { t, i18n } = useTranslation();
-  const { wheel, files, settings, boot, closeWheel, openPanel, started, toast } = useApp();
+  const { wheel, files, settings, boot, closeWheel, openPanel, openSetup, started, toast } = useApp();
   // Results and choices belong to the wheel they were made for, so a new wheel starts clean.
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [choice, setChoice] = useState<{ wheel: Opened; category: Category | null } | null>(null);
@@ -126,6 +135,7 @@ export function WheelHost() {
         {...common}
         onBack={current.groups.length > 1 ? () => setCategory(null) : undefined}
         onApply={(to) => {
+          if (to.startsWith(NEEDS_SETUP)) return openSetup();
           remember(group.category, to);
           api.convert(paths, to).then(started).catch(failed);
         }}
@@ -142,9 +152,11 @@ export function WheelHost() {
         slices={toolSlices(current.tools, t)}
         {...common}
         onApply={(id) => {
+          if (id.startsWith(NEEDS_SETUP)) return openSetup();
           remember('tools', id);
-          if (PANEL_TOOLS.includes(id)) openPanel(id as PanelTool, paths);
+          if (PANEL_TOOLS.includes(id) || MEDIA_PANELS.includes(id)) openPanel(id as PanelTool, paths);
           else if (id === 'extract') api.extract(paths).then(started).catch(failed);
+          else if (id === 'mute') api.runMediaTool({ tool: 'mute' }, paths).then(started).catch(failed);
         }}
       />
     );

@@ -62,6 +62,8 @@ pub struct ConvertTarget {
     pub group: ToolGroup,
     pub enhancement: bool,
     pub note: Option<String>,
+    /// The tool group to install first, when it is missing (SPEC 5.1: shown dimmed).
+    pub needs: Option<ToolGroup>,
 }
 
 /// The targets for one category of the selection.
@@ -76,7 +78,7 @@ pub struct TargetGroup {
 /// The Convert wheel's slices: per category in the selection, the targets valid for every file
 /// of that category (SPEC 5.3, smart filter). Only routes that work in this version are offered.
 #[tauri::command]
-pub fn targets(paths: Vec<PathBuf>) -> Vec<TargetGroup> {
+pub fn targets(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<TargetGroup> {
     let mut groups: Vec<(Category, Vec<&'static str>)> = Vec::new();
     for path in &paths {
         let Some(format) = path.is_file().then(|| readable_format(path)).flatten() else {
@@ -101,6 +103,7 @@ pub fn targets(paths: Vec<PathBuf>) -> Vec<TargetGroup> {
                         group: route.group,
                         enhancement: route.enhancement,
                         note: route.note.map(str::to_string),
+                        needs: missing(&state, route.group),
                     })
                 })
                 .collect();
@@ -111,6 +114,22 @@ pub fn targets(paths: Vec<PathBuf>) -> Vec<TargetGroup> {
             }
         })
         .collect()
+}
+
+/// The tools found or installed for the engines (SPEC 4.2).
+pub(crate) fn engine_tools(state: &AppState) -> engines::Tools {
+    crate::toolchain::engine_tools(state)
+}
+
+/// The tool group a route or tool still needs, or None when it is ready to run.
+fn missing(state: &AppState, group: ToolGroup) -> Option<ToolGroup> {
+    let tools = engine_tools(state);
+    let ready = match group {
+        ToolGroup::Core => true,
+        ToolGroup::Media => tools.ffmpeg.is_some() && tools.ffprobe.is_some(),
+        ToolGroup::Office | ToolGroup::Extras => false,
+    };
+    (!ready).then_some(group)
 }
 
 /// A route this version can run: in the catalog, not planned, and supported by an engine here.
@@ -128,12 +147,14 @@ pub struct ToolEntry {
     pub icon: String,
     pub group: ToolGroup,
     pub enhancement: bool,
+    /// The tool group to install first, when it is missing (SPEC 5.1: shown dimmed).
+    pub needs: Option<ToolGroup>,
 }
 
 /// The Tools wheel's slices for the selection: the tools that work in this version and fit the
 /// files (how many, of which kinds).
 #[tauri::command]
-pub fn tools(paths: Vec<PathBuf>) -> Vec<ToolEntry> {
+pub fn tools(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<ToolEntry> {
     let categories: Vec<Option<Category>> = paths
         .iter()
         .map(|path| readable_format(path).map(|f| f.category))
@@ -154,6 +175,15 @@ pub fn tools(paths: Vec<PathBuf>) -> Vec<ToolEntry> {
             "images-to-pdf" => all(&[Category::Image]),
             "read-qr" => all(&[Category::Image, Category::Pdf]),
             "extract" => all(&[Category::Archive]),
+            // Remove audio needs no choices, so it takes several videos at once.
+            "mute" => all(&[Category::Video]),
+            "merge-video" => count >= 2 && all(&[Category::Video]),
+            "trim-video" | "crop-video" | "speed" | "frames" | "split-video" | "redact-video" => {
+                count == 1 && all(&[Category::Video])
+            }
+            "normalize" | "trim-audio" | "channels" | "redact-audio" | "audio-to-video" => {
+                count == 1 && all(&[Category::Audio])
+            }
             _ => all(tool.categories),
         })
         .map(|tool| ToolEntry {
@@ -161,6 +191,7 @@ pub fn tools(paths: Vec<PathBuf>) -> Vec<ToolEntry> {
             icon: tool.icon.to_string(),
             group: tool.group,
             enhancement: tool.enhancement,
+            needs: missing(&state, tool.group),
         })
         .collect()
 }
@@ -209,6 +240,7 @@ pub(crate) struct Context {
     output: OutputDir,
     fallback: PathBuf,
     temp: PathBuf,
+    tools: engines::Tools,
 }
 
 impl Context {
@@ -226,7 +258,12 @@ impl Context {
             output,
             fallback,
             temp: state.paths.temp.clone(),
+            tools: engine_tools(state),
         })
+    }
+
+    pub(crate) fn tools(&self) -> engines::Tools {
+        self.tools.clone()
     }
 
     pub(crate) fn text(&self, key: &str) -> String {
@@ -254,9 +291,13 @@ impl Context {
             },
         };
         let (from_id, to_id) = (from.id, to.id);
+        let tools = self.tools.clone();
         let input = path.clone();
         let work: Work = Box::new(move |dest, temp, progress| {
-            let options = Options::default();
+            let options = Options {
+                tools,
+                ..Options::default()
+            };
             engines::convert(&engines::Conversion {
                 input: &input,
                 from: from_id,

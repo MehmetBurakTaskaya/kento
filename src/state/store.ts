@@ -3,6 +3,7 @@
 // files on Home, the Library, the open wheel or tool panel and the cards in the corner.
 // Settings are saved through the core, which applies their side effects (tray, sign-in item…).
 import { create } from 'zustand';
+import type { MediaPanel } from '../editors';
 import { changeLanguage } from '../i18n';
 import {
   api,
@@ -17,7 +18,7 @@ import {
 export type WheelKind = 'convert' | 'tools' | 'actions';
 
 /** A tool that needs choices before it runs. */
-export type PanelTool = 'merge-pdf' | 'split-pdf' | 'edit-pdf' | 'images-to-pdf' | 'read-qr';
+export type PanelTool = 'merge-pdf' | 'split-pdf' | 'edit-pdf' | 'images-to-pdf' | 'read-qr' | MediaPanel;
 
 export type Toast =
   | { id: number; kind: 'done'; jobId: number; title: string; outputs: string[] }
@@ -40,6 +41,8 @@ interface AppStore {
   library: LibraryEntry[];
   wheel: { kind: WheelKind; paths: string[] } | null;
   panel: { tool: PanelTool; paths: string[] } | null;
+  /** The tool setup dialog (SPEC 5.15). */
+  setup: boolean;
   toasts: Toast[];
   setBoot(boot: Bootstrap): void;
   setSection(section: Section): void;
@@ -56,6 +59,8 @@ interface AppStore {
   closeWheel(): void;
   openPanel(tool: PanelTool, paths: string[]): void;
   closePanel(): void;
+  openSetup(): void;
+  closeSetup(): void;
   started(ids: number[]): void;
   refreshLibrary(): Promise<void>;
   toast(toast: NewToast): void;
@@ -77,6 +82,7 @@ export const useApp = create<AppStore>((set, get) => ({
   library: [],
   wheel: null,
   panel: null,
+  setup: false,
   toasts: [],
   setBoot: (boot) =>
     set({
@@ -147,6 +153,8 @@ export const useApp = create<AppStore>((set, get) => ({
   closeWheel: () => set({ wheel: null }),
   openPanel: (tool, paths) => set({ panel: { tool, paths }, wheel: null }),
   closePanel: () => set({ panel: null }),
+  openSetup: () => set({ setup: true, wheel: null, section: 'home' }),
+  closeSetup: () => set({ setup: false }),
   started: (ids) => set((state) => ({ mine: new Set([...state.mine, ...ids]) })),
   refreshLibrary: async () => {
     try {

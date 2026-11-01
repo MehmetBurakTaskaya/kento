@@ -303,6 +303,12 @@ pub fn open_tool(
     Ok(())
 }
 
+/// The main window opens the tool setup (a slice whose tool group is missing).
+#[tauri::command]
+pub fn open_setup(app: AppHandle, state: State<'_, AppState>) -> Result<()> {
+    open_tool(app, state, "setup".into(), Vec::new())
+}
+
 /// The tool a just-opened main window should show.
 #[tauri::command]
 pub fn take_pending_tool(state: State<'_, AppState>) -> Option<(String, Vec<PathBuf>)> {

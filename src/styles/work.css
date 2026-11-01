@@ -450,3 +450,55 @@ input[aria-invalid='true'] {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* ---------------------------------------------------------------- tool setup */
+.setup-groups {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.setup-group {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.setup-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+.setup-group .dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+.setup-group[data-ready] .dot {
+  background: var(--success);
+}
+.setup-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--success-text);
+}
+.setup-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+}
+.setup-progress .scale {
+  grid-column: 1 / -1;
+}
+.setup-actions {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}

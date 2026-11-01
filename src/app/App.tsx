@@ -14,6 +14,7 @@ import { Home } from './Home';
 import { useFileInput } from './input';
 import { Library } from './Library';
 import { Settings } from './Settings';
+import { Setup } from './Setup';
 import { WheelHost } from './WheelHost';
 
 const NAV: { section: Section; icon: IconName; key: string; shortcut: string }[] = [
@@ -61,6 +62,7 @@ export function App() {
   // A tool chosen on the floating wheel opens its panel here.
   useEffect(() => {
     const open = (tool: string, paths: string[]) => {
+      if (tool === 'setup') return useApp.getState().openSetup();
       void useApp
         .getState()
         .addFiles(paths)
@@ -72,8 +74,8 @@ export function App() {
         );
     };
     void api.takePendingTool().then((pending) => pending && open(...pending));
-    const stop = api.onOpenTool(open);
-    return () => void stop.then((unlisten) => unlisten());
+    const stops = [api.onOpenTool(open), api.onOpenSetup(() => useApp.getState().openSetup())];
+    return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
   }, []);
 
   // Ctrl+1, Ctrl+2 and Ctrl+, (⌘ on macOS) switch pages.
@@ -131,6 +133,7 @@ export function App() {
       </main>
       <WheelHost />
       <ToolPanel />
+      <Setup />
       <Toasts />
     </div>
   );
