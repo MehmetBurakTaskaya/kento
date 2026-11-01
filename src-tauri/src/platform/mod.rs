@@ -18,6 +18,10 @@ mod windows;
 use windows as os;
 #[cfg(not(any(windows, target_os = "macos")))]
 mod other;
+// The macOS drag logic is plain Rust; its tests run on every system.
+#[cfg(all(test, not(target_os = "macos")))]
+#[path = "macos/tracker.rs"]
+mod macos_tracker;
 #[cfg(not(any(windows, target_os = "macos")))]
 use other as os;
 
