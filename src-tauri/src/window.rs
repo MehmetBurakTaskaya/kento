@@ -13,20 +13,20 @@ pub const MAIN: &str = "main";
 
 /// WebView2 cannot finish setting up a webview while the main thread waits in a command or an
 /// event handler, so windows are built from a thread of their own.
-fn build_apart(
+pub(crate) fn build_apart(
     app: &AppHandle,
     build: impl FnOnce(&AppHandle) -> tauri::Result<()> + Send + 'static,
 ) {
     let app = app.clone();
     let spawned = std::thread::Builder::new()
-        .name("open-main".into())
+        .name("open-window".into())
         .spawn(move || {
             if let Err(err) = build(&app) {
-                tracing::error!("the main window could not be created: {err}");
+                tracing::error!("a window could not be created: {err}");
             }
         });
     if let Err(err) = spawned {
-        tracing::error!("the main window could not be created: {err}");
+        tracing::error!("a window could not be created: {err}");
     }
 }
 

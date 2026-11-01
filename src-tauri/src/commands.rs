@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use serde::Serialize;
-use tauri::{AppHandle, Manager, State, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 
 use crate::catalog::{self, Summary};
 use crate::error::{Error, Result};
@@ -115,11 +115,23 @@ pub fn save_settings(
                 .map_or_else(JobQueue::default_limit, usize::from),
         );
     }
+    if old.wheels.global != new.wheels.global {
+        crate::overlay::wheel::sync_watcher(&app);
+    }
+    if old.wheels.selection_shortcut != new.wheels.selection_shortcut {
+        crate::shortcut::sync(&app);
+    }
+    if old.shell != new.shell {
+        crate::sync_shell(&app, &old.shell, &new.shell);
+    }
     tracing::info!("settings saved");
-    Ok(Saved {
+    let saved = Saved {
         language: state.lang(),
         settings: new,
-    })
+    };
+    // The wheel, the shelf and the corner card follow the main window.
+    let _ = app.emit("settings", &saved);
+    Ok(saved)
 }
 
 #[tauri::command]

@@ -12,7 +12,7 @@
       ],
       "perPlatform": false,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "enhancement": false,
@@ -26,7 +26,7 @@
       ],
       "perPlatform": false,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "enhancement": false,
@@ -40,7 +40,7 @@
       ],
       "perPlatform": false,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "enhancement": false,
@@ -54,7 +54,7 @@
       ],
       "perPlatform": false,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "enhancement": false,
@@ -68,7 +68,7 @@
       ],
       "perPlatform": false,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "enhancement": false,
@@ -82,7 +82,7 @@
       ],
       "perPlatform": false,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "enhancement": true,
@@ -100,7 +100,7 @@
       ],
       "perPlatform": true,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "enhancement": true,
@@ -114,7 +114,7 @@
       ],
       "perPlatform": false,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     }
   ],
   "categories": [
@@ -4373,7 +4373,7 @@
     "actions": 8,
     "coreInputs": 46,
     "formats": 54,
-    "ready": 119,
+    "ready": 127,
     "routes": 355,
     "tools": 31
   },

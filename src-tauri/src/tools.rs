@@ -196,12 +196,13 @@ pub fn images_to_pdf(
 #[tauri::command]
 pub fn extract_archives(
     app: AppHandle,
+    window: tauri::WebviewWindow,
     state: State<'_, AppState>,
     paths: Vec<PathBuf>,
 ) -> Result<Vec<u64>> {
     let archives = checked(&paths, &[Category::Archive])?;
     let ctx = Context::new(&app, &state)?;
-    Ok(archives
+    let ids: Vec<u64> = archives
         .into_iter()
         .map(|(path, format)| {
             let target = Target::Folder {
@@ -216,7 +217,9 @@ pub fn extract_archives(
             });
             ctx.submit(title, target, work, Origin::Tool, Some(path))
         })
-        .collect())
+        .collect();
+    crate::actions::watch(&window, &state, &ids);
+    Ok(ids)
 }
 
 #[tauri::command]

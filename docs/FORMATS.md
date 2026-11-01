@@ -168,11 +168,11 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 
 | Action | Status |
 | --- | --- |
-| Share | planned |
-| Put on shelf | planned |
-| Copy to… | planned |
-| Move to… | planned |
-| Copy path | planned |
-| Open in terminal | planned |
-| Show in Explorer / Show in Finder [+] | planned |
-| Archive (ZIP) [+] | planned |
+| Share | ready |
+| Put on shelf | ready |
+| Copy to… | ready |
+| Move to… | ready |
+| Copy path | ready |
+| Open in terminal | ready |
+| Show in Explorer / Show in Finder [+] | ready |
+| Archive (ZIP) [+] | ready |

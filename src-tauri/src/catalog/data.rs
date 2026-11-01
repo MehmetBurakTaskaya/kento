@@ -708,6 +708,17 @@ const ACTIONS: &[Action] = &[
     action("zip", "zip", true, false),
 ];
 
+/// Every file action works from Phase 3 on.
 pub fn actions() -> &'static [Action] {
-    ACTIONS
+    static READY: OnceLock<Vec<Action>> = OnceLock::new();
+    READY.get_or_init(|| {
+        ACTIONS
+            .iter()
+            .cloned()
+            .map(|mut action| {
+                action.status = Status::Ready;
+                action
+            })
+            .collect()
+    })
 }

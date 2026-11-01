@@ -2,6 +2,7 @@
 //! Kento: drag a file, press a modifier key, drop it on the wheel. This crate holds the app's core
 //! (catalog, jobs, settings, languages) and its desktop shell (window, tray, single instance).
 
+pub mod actions;
 pub mod catalog;
 pub mod commands;
 pub mod error;
@@ -10,10 +11,12 @@ pub mod i18n;
 pub mod jobs;
 pub mod library;
 pub mod logging;
+pub mod overlay;
 pub mod paths;
 pub mod platform;
 pub mod settings;
 pub mod shelf;
+mod shortcut;
 mod smoke;
 pub mod tools;
 mod tray;
@@ -38,6 +41,10 @@ pub struct AppState {
     pub queue: JobQueue,
     pub shelf: Shelf,
     pub library: Library,
+    pub wheel: overlay::wheel::WheelState,
+    pub toasts: overlay::toast::ToastState,
+    /// A tool panel the main window should open once it is ready (from the global wheel).
+    pub pending_tool: Mutex<Option<(String, Vec<std::path::PathBuf>)>>,
     _log: Option<WorkerGuard>,
 }
 
@@ -128,8 +135,11 @@ fn setup(
     let handle = app.clone();
     let listener: Listener = Arc::new(move |info: &JobInfo| {
         let _ = handle.emit("job", info);
+        overlay::toast::on_job(&handle, info);
     });
     let library = Library::load(paths.data.join("library.json"));
+    let shelf = Shelf::load(paths.data.join("shelf.json"), paths.data.join("shelf"));
+    let launch = launch_request(&std::env::args().collect::<Vec<_>>());
     load_pdfium(app);
     let launch_at_login = settings.launch_at_login;
     let tray_icon = settings.tray_icon;
@@ -138,8 +148,11 @@ fn setup(
         settings: Mutex::new(settings),
         system_locale: i18n::system_locale(),
         queue: JobQueue::new(limit, spawn, listener),
-        shelf: Shelf::default(),
+        shelf,
         library,
+        wheel: Default::default(),
+        toasts: Default::default(),
+        pending_tool: Mutex::new(None),
         _log: log,
     });
     tracing::info!("Kento {} started", app.package_info().version);
@@ -149,6 +162,14 @@ fn setup(
     }
     if tray_icon {
         tray::create(app)?;
+    }
+    if !smoke_test {
+        overlay::wheel::sync_watcher(app);
+        shortcut::sync(app);
+    }
+    if let Some(paths) = launch {
+        overlay::wheel::open_for(app, paths, overlay::wheel::Kind::Convert);
+        return Ok(());
     }
     if smoke_test {
         let app = app.clone();
@@ -162,6 +183,38 @@ fn setup(
     Ok(())
 }
 
+/// Adds or removes Kento in Explorer's Send To menu and context menu to match the settings.
+pub(crate) fn sync_shell(app: &AppHandle, old: &settings::Shell, new: &settings::Shell) {
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let label = i18n::text(&app.state::<AppState>().lang(), "shell.menu");
+    if old.send_to != new.send_to {
+        if let Err(err) = platform::set_send_to(new.send_to, &exe, "Kento") {
+            tracing::warn!("Send To could not be changed: {err}");
+        }
+    }
+    if old.context_menu != new.context_menu {
+        if let Err(err) = platform::set_context_menu(new.context_menu, &exe, &label) {
+            tracing::warn!("the context menu could not be changed: {err}");
+        }
+    }
+}
+
+/// Files handed over by Explorer: `--send-to <files>` from Send To, `--wheel <files>` from the
+/// context menu. Both open the wheel at the pointer.
+fn launch_request(args: &[String]) -> Option<Vec<std::path::PathBuf>> {
+    let at = args
+        .iter()
+        .position(|arg| arg == "--send-to" || arg == "--wheel")?;
+    let paths: Vec<std::path::PathBuf> = args[at + 1..]
+        .iter()
+        .filter(|arg| !arg.starts_with("--"))
+        .map(std::path::PathBuf::from)
+        .collect();
+    (!paths.is_empty()).then_some(paths)
+}
+
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
     let smoke_test = args.iter().any(|arg| arg == "--smoke-test");
@@ -170,7 +223,11 @@ pub fn run() {
     let mut builder = tauri::Builder::default();
     if !smoke_test {
         // A second launch brings the running Kento forward instead of starting another.
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if let Some(paths) = launch_request(&args) {
+                overlay::wheel::open_for(app, paths, overlay::wheel::Kind::Convert);
+                return;
+            }
             if let Err(err) = window::show_main(app, None) {
                 tracing::error!("could not open Kento: {err}");
             }
@@ -183,6 +240,8 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(shortcut::plugin())
         .setup(move |app| setup(app.handle(), smoke_test, autostarted))
         .invoke_handler(tauri::generate_handler![
             commands::bootstrap,
@@ -208,6 +267,25 @@ pub fn run() {
             files::library_reveal,
             files::library_open,
             files::library_find,
+            actions::actions,
+            actions::run_action,
+            actions::open_tool,
+            actions::take_pending_tool,
+            overlay::wheel::wheel_session,
+            overlay::wheel::wheel_dropped,
+            overlay::wheel::wheel_switch,
+            overlay::wheel::wheel_closed,
+            overlay::toast::toast_cards,
+            overlay::toast::toast_layout,
+            overlay::toast::toast_dismiss,
+            overlay::shelf::shelf_view,
+            overlay::shelf::shelf_add,
+            overlay::shelf::shelf_remove,
+            overlay::shelf::shelf_clear,
+            overlay::shelf::shelf_hide,
+            overlay::shelf::shelf_reveal,
+            overlay::shelf::shelf_to_wheel,
+            overlay::shelf::shelf_drag,
             tools::merge_pdfs,
             tools::split_pdf,
             tools::edit_pdf,

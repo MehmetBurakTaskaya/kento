@@ -170,6 +170,7 @@ pub fn tools(paths: Vec<PathBuf>) -> Vec<ToolEntry> {
 #[tauri::command]
 pub fn convert(
     app: AppHandle,
+    window: tauri::WebviewWindow,
     state: State<'_, AppState>,
     paths: Vec<PathBuf>,
     to: String,
@@ -193,10 +194,12 @@ pub fn convert(
         sources.push((path, format));
     }
     let ctx = Context::new(&app, &state)?;
-    Ok(sources
+    let ids: Vec<u64> = sources
         .into_iter()
         .map(|(path, format)| ctx.submit_conversion(path, format, target))
-        .collect())
+        .collect();
+    crate::actions::watch(&window, &state, &ids);
+    Ok(ids)
 }
 
 /// What every job of one request shares.
@@ -282,6 +285,20 @@ impl Context {
         origin: Origin,
         source: Option<PathBuf>,
     ) -> u64 {
+        self.submit_then(title, target, work, origin, source, None)
+    }
+
+    /// Like `submit`, with a step that runs once the output has its final name (a move removes
+    /// the original only then).
+    pub(crate) fn submit_then(
+        &self,
+        title: String,
+        target: Target,
+        work: Work,
+        origin: Origin,
+        source: Option<PathBuf>,
+        after: Option<Box<dyn FnOnce() + Send>>,
+    ) -> u64 {
         let app = self.app.clone();
         let state = self.app.state::<AppState>();
         state.queue.submit(Box::new(EngineJob {
@@ -291,6 +308,9 @@ impl Context {
             work,
             explain: explainer(&self.lang),
             done: Some(Box::new(move |outputs| {
+                if let Some(after) = after {
+                    after();
+                }
                 let state = app.state::<AppState>();
                 state.library.add(origin, source.as_deref(), outputs);
                 let _ = app.emit("library", ());

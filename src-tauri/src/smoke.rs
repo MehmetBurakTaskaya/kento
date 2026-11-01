@@ -230,6 +230,15 @@ pub async fn run(app: AppHandle) -> bool {
     };
     checks.push(check("engines", engine_result));
 
+    checks.push(check(
+        "floating wheel",
+        match app.get_webview_window(crate::overlay::wheel::LABEL) {
+            Some(wheel) if crate::overlay::is_parked(&wheel) => Ok("ready off screen".into()),
+            Some(_) => Err("on screen while idle".into()),
+            None => Err("the window is missing".into()),
+        },
+    ));
+
     let settings = state.settings();
     checks.push(check(
         "tray",
