@@ -34,6 +34,8 @@ pub enum Codec {
     Heif,
     /// The bundled PDFium library.
     Pdfium,
+    /// FFmpeg and ffprobe, the media tools downloaded on request.
+    Ffmpeg,
 }
 
 impl fmt::Display for Codec {
@@ -41,6 +43,7 @@ impl fmt::Display for Codec {
         f.write_str(match self {
             Codec::Heif => "HEIF support",
             Codec::Pdfium => "PDFium",
+            Codec::Ffmpeg => "the media tools (FFmpeg)",
         })
     }
 }

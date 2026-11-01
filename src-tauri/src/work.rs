@@ -349,6 +349,7 @@ pub(crate) fn explainer(lang: &str) -> Explain {
             }
             EngineError::MissingCodec(Codec::Heif) => "error.codec.heif.windows",
             EngineError::MissingCodec(Codec::Pdfium) => "error.codec.pdfium",
+            EngineError::MissingCodec(Codec::Ffmpeg) => "error.codec.ffmpeg",
             EngineError::Limit(_) => "error.limit",
             EngineError::Io(_) => "error.io",
             EngineError::Cancelled | EngineError::Other(_) => "error.other",

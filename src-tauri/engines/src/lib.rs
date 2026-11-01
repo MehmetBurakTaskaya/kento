@@ -8,6 +8,7 @@
 pub mod archive;
 mod error;
 pub mod image;
+pub mod media;
 pub mod pdf;
 pub mod qr;
 pub mod sheet;
@@ -89,6 +90,30 @@ pub struct Options {
     pub ico_sizes: Vec<u32>,
     /// Safety limits for archives.
     pub archive_limits: archive::Limits,
+    /// The external tools found or installed on this computer.
+    pub tools: Tools,
+}
+
+/// Where the external tools are (SPEC 4.2): downloaded on request or found on the system. Engines
+/// that need a missing one fail with `Error::MissingCodec`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Tools {
+    pub ffmpeg: Option<PathBuf>,
+    pub ffprobe: Option<PathBuf>,
+}
+
+impl Tools {
+    pub fn ffmpeg(&self) -> Result<&Path> {
+        self.ffmpeg
+            .as_deref()
+            .ok_or(Error::MissingCodec(Codec::Ffmpeg))
+    }
+
+    pub fn ffprobe(&self) -> Result<&Path> {
+        self.ffprobe
+            .as_deref()
+            .ok_or(Error::MissingCodec(Codec::Ffmpeg))
+    }
 }
 
 impl Default for Options {
@@ -102,6 +127,7 @@ impl Default for Options {
             page_dpi: 150,
             ico_sizes: vec![16, 24, 32, 48, 64, 128, 256],
             archive_limits: archive::Limits::default(),
+            tools: Tools::default(),
         }
     }
 }
@@ -135,6 +161,7 @@ pub fn output(from: &str, to: &str) -> Option<Output> {
         Engine::Text => Output::File,
         Engine::Subtitle => Output::File,
         Engine::Sheet => Output::File,
+        Engine::Media => media::output(from, to),
     })
 }
 
@@ -152,6 +179,7 @@ pub fn convert(job: &Conversion) -> Result<Vec<PathBuf>> {
         Engine::Text => text::convert(job),
         Engine::Subtitle => subtitle::convert(job),
         Engine::Sheet => sheet::convert(job),
+        Engine::Media => media::convert(job),
     }
 }
 
@@ -163,6 +191,7 @@ enum Engine {
     Text,
     Subtitle,
     Sheet,
+    Media,
 }
 
 fn engine_for(from: &str, to: &str) -> Option<Engine> {
@@ -174,6 +203,7 @@ fn engine_for(from: &str, to: &str) -> Option<Engine> {
         (Engine::Text, text::supports(from, to)),
         (Engine::Subtitle, subtitle::supports(from, to)),
         (Engine::Sheet, sheet::supports(from, to)),
+        (Engine::Media, media::supports(from, to)),
     ]
     .into_iter()
     .find_map(|(engine, yes)| yes.then_some(engine))

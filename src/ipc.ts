@@ -197,6 +197,75 @@ export interface ShelfItem {
   category: Category | null;
 }
 
+/** What ffprobe says about a video or audio file. */
+export interface MediaInfo {
+  duration: number;
+  video: { width: number; height: number; fps: number; codec: string } | null;
+  audio: { channels: number; sampleRate: number; codec: string } | null;
+}
+
+/** A URL the page can play: the original, or a low-resolution proxy for codecs the WebView lacks. */
+export interface MediaPreview {
+  url: string;
+  proxy: boolean;
+}
+
+export interface Span {
+  start: number;
+  end: number;
+}
+export interface Area {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+export type Hide = { kind: 'color'; rgb: [number, number, number] } | { kind: 'blur' } | { kind: 'pixelate' };
+
+/** The 13 media tools and their choices (SPEC 5.5); times in seconds, areas in video pixels. */
+export type MediaTool =
+  | { tool: 'mute' }
+  | { tool: 'trim-video'; span: Span }
+  | { tool: 'crop-video'; area: Area }
+  | { tool: 'speed'; factor: number }
+  | { tool: 'merge-video' }
+  | { tool: 'frames'; at: number[] }
+  | {
+      tool: 'split-video';
+      at: { kind: 'markers'; at: number[] } | { kind: 'parts'; count: number } | { kind: 'every'; seconds: number };
+      keep: boolean[] | null;
+    }
+  | { tool: 'redact-video'; areas: { area: Area; span: Span }[]; hide: Hide }
+  | { tool: 'normalize'; loudness: { target: number; range: number; peak: number } }
+  | { tool: 'trim-audio'; span: Span; removeSilence: boolean }
+  | {
+      tool: 'channels';
+      channels: { kind: 'mono' } | { kind: 'stereo' } | { kind: 'levels'; left: number; right: number };
+    }
+  | { tool: 'redact-audio'; spans: Span[]; beep: boolean }
+  | {
+      tool: 'audio-to-video';
+      visual: { kind: 'waveform' } | { kind: 'spectrum' } | { kind: 'bars' } | { kind: 'image'; path: string };
+    };
+
+/** An optional tool group (SPEC 4.2) and where it stands on this computer. */
+export interface ToolGroupStatus {
+  id: 'media' | 'office' | 'extras';
+  /** Ready to use: found on the system or installed by Kento. */
+  ready: boolean;
+  /** Where each tool was found, when it was. */
+  tools: { id: string; path: string | null; version: string | null; source: 'system' | 'kento' | 'custom' | null }[];
+  /** Bytes to download for this computer; 0 when nothing is offered yet. */
+  download: number;
+  available: boolean;
+}
+
+export type InstallProgress =
+  | { group: string; state: 'downloading'; done: number; total: number }
+  | { group: string; state: 'verifying' | 'unpacking' }
+  | { group: string; state: 'ready' }
+  | { group: string; state: 'failed'; message: string };
+
 export interface ShelfView {
   items: ShelfItem[];
   history: ShelfItem[];
@@ -267,6 +336,16 @@ export interface Api {
   onShelf(handler: () => void): Promise<UnlistenFn>;
   onSettings(handler: (saved: Saved) => void): Promise<UnlistenFn>;
   haptic(): Promise<void>;
+  mediaProbe(path: string): Promise<MediaInfo>;
+  mediaPreview(path: string): Promise<MediaPreview>;
+  mediaPeaks(path: string, buckets: number): Promise<number[]>;
+  mediaFrame(path: string, at: number, size: number): Promise<Blob | null>;
+  runMediaTool(tool: MediaTool, paths: string[]): Promise<number[]>;
+  toolsStatus(): Promise<ToolGroupStatus[]>;
+  toolsInstall(group: string): Promise<void>;
+  toolsCancel(group: string): Promise<void>;
+  toolsSetPath(tool: string, path: string | null): Promise<ToolGroupStatus[]>;
+  onToolsProgress(handler: (progress: InstallProgress) => void): Promise<UnlistenFn>;
 }
 
 const tauriApi: Api = {
@@ -350,6 +429,16 @@ const tauriApi: Api = {
   onShelf: (handler) => listen('shelf', () => handler()),
   onSettings: (handler) => listen<Saved>('settings', (event) => handler(event.payload)),
   haptic: () => invoke('wheel_haptic'),
+  mediaProbe: (path) => invoke('media_probe', { path }),
+  mediaPreview: (path) => invoke('media_preview', { path }),
+  mediaPeaks: (path, buckets) => invoke('media_peaks', { path, buckets }),
+  mediaFrame: (path, at, size) => blob(invoke<ArrayBuffer>('media_frame', { path, at, size })),
+  runMediaTool: (tool, paths) => invoke('run_media_tool', { tool, paths }),
+  toolsStatus: () => invoke('tools_status'),
+  toolsInstall: (group) => invoke('tools_install', { group }),
+  toolsCancel: (group) => invoke('tools_cancel', { group }),
+  toolsSetPath: (tool, path) => invoke('tools_set_path', { tool, path }),
+  onToolsProgress: (handler) => listen<InstallProgress>('tools-progress', (event) => handler(event.payload)),
 };
 
 /** PNG bytes from a command as an image Blob; a file without a preview gives null. */
@@ -552,6 +641,37 @@ export function browserApi(params: URLSearchParams): Api {
     onShelf: async () => () => {},
     onSettings: async () => () => {},
     haptic: async () => {},
+    mediaProbe: async (path) =>
+      /\.(mp3|wav|m4a|flac|ogg|opus|aiff|wma)$/i.test(path)
+        ? { duration: 184.2, video: null, audio: { channels: 2, sampleRate: 44100, codec: 'mp3' } }
+        : {
+            duration: 95.4,
+            video: { width: 1920, height: 1080, fps: 30, codec: 'h264' },
+            audio: { channels: 2, sampleRate: 48000, codec: 'aac' },
+          },
+    mediaPreview: async () => ({ url: '', proxy: false }),
+    mediaPeaks: async (_path, buckets) =>
+      Array.from({ length: buckets }, (_, i) => Math.abs(Math.sin(i / 9)) * (0.4 + 0.6 * Math.abs(Math.cos(i / 41)))),
+    mediaFrame: async () => null,
+    runMediaTool: async () => [1],
+    toolsStatus: async () => [
+      {
+        id: 'media',
+        ready: params.get('tools') === 'ready',
+        tools: [
+          { id: 'ffmpeg', path: null, version: null, source: null },
+          { id: 'ffprobe', path: null, version: null, source: null },
+        ],
+        download: 92_000_000,
+        available: true,
+      },
+      { id: 'office', ready: false, tools: [], download: 0, available: false },
+      { id: 'extras', ready: false, tools: [], download: 0, available: false },
+    ],
+    toolsInstall: async () => {},
+    toolsCancel: async () => {},
+    toolsSetPath: async () => [],
+    onToolsProgress: async () => () => {},
   };
 }
 
