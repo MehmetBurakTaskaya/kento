@@ -184,6 +184,7 @@ While the user drags files from anywhere, pressing a modifier opens the wheel un
 - All assignments can be changed in Settings, and key combinations can be defined.
 - The wheel stays open when the key is released; the user keeps dragging and drops the file on a slice.
 - Esc, or dropping outside the wheel, cancels.
+- In a mixed selection the drag rests on a category for a moment to open its targets, since the drop ends the drag; resting on the hub goes back.
 - Pressing another modifier while the wheel is open switches to that modifier's wheel.
 
 **2. [+] Global shortcut for selected files**

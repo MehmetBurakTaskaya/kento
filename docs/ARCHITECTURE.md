@@ -25,7 +25,10 @@ Every conversion and tool that needs no download. The crate knows nothing about 
 | `files.rs`, `library.rs` | Choosing and pasting files, previews, and the Library (`library.json`, the last 50 outputs) |
 | `settings.rs` | Settings as JSON in the data folder; broken files are kept aside, values are clamped |
 | `i18n.rs` | The languages, system-language matching, and the strings Rust shows (tray menu) |
-| `shelf/` | Kento's own shelf (SPEC 5.8) |
+| `shelf/` | Kento's own shelf (SPEC 5.8): references, history, "keep a copy", in `shelf.json` |
+| `overlay/` | The windows over other apps: the floating wheel (`wheel.rs`: the drag session and click mode), the shelf window and the result card. They hide by moving off screen |
+| `platform/` | What the system provides: drags seen anywhere and the modifiers held, the Explorer or Finder selection, sharing, a terminal, Send To and the context menu; `windows/` and `macos/` |
+| `actions.rs`, `shortcut.rs` | The file actions wheel; the selection shortcut |
 | `paths.rs`, `logging.rs` | The data folder (`%LOCALAPPDATA%\Kento`, `~/Library/Application Support/Kento`), temp clean-up, rolling logs |
 | `window.rs`, `tray.rs` | The main window (built on demand, Mica on Windows 11) and the tray or menu bar icon |
 | `commands.rs` | What the page may call; links and folders are decided in Rust, never taken from the page as they are |
@@ -64,6 +67,10 @@ Strings live in `/locales/*.json` and are shared by both sides. Layout uses CSS 
 14. **RAR through UnRAR's test mode.** The library streams each entry to Kento and never writes files or links itself; extraction then applies Kento's own path and size checks.
 15. **The clipboard is read only on paste.** Files come from the system clipboard (CF_HDROP on Windows, the pasteboard on macOS); text and images from the paste event. Imports go to the output folder, or Downloads/Kento.
 16. **The page opens only what Kento wrote.** Opening and showing go through Library ids, so the page cannot launch arbitrary files.
+17. **The floating wheel waits off screen.** Its window is defined in `tauri.conf.json`, visible from the start and parked at -20000, so WebView2 has registered it as a drop target before the first drag; showing it is a move to the pointer. It never takes the focus during a drag, which would break the source app's drag loop.
+18. **Drags are seen by polling, not hooks.** A thread reads the button, the pointer and the modifiers (and the drag pasteboard on macOS): every 40 ms while the button is up, every 10 ms while it is down. No keyboard hook, no Accessibility or Input Monitoring permission.
+19. **The drag tells the files.** The wheel learns what is dragged when the drag enters its window; a drag of text or a link closes it silently. Because a drop ends the drag, a category of a mixed selection opens its ring when the pointer rests on it, and resting on the hub goes back.
+20. **Explorer integration stays off until switched on.** Send To and the context menu write only under the user's profile (HKCU); Explorer may start Kento once per file, and launches within 400 ms join one wheel.
 
 ## Checks
 

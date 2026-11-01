@@ -34,13 +34,14 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 3: global wheel and desktop integration
 
-- [ ] Drag + modifier detection on Windows
-- [ ] Drag + modifier detection on macOS
-- [ ] The three wheels and file actions
+- [x] Drag + modifier detection on Windows
+- [x] Drag + modifier detection on macOS (built and unit-tested in CI; checked on a Mac later)
+- [x] The three wheels and file actions, in the main window and floating over other apps
 - [x] Shelf model: Kento's own shelf, no link to Pano (SPEC 5.8)
-- [ ] The shelf
-- [ ] Selection shortcut, Send To and context menu
-- [ ] Sounds and haptics
+- [x] The shelf: its own window, history, search, dragging files out, "keep a copy"
+- [x] Selection shortcut [+], Send To and the context menu [+] (Windows)
+- [x] Sounds and haptics
+- [x] Result card in a corner for jobs started outside the main window
 
 ## Phase 4: media
 
