@@ -15,6 +15,7 @@ use ::image::codecs::png::PngEncoder;
 use ::image::{ExtendedColorType, ImageEncoder, ImageError, RgbImage, RgbaImage};
 use pdfium_render::prelude::*;
 
+use super::table;
 use super::text::{self, Glyph, Rect};
 use super::MAX_PAGES;
 use crate::{Codec, Conversion, Error, Options, Result};
@@ -258,6 +259,22 @@ pub(super) fn to_text(job: &Conversion) -> Result<()> {
     Ok(())
 }
 
+/// pdf → xlsx: one sheet per page, named by its number, holding the table read off the page's
+/// characters (best effort; a page without text gives an empty sheet).
+pub(super) fn to_xlsx(job: &Conversion) -> Result<()> {
+    let document = open(job.input)?;
+    let count = checked_pages(&document)?;
+    let mut sheets = Vec::with_capacity(count);
+    for index in 0..count {
+        job.progress.check()?;
+        let glyphs = glyphs(&page(&document, index)?, true)?;
+        sheets.push(((index + 1).to_string(), table::cells(&glyphs)));
+        job.progress.report((index + 1) as f32 / count as f32 * 0.9);
+    }
+    drop(document);
+    crate::sheet::xlsx_from_text(sheets, job.dest, job.progress)
+}
+
 /// The page's characters in content order, PDFium's line breaks included.
 fn glyphs(page: &PdfPage, with_boxes: bool) -> Result<Vec<Glyph>> {
     let text = page.text().map_err(unreadable)?;
@@ -402,6 +419,48 @@ mod tests {
         assert!(
             markdown.contains("first line of the body second line of the body"),
             "{markdown:?}"
+        );
+    }
+
+    #[test]
+    fn pdf_pdfium_reads_tables_into_xlsx() {
+        use calamine::{open_workbook, Data, Reader, Xlsx};
+        if !fixtures::pdfium() {
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("Kento ğüşıöç 🧪.pdf");
+        let table: &[(&str, u32, u32, u32)] = &[
+            ("Fruit order", 16, 72, 740),
+            ("Name", 11, 72, 700),
+            ("Qty", 11, 250, 700),
+            ("Price", 11, 350, 700),
+            ("Pear", 11, 72, 684),
+            ("1,200", 11, 250, 684),
+            ("1.50", 11, 350, 684),
+            ("Kiwi", 11, 72, 668),
+            ("3", 11, 250, 668),
+            ("(0.25)", 11, 350, 668),
+        ];
+        let prose: &[(&str, u32, u32, u32)] = &[("Only a line of text here", 12, 72, 700)];
+        fixtures::placed(&input, &[table, prose]);
+        let dest = dir.path().join("out.xlsx");
+        convert(&input, "xlsx", &dest, &Options::default()).unwrap();
+
+        let mut book: Xlsx<_> = open_workbook(&dest).unwrap();
+        assert_eq!(book.sheet_names(), vec!["1", "2"]);
+        let first = book.worksheet_range("1").unwrap();
+        let cell = |row: u32, column: u32| first.get_value((row, column)).cloned();
+        assert_eq!(cell(0, 0), Some(Data::String("Fruit order".into())));
+        assert_eq!(cell(1, 1), Some(Data::String("Qty".into())));
+        assert_eq!(cell(2, 0), Some(Data::String("Pear".into())));
+        assert_eq!(cell(2, 1), Some(Data::Float(1200.0)));
+        assert_eq!(cell(2, 2), Some(Data::Float(1.5)));
+        assert_eq!(cell(3, 2), Some(Data::Float(-0.25)));
+        let second = book.worksheet_range("2").unwrap();
+        assert_eq!(
+            second.get_value((0, 0)).cloned(),
+            Some(Data::String("Only a line of text here".into()))
         );
     }
 

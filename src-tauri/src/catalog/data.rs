@@ -334,11 +334,6 @@ pub fn routes() -> &'static [Route] {
                     _ => "values only",
                 });
             }
-            // PDF tables to XLSX arrive with the rest of Phase 6.
-            if route.from == "pdf" && route.to == "xlsx" {
-                route.status = Status::Planned;
-                continue;
-            }
             route.status = match route.engine {
                 E::Image | E::Pdf | E::Archive | E::Text | E::Sheet | E::Ffmpeg => Status::Ready,
                 // Depends on the computer's HEIF support.

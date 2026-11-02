@@ -225,3 +225,48 @@ pub(super) fn encrypted(path: &Path, user_password: &str) {
 pub(super) fn pages(doc: &Document) -> Vec<ObjectId> {
     doc.page_iter().collect()
 }
+
+/// A Letter-size document whose pages hold Helvetica text objects at the given places:
+/// (text, size, x, y) for each page. Only `(`, `)` and `\` are escaped, so keep to ASCII.
+pub(super) fn placed(path: &Path, pages: &[&[(&str, u32, u32, u32)]]) {
+    let mut doc = Document::with_version("1.7");
+    let root_id = doc.new_object_id();
+    let font = doc.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type1",
+        "BaseFont" => "Helvetica",
+        "Encoding" => "WinAnsiEncoding",
+    });
+    let mut kids: Vec<Object> = Vec::new();
+    for pieces in pages {
+        let mut content = String::new();
+        for (text, size, x, y) in pieces.iter() {
+            let escaped = text
+                .replace('\\', "\\\\")
+                .replace('(', "\\(")
+                .replace(')', "\\)");
+            content.push_str(&format!("BT /F1 {size} Tf {x} {y} Td ({escaped}) Tj ET\n"));
+        }
+        let content = doc.add_object(Stream::new(dictionary! {}, content.into_bytes()));
+        let page = doc.add_object(dictionary! {
+            "Type" => "Page",
+            "Parent" => root_id,
+            "Contents" => content,
+        });
+        kids.push(page.into());
+    }
+    doc.objects.insert(
+        root_id,
+        dictionary! {
+            "Type" => "Pages",
+            "Count" => kids.len() as i64,
+            "Kids" => kids,
+            "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+            "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        }
+        .into(),
+    );
+    let catalog = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => root_id });
+    doc.trailer.set("Root", catalog);
+    doc.save(path).unwrap();
+}

@@ -115,8 +115,8 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 
 | From | To | Needs | Status | Notes |
 | --- | --- | --- | --- | --- |
-| PDF | JPG, PNG, TXT, MD | Core | ready | JPG, PNG: one image per page; TXT, MD: text only |
-| PDF | PPTX, XLSX, DOCX, EPUB, HTML | Office | planned | PPTX: with page images; XLSX: best effort |
+| PDF | JPG, PNG, TXT, MD, XLSX | Core | ready | JPG, PNG: one image per page; TXT, MD: text only; XLSX: tables found in the text, best effort |
+| PDF | PPTX, DOCX, EPUB, HTML | Office | planned | PPTX: with page images |
 
 ## Archive
 

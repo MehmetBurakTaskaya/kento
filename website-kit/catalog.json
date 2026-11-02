@@ -4169,13 +4169,13 @@
       "to": "pptx"
     },
     {
-      "engine": "libre-office",
+      "engine": "pdf",
       "enhancement": false,
       "from": "pdf",
-      "group": "office",
-      "note": "best effort",
+      "group": "core",
+      "note": "tables found in the text, best effort",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "xlsx"
     },
     {
@@ -4373,7 +4373,7 @@
     "actions": 8,
     "coreInputs": 46,
     "formats": 54,
-    "ready": 261,
+    "ready": 262,
     "routes": 355,
     "tools": 31
   },

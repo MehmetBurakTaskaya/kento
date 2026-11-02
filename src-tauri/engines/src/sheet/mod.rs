@@ -15,9 +15,9 @@ mod read;
 mod tests;
 mod write;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::{Conversion, Error, Result};
+use crate::{Conversion, Error, Progress, Result};
 
 const INPUTS: [&str; 5] = ["csv", "tsv", "xls", "xlsx", "ods"];
 const OUTPUTS: [&str; 4] = ["csv", "tsv", "xlsx", "html"];
@@ -63,6 +63,130 @@ pub fn convert(job: &Conversion) -> Result<Vec<PathBuf>> {
     }
     job.progress.report(1.0);
     Ok(vec![job.dest.to_path_buf()])
+}
+
+/// A sheet's name and its cells as (row, column, text).
+pub(crate) type TextSheet = (String, Vec<(u32, u32, String)>);
+
+/// A workbook from text read off another document (the tables of a PDF): one sheet per
+/// `(name, cells)`, the cells as (row, column, text) sorted by row, then column. Text that is
+/// plainly a number becomes one, with the decimal separator most of the numbers use; unlike CSV,
+/// thousands separators and accounting negatives in parentheses are read as printed tables
+/// write them.
+pub(crate) fn xlsx_from_text(
+    sheets: Vec<TextSheet>,
+    dest: &Path,
+    progress: &Progress,
+) -> Result<()> {
+    let decimal = decimal_of(
+        sheets
+            .iter()
+            .flat_map(|(_, cells)| cells.iter().map(|(_, _, text)| text.as_str())),
+    );
+    let sheets: Vec<Sheet> = sheets
+        .into_iter()
+        .map(|(name, cells)| Sheet {
+            name,
+            cells: cells
+                .into_iter()
+                .map(|(row, column, text)| (row, column, printed(&text, decimal)))
+                .collect(),
+        })
+        .collect();
+    write::xlsx(&sheets, None, dest, progress)
+}
+
+/// `,` when more numbers end in a comma part that cannot be a thousands group than in such a
+/// dot part, `.` otherwise.
+fn decimal_of<'a>(texts: impl Iterator<Item = &'a str>) -> char {
+    let (mut commas, mut dots) = (0usize, 0usize);
+    for text in texts {
+        let text = text.trim();
+        let numeric = !text.is_empty()
+            && text.chars().any(|c| c.is_ascii_digit())
+            && text
+                .chars()
+                .all(|c| c.is_ascii_digit() || matches!(c, '.' | ',' | ' ' | '-' | '(' | ')'));
+        let Some(at) = numeric.then(|| text.rfind(['.', ','])).flatten() else {
+            continue;
+        };
+        let digits = text[at + 1..]
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .count();
+        if digits != 3 && digits > 0 {
+            if text[at..].starts_with(',') {
+                commas += 1;
+            } else {
+                dots += 1;
+            }
+        }
+    }
+    if commas > dots {
+        ','
+    } else {
+        '.'
+    }
+}
+
+/// A printed table's cell: a number with thousands separators, a sign (also U+2212) or
+/// parentheses for a negative, then whatever `infer` makes of it.
+fn printed(text: &str, decimal: char) -> Value {
+    let trimmed = text.trim();
+    let (negative, body) = match trimmed.strip_prefix('(').and_then(|t| t.strip_suffix(')')) {
+        Some(inner) => (true, inner.trim()),
+        None => (false, trimmed),
+    };
+    let number = ungrouped(body, decimal)
+        .map(|plain| infer(&plain, decimal))
+        .filter(|value| matches!(value, Value::Int(_) | Value::Number(_)));
+    match (number, negative) {
+        (Some(Value::Int(int)), true) => Value::Int(-int),
+        (Some(Value::Number(number)), true) => Value::Number(-number),
+        (Some(number), false) => number,
+        (_, true) => Value::Text(trimmed.to_owned()),
+        (None, false) => infer(trimmed, decimal),
+    }
+}
+
+/// `1,234,567.89` → `1234567.89` (with `.` as the decimal separator): groups of three after the
+/// first, one separator throughout. None when the text is not such a number.
+fn ungrouped(text: &str, decimal: char) -> Option<String> {
+    let (sign, rest) = match text.chars().next()? {
+        '-' | '\u{2212}' => ("-", &text[text.chars().next()?.len_utf8()..]),
+        '+' => ("", &text[1..]),
+        _ => ("", text),
+    };
+    let (whole, fraction) = match rest.split_once(decimal) {
+        Some((whole, fraction)) => (whole, Some(fraction)),
+        None => (rest, None),
+    };
+    let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+    let is_group =
+        |c: char| c != decimal && matches!(c, '.' | ',' | ' ' | '\'' | '\u{a0}' | '\u{202f}');
+    let mut separators = whole.chars().filter(|&c| is_group(c));
+    if let Some(first) = separators.next() {
+        if separators.any(|c| c != first) {
+            return None;
+        }
+        let groups: Vec<&str> = whole.split(first).collect();
+        let (head, tail) = groups.split_first()?;
+        if !digits(head) || head.len() > 3 || tail.iter().any(|g| g.len() != 3 || !digits(g)) {
+            return None;
+        }
+    } else if !digits(whole) {
+        return None;
+    }
+    if fraction.is_some_and(|f| !digits(f)) {
+        return None;
+    }
+    let mut plain: String = sign.to_owned();
+    plain.extend(whole.chars().filter(|&c| !is_group(c)));
+    if let Some(fraction) = fraction {
+        plain.push(decimal);
+        plain.push_str(fraction);
+    }
+    Some(plain)
 }
 
 /// One worksheet's non-empty cells, in row order.

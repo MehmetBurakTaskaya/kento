@@ -8,6 +8,7 @@ pub(crate) mod compress;
 mod fixtures;
 mod jpeg;
 mod pdfium;
+mod table;
 mod text;
 mod tools;
 mod write;
@@ -24,7 +25,7 @@ pub use write::from_images;
 pub const MAX_PAGES: usize = 10_000;
 
 pub fn supports(from: &str, to: &str) -> bool {
-    from == "pdf" && matches!(to, "jpg" | "png" | "txt" | "md")
+    from == "pdf" && matches!(to, "jpg" | "png" | "txt" | "md" | "xlsx")
 }
 
 pub fn output(_from: &str, to: &str) -> Output {
@@ -39,6 +40,7 @@ pub fn convert(job: &Conversion) -> Result<Vec<PathBuf>> {
     match (job.from, job.to) {
         ("pdf", "jpg" | "png") => pdfium::to_images(job),
         ("pdf", "txt" | "md") => pdfium::to_text(job).map(|()| vec![job.dest.to_path_buf()]),
+        ("pdf", "xlsx") => pdfium::to_xlsx(job).map(|()| vec![job.dest.to_path_buf()]),
         _ => Err(Error::Unsupported {
             from: job.from.to_owned(),
             to: job.to.to_owned(),

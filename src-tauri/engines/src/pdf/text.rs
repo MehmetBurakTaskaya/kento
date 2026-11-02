@@ -27,7 +27,7 @@ pub(super) struct Rect {
 }
 
 impl Rect {
-    fn union(self, other: Rect) -> Rect {
+    pub(super) fn union(self, other: Rect) -> Rect {
         Rect {
             left: self.left.min(other.left),
             bottom: self.bottom.min(other.bottom),
@@ -36,7 +36,7 @@ impl Rect {
         }
     }
 
-    fn height(&self) -> f32 {
+    pub(super) fn height(&self) -> f32 {
         self.top - self.bottom
     }
 }
@@ -76,12 +76,10 @@ pub(super) fn join_markdown(pages: &[String]) -> String {
     text
 }
 
-/// Characters to lines: surrogate pairs joined, control characters dropped, PDFium's breaks
-/// (`\r\n`, a lone `\r` or `\n`) ending lines.
-fn lines(glyphs: &[Glyph]) -> Vec<Line> {
-    let mut lines = Vec::new();
-    let mut line = Line::default();
-    let mut after_cr = false;
+/// The characters with their boxes: surrogate pairs joined (the pair keeps its first half's
+/// box), anything that is not a character replaced by U+FFFD.
+pub(super) fn decode(glyphs: &[Glyph]) -> Vec<(char, Option<Rect>)> {
+    let mut chars = Vec::with_capacity(glyphs.len());
     let mut i = 0;
     while i < glyphs.len() {
         let glyph = glyphs[i];
@@ -97,6 +95,18 @@ fn lines(glyphs: &[Glyph]) -> Vec<Line> {
             code => char::from_u32(code),
         }
         .unwrap_or(char::REPLACEMENT_CHARACTER);
+        chars.push((c, glyph.rect));
+    }
+    chars
+}
+
+/// Characters to lines: surrogate pairs joined, control characters dropped, PDFium's breaks
+/// (`\r\n`, a lone `\r` or `\n`) ending lines.
+fn lines(glyphs: &[Glyph]) -> Vec<Line> {
+    let mut lines = Vec::new();
+    let mut line = Line::default();
+    let mut after_cr = false;
+    for (c, rect) in decode(glyphs) {
         match c {
             '\n' if after_cr => {}
             '\r' | '\n' => lines.push(std::mem::take(&mut line)),
@@ -107,7 +117,7 @@ fn lines(glyphs: &[Glyph]) -> Vec<Line> {
             c => {
                 line.text.push(c);
                 if !c.is_whitespace() {
-                    if let Some(rect) = glyph.rect.filter(|r| r.height() > 0.0) {
+                    if let Some(rect) = rect.filter(|r| r.height() > 0.0) {
                         line.rect = Some(line.rect.map_or(rect, |r| r.union(rect)));
                     }
                 }

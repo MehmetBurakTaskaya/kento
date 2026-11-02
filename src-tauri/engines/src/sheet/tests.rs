@@ -404,3 +404,26 @@ fn cell_budget() {
     assert!(budget.take().is_ok());
     assert!(matches!(budget.take(), Err(Error::Limit(_))));
 }
+
+#[test]
+fn printed_numbers_from_pdf_tables() {
+    let comma = decimal_of(["1.234,50", "7", "Total", "3,5"].into_iter());
+    assert_eq!(comma, ',');
+    // A part of three digits could be a thousands group, so it decides nothing.
+    assert_eq!(decimal_of(["1,234", "2,500"].into_iter()), '.');
+    assert_eq!(decimal_of(["0.25", "1,234"].into_iter()), '.');
+
+    assert_eq!(printed("1,234,567.89", '.'), Value::Number(1_234_567.89));
+    assert_eq!(printed("1.234.567,89", ','), Value::Number(1_234_567.89));
+    assert_eq!(printed("1 234", '.'), Value::Int(1234));
+    assert_eq!(printed("(1,200)", '.'), Value::Int(-1200));
+    assert_eq!(printed("\u{2212}3.5", '.'), Value::Number(-3.5));
+    assert_eq!(printed(" 42 ", '.'), Value::Int(42));
+    // Not numbers as printed: uneven groups, two kinds of separator, codes with leading zeros.
+    assert_eq!(printed("12,34,567", '.'), Value::Text("12,34,567".into()));
+    assert_eq!(printed("1,234 567", '.'), Value::Text("1,234 567".into()));
+    assert_eq!(printed("007", '.'), Value::Text("007".into()));
+    assert_eq!(printed("(note)", '.'), Value::Text("(note)".into()));
+    assert_eq!(printed("Kiwi ğüş", '.'), Value::Text("Kiwi ğüş".into()));
+    assert!(matches!(printed("2026-11-02", '.'), Value::Date(_)));
+}
