@@ -1,0 +1,689 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Kento's playground for mehmetburaktaskaya.com: the Convert wheel on the page, converting a picture in
+     the browser. One self-contained section (styles scoped under .kento-playground and the wheel's
+     .kp-overlay, inline icons, no style attributes) and a small script that loads playground.js when the
+     visitor starts. Nothing is uploaded and nothing is fetched besides that script. How to embed it:
+     website-kit/README.md. -->
+<section class="kento-embed kento-playground" id="kento-playground" aria-labelledby="kento-playground-title">
+  <style>
+    .kento-playground,
+    .kp-overlay {
+      --kp-bg: #ffffff;
+      --kp-bg-2: #f5f6f8;
+      --kp-border: #dcdfe4;
+      --kp-border-strong: #aab1ba;
+      --kp-text: #15181c;
+      --kp-muted: #555c67;
+      --kp-accent: #2a4ea6;
+      --kp-accent-hi: #3a62c2;
+      --kp-on-accent: #ffffff;
+      --kp-focus: #2a4ea6;
+      --kp-danger: #c2372d;
+      --kp-keycap: #e8ebef;
+      --kp-keycap-text: #2b3036;
+      --kp-keycap-edge: #c3c8ce;
+      --kp-check: #e3e6ea;
+      --kp-tint: rgba(42, 78, 166, 0.07);
+      --kp-steel: linear-gradient(90deg, #c7ccd2 0%, #a8aeb6 10%, #91979f 19%, #b4bac1 30%, #eef1f3 38%, #c3c8ce 46%, #a0a6ae 57%, #8a9098 68%, #aeb4bb 78%, #f7f8fa 88%, #d6dade 96%, #c7ccd2 100%);
+      --kp-shadow: 0 1px 2px rgba(26, 34, 48, 0.08), 0 8px 24px rgba(26, 34, 48, 0.08);
+      --kp-tip-shadow: 0 6px 18px rgba(26, 34, 48, 0.16);
+      --kp-dial-shadow: drop-shadow(0 1px 2px rgba(26, 34, 48, 0.24)) drop-shadow(0 14px 34px rgba(26, 34, 48, 0.3));
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .kento-playground,
+      :root:not([data-theme="light"]) .kp-overlay {
+        --kp-bg: #1f2226;
+        --kp-bg-2: #272b30;
+        --kp-border: #32373e;
+        --kp-border-strong: #58606a;
+        --kp-text: #eef0f3;
+        --kp-muted: #a3abb6;
+        --kp-accent: #89a7f5;
+        --kp-accent-hi: #a3bbff;
+        --kp-on-accent: #0a1530;
+        --kp-focus: #a3bbff;
+        --kp-danger: #ff7b70;
+        --kp-keycap: #30353c;
+        --kp-keycap-text: #dfe4ea;
+        --kp-keycap-edge: #4a5158;
+        --kp-check: #2d3238;
+        --kp-tint: rgba(137, 167, 245, 0.09);
+        --kp-steel: linear-gradient(90deg, #6b7179 0%, #555b63 10%, #454b53 19%, #5d646c 30%, #9ba2aa 38%, #676e76 46%, #4d535b 57%, #3f454c 68%, #585e66 78%, #a9b0b8 88%, #7c838b 96%, #6b7179 100%);
+        --kp-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+        --kp-tip-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+        --kp-dial-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)) drop-shadow(0 14px 34px rgba(0, 0, 0, 0.62));
+      }
+    }
+    :root[data-theme="dark"] .kento-playground,
+    :root[data-theme="dark"] .kp-overlay {
+      --kp-bg: #1f2226;
+      --kp-bg-2: #272b30;
+      --kp-border: #32373e;
+      --kp-border-strong: #58606a;
+      --kp-text: #eef0f3;
+      --kp-muted: #a3abb6;
+      --kp-accent: #89a7f5;
+      --kp-accent-hi: #a3bbff;
+      --kp-on-accent: #0a1530;
+      --kp-focus: #a3bbff;
+      --kp-danger: #ff7b70;
+      --kp-keycap: #30353c;
+      --kp-keycap-text: #dfe4ea;
+      --kp-keycap-edge: #4a5158;
+      --kp-check: #2d3238;
+      --kp-tint: rgba(137, 167, 245, 0.09);
+      --kp-steel: linear-gradient(90deg, #6b7179 0%, #555b63 10%, #454b53 19%, #5d646c 30%, #9ba2aa 38%, #676e76 46%, #4d535b 57%, #3f454c 68%, #585e66 78%, #a9b0b8 88%, #7c838b 96%, #6b7179 100%);
+      --kp-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+      --kp-tip-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+      --kp-dial-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)) drop-shadow(0 14px 34px rgba(0, 0, 0, 0.62));
+    }
+    /* One language at a time: the page's lang, or data-lang on the section. */
+    .kento-embed:not([data-lang="tr"]):not(:lang(tr)) [data-l="tr"],
+    .kento-embed[data-lang="en"] [data-l="tr"],
+    .kento-embed[data-lang="tr"] [data-l="en"],
+    .kento-embed:lang(tr):not([data-lang="en"]) [data-l="en"] {
+      display: none !important;
+    }
+    .kento-playground {
+      display: block;
+      margin-block: 1.5rem;
+      color: var(--kp-text);
+      font: inherit;
+      line-height: 1.5;
+      text-align: start;
+    }
+    .kento-playground *,
+    .kento-playground *::before,
+    .kento-playground *::after,
+    .kp-overlay *,
+    .kp-overlay *::before,
+    .kp-overlay *::after {
+      box-sizing: border-box;
+    }
+    .kento-playground [hidden],
+    .kp-overlay [hidden] {
+      display: none !important;
+    }
+    .kento-playground p {
+      max-width: none;
+      margin: 0;
+    }
+    .kento-playground :focus-visible {
+      outline: 2px solid var(--kp-focus);
+      outline-offset: 2px;
+    }
+    .kento-playground .kp-card {
+      overflow: hidden;
+      border: 1px solid var(--kp-border);
+      border-radius: 10px;
+      background: var(--kp-bg);
+      box-shadow: var(--kp-shadow);
+    }
+    .kento-playground .kp-steel {
+      block-size: 5px;
+      background: var(--kp-steel);
+    }
+    .kento-playground .kp-body {
+      padding: clamp(1.125rem, 3vw, 1.75rem);
+    }
+    .kento-playground .kp-title {
+      margin: 0;
+      color: inherit;
+      font: inherit;
+      font-size: 1.375rem;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: normal;
+    }
+    .kento-playground .kp-lede {
+      max-width: 72ch;
+      margin-block-start: 0.375rem;
+      color: var(--kp-muted);
+    }
+    .kento-playground kbd {
+      display: inline-block;
+      min-inline-size: 1.6em;
+      padding: 0 0.45em;
+      border: 1px solid var(--kp-keycap-edge);
+      border-block-end-width: 2px;
+      border-radius: 4px;
+      background: var(--kp-keycap);
+      color: var(--kp-keycap-text);
+      font: inherit;
+      font-size: 0.85em;
+      font-weight: 600;
+      line-height: 1.5;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .kento-playground .kp-stage {
+      margin-block-start: 1.25rem;
+    }
+    .kento-playground .kp-zone,
+    .kento-playground .kp-file {
+      border: 2px dashed var(--kp-border-strong);
+      border-radius: 10px;
+      background: var(--kp-bg-2);
+      transition: border-color 120ms, background-color 120ms;
+    }
+    .kento-playground .kp-stage.is-over .kp-zone,
+    .kento-playground .kp-stage.is-over .kp-file {
+      border-color: var(--kp-accent);
+      background: var(--kp-tint);
+    }
+    .kento-playground .kp-zone {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      align-items: center;
+      justify-content: center;
+      min-block-size: 13rem;
+      padding: 1.5rem 1rem;
+      text-align: center;
+    }
+    .kento-playground .kp-zone-icon {
+      inline-size: 2.5rem;
+      block-size: 2.5rem;
+      color: var(--kp-accent);
+    }
+    .kento-playground .kp-zone-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+    .kento-playground .kp-hint {
+      color: var(--kp-muted);
+      font-size: 0.9375rem;
+    }
+    .kento-playground .kp-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.625rem;
+      align-items: center;
+      justify-content: center;
+      margin-block-start: 0.625rem;
+    }
+    .kento-playground .kp-button,
+    .kento-playground .kp-quiet {
+      display: inline-flex;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: center;
+      min-block-size: 2.75rem;
+      padding: 0.5rem 1.125rem;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font: inherit;
+      font-weight: 600;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .kento-playground .kp-button {
+      background: var(--kp-accent);
+      color: var(--kp-on-accent);
+    }
+    .kento-playground .kp-button:hover {
+      background: var(--kp-accent-hi);
+    }
+    .kento-playground .kp-quiet {
+      border-color: var(--kp-border-strong);
+      background: var(--kp-bg);
+      color: var(--kp-text);
+      font-weight: 500;
+    }
+    .kento-playground .kp-quiet:hover {
+      border-color: var(--kp-accent);
+      color: var(--kp-accent);
+    }
+    .kento-playground .kp-file {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+    }
+    .kento-playground .kp-press {
+      display: flex;
+      flex: 1 1 18rem;
+      gap: 1rem;
+      align-items: center;
+      min-inline-size: 0;
+      /* Press, hold and slide to a slice on a touch screen; the browser must not scroll or select. */
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .kento-playground .kp-thumb,
+    .kento-playground .kp-badge {
+      flex: none;
+      inline-size: 4.5rem;
+      block-size: 4.5rem;
+      border-radius: 6px;
+    }
+    .kento-playground .kp-thumb {
+      background: repeating-conic-gradient(var(--kp-check) 0 25%, var(--kp-bg) 0 50%) 0 0 / 12px 12px;
+    }
+    .kento-playground .kp-badge {
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--kp-border);
+      background: var(--kp-bg-2);
+      color: var(--kp-muted);
+      font-weight: 600;
+    }
+    .kento-playground .kp-file-text,
+    .kento-playground .kp-result-text {
+      flex: 1 1 12rem;
+      min-inline-size: 0;
+    }
+    .kento-playground .kp-name,
+    .kento-playground .kp-names {
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+    .kento-playground .kp-meta {
+      color: var(--kp-muted);
+      font-size: 0.875rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .kento-playground .kp-file-text .kp-hint {
+      margin-block-start: 0.25rem;
+      font-size: 0.875rem;
+    }
+    .kento-playground .kp-touch {
+      display: none;
+    }
+    @media (pointer: coarse) {
+      .kento-playground .kp-touch {
+        display: block;
+      }
+      .kento-playground .kp-mouse {
+        display: none;
+      }
+    }
+    .kento-playground .kp-file-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .kento-playground .kp-result {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      margin-block-start: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--kp-border);
+      border-radius: 10px;
+      background: var(--kp-bg);
+      box-shadow: var(--kp-shadow);
+    }
+    .kento-playground .kp-mark {
+      flex: none;
+      inline-size: 2.75rem;
+      block-size: 2.75rem;
+    }
+    .kento-playground .kp-result-title {
+      font-weight: 600;
+    }
+    .kento-playground .kp-arrow {
+      padding-inline: 0.375rem;
+      color: var(--kp-muted);
+      font-weight: 400;
+    }
+    .kento-playground .kp-status {
+      min-block-size: 1.5rem;
+      margin-block-start: 0.75rem;
+      color: var(--kp-muted);
+      font-size: 0.9375rem;
+    }
+    .kento-playground .kp-status.is-error {
+      color: var(--kp-danger);
+    }
+    .kento-playground .kp-notes {
+      max-width: 80ch;
+      margin: 0.75rem 0 0;
+      padding-inline-start: 1.25rem;
+      color: var(--kp-muted);
+      font-size: 0.9375rem;
+    }
+    .kento-playground .kp-notes li + li {
+      margin-block-start: 0.375rem;
+    }
+    .kento-playground .kp-notes strong {
+      color: var(--kp-text);
+      font-weight: 600;
+    }
+
+    /* The wheel: an overlay on the whole window, the dial under the pointer. */
+    .kp-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483000;
+      color: var(--kp-text);
+      line-height: 1.4;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .kp-overlay .kp-wheel {
+      position: absolute;
+      inline-size: var(--kp-box, 360px);
+      block-size: var(--kp-box, 360px);
+      transform: translate(-50%, -50%);
+    }
+    .kp-overlay .kp-disc {
+      position: relative;
+      inline-size: 100%;
+      block-size: 100%;
+      border-radius: 50%;
+      outline: none;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .kp-overlay .kp-face,
+    .kp-overlay .kp-face svg {
+      display: block;
+      inline-size: 100%;
+      block-size: 100%;
+    }
+    .kp-overlay .kp-face svg {
+      overflow: visible;
+      filter: var(--kp-dial-shadow);
+    }
+    /* The focus ring sits just outside the fixed ring (radius 197 of the 460-unit box). */
+    .kp-overlay .kp-disc:focus-visible::after,
+    .kp-overlay .is-keyboard .kp-disc:focus::after {
+      position: absolute;
+      inset: calc(7.2% - 5px);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px var(--kp-focus);
+      content: "";
+      pointer-events: none;
+    }
+    .kp-overlay .kp-items,
+    .kp-overlay .kp-sr {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      margin: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .kp-overlay .kp-tip {
+      position: absolute;
+      inset-block-start: 97%;
+      left: 50%;
+      inline-size: max-content;
+      max-inline-size: min(340px, calc(100vw - 32px));
+      margin: 0;
+      padding: 6px 12px;
+      border: 1px solid var(--kp-border);
+      border-radius: 4px;
+      background: var(--kp-bg);
+      box-shadow: var(--kp-tip-shadow);
+      color: var(--kp-text);
+      font-size: 13px;
+      line-height: 18px;
+      text-align: center;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(-50%);
+      transition: opacity 120ms, visibility 0s 120ms;
+      pointer-events: none;
+    }
+    .kp-overlay .kp-tip.is-shown {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 120ms;
+    }
+    .kp-overlay .has-tip-above .kp-tip {
+      inset-block-start: auto;
+      inset-block-end: 97%;
+    }
+    /* Motion (design/DESIGN.md, section 6): open, hover, a ring of choices, apply, close. */
+    .kp-overlay .is-opening .kp-disc {
+      animation: kp-in var(--kp-open, 236ms) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    }
+    .kp-overlay .is-closing .kp-disc {
+      animation: kp-out var(--kp-close, 120ms) cubic-bezier(0.4, 0, 1, 1) both;
+    }
+    .kp-overlay .is-reduced.is-opening .kp-disc {
+      animation-name: kp-fade-in;
+    }
+    .kp-overlay .is-reduced.is-closing .kp-disc {
+      animation-name: kp-fade-out;
+    }
+    .kp-overlay .is-closing .kp-tip {
+      opacity: 0;
+    }
+    .kp-overlay .kw-dial,
+    .kp-overlay .kw-handle {
+      transform-box: fill-box;
+      transform-origin: center;
+      transition: transform 170ms cubic-bezier(0.12, 0.75, 0.3, 1.06);
+    }
+    .kp-overlay .kw-handle {
+      transition: transform 360ms cubic-bezier(0.45, 0, 0.35, 1) 50ms;
+    }
+    .kp-overlay .kw-bolt {
+      transition: transform 300ms cubic-bezier(0.3, 0, 0.2, 1) 100ms;
+    }
+    .kp-overlay .is-closing .kw-bolt {
+      transform: none !important;
+      transition: transform 70ms cubic-bezier(0.4, 0, 1, 1);
+    }
+    .kp-overlay .kw-cell,
+    .kp-overlay .kw-window,
+    .kp-overlay .kw-keyline,
+    .kp-overlay .kw-inlay,
+    .kp-overlay .kw-latch {
+      transition: opacity 110ms;
+    }
+    .kp-overlay .kw-slice,
+    .kp-overlay .kw-marks {
+      transform-box: view-box;
+      transform-origin: 200px 200px;
+    }
+    .kp-overlay svg.is-entering .kw-slice,
+    .kp-overlay svg.is-entering .kw-marks {
+      animation: kp-unfold 90ms ease-out both;
+    }
+    .kp-overlay svg.is-fading .kw-slice,
+    .kp-overlay svg.is-fading .kw-marks {
+      animation: kp-fade-in var(--kp-level, 110ms) ease-out both;
+    }
+    .kp-overlay .is-reduced .kw-dial,
+    .kp-overlay .is-reduced .kw-handle,
+    .kp-overlay .is-reduced .kw-bolt {
+      transition: none !important;
+    }
+    @keyframes kp-in {
+      from {
+        opacity: 0.4;
+        transform: scale(0.92);
+      }
+      40% {
+        opacity: 1;
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    @keyframes kp-out {
+      to {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+    @keyframes kp-fade-in {
+      from {
+        opacity: 0;
+      }
+    }
+    @keyframes kp-fade-out {
+      to {
+        opacity: 0;
+      }
+    }
+    @keyframes kp-unfold {
+      from {
+        opacity: 0;
+        transform: scale(0.86);
+      }
+    }
+  </style>
+  <div class="kp-card">
+    <div class="kp-steel"></div>
+    <div class="kp-body">
+      <h2 class="kp-title" id="kento-playground-title"><span data-l="en">Try the wheel</span><span data-l="tr">Çarkı deneyin</span></h2>
+      <p class="kp-lede"><span data-l="en">Drag a picture from your computer onto this box and hold <kbd>Shift</kbd> while you drag: the Convert wheel opens under the pointer. Drop the picture on a slice and your browser converts it on the spot.</span><span data-l="tr">Bilgisayarınızdan bir görseli bu kutuya sürükleyin ve sürüklerken <kbd>Shift</kbd>’e basılı tutun: Dönüştür çarkı imlecin altında açılır. Görseli bir dilime bırakın; tarayıcınız onu hemen dönüştürür.</span></p>
+
+      <div class="kp-stage" data-stage hidden>
+        <div class="kp-zone" data-zone>
+          <svg class="kp-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11M7.5 9.5L12 14l4.5-4.5M3 15v3a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-3"/></svg>
+          <p class="kp-zone-title"><span data-l="en">Drop a picture here</span><span data-l="tr">Görseli buraya bırakın</span></p>
+          <p class="kp-hint"><span data-l="en">Hold <kbd>Shift</kbd> while you drag and the wheel opens before you let go.</span><span data-l="tr">Sürüklerken <kbd>Shift</kbd>’e basılı tutun; çark siz bırakmadan açılır.</span></p>
+          <p class="kp-actions">
+            <button type="button" class="kp-button" data-act="choose"><span data-l="en">Choose a picture</span><span data-l="tr">Görsel seçin</span></button>
+            <button type="button" class="kp-quiet" data-act="sample"><span data-l="en">Use a sample picture</span><span data-l="tr">Örnek görsel kullanın</span></button>
+          </p>
+        </div>
+        <div class="kp-file" data-file hidden>
+          <div class="kp-press" data-press>
+            <canvas class="kp-thumb" data-thumb width="144" height="144" aria-hidden="true"></canvas>
+            <div class="kp-file-text">
+              <p class="kp-name"><bdi data-name></bdi></p>
+              <p class="kp-meta" data-meta></p>
+              <p class="kp-hint kp-mouse"><span data-l="en">Open the wheel again, or drag another picture here with <kbd>Shift</kbd> held.</span><span data-l="tr">Çarkı yeniden açın ya da <kbd>Shift</kbd>’e basılı tutarak başka bir görseli buraya sürükleyin.</span></p>
+              <p class="kp-hint kp-touch"><span data-l="en">Press and hold the picture: the wheel opens under your finger. Slide to a slice and let go.</span><span data-l="tr">Görsele basılı tutun: çark parmağınızın altında açılır. Bir dilime kaydırıp bırakın.</span></p>
+            </div>
+          </div>
+          <p class="kp-file-actions">
+            <button type="button" class="kp-button" data-act="open"><span data-l="en">Open the wheel</span><span data-l="tr">Çarkı açın</span></button>
+            <button type="button" class="kp-quiet" data-act="choose"><span data-l="en">Choose another picture</span><span data-l="tr">Başka bir görsel seçin</span></button>
+          </p>
+        </div>
+        <input class="kp-input" type="file" accept="image/*,.avif,.heic,.heif,.svg,.tif,.tiff,.bmp,.webp" data-input hidden aria-label="Picture / Görsel">
+      </div>
+
+      <div class="kp-result" data-result hidden>
+        <svg class="kp-mark" viewBox="0 0 256 256" aria-hidden="true">
+          <defs>
+            <radialGradient id="kento-pg-face" cx="0.4" cy="0.32" r="0.78"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e1e5e9"/></radialGradient>
+            <linearGradient id="kento-pg-blue" x1="0.15" y1="0" x2="0.85" y2="1"><stop offset="0" stop-color="#4b74d8"/><stop offset="0.55" stop-color="#2a4ea6"/><stop offset="1" stop-color="#1a3170"/></linearGradient>
+            <linearGradient id="kento-pg-ring" x1="0.2" y1="0.05" x2="0.8" y2="0.95"><stop offset="0" stop-color="#c3c8ce"/><stop offset="0.5" stop-color="#858c95"/><stop offset="1" stop-color="#4a5159"/></linearGradient>
+            <linearGradient id="kento-pg-bolt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6d747d"/><stop offset="0.3" stop-color="#fbfcfd"/><stop offset="0.56" stop-color="#b9bfc6"/><stop offset="0.86" stop-color="#737a83"/><stop offset="1" stop-color="#4c535b"/></linearGradient>
+          </defs>
+          <g transform="rotate(45 128 128)"><rect x="104.77" y="10.84" width="46.46" height="46.46" rx="2.53" fill="url(#kento-pg-bolt)" stroke="#2b3138" stroke-opacity="0.85" stroke-width="9.09"/></g>
+          <g transform="rotate(135 128 128)"><rect x="104.77" y="10.84" width="46.46" height="46.46" rx="2.53" fill="url(#kento-pg-bolt)" stroke="#2b3138" stroke-opacity="0.85" stroke-width="9.09"/></g>
+          <g transform="rotate(225 128 128)"><rect x="104.77" y="10.84" width="46.46" height="46.46" rx="2.53" fill="url(#kento-pg-bolt)" stroke="#2b3138" stroke-opacity="0.85" stroke-width="9.09"/></g>
+          <g transform="rotate(315 128 128)"><rect x="104.77" y="10.84" width="46.46" height="46.46" rx="2.53" fill="url(#kento-pg-bolt)" stroke="#2b3138" stroke-opacity="0.85" stroke-width="9.09"/></g>
+          <circle cx="128" cy="128" r="101" fill="url(#kento-pg-ring)" stroke="#2b3138" stroke-opacity="0.9" stroke-width="9.09"/>
+          <circle cx="128" cy="128" r="64.64" fill="url(#kento-pg-face)"/>
+          <path d="M128 128L93.75 73.18A64.64 64.64 0 0 1 162.25 73.18Z" fill="url(#kento-pg-blue)"/>
+        </svg>
+        <div class="kp-result-text">
+          <p class="kp-result-title"><span data-l="en">Ready</span><span data-l="tr">Hazır</span></p>
+          <p class="kp-names"><bdi data-result-from></bdi><span class="kp-arrow" aria-hidden="true">→</span><bdi data-result-to></bdi></p>
+          <p class="kp-meta" data-result-meta></p>
+        </div>
+        <canvas class="kp-thumb" data-result-thumb width="144" height="144" aria-hidden="true"></canvas>
+        <span class="kp-badge" data-result-badge hidden></span>
+        <button type="button" class="kp-quiet" data-act="save"><span data-l="en">Download again</span><span data-l="tr">Yeniden indirin</span></button>
+      </div>
+
+      <p class="kp-status" data-status role="status"></p>
+      <noscript><p class="kp-hint"><span data-l="en">The playground needs JavaScript.</span><span data-l="tr">Deneme alanı JavaScript gerektirir.</span></p></noscript>
+      <ul class="kp-notes">
+        <li><strong><span data-l="en">Nothing leaves this page.</span><span data-l="tr">Hiçbir şey bu sayfadan çıkmaz.</span></strong> <span data-l="en">Your browser reads and converts the picture itself: it is not uploaded anywhere, and the playground makes no network request. The result is saved like any download, named as Kento names it (photo.png becomes photo.jpg).</span><span data-l="tr">Görseli tarayıcınızın kendisi okur ve dönüştürür: hiçbir yere yüklenmez ve deneme alanı hiçbir ağ isteği yapmaz. Sonuç her indirme gibi kaydedilir ve Kento’nun verdiği adı alır (foto.png, foto.jpg olur).</span></li>
+        <li><span data-l="en">It reads PNG, JPG, WEBP, GIF, BMP, AVIF and SVG pictures; HEIC and TIFF only in browsers that read them, such as Safari.</span><span data-l="tr">PNG, JPG, WEBP, GIF, BMP, AVIF ve SVG görselleri okur; HEIC ve TIFF’i ise yalnızca onları okuyabilen tarayıcılarda, örneğin Safari’de.</span> <span data-formats-now></span></li>
+        <li><span data-l="en">On the wheel <kbd>↑</kbd> and <kbd>↓</kbd> choose a slice, <kbd>→</kbd> or <kbd>Enter</kbd> opens a slice’s choices or applies it, <kbd>←</kbd> or <kbd>Esc</kbd> goes back. Resting on JPG, WEBP or AVIF for half a second opens its quality ring; a plain drop or click takes Balanced.</span><span data-l="tr">Çarkta <kbd>↑</kbd> ve <kbd>↓</kbd> dilim seçer, <kbd>→</kbd> ya da <kbd>Enter</kbd> dilimin seçeneklerini açar ya da onu uygular, <kbd>←</kbd> ya da <kbd>Esc</kbd> geri döner. JPG, WEBP ya da AVIF üzerinde yarım saniye beklemek kalite halkasını açar; doğrudan bırakmak ya da tıklamak Dengeli’yi seçer.</span></li>
+        <li><span data-l="en">Kento itself converts video, audio, documents, PDF and archives too, many files at once, and writes each result next to the original.</span><span data-l="tr">Kento ise video, ses, belge, PDF ve arşivleri de dönüştürür, birçok dosyayı tek seferde işler ve her sonucu özgün dosyanın yanına yazar.</span></li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    // @ts-nocheck: plain JavaScript, left alone by a site that type-checks its components (astro check).
+    // Starts the playground when the visitor does: a click on its buttons, a file dragged into the window
+    // or a touch on the section loads playground.js (with ../assets/dial.js and encoders.js), so a page
+    // that only shows the section loads none of it. data-playground-module on the section or an element
+    // around it says where playground.js is; without it, next to the page (or, bundled, next to this file).
+    (function () {
+      var FAILED = '<span data-l="en">The playground could not start in this browser.</span><span data-l="tr">Deneme alanı bu tarayıcıda başlatılamadı.</span>';
+      var hasFiles = function (event) {
+        return !!event.dataTransfer && [].indexOf.call(event.dataTransfer.types || [], 'Files') >= 0;
+      };
+      [].forEach.call(document.querySelectorAll('.kento-playground:not([data-ready])'), function (root) {
+        root.setAttribute('data-ready', '');
+        var input = root.querySelector('[data-input]');
+        var loading = null;
+        var app = null;
+        root.querySelector('[data-stage]').hidden = false;
+
+        function start() {
+          if (!loading) {
+            var holder = root.closest('[data-playground-module]');
+            var module = holder
+              ? import(/* @vite-ignore */ new URL(holder.getAttribute('data-playground-module'), document.baseURI).href)
+              : import('./playground.js');
+            loading = module.then(function (m) {
+              return (app = m.mount(root));
+            });
+            loading.catch(function () {
+              root.querySelector('[data-status]').innerHTML = FAILED;
+            });
+          }
+          return loading;
+        }
+
+        root.addEventListener('click', function (event) {
+          var button = event.target.closest('[data-act]');
+          if (!button) return;
+          var act = button.getAttribute('data-act');
+          if (act === 'choose') {
+            // The file chooser opens within the click, as browsers require.
+            input.value = '';
+            input.click();
+            start();
+          } else if (act === 'sample') {
+            start().then(function (a) {
+              a.sample();
+            });
+          }
+        });
+        input.addEventListener('change', function () {
+          var file = input.files && input.files[0];
+          if (file) {
+            start().then(function (a) {
+              a.take(file, { via: 'choose' });
+            });
+          }
+        });
+        // A file dragged into the window starts loading, so the wheel is there when Shift is pressed.
+        document.addEventListener('dragenter', function (event) {
+          if (hasFiles(event)) start();
+        });
+        root.addEventListener('dragover', function (event) {
+          if (!app && hasFiles(event)) event.preventDefault();
+        });
+        root.addEventListener('drop', function (event) {
+          if (app || !hasFiles(event)) return;
+          event.preventDefault();
+          var files = event.dataTransfer.files;
+          var x = event.clientX;
+          var y = event.clientY;
+          start().then(function (a) {
+            a.take(files[0], { via: 'drop', x: x, y: y, many: files.length > 1 });
+          });
+        });
+        root.addEventListener('pointerdown', start);
+        root.addEventListener('focusin', start);
+      });
+    })();
+  </script>
+</section>
