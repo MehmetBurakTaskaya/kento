@@ -89,16 +89,21 @@ jobs:
           DENO_NO_UPDATE_CHECK=1 deno --version
 
       # LibreOffice for the office tests and for finding an installed copy. On Windows soffice.exe
-      # prints nothing, so its console twin soffice.com answers.
+      # prints nothing, so its console twin soffice.com answers. Its own Python runs Kento's client
+      # for the LibreOffice kept between jobs; without it each job starts LibreOffice, and the
+      # office tests say so.
       - name: LibreOffice
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
             choco install libreoffice-fresh -y --no-progress
             "/c/Program Files/LibreOffice/program/soffice.com" --version
+            python="/c/Program Files/LibreOffice/program/python.exe"
           else
             brew install --cask libreoffice
             /Applications/LibreOffice.app/Contents/MacOS/soffice --version
+            python=/Applications/LibreOffice.app/Contents/Resources/python
           fi
+          ls -l "$python" || echo "LibreOffice has no Python of its own here"
 
       # Background removal: ONNX Runtime and the model (about 300 MB) come from Kento's own installer
       # once, which also removes a test background with them, and are kept in the Actions cache
