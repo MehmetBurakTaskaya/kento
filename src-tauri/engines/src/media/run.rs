@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 //! Running FFmpeg and ffprobe: one process per pass, arguments as an array (never a shell
-//! string), no console window on Windows, progress from `-progress pipe:1`, and a kill on cancel.
+//! string), no console window on Windows, progress from `-progress pipe:1`, and a kill on cancel
+//! that also ends whatever the program started (package-manager shims start the real FFmpeg).
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::{OsStr, OsString};
 use std::io::{self, BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStderr, Command, Stdio};
 use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
@@ -137,11 +139,84 @@ impl Cmd {
             command.args(["-progress", "pipe:1"]);
         }
         command
-            .args(&self.args)
+            .args(own_encoders(ffmpeg, &self.args))
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         command
     }
+}
+
+/// Builds without libvorbis or libopus (Homebrew's FFmpeg has no libvorbis) still carry FFmpeg's
+/// own encoders for those formats, marked experimental. The native Vorbis encoder writes stereo
+/// only, so it gets two channels.
+fn own_encoders(ffmpeg: &Path, args: &[OsString]) -> Vec<OsString> {
+    let wanted = ["libvorbis", "libopus"];
+    if !args.iter().any(|arg| wanted.iter().any(|name| arg == name)) {
+        return args.to_vec();
+    }
+    let available = encoders(ffmpeg);
+    if available.is_empty() {
+        return args.to_vec();
+    }
+    swap_encoders(args, &available)
+}
+
+fn swap_encoders(args: &[OsString], available: &HashSet<String>) -> Vec<OsString> {
+    let wanted = ["libvorbis", "libopus"];
+    let mut out = Vec::with_capacity(args.len() + 4);
+    let mut pairs = args.iter().peekable();
+    while let Some(arg) = pairs.next() {
+        out.push(arg.clone());
+        let Some(stream) = arg.to_str().and_then(|a| a.strip_prefix("-c:a")) else {
+            continue;
+        };
+        let Some(encoder) = pairs.next_if(|next| wanted.iter().any(|name| *next == name)) else {
+            continue;
+        };
+        let encoder = encoder.to_string_lossy();
+        if available.contains(encoder.as_ref()) {
+            out.push(encoder.as_ref().into());
+            continue;
+        }
+        let native = encoder.trim_start_matches("lib");
+        // Output options, so they belong to the same output as the encoder they follow.
+        out.extend([native.into(), "-strict".into(), "experimental".into()]);
+        if native == "vorbis" {
+            out.extend([format!("-ac:a{stream}").into(), "2".into()]);
+        }
+    }
+    out
+}
+
+/// The encoders a build has, asked once per program. Empty when the list cannot be read, and then
+/// the arguments are left as they are.
+fn encoders(ffmpeg: &Path) -> Arc<HashSet<String>> {
+    static KNOWN: OnceLock<Mutex<HashMap<PathBuf, Arc<HashSet<String>>>>> = OnceLock::new();
+    let known = KNOWN.get_or_init(Mutex::default);
+    if let Some(list) = known.lock().ok().and_then(|map| map.get(ffmpeg).cloned()) {
+        return list;
+    }
+    let list = Arc::new(
+        command(ffmpeg)
+            .args(["-hide_banner", "-encoders"])
+            .stderr(Stdio::null())
+            .output()
+            .map(|output| encoder_names(&String::from_utf8_lossy(&output.stdout)))
+            .unwrap_or_default(),
+    );
+    if let Ok(mut map) = known.lock() {
+        map.insert(ffmpeg.to_path_buf(), list.clone());
+    }
+    list
+}
+
+/// The names in `-encoders` output: after the legend, each line is " A....D name  description".
+fn encoder_names(text: &str) -> HashSet<String> {
+    text.lines()
+        .skip_while(|line| !line.trim_start().starts_with("---"))
+        .skip(1)
+        .filter_map(|line| line.split_whitespace().nth(1).map(str::to_owned))
+        .collect()
 }
 
 /// Where a run's position goes on the job's progress bar.
@@ -248,14 +323,97 @@ impl Log {
     }
 }
 
-/// Kills the process unless it has ended, so that no early return leaves FFmpeg running.
-struct Reap(Child);
+/// Kills the process unless it has ended, so that no early return leaves FFmpeg running. On
+/// Windows the process runs in a job object, and the kill ends everything in it.
+struct Reap {
+    child: Child,
+    #[cfg(windows)]
+    tree: Option<tree::Tree>,
+}
+
+impl Reap {
+    fn spawn(mut command: Command) -> Result<Reap> {
+        let child = command.spawn().map_err(spawn_error)?;
+        Ok(Reap {
+            #[cfg(windows)]
+            tree: tree::Tree::new(&child),
+            child,
+        })
+    }
+
+    fn kill(&mut self) {
+        #[cfg(windows)]
+        if let Some(tree) = &self.tree {
+            tree.kill();
+        }
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
 
 impl Drop for Reap {
     fn drop(&mut self) {
-        if let Ok(None) = self.0.try_wait() {
-            let _ = self.0.kill();
-            let _ = self.0.wait();
+        if let Ok(None) = self.child.try_wait() {
+            self.kill();
+        }
+    }
+}
+
+#[cfg(windows)]
+mod tree {
+    use std::os::windows::io::AsRawHandle;
+    use std::process::Child;
+
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::{CloseHandle, HANDLE};
+    use windows::Win32::System::JobObjects::{
+        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+        SetInformationJobObject, TerminateJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    };
+
+    /// A job object holding one FFmpeg process and anything it starts. Closing it ends them all,
+    /// so a run can never outlive Kento either.
+    pub struct Tree(HANDLE);
+
+    // The handle is only used to end the processes; the job object itself is thread-safe.
+    unsafe impl Send for Tree {}
+
+    impl Tree {
+        /// None when the process cannot be put in a job; the kill then reaches only the process.
+        pub fn new(child: &Child) -> Option<Tree> {
+            // SAFETY: plain Win32 calls on a handle this function owns, with a correctly sized
+            // structure; the child's handle stays valid while `child` lives.
+            unsafe {
+                let job = Tree(CreateJobObjectW(None, PCWSTR::null()).ok()?);
+                let mut limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+                limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+                SetInformationJobObject(
+                    job.0,
+                    JobObjectExtendedLimitInformation,
+                    (&raw const limits).cast(),
+                    size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+                )
+                .ok()?;
+                AssignProcessToJobObject(job.0, HANDLE(child.as_raw_handle())).ok()?;
+                Some(job)
+            }
+        }
+
+        pub fn kill(&self) {
+            // SAFETY: the handle is open until drop.
+            unsafe {
+                let _ = TerminateJobObject(self.0, 1);
+            }
+        }
+    }
+
+    impl Drop for Tree {
+        fn drop(&mut self) {
+            // SAFETY: closed once, here.
+            unsafe {
+                let _ = CloseHandle(self.0);
+            }
         }
     }
 }
@@ -276,9 +434,9 @@ fn out_time(line: &str) -> Option<f64> {
 /// Runs FFmpeg to the end, reporting its position, and returns what it logged.
 pub(super) fn run(ffmpeg: &Path, cmd: &Cmd, watch: Watch) -> Result<Log> {
     watch.progress.check()?;
-    let mut child = Reap(cmd.command(ffmpeg, true).spawn().map_err(spawn_error)?);
-    let stdout = child.0.stdout.take().expect("stdout is piped");
-    let stderr = child.0.stderr.take().expect("stderr is piped");
+    let mut child = Reap::spawn(cmd.command(ffmpeg, true))?;
+    let stdout = child.child.stdout.take().expect("stdout is piped");
+    let stderr = child.child.stderr.take().expect("stderr is piped");
     let keep = cmd.keep;
     let log = thread::spawn(move || Log::read(stderr, keep));
     let (sender, positions) = mpsc::channel();
@@ -310,13 +468,12 @@ pub(super) fn run(ffmpeg: &Path, cmd: &Cmd, watch: Watch) -> Result<Log> {
             thread::sleep(POLL / 2);
         }
         if watch.progress.is_cancelled() {
-            let _ = child.0.kill();
-            let _ = child.0.wait();
+            child.kill();
             let _ = reader.join();
             let _ = log.join();
             return Err(Error::Cancelled);
         }
-        if let Some(status) = child.0.try_wait()? {
+        if let Some(status) = child.child.try_wait()? {
             break status;
         }
     };
@@ -337,9 +494,9 @@ pub(super) fn pipe(
     mut sink: impl FnMut(&[u8]) -> Result<()>,
 ) -> Result<Log> {
     progress.check()?;
-    let mut child = Reap(cmd.command(ffmpeg, false).spawn().map_err(spawn_error)?);
-    let mut stdout = child.0.stdout.take().expect("stdout is piped");
-    let stderr: ChildStderr = child.0.stderr.take().expect("stderr is piped");
+    let mut child = Reap::spawn(cmd.command(ffmpeg, false))?;
+    let mut stdout = child.child.stdout.take().expect("stdout is piped");
+    let stderr: ChildStderr = child.child.stderr.take().expect("stderr is piped");
     let keep = cmd.keep;
     let log = thread::spawn(move || Log::read(stderr, keep));
     let mut buffer = vec![0; 64 * 1024];
@@ -359,9 +516,9 @@ pub(super) fn pipe(
         }
     };
     if outcome.is_err() {
-        let _ = child.0.kill();
+        child.kill();
     }
-    let status = child.0.wait()?;
+    let status = child.child.wait()?;
     let log = log.join().unwrap_or_default();
     outcome?;
     if !status.success() {
@@ -373,6 +530,59 @@ pub(super) fn pipe(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn falls_back_to_ffmpegs_own_encoders() {
+        let listing = " A....D aac                  AAC (Advanced Audio Coding)\n\
+                       A....D libopus              libopus Opus\n";
+        assert!(encoder_names(listing).is_empty(), "no legend, no names");
+        let listing = format!("Encoders:\n V..... = Video\n ------\n{listing}");
+        let found = encoder_names(&listing);
+        assert!(found.contains("aac") && found.contains("libopus"));
+        let names =
+            |list: &[&str]| -> HashSet<String> { list.iter().map(|s| s.to_string()).collect() };
+
+        let args = |list: &[&str]| -> Vec<OsString> { list.iter().map(OsString::from).collect() };
+        let input = args(&[
+            "-i",
+            "in.wav",
+            "-c:a:0",
+            "libvorbis",
+            "-q:a:0",
+            "5",
+            "out.ogg",
+        ]);
+        assert_eq!(swap_encoders(&input, &names(&["libvorbis"])), input);
+        assert_eq!(
+            swap_encoders(&input, &names(&["aac"])),
+            args(&[
+                "-i",
+                "in.wav",
+                "-c:a:0",
+                "vorbis",
+                "-strict",
+                "experimental",
+                "-ac:a:0",
+                "2",
+                "-q:a:0",
+                "5",
+                "out.ogg",
+            ])
+        );
+        let opus = args(&["-i", "in.wav", "-c:a", "libopus", "out.opus"]);
+        assert_eq!(
+            swap_encoders(&opus, &names(&["aac"])),
+            args(&[
+                "-i",
+                "in.wav",
+                "-c:a",
+                "opus",
+                "-strict",
+                "experimental",
+                "out.opus"
+            ])
+        );
+    }
 
     #[test]
     fn reads_the_position() {
