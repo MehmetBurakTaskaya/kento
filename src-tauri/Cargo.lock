@@ -2939,6 +2939,7 @@ version = "0.1.0"
 dependencies = [
  "avif-parse",
  "calamine",
+ "color_quant",
  "csv",
  "encoding_rs",
  "flate2",
@@ -2949,6 +2950,7 @@ dependencies = [
  "lopdf",
  "pdfium-render",
  "plist",
+ "png",
  "pulldown-cmark",
  "qrcode",
  "rav1d",
@@ -2962,6 +2964,7 @@ dependencies = [
  "tar",
  "tempfile",
  "thiserror 2.0.21",
+ "tiff",
  "tracing",
  "unrar_sys",
  "webp",
