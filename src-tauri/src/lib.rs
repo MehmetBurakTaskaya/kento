@@ -6,6 +6,7 @@ pub mod actions;
 pub mod catalog;
 pub mod commands;
 pub mod compress;
+mod drops;
 pub mod error;
 pub mod files;
 pub mod i18n;
@@ -176,6 +177,8 @@ fn setup(
     // wheel must never wait on screen, where its transparent area would swallow clicks.
     if let Some(wheel) = app.get_webview_window(overlay::wheel::LABEL) {
         overlay::park(&wheel);
+        // The wheel learns what a drag carries, files or a link, when the drag enters it.
+        drops::watch(&wheel);
     }
     // Finding the tools runs each candidate once; the first wheel should not wait for it. A
     // LibreOffice that has never run with Kento's profile is then started once, so the first

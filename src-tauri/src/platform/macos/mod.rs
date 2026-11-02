@@ -19,7 +19,7 @@ use objc2_app_kit::{
 
 use super::{PlatformError, Result};
 
-pub use drag::{watch_drags, Watcher};
+pub use drag::{dragged_link, watch_drags, Watcher};
 pub use finder::file_manager_selection;
 pub use share::share;
 

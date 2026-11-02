@@ -32,3 +32,7 @@ pub fn set_context_menu(_enabled: bool, _exe: &Path, _label: &str) -> Result<()>
 }
 
 pub fn haptic_tick() {}
+
+pub fn dragged_link() -> Option<String> {
+    None
+}

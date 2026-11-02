@@ -8,7 +8,10 @@ use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use objc2::rc::autoreleasepool;
-use objc2_app_kit::{NSEvent, NSEventModifierFlags, NSPasteboard, NSPasteboardNameDrag};
+use objc2_app_kit::{
+    NSEvent, NSEventModifierFlags, NSPasteboard, NSPasteboardNameDrag, NSPasteboardTypeString,
+    NSPasteboardTypeURL,
+};
 use objc2_core_graphics::{
     CGDirectDisplayID, CGDisplayBounds, CGDisplayCopyDisplayMode, CGDisplayMode, CGError,
     CGEventSource, CGEventSourceStateID, CGGetDisplaysWithPoint, CGMainDisplayID,
@@ -73,6 +76,31 @@ fn poll(on_event: impl Fn(DragEvent), stop: &AtomicBool) {
             IDLE_POLL
         });
     }
+}
+
+/// The web address on the drag pasteboard: a link or a picture dragged out of a browser puts it
+/// there as `public.url`, and selected text that is one address as plain text. The webview hands
+/// such a drag over without files, so the wheel and Home ask here when it enters them.
+pub fn dragged_link() -> Option<String> {
+    autoreleasepool(|_| {
+        // SAFETY: constants AppKit provides for the lifetime of the process.
+        let (name, url, text) = unsafe {
+            (
+                NSPasteboardNameDrag,
+                NSPasteboardTypeURL,
+                NSPasteboardTypeString,
+            )
+        };
+        let board = NSPasteboard::pasteboardWithName(name);
+        let texts = [url, text]
+            .into_iter()
+            .filter_map(|kind| board.stringForType(kind))
+            .map(|found| found.to_string());
+        match crate::platform::DragContent::classify(Vec::new(), texts) {
+            crate::platform::DragContent::Link(link) => Some(link),
+            _ => None,
+        }
+    })
 }
 
 /// NSEvent's class methods report the current hardware state and are meant for polling outside

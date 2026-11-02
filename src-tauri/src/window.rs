@@ -106,7 +106,9 @@ pub fn show_main(app: &AppHandle, section: Option<&'static str>) -> Result<()> {
                 )
                 .initialization_script("document.documentElement.dataset.backdrop = 'mica';");
         }
-        builder.build()?;
+        let window = builder.build()?;
+        // Files and links dropped on Home.
+        crate::drops::watch(&window);
         if !hidden {
             // The page shows the window once it has painted (ui_ready); this is the safety net.
             let app = app.clone();

@@ -190,6 +190,9 @@ fn show_at(app: &AppHandle, at: Point) {
         tracing::error!("the wheel window is missing");
         return;
     };
+    // WebView2 may have added a window since the start; the drop target covers it before the
+    // wheel moves under the drag.
+    crate::drops::take_over(&window);
     if let Err(err) = super::move_centred(app, &window, at.x, at.y) {
         tracing::warn!("the wheel could not be placed: {err}");
     }

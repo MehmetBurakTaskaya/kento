@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
-//! Windows: polling for drags, COM for the Explorer selection, the share UI and shell links,
-//! HKCU for the context menu.
+//! Windows: polling for drags, an OLE drop target that reads links as well as files, COM for the
+//! Explorer selection, the share UI and shell links, HKCU for the context menu.
 //!
 //! Threads: `watch_drags` runs its own thread. `file_manager_selection`, `set_send_to` and
 //! `set_context_menu` may run on any thread; they make COM apartment-threaded on the calling
 //! thread for the length of the call (an MTA thread works too) and may block for some tens of
-//! milliseconds, so a worker thread suits them better than the UI thread. `share` must run on the
-//! thread that owns the window (see `share.rs`).
+//! milliseconds, so a worker thread suits them better than the UI thread. `share` and
+//! `accept_drops` must run on the thread that owns the window (see `share.rs`, `drop.rs`).
 
 use std::ffi::{OsStr, OsString};
 use std::marker::PhantomData;
@@ -24,18 +24,25 @@ use windows::Win32::UI::Shell::{SHGetKnownFolderPath, KF_FLAG_DEFAULT};
 use super::{PlatformError, Result};
 
 mod drag;
+mod drop;
 mod explorer;
 mod share;
 mod shell;
 mod terminal;
 
 pub use drag::{watch_drags, Watcher};
+pub use drop::accept_drops;
 pub use explorer::file_manager_selection;
 pub use share::share;
 pub use shell::{set_context_menu, set_send_to};
 pub use terminal::open_terminal;
 
 pub fn haptic_tick() {}
+
+/// Kento's own drop target reads the address of a dragged link (`drop.rs`).
+pub fn dragged_link() -> Option<String> {
+    None
+}
 
 fn failed(context: &str, err: windows::core::Error) -> PlatformError {
     PlatformError::Failed(format!("{context}: {}", err.message()))
