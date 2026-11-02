@@ -84,8 +84,13 @@ export function App() {
   useEffect(() => {
     const take = () => void api.webTakePending().then((url) => url && useApp.getState().openWeb(url));
     take();
+    // Make a QR code for a link dropped on the floating wheel's QR slice.
+    const takeQr = () =>
+      void api.qrTakePending().then((text) => text && useApp.getState().openPanel('make-qr', [], text));
+    takeQr();
     const stops = [
       api.onWebOpen(take),
+      api.onQrOpen(takeQr),
       api.onSettings((saved) => {
         const { settings } = useApp.getState();
         if (settings && saved.settings.web.noticeShown && !settings.web.noticeShown) {

@@ -167,6 +167,42 @@ export interface QrFound {
   text: string;
 }
 export type QrReport = 'txt' | 'csv' | 'json';
+/** How much of a code may be damaged and still read: about 7, 15, 25 and 30 %. */
+export type QrCorrection = 'low' | 'medium' | 'quartile' | 'high';
+export type QrPicture = 'png' | 'svg';
+export interface QrStyle {
+  correction: QrCorrection;
+  /** The side in pixels, quiet zone included. */
+  size: number;
+  dark: [number, number, number];
+  light: [number, number, number];
+}
+export type QrProblem = 'empty' | 'too-long' | 'low-contrast';
+export interface QrPreview {
+  svg: string | null;
+  problem: QrProblem | null;
+  /** WCAG's ratio of the two colours, 1 to 21. */
+  contrast: number;
+  /** Light modules on a dark background. */
+  inverted: boolean;
+}
+
+/** The languages the system's text recognition reads, as BCP 47 tags. */
+export interface OcrLanguages {
+  available: string[];
+  suggested: string | null;
+  /** The interface language. */
+  interface: string;
+  /** The system's language. */
+  system: string | null;
+}
+
+/** The first subtitle of a file, in seconds, without tags. */
+export interface SubtitleSample {
+  start: number;
+  end: number;
+  text: string;
+}
 
 export interface ActionEntry {
   id: string;
@@ -315,7 +351,9 @@ export type MediaTool =
   | {
       tool: 'audio-to-video';
       visual: { kind: 'waveform' } | { kind: 'spectrum' } | { kind: 'bars' } | { kind: 'image'; path: string };
-    };
+    }
+  /** `size`: percent of the usual subtitle size, 50 to 250. Paths: the video and its subtitles. */
+  | { tool: 'burn-subtitles'; size: number; position: 'bottom' | 'top' };
 
 /** A picture's upright size in pixels (after its EXIF orientation). */
 export interface ImageInfo {
@@ -497,6 +535,18 @@ export interface Api {
   pdfThumbnail(path: string, index: number, size: number): Promise<Blob | null>;
   scanQr(paths: string[]): Promise<QrFound[]>;
   saveQrReport(found: QrFound[], report: QrReport): Promise<LibraryEntry>;
+  /** The code for the text as it stands, or why there is none. */
+  qrPreview(text: string, style: QrStyle): Promise<QrPreview>;
+  /** Saves the code; `folder` is null for the default folder, else one from webChooseFolder. */
+  makeQr(text: string, style: QrStyle, picture: QrPicture, folder: string | null): Promise<number>;
+  /** Opens Make a QR code in the main window (the floating wheel's link ring). */
+  qrOpen(text: string): Promise<void>;
+  /** The text the main window should open Make a QR code with, once. */
+  qrTakePending(): Promise<string | null>;
+  onQrOpen(handler: () => void): Promise<UnlistenFn>;
+  ocrLanguages(): Promise<OcrLanguages>;
+  runOcr(paths: string[], language: string): Promise<number[]>;
+  subtitleSample(path: string): Promise<SubtitleSample | null>;
   actions(): Promise<ActionEntry[]>;
   runAction(action: string, paths: string[]): Promise<number[]>;
   openTool(tool: string, paths: string[]): Promise<void>;
@@ -641,6 +691,14 @@ const tauriApi: Api = {
   pdfThumbnail: (path, index, size) => blob(invoke<ArrayBuffer>('pdf_thumbnail', { path, index, size })),
   scanQr: (paths) => invoke('scan_qr', { paths }),
   saveQrReport: (found, report) => invoke('save_qr_report', { found, report }),
+  qrPreview: (text, style) => invoke('qr_preview', { text, style }),
+  makeQr: (text, style, picture, folder) => invoke('make_qr', { text, style, picture, folder }),
+  qrOpen: (text) => invoke('qr_open', { text }),
+  qrTakePending: () => invoke('qr_take_pending'),
+  onQrOpen: (handler) => listen('qr-open', () => handler()),
+  ocrLanguages: () => invoke('ocr_languages'),
+  runOcr: (paths, language) => invoke('run_ocr', { paths, language }),
+  subtitleSample: (path) => invoke('subtitle_sample', { path }),
   actions: () => invoke('actions'),
   runAction: (action, paths) => invoke('run_action', { action, paths }),
   openTool: (tool, paths) => invoke('open_tool', { tool, paths }),
@@ -848,8 +906,9 @@ export function browserApi(params: URLSearchParams): Api {
         ...(only('pdf') && paths.length === 1 ? ['split-pdf', 'edit-pdf'] : []),
         ...(only('pdf') && paths.length > 1 ? ['merge-pdf'] : []),
         ...(only('image') ? ['images-to-pdf'] : []),
-        ...([...categories].every((c) => c === 'image' || c === 'pdf') ? ['read-qr'] : []),
+        ...([...categories].every((c) => c === 'image' || c === 'pdf') ? ['read-qr', 'ocr'] : []),
         ...(only('archive') ? ['extract'] : []),
+        ...(paths.length === 2 && categories.has('video') && categories.has('subtitle') ? ['burn-subtitles'] : []),
       ];
       return ids.map((id) => ({ id, icon: 'doc', group: 'core' as const, enhancement: false, needs: null }));
     },
@@ -874,6 +933,20 @@ export function browserApi(params: URLSearchParams): Api {
     pdfThumbnail: async () => null,
     scanQr: async (paths) => paths.map((file) => ({ file, page: null, text: 'https://mehmetburaktaskaya.com' })),
     saveQrReport: async () => DEMO_LIBRARY[0]!,
+    qrPreview: async (text, style) => demoQr(text, style),
+    makeQr: async () => 1,
+    qrOpen: async () => {},
+    qrTakePending: async () => null,
+    onQrOpen: async () => () => {},
+    // ?ocr=missing: the interface language has no recogniser on this computer.
+    ocrLanguages: async () => {
+      const ui = resolve(settings);
+      const available = params.get('ocr') === 'missing' ? ['en-US', 'de-DE'] : ['en-US', 'tr'];
+      const suggested = available.find((tag) => tag.split('-')[0] === ui.split('-')[0]) ?? 'en-US';
+      return { available, suggested, interface: ui, system: 'en-US' };
+    },
+    runOcr: async (paths) => paths.map((_, index) => index + 1),
+    subtitleSample: async () => ({ start: 1.2, end: 3.4, text: 'Kapadokya’da gün doğarken\nbalonlar havalanıyor' }),
     actions: async () =>
       ['share', 'shelf', 'copy', 'move', 'copy-path', 'terminal', 'reveal', 'zip'].map((id) => ({ id, icon: id })),
     runAction: async () => [],
@@ -1108,7 +1181,62 @@ const DEMO_FORMATS: Record<string, [string, Category]> = {
   csv: ['csv', 'spreadsheet'],
   xlsx: ['xlsx', 'spreadsheet'],
   srt: ['srt', 'subtitle'],
+  vtt: ['vtt', 'subtitle'],
+  mp4: ['mp4', 'video'],
 };
+
+/** WCAG 2's contrast ratio, as the core computes it for QR colours. */
+function contrastRatio(a: [number, number, number], b: [number, number, number]): number {
+  const luminance = (rgb: [number, number, number]) => {
+    const [r, g, b2] = rgb.map((channel) => {
+      const c = channel / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    }) as [number, number, number];
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b2;
+  };
+  const [la, lb] = [luminance(a), luminance(b)];
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/** A code-like drawing for the stand-in: finder squares and modules from the text. Real codes
+ *  come from the core. */
+function demoQr(text: string, style: QrStyle): QrPreview {
+  const contrast = contrastRatio(style.dark, style.light);
+  const inverted = contrastRatio(style.dark, [0, 0, 0]) > contrastRatio(style.light, [0, 0, 0]);
+  const problem: QrProblem | null = !text
+    ? 'empty'
+    : new TextEncoder().encode(text).length > 2953
+      ? 'too-long'
+      : contrast < 3
+        ? 'low-contrast'
+        : null;
+  if (problem) return { svg: null, problem, contrast, inverted };
+  const width = 29;
+  const side = width + 8;
+  let seed = [...text].reduce((hash, c) => (hash * 31 + c.codePointAt(0)!) >>> 0, 7);
+  const finder = (x: number, y: number) =>
+    [
+      [0, 0],
+      [width - 7, 0],
+      [0, width - 7],
+    ].some(([fx, fy]) => {
+      const [dx, dy] = [x - fx!, y - fy!];
+      if (dx < 0 || dy < 0 || dx > 6 || dy > 6) return false;
+      return dx === 0 || dy === 0 || dx === 6 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4);
+    });
+  const nearFinder = (x: number, y: number) => (x < 8 && y < 8) || (x > width - 9 && y < 8) || (x < 8 && y > width - 9);
+  let path = '';
+  for (let y = 0; y < width; y++) {
+    for (let x = 0; x < width; x++) {
+      seed = (seed * 1103515245 + 12345) >>> 0;
+      const dark = nearFinder(x, y) ? finder(x, y) : (seed >>> 16) % 2 === 0;
+      if (dark) path += `M${x + 4} ${y + 4}h1v1h-1z`;
+    }
+  }
+  const hex = (rgb: [number, number, number]) => `#${rgb.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${side} ${side}" width="${style.size}" height="${style.size}" shape-rendering="crispEdges"><rect width="${side}" height="${side}" fill="${hex(style.light)}"/><path fill="${hex(style.dark)}" d="${path}"/></svg>`;
+  return { svg, problem: null, contrast, inverted };
+}
 
 const DEMO_TARGETS: Partial<Record<Category, string[]>> = {
   image: ['jpg', 'png', 'webp', 'avif', 'pdf', 'tiff', 'gif', 'bmp', 'ico'],

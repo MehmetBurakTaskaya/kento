@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Home (SPEC 5.9): the drop zone, the files to work on, recent results, the tool groups' setup
-// state and running jobs. Files arrive by dropping, choosing (Ctrl+O) or pasting (Ctrl+V).
+// state and running jobs. Files arrive by dropping, choosing (Ctrl+O) or pasting (Ctrl+V); Make a
+// QR code, which takes text rather than files, starts here too.
 import { useTranslation } from 'react-i18next';
 import { FileIcon } from '../components/FileIcon';
 import { Icon } from '../components/Icon';
@@ -38,8 +39,20 @@ function DepositSlot() {
 
 export function Home() {
   const { t } = useTranslation();
-  const { boot, jobs, paused, language, files, selected, library, openWheel, target, removeFiles, openSetup } =
-    useApp();
+  const {
+    boot,
+    jobs,
+    paused,
+    language,
+    files,
+    selected,
+    library,
+    openWheel,
+    target,
+    removeFiles,
+    openSetup,
+    openPanel,
+  } = useApp();
   const [status] = useToolStatus();
   // Core needs nothing; the others follow the lockfile's order, Media → Office → Extras (SPEC 5.15).
   // A group with nothing to download for this computer is shown as optional.
@@ -72,6 +85,10 @@ export function Home() {
             {t('home.drop.choose')}
           </button>
           <span className="muted">{t('home.drop.paste', { shortcut: mac ? '⌘V' : 'Ctrl+V' })}</span>
+          <button type="button" className="button quiet small" onClick={() => openPanel('make-qr', [])}>
+            <Icon name="qr" size={16} />
+            {t('home.drop.qr')}
+          </button>
         </div>
       </section>
 

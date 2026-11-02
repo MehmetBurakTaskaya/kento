@@ -173,6 +173,7 @@ export function WheelSurface() {
           return;
         }
         if (id.startsWith(NEEDS_SETUP)) run(api.openSetup());
+        else if (link && id === 'qr') run(api.qrOpen(link));
         else if (link) {
           // A quick slice downloads with the dialog's defaults; More… opens the dialog.
           const quick = QUICK_CHOICES[id as keyof typeof QUICK_CHOICES];

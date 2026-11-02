@@ -48,6 +48,9 @@ export const TOOL_ICONS: Record<string, IconName> = {
   collage: 'grid',
   'redact-image': 'redact',
   'remove-background': 'cutout',
+  'make-qr': 'qr',
+  ocr: 'text',
+  'burn-subtitles': 'captions',
 };
 
 const ACTION_ICONS: Record<string, IconName> = {
@@ -71,6 +74,8 @@ export const PANEL_TOOLS = [
   'compress',
   'metadata',
   'remove-background',
+  'ocr',
+  'burn-subtitles',
 ];
 
 /** Media tools with an editor; Remove audio runs at once. */
@@ -152,8 +157,8 @@ const DOWNLOAD_ICONS: Record<string, IconName> = { video: 'video', audio: 'music
 
 /** The download ring of a link dragged out of a browser (SPEC 5.10): Video (the best quality up to
  *  1080 lines), Audio (MP3) and Original (a picture stays a picture) download at once with the
- *  dialog's defaults; More… opens the dialog with every choice. Without the web tools the quick
- *  slices are dimmed and open the setup. */
+ *  dialog's defaults; QR code makes a code of the link; More… opens the dialog with every choice.
+ *  Without the web tools the quick slices are dimmed and open the setup. */
 export function downloadSlices(t: TFunction, needs: ToolGroup | null): WheelSlice[] {
   const quick = byRecent(['video', 'audio', 'original'], (id) => id, 'download').map((id) => ({
     id: needs ? `${NEEDS_SETUP}:${id}` : id,
@@ -162,7 +167,11 @@ export function downloadSlices(t: TFunction, needs: ToolGroup | null): WheelSlic
     hint: needsHint(t, needs) ?? t(`wheel.download.${id}.hint`),
     dimmed: !!needs,
   }));
-  return [...quick, { id: 'more', label: t('wheel.download.more'), icon: 'more', hint: t('wheel.download.more.hint') }];
+  return [
+    ...quick,
+    { id: 'qr', label: t('wheel.download.qr'), icon: 'qr', hint: t('wheel.download.qr.hint') },
+    { id: 'more', label: t('wheel.download.more'), icon: 'more', hint: t('wheel.download.more.hint') },
+  ];
 }
 
 /** The ring for a link; the web tools are checked once, when it opens. */
@@ -174,7 +183,7 @@ export async function downloadRing(): Promise<Ring> {
       slices: downloadSlices(t, needs),
       paths: [],
       apply: (id) => {
-        if (id !== 'more' && !id.startsWith(NEEDS_SETUP)) remember('download', id);
+        if (id !== 'more' && id !== 'qr' && !id.startsWith(NEEDS_SETUP)) remember('download', id);
         return null;
       },
     }),

@@ -75,6 +75,17 @@ const SHOTS = [
   ['web-video-pseudo-long', { lang: 'en-XA', appearance: 'dark' }, 'web:youtube'],
   ['surface-wheel-link-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', drag: 'link' }],
   ['surface-wheel-link-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', drag: 'link' }],
+  // Make a QR code with a link, Extract text (with and without the interface language's
+  // recogniser) and Burn in subtitles for a video and its SRT.
+  ['qr-make-light-en', { lang: 'en', appearance: 'light' }, 'panel:make-qr'],
+  ['qr-make-dark-tr', { lang: 'tr', appearance: 'dark' }, 'panel:make-qr'],
+  ['qr-make-pseudo-rtl', { lang: 'ar-XB', appearance: 'light' }, 'panel:make-qr'],
+  ['ocr-light-tr', { lang: 'tr', appearance: 'light' }, 'panel:ocr'],
+  ['ocr-missing-dark-tr', { lang: 'tr', appearance: 'dark', ocr: 'missing' }, 'panel:ocr'],
+  ['ocr-pseudo-long', { lang: 'en-XA', appearance: 'light' }, 'panel:ocr'],
+  ['burn-light-en', { lang: 'en', appearance: 'light' }, 'panel:burn-subtitles'],
+  ['burn-top-dark-tr', { lang: 'tr', appearance: 'dark' }, 'panel:burn-subtitles:top'],
+  ['burn-pseudo-rtl', { lang: 'ar-XB', appearance: 'dark' }, 'panel:burn-subtitles'],
 ];
 
 const SIZES = { wheel: [520, 520], shelf: [300, 480], toast: [400, 200] };
@@ -209,9 +220,46 @@ async function web(page, which, notice) {
   await page.waitForTimeout(600);
 }
 
+/** Opens Make a QR code with a link, or Extract text or Burn in subtitles for their files,
+ *  through the store as Home and the Tools wheel do. */
+async function panel(page, tool, option) {
+  await page.evaluate(async (id) => {
+    const { useApp } = await import('/src/state/store.ts');
+    if (id === 'make-qr') return useApp.getState().openPanel('make-qr', [], 'https://mehmetburaktaskaya.com/kento');
+    const file = (path, category) => ({
+      path,
+      name: path.split('\\').pop(),
+      folder: false,
+      format: path.split('.').pop(),
+      category,
+      size: 1_234_567,
+    });
+    const files =
+      id === 'ocr'
+        ? [
+            file('C:\\Users\\me\\Pictures\\Fiş 2026.jpg', 'image'),
+            file('C:\\Users\\me\\Documents\\Taranmış sözleşme.pdf', 'pdf'),
+          ]
+        : [
+            file('C:\\Users\\me\\Videos\\Kapadokya 🎈.mp4', 'video'),
+            file('C:\\Users\\me\\Videos\\Kapadokya 🎈.srt', 'subtitle'),
+          ];
+    useApp.setState({ files });
+    useApp.getState().openPanel(
+      id,
+      files.map((entry) => entry.path),
+    );
+  }, tool);
+  await page.waitForSelector('[role=dialog]');
+  if (option === 'top') await page.getByRole('radio').nth(1).click();
+  // The QR preview waits for typing to rest.
+  await page.waitForTimeout(500);
+}
+
 /** Opens a wheel or a panel the way a person would with the keyboard. */
 async function act(page, action) {
   if (!action) return;
+  if (action.startsWith('panel:')) return panel(page, ...action.split(':').slice(1));
   if (action.startsWith('web:')) return web(page, ...action.split(':').slice(1));
   if (action.startsWith('image:')) return imageEditor(page, action.slice('image:'.length));
   if (action.startsWith('compress')) return compress(page, action.split(':')[1]);

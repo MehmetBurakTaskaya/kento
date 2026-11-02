@@ -49,12 +49,13 @@ afterEach(() => {
 });
 
 describe('download slices', () => {
-  it('download at once with the defaults, and More… opens every choice', () => {
+  it('download at once with the defaults, make a QR code, and More… opens every choice', () => {
     const slices = downloadSlices(i18n.t, null);
     expect(slices.map((slice) => [slice.id, slice.label, slice.hint])).toEqual([
       ['video', 'Video', 'Video: MP4, the best quality up to 1080p'],
       ['audio', 'Audio', 'Audio only: MP3'],
       ['original', 'Original', 'Original: the picture or media as the site serves it'],
+      ['qr', 'QR code', 'A QR code of this link'],
       ['more', 'More…', 'Every choice: quality, pictures and folder'],
     ]);
     expect(slices.every((slice) => slice.icon && !slice.dimmed)).toBe(true);
@@ -64,8 +65,11 @@ describe('download slices', () => {
     const slices = downloadSlices(i18n.t, 'media');
     expect(slices.slice(0, 3).every((slice) => slice.dimmed && slice.id.startsWith(NEEDS_SETUP))).toBe(true);
     expect(slices[0]!.hint).toBe('Needs the Media tools: install them first');
-    expect(slices[3]).toMatchObject({ id: 'more' });
-    expect(slices[3]!.dimmed).toBeFalsy();
+    // A QR code and the dialog need no tools.
+    expect(slices.slice(3).map((slice) => [slice.id, slice.dimmed])).toEqual([
+      ['qr', undefined],
+      ['more', undefined],
+    ]);
   });
 });
 
@@ -73,7 +77,7 @@ describe('a link dragged onto the floating wheel', () => {
   it('turns the wheel into the download ring, whichever key opened it', async () => {
     await enter({ link: LINK });
     expect(document.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Download');
-    expect(items()).toEqual(['Video', 'Audio', 'Original', 'More…']);
+    expect(items()).toEqual(['Video', 'Audio', 'Original', 'QR code', 'More…']);
     expect(document.body.textContent).toContain('youtube.com');
   });
 
@@ -92,6 +96,17 @@ describe('a link dragged onto the floating wheel', () => {
     act(() => key('End'));
     act(() => key('Enter'));
     expect(opened).toHaveBeenCalledWith(LINK);
+    expect(download).not.toHaveBeenCalled();
+  });
+
+  it('opens Make a QR code in the main window from the QR slice', async () => {
+    const qr = vi.spyOn(api, 'qrOpen');
+    const download = vi.spyOn(api, 'webDownload');
+    await enter({ link: LINK });
+    act(() => key('End'));
+    act(() => key('ArrowLeft'));
+    act(() => key('Enter'));
+    expect(qr).toHaveBeenCalledWith(LINK);
     expect(download).not.toHaveBeenCalled();
   });
 

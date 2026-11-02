@@ -27,6 +27,9 @@ export type PanelTool =
   | 'compress'
   | 'metadata'
   | 'remove-background'
+  | 'make-qr'
+  | 'ocr'
+  | 'burn-subtitles'
   | MediaPanel
   | ImagePanel;
 
@@ -50,7 +53,8 @@ interface AppStore {
   selected: Set<string>;
   library: LibraryEntry[];
   wheel: { kind: WheelKind; paths: string[] } | null;
-  panel: { tool: PanelTool; paths: string[] } | null;
+  /** `text`: what Make a QR code starts with (it takes no files). */
+  panel: { tool: PanelTool; paths: string[]; text?: string } | null;
   /** The tool setup dialog (SPEC 5.15). */
   setup: boolean;
   /** The web download dialog for one link (SPEC 5.10). */
@@ -69,7 +73,7 @@ interface AppStore {
   target(): string[];
   openWheel(kind: WheelKind, paths: string[]): void;
   closeWheel(): void;
-  openPanel(tool: PanelTool, paths: string[]): void;
+  openPanel(tool: PanelTool, paths: string[], text?: string): void;
   closePanel(): void;
   openSetup(): void;
   closeSetup(): void;
@@ -166,7 +170,7 @@ export const useApp = create<AppStore>((set, get) => ({
     if (paths.length) set({ wheel: { kind, paths } });
   },
   closeWheel: () => set({ wheel: null }),
-  openPanel: (tool, paths) => set({ panel: { tool, paths }, wheel: null }),
+  openPanel: (tool, paths, text) => set({ panel: { tool, paths, text }, wheel: null }),
   closePanel: () => set({ panel: null }),
   openSetup: () => set({ setup: true, wheel: null, section: 'home' }),
   closeSetup: () => set({ setup: false }),

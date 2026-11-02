@@ -4,6 +4,7 @@
 // video with a short quality list, the sound as MP3, a YouTube thumbnail on its own, the pictures
 // of an Instagram post, or the original; and the folder to save in. What Kento cannot download is
 // said plainly, and the first time ever a short notice asks for content the user may download.
+// Whatever the link holds, a QR code of it is one click away.
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '../components/Dialog';
@@ -96,9 +97,12 @@ function Download({ url }: { url: string }) {
       title={t('web.title')}
       onClose={closeWeb}
       footer={
-        <button type="button" className="button quiet" onClick={closeWeb}>
-          {t('tools.cancel')}
-        </button>
+        <>
+          <QrButton url={url} />
+          <button type="button" className="button quiet" onClick={closeWeb}>
+            {t('tools.cancel')}
+          </button>
+        </>
       }
     >
       {notice}
@@ -175,6 +179,22 @@ function Failed({ problem, onRetry, onSetup }: { problem: WebProblem; onRetry():
   );
 }
 
+/** Make a QR code of the link, in place of this dialog. */
+function QrButton({ url }: { url: string }) {
+  const { t } = useTranslation();
+  const open = () => {
+    const { closeWeb, openPanel } = useApp.getState();
+    closeWeb();
+    openPanel('make-qr', [], url);
+  };
+  return (
+    <button type="button" className="button quiet web-qr" onClick={open}>
+      <Icon name="qr" size={16} />
+      {t('web.qr')}
+    </button>
+  );
+}
+
 /** What Kento never downloads, always in view (SPEC 5.10). */
 function Unsupported() {
   const { t } = useTranslation();
@@ -243,6 +263,7 @@ function Choices({ url, info, notice, onClose }: { url: string; info: WebInfo; n
       onClose={onClose}
       footer={
         <>
+          <QrButton url={url} />
           <button type="button" className="button quiet" onClick={onClose}>
             {t('tools.cancel')}
           </button>

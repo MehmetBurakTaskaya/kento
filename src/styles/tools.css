@@ -1,0 +1,142 @@
+/* SPDX-License-Identifier: MIT */
+/* Make a QR code, Extract text and Burn in subtitles. */
+
+/* ---------------------------------------------------------------- make a QR code */
+.qr-make {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 300px);
+  gap: 20px;
+  align-items: start;
+}
+.qr-make-side {
+  display: grid;
+  gap: 12px;
+}
+.qr-make-text {
+  inline-size: 100%;
+  min-block-size: 88px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+.qr-make .form-row {
+  align-items: end;
+}
+.qr-make-reset {
+  margin-block-end: 4px;
+}
+.qr-make-preview {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  position: sticky;
+  inset-block-start: 0;
+}
+.qr-make-preview img,
+.qr-make-empty {
+  inline-size: 100%;
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.qr-make-preview img {
+  display: block;
+  image-rendering: pixelated;
+}
+.qr-make-empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-style: dashed;
+  color: var(--text-muted);
+  text-align: center;
+}
+.qr-make-preview figcaption {
+  font: var(--type-caption);
+}
+/* The download dialog's QR button stands apart from its own buttons. */
+.dialog-foot .web-qr {
+  margin-inline-end: auto;
+}
+@media (max-width: 640px) {
+  .qr-make {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .qr-make-preview {
+    position: static;
+    max-inline-size: 260px;
+  }
+}
+
+/* ---------------------------------------------------------------- file lists */
+/* A list that scrolls would otherwise give up its height first when the panel is short. */
+.compress-files.tool-files {
+  min-block-size: 70px;
+}
+
+/* ---------------------------------------------------------------- extract text */
+.ocr-language {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.ocr-language select[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.ocr-missing {
+  font: var(--type-caption);
+}
+
+/* ---------------------------------------------------------------- burn in subtitles */
+.burn-preview {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.burn-stage {
+  position: relative;
+  container-type: size;
+  justify-self: center;
+  /* At most 400 px wide and 300 px high, in the video's own shape. */
+  inline-size: min(100%, 400px, calc(300px * var(--aspect, 1.78)));
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, #3a4654, #1b222b);
+}
+.burn-stage img {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+/* As FFmpeg draws it: the system's sans-serif, white with a dark outline, a line height set by
+   the size against the picture's height, and a margin of 10 on a 288-line script. */
+.burn-line {
+  position: absolute;
+  inset-inline: 4%;
+  margin: 0;
+  color: #fff;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: calc(var(--subtitle-scale) * 100cqh);
+  line-height: 1.2;
+  text-align: center;
+  white-space: pre-line;
+  text-shadow:
+    1px 1px 0 #000,
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000;
+}
+.burn-stage[data-position='bottom'] .burn-line {
+  inset-block-end: 3.5cqh;
+}
+.burn-stage[data-position='top'] .burn-line {
+  inset-block-start: 3.5cqh;
+}
