@@ -2,12 +2,13 @@
 //! The global shortcuts (SPEC 5.2, 5.10): Ctrl+Shift+Space (⌃⇧Space on macOS) opens the wheel at
 //! the pointer for the files selected in Explorer or Finder, and Ctrl+Shift+D (⌃⇧D) downloads the
 //! link on the clipboard. Each can be switched off in Settings; one another app holds is
-//! reported once.
+//! reported once. The window layout shortcuts are registered here too (`layouts`).
 
 use tauri::plugin::TauriPlugin;
 use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
+use crate::layouts;
 use crate::overlay::{toast, wheel};
 use crate::platform::{self, PlatformError};
 use crate::{i18n, AppState};
@@ -33,6 +34,8 @@ pub fn plugin() -> TauriPlugin<Wry> {
                 std::thread::spawn(move || open_for_selection(&app));
             } else if *shortcut == download() {
                 std::thread::spawn(move || crate::web::open_from_clipboard(&app));
+            } else if let Some(layout) = layouts::for_shortcut(shortcut) {
+                std::thread::spawn(move || layouts::apply_front(&app, layout));
             }
         })
         .build()
@@ -40,8 +43,12 @@ pub fn plugin() -> TauriPlugin<Wry> {
 
 fn open_for_selection(app: &AppHandle) {
     let lang = app.state::<AppState>().lang();
+    // With nothing selected the Window ring may open, for the window in front now, before the
+    // wheel takes the focus.
+    let front = layouts::ring_candidate(app);
     match read_selection(app) {
         Ok(paths) if !paths.is_empty() => wheel::open_for(app, paths, wheel::Kind::Convert),
+        Ok(_) if layouts::open_ring(app, front) => {}
         Ok(_) => toast::note(app, i18n::text(&lang, "shortcut.nothing")),
         Err(PlatformError::Permission(_)) => {
             toast::note(app, i18n::text(&lang, "shortcut.permission"))
@@ -70,13 +77,13 @@ fn read_selection(app: &AppHandle) -> platform::Result<Vec<std::path::PathBuf>> 
 
 /// What to do with a shortcut so that it matches its setting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Change {
+pub(crate) enum Change {
     Register,
     Release,
     Keep,
 }
 
-fn change(wanted: bool, registered: bool) -> Change {
+pub(crate) fn change(wanted: bool, registered: bool) -> Change {
     match (wanted, registered) {
         (true, false) => Change::Register,
         (false, true) => Change::Release,
@@ -95,6 +102,7 @@ pub fn sync(app: &AppHandle) {
         "shortcut.taken",
     );
     apply(app, download(), settings.web.shortcut, "web.shortcut.taken");
+    layouts::sync_shortcuts(app);
 }
 
 fn apply(app: &AppHandle, shortcut: Shortcut, wanted: bool, taken: &str) {

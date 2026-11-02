@@ -136,6 +136,27 @@ impl Default for WebSettings {
     }
 }
 
+/// Window layouts are off until the user switches them on (SPEC 5.12).
+pub const LAYOUTS_ON_BY_DEFAULT: bool = false;
+
+/// Window layouts (SPEC 5.12): the Window ring and, while it is on, the global shortcuts.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct LayoutSettings {
+    pub enabled: bool,
+    /// The layout shortcuts, while the feature is on; the Window ring works without them.
+    pub shortcuts: bool,
+}
+
+impl Default for LayoutSettings {
+    fn default() -> Self {
+        Self {
+            enabled: LAYOUTS_ON_BY_DEFAULT,
+            shortcuts: true,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -157,6 +178,7 @@ pub struct Settings {
     pub shell: Shell,
     pub shelf: ShelfSettings,
     pub web: WebSettings,
+    pub layouts: LayoutSettings,
 }
 
 impl Default for Settings {
@@ -178,6 +200,7 @@ impl Default for Settings {
             shell: Shell::default(),
             shelf: ShelfSettings::default(),
             web: WebSettings::default(),
+            layouts: LayoutSettings::default(),
         }
     }
 }
@@ -302,5 +325,16 @@ mod tests {
         let saved: Settings =
             serde_json::from_str(r#"{"web":{"shortcut":false,"noticeShown":true}}"#).unwrap();
         assert!(!saved.web.shortcut && saved.web.notice_shown);
+    }
+
+    #[test]
+    fn window_layouts_are_off_until_switched_on() {
+        assert!(!Settings::default().layouts.enabled);
+        assert!(Settings::default().layouts.shortcuts);
+        let old: Settings = serde_json::from_str(r#"{"language":"tr"}"#).unwrap();
+        assert_eq!(old.layouts, LayoutSettings::default());
+        let saved: Settings =
+            serde_json::from_str(r#"{"layouts":{"enabled":true,"shortcuts":false}}"#).unwrap();
+        assert!(saved.layouts.enabled && !saved.layouts.shortcuts);
     }
 }

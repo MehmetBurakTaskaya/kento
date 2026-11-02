@@ -125,6 +125,8 @@ pub fn save_settings(
         || old.web.shortcut != new.web.shortcut
     {
         crate::shortcut::sync(&app);
+    } else if old.layouts != new.layouts {
+        crate::layouts::sync_shortcuts(&app);
     }
     if old.shell != new.shell {
         crate::sync_shell(&app, &old.shell, &new.shell);

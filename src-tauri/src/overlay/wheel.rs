@@ -30,6 +30,8 @@ pub enum Kind {
     Convert,
     Tools,
     Actions,
+    /// The window layouts (SPEC 5.12), for the window that was in front; no files.
+    Window,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -47,6 +49,9 @@ pub struct Session {
     pub mode: Mode,
     /// Known up front in click mode; in a drag the page learns them when the drag enters it.
     pub paths: Vec<PathBuf>,
+    /// The Window ring: the title of the window it places.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub window: Option<String>,
     #[serde(skip)]
     dropped: bool,
     /// Tells a new session from a change of wheel in the same one.
@@ -134,6 +139,7 @@ fn on_drag(app: &AppHandle, event: DragEvent) {
                         kind,
                         mode: Mode::Drag,
                         paths: Vec::new(),
+                        window: None,
                         dropped: false,
                         generation,
                         opened: None,
@@ -227,21 +233,41 @@ pub fn open_for(app: &AppHandle, paths: Vec<PathBuf>, kind: Kind) {
             return;
         }
     }
-    let at = app
-        .cursor_position()
-        .map(|p| Point { x: p.x, y: p.y })
-        .unwrap_or(Point { x: 0.0, y: 0.0 });
     let session = Session {
         kind,
         mode: Mode::Click,
         paths: files,
+        window: None,
         dropped: false,
         generation: next_generation(&state),
         opened: Some(Instant::now()),
     };
+    open_click(app, session);
+}
+
+/// Opens the Window ring at the pointer for the window titled `title`, which `layouts` keeps.
+pub fn open_window(app: &AppHandle, title: String) {
+    let state = app.state::<AppState>();
+    let session = Session {
+        kind: Kind::Window,
+        mode: Mode::Click,
+        paths: Vec::new(),
+        window: Some(title),
+        dropped: false,
+        generation: next_generation(&state),
+        opened: Some(Instant::now()),
+    };
+    open_click(app, session);
+}
+
+fn open_click(app: &AppHandle, session: Session) {
+    let at = app
+        .cursor_position()
+        .map(|p| Point { x: p.x, y: p.y })
+        .unwrap_or(Point { x: 0.0, y: 0.0 });
     show_at(app, at);
     emit_open(app, &session);
-    *state.wheel.lock() = Some(session);
+    *app.state::<AppState>().wheel.lock() = Some(session);
     if let Some(window) = super::window(app, LABEL) {
         let _ = window.set_focus();
     }
@@ -265,7 +291,8 @@ pub fn wheel_dropped(state: tauri::State<'_, AppState>) {
 #[tauri::command]
 pub fn wheel_switch(app: AppHandle, state: tauri::State<'_, AppState>, kind: Kind) {
     let mut session = state.wheel.lock();
-    if let Some(open) = session.as_mut() {
+    // The Window ring has no files for another wheel to act on.
+    if let Some(open) = session.as_mut().filter(|s| s.kind != Kind::Window) {
         if open.kind != kind {
             open.kind = kind;
             emit_open(&app, open);

@@ -12,6 +12,7 @@ pub mod files;
 pub mod i18n;
 pub mod images;
 pub mod jobs;
+pub mod layouts;
 pub mod library;
 pub mod logging;
 pub mod media;
@@ -169,6 +170,7 @@ fn setup(
         web: Default::default(),
         _log: log,
     });
+    app.manage(layouts::LayoutState::default());
     tracing::info!("Kento {} started", app.package_info().version);
 
     if !smoke_test {
@@ -356,6 +358,10 @@ pub fn run() {
             web::web_download,
             web::web_open,
             web::web_take_pending,
+            layouts::layouts_status,
+            layouts::layouts_apply,
+            layouts::layouts_ask_permission,
+            layouts::layouts_open_permission_settings,
         ])
         .build(tauri::generate_context!())
         .expect("Kento could not start")
