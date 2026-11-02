@@ -1919,7 +1919,43 @@ mod tests {
     #[tokio::test]
     #[ignore = "downloads the pinned LibreOffice (about 300 MB); run with --ignored"]
     async fn installs_the_pinned_libreoffice_for_this_computer() {
-        install_pinned("office").await;
+        let (tools, _installed) = install_pinned("office").await;
+        if tools.soffice.is_some() {
+            convert_a_letter(tools);
+        }
+    }
+
+    /// Kento's own copy of LibreOffice must convert, not only answer `--version`: a line of text
+    /// becomes a PDF, with a profile of its own.
+    fn convert_a_letter(tools: kento_engines::Tools) {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("mektup ğ.txt");
+        fs::write(&input, "Kento çark\n").unwrap();
+        let dest = dir.path().join("mektup ğ.pdf");
+        let temp = dir.path().join("iş");
+        fs::create_dir(&temp).unwrap();
+        let options = kento_engines::Options {
+            tools,
+            ..kento_engines::Options::default()
+        };
+        let started = std::time::Instant::now();
+        kento_engines::convert(&kento_engines::Conversion {
+            input: &input,
+            from: "txt",
+            to: "pdf",
+            dest: &dest,
+            temp: &temp,
+            options: &options,
+            progress: &kento_engines::Progress::none(),
+        })
+        .unwrap();
+        let pdf = fs::read(&dest).unwrap();
+        assert!(pdf.starts_with(b"%PDF"), "not a PDF");
+        eprintln!(
+            "a text became a {} byte PDF with Kento's LibreOffice in {} ms",
+            pdf.len(),
+            started.elapsed().as_millis()
+        );
     }
 
     /// Installs a group's pinned downloads for this computer and returns the tools as the engines
