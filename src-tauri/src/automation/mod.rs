@@ -9,6 +9,8 @@
 //!   nothing it already took unless the file changed; the page warns when the output folder is
 //!   inside the watched one.
 //! - Pausing: each rule has its own switch, and "Pause all" stops every rule.
+//! - Updates: while one waits to install, new jobs are refused, so a finished file is kept and
+//!   handed to its rule after the restart (or at once, should the install fail).
 //! - The activity log keeps the last entries beside the rules; failures show as the corner card,
 //!   or in the main window when it has the focus.
 
@@ -36,7 +38,7 @@ use crate::{i18n, AppState};
 use guard::Produced;
 use kento_engines::recipe;
 use rules::{Action, Config, Rule};
-use store::{Activity, Log, Outcome};
+use store::{Activity, Held, Log, Outcome};
 use watcher::{Timing, Watcher};
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -57,13 +59,19 @@ pub struct Automation {
     /// Rules whose folder could not be watched, with the reason.
     trouble: Mutex<HashMap<String, String>>,
     watcher: Mutex<Option<Watcher>>,
+    /// Files kept while an update waits to install, and the file that keeps them.
+    held: Mutex<Vec<Held>>,
+    held_file: PathBuf,
 }
 
 impl Automation {
-    /// Reads automation.json and the log beside it.
+    /// Reads automation.json, the log and the kept files beside it.
     pub fn open(file: PathBuf) -> Self {
         let log = Log::load(file.with_file_name("automation-log.json"));
+        let held_file = file.with_file_name("automation-held.json");
         Self {
+            held: Mutex::new(store::load_held(&held_file)),
+            held_file,
             config: Mutex::new(store::load_config(&file)),
             file,
             log: Mutex::new(log),
@@ -116,6 +124,46 @@ pub fn start(app: &AppHandle) {
         on_trouble,
     );
     *lock(&automation.watcher) = Some(watcher);
+    // Files the last run kept for after its update.
+    release(app);
+}
+
+/// Hands every kept file to its rule, while the rule still watches and still wants the file.
+pub fn release(app: &AppHandle) {
+    let Some(automation) = app.try_state::<Automation>() else {
+        return;
+    };
+    let held = std::mem::take(&mut *lock(&automation.held));
+    if held.is_empty() {
+        return;
+    }
+    if let Err(err) = store::save_held(&automation.held_file, &[]) {
+        tracing::warn!("the kept automation files were not cleared: {err}");
+    }
+    let rules = automation.config().active();
+    for kept in held {
+        match rules.iter().find(|rule| rule.id == kept.rule) {
+            Some(rule) if kept.path.is_file() && watcher::wants(rule, &kept.path) => {
+                dispatch(app, rule, &kept.path)
+            }
+            _ => tracing::info!("a kept automation file no longer fits its rule"),
+        }
+    }
+}
+
+/// Keeps a finished file for after the update's restart.
+fn hold(automation: &Automation, rule: &Rule, path: &Path) {
+    let mut held = lock(&automation.held);
+    let kept = Held {
+        rule: rule.id.clone(),
+        path: path.to_path_buf(),
+    };
+    if !held.contains(&kept) {
+        held.push(kept);
+    }
+    if let Err(err) = store::save_held(&automation.held_file, &held) {
+        tracing::warn!("a file kept for after the update was not saved: {err}");
+    }
 }
 
 /// Hands the active rules to the watcher after a change; the folders that failed are tried again.
@@ -183,6 +231,11 @@ enum Refusal {
 fn dispatch(app: &AppHandle, rule: &Rule, path: &Path) {
     let automation = app.state::<Automation>();
     let state = app.state::<AppState>();
+    // An update waits to install and refuses new jobs: the file waits for the restart.
+    if state.queue.refusal().is_some() {
+        hold(&automation, rule, path);
+        return;
+    }
     let lang = state.lang();
     let mut entry = Activity {
         id: 0,

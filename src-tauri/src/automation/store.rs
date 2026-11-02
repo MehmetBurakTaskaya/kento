@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 //! The rules in automation.json and the activity log beside it (automation-log.json), both
 //! written through a temporary file. The log keeps the last entries: when, which rule, the file's
-//! name and what came of it; never a file's contents.
+//! name and what came of it; never a file's contents. Files that arrive while an update waits to
+//! install are kept in automation-held.json for after the restart.
 
 use std::collections::VecDeque;
 use std::fs;
@@ -143,6 +144,33 @@ impl Log {
     }
 }
 
+/// A finished file a rule took while new jobs were refused (an update waits to install); it runs
+/// after the restart.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Held {
+    pub rule: String,
+    pub path: PathBuf,
+}
+
+/// The held files; a missing or broken file holds none.
+pub fn load_held(file: &Path) -> Vec<Held> {
+    fs::read(file)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_default()
+}
+
+/// Stores the held files; with none, the file goes.
+pub fn save_held(file: &Path, held: &[Held]) -> Result<()> {
+    if held.is_empty() {
+        return match fs::remove_file(file) {
+            Err(err) if err.kind() != std::io::ErrorKind::NotFound => Err(err.into()),
+            _ => Ok(()),
+        };
+    }
+    write(file, &serde_json::to_vec_pretty(held)?)
+}
+
 pub fn now_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -208,6 +236,22 @@ mod tests {
         fs::write(&file, "{ bozuk").unwrap();
         assert_eq!(load_config(&file), Config::default());
         assert!(file.with_file_name("automation.invalid.json").exists());
+    }
+
+    #[test]
+    fn held_files_wait_in_their_own_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("automation-held.json");
+        assert!(load_held(&file).is_empty());
+        let held = vec![Held {
+            rule: "k1".into(),
+            path: PathBuf::from("/Kullanıcılar/ayşe/İndirilenler/çizim 🖼️.png"),
+        }];
+        save_held(&file, &held).unwrap();
+        assert_eq!(load_held(&file), held);
+        save_held(&file, &[]).unwrap();
+        assert!(!file.exists());
+        save_held(&file, &[]).unwrap();
     }
 
     #[test]
