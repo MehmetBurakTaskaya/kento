@@ -17,6 +17,8 @@ mod html;
 mod package;
 mod profile;
 mod soffice;
+#[cfg(test)]
+mod tests;
 
 use std::fs::{self, File, OpenOptions};
 use std::io;
