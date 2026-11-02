@@ -1,0 +1,121 @@
+name: Bug report
+description: Something in Kento does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting it. Please look through the open issues first, in case it is already there.
+        A security problem never goes in an issue: report it privately, as [SECURITY.md](https://github.com/MehmetBurakTaskaya/kento/blob/main/SECURITY.md) describes.
+
+  - type: input
+    id: version
+    attributes:
+      label: Kento version
+      description: Settings → About shows it.
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS on Apple silicon
+        - macOS on Intel
+    validations:
+      required: true
+
+  - type: input
+    id: system-version
+    attributes:
+      label: System version and language
+      placeholder: Windows 11 25H2, Turkish
+    validations:
+      required: false
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How Kento is installed
+      options:
+        - With the installer
+        - The portable ZIP
+        - The Mac app in Applications
+        - Built from source
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where it happens
+      multiple: true
+      options:
+        - The wheel while dragging
+        - Ctrl+Shift+Space or ⌃⇧Space
+        - Home or the Library
+        - A conversion
+        - A tool or an editor
+        - The file actions
+        - The shelf
+        - A web download
+        - Automation or recipes
+        - Window layouts
+        - The tool setup
+        - The command line
+        - Updates or the installer
+        - Settings or the languages
+        - Somewhere else
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Drag photo.heic from Explorer.
+        2. Press Shift and drop it on JPG.
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: The files
+      description: The kind of file (format, size, where it came from). Attach a sample only if it holds nothing private.
+    validations:
+      required: false
+
+  - type: textarea
+    id: tools
+    attributes:
+      label: Tools
+      description: For video, audio, office files, metadata, background removal or web downloads, the versions Settings → Tools shows, and whether Kento downloaded them or found them on the computer.
+    validations:
+      required: false
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Error details and log
+      description: >-
+        The text "Copy details" gives on the error card, or the log lines around the problem. Logs are in
+        %LOCALAPPDATA%\Kento\logs on Windows and ~/Library/Application Support/Kento/logs on a Mac. They never hold what
+        is in your files, but they do hold file names: please look through them before you paste.
+      render: text
+    validations:
+      required: false

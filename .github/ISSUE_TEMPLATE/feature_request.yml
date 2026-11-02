@@ -1,0 +1,54 @@
+name: Feature request
+description: An idea for Kento, a format it should read or write, or a tool it should have.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the idea. Please look through the open issues first, in case someone asked for it already.
+        Kento works on your computer only, with free tools, and never uploads files: ideas that need a cloud service, an account or a paid tool cannot be built.
+        Please describe what you need in your own words, and do not paste text, pictures or code from other apps.
+
+  - type: textarea
+    id: need
+    attributes:
+      label: What you want to do
+      description: The task, and where Kento gets in the way today.
+      placeholder: I often need to …
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: How Kento could help
+      description: A slice on a wheel, a format, a tool, a setting, a shortcut… Rough is fine.
+    validations:
+      required: true
+
+  - type: input
+    id: formats
+    attributes:
+      label: Formats involved
+      placeholder: HEIC to JPG, MKV, DOCX…
+    validations:
+      required: false
+
+  - type: dropdown
+    id: system
+    attributes:
+      label: Systems
+      multiple: true
+      options:
+        - Windows
+        - macOS
+    validations:
+      required: false
+
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Other ways you have tried, or details that help.
+    validations:
+      required: false

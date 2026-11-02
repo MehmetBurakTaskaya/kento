@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/MehmetBurakTaskaya/kento/security/advisories/new
+    about: Please report vulnerabilities privately through GitHub, never in a public issue.
+  - name: Read the README
+    url: https://github.com/MehmetBurakTaskaya/kento#readme
+    about: Downloads, the first launch on Windows and macOS, and how to use Kento.
