@@ -47,13 +47,33 @@ fn open_for_selection(app: &AppHandle) {
     // wheel takes the focus.
     let front = layouts::ring_candidate(app);
     match read_selection(app) {
-        Ok(paths) if !paths.is_empty() => wheel::open_for(app, paths, wheel::Kind::Convert),
+        Ok(paths) if !paths.is_empty() => {
+            let kind = first_wheel(&crate::work::inspect(paths.clone()));
+            wheel::open_for(app, paths, kind)
+        }
         Ok(_) if layouts::open_ring(app, front) => {}
         Ok(_) => toast::note(app, i18n::text(&lang, "shortcut.nothing")),
         Err(PlatformError::Permission(_)) => {
             toast::note(app, i18n::text(&lang, "shortcut.permission"))
         }
-        Err(err) => tracing::warn!("the selection could not be read: {err}"),
+        Err(err) => {
+            tracing::warn!("the selection could not be read: {err}");
+            toast::note(app, i18n::text(&lang, "shortcut.unreadable"));
+        }
+    }
+}
+
+/// The wheel the shortcut opens: Convert, unless nothing selected converts (a program, a folder,
+/// an unknown file), when the file actions, which work on everything, open instead of an empty
+/// wheel.
+fn first_wheel(files: &[crate::work::FileEntry]) -> wheel::Kind {
+    if files
+        .iter()
+        .any(|file| !file.folder && file.format.is_some())
+    {
+        wheel::Kind::Convert
+    } else {
+        wheel::Kind::Actions
     }
 }
 
@@ -124,6 +144,30 @@ fn apply(app: &AppHandle, shortcut: Shortcut, wanted: bool, taken: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn files_that_convert_open_convert_and_others_the_file_actions() {
+        let dir = tempfile::tempdir().unwrap();
+        let picture = dir.path().join("fotoğraf 🧪.png");
+        let program = dir.path().join("kento.exe");
+        let folder = dir.path().join("klasör");
+        std::fs::write(&picture, b"png").unwrap();
+        std::fs::write(&program, b"MZ").unwrap();
+        std::fs::create_dir(&folder).unwrap();
+        let entries = |paths: &[&std::path::Path]| {
+            crate::work::inspect(paths.iter().map(|p| p.to_path_buf()).collect())
+        };
+        assert_eq!(first_wheel(&entries(&[&picture])), wheel::Kind::Convert);
+        assert_eq!(
+            first_wheel(&entries(&[&program, &picture])),
+            wheel::Kind::Convert
+        );
+        assert_eq!(first_wheel(&entries(&[&program])), wheel::Kind::Actions);
+        assert_eq!(
+            first_wheel(&entries(&[&folder, &program])),
+            wheel::Kind::Actions
+        );
+    }
 
     #[test]
     fn a_shortcut_follows_its_setting() {

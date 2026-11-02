@@ -278,6 +278,7 @@
   "action.copied": "Yol kopyalandı",
   "move.confirm": "Asıl dosyalar bu klasöre taşınsın mı? Oradaki hiçbir dosyanın üzerine yazılmaz.",
   "shortcut.nothing": "Önce Explorer’da dosya seçin.",
+  "shortcut.unreadable": "Kento, Dosya Gezgini’nde seçili olanları okuyamadı. Yeniden deneyin ya da dosyaları çarka sürükleyin.",
   "shortcut.permission": "Sistem Ayarları › Gizlilik ve Güvenlik › Otomasyon bölümünden Kento’nun Finder’ı yönetmesine izin verin.",
   "shortcut.taken": "Seçim kısayolunu başka bir uygulama kullanıyor.",
   "shell.menu": "Kento çarkıyla aç",

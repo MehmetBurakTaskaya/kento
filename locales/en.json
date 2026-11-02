@@ -278,6 +278,7 @@
   "action.copied": "Copied the path",
   "move.confirm": "Move the original files to this folder? Nothing there is overwritten.",
   "shortcut.nothing": "Select files in Explorer first.",
+  "shortcut.unreadable": "Kento could not read what is selected in File Explorer. Try again, or drag the files onto the wheel instead.",
   "shortcut.permission": "Allow Kento to control Finder in System Settings › Privacy & Security › Automation.",
   "shortcut.taken": "Another app already uses the selection shortcut.",
   "shell.menu": "Open with Kento's wheel",
