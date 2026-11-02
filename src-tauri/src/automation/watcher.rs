@@ -79,6 +79,7 @@ impl Watcher {
                 Worker {
                     watcher,
                     watched: HashMap::new(),
+                    aliases: Vec::new(),
                     rules: Vec::new(),
                     settle: Settle::new(timing.quiet),
                     handled: Handled::default(),
@@ -132,9 +133,22 @@ pub fn wants(rule: &Rule, path: &Path) -> bool {
     !guard::hidden_or_partial(name) && rule.filter.takes_name(name) && !inside(path, &rule.output)
 }
 
+/// A path from the system in the form the rules name their folders: `aliases` pairs a watched
+/// folder's real path with the folder as the rule names it.
+fn localize(aliases: &[(PathBuf, PathBuf)], path: PathBuf) -> PathBuf {
+    aliases
+        .iter()
+        .find_map(|(real, named)| path.strip_prefix(real).ok().map(|rest| named.join(rest)))
+        .unwrap_or(path)
+}
+
 struct Worker {
     watcher: RecommendedWatcher,
     watched: HashMap<PathBuf, RecursiveMode>,
+    /// A watched folder's real path, where it differs, and the folder as the rule names it.
+    /// FSEvents reports real paths (`/private/var/…` for `/var/…`); every check here, and every
+    /// output Kento remembers, uses the rule's form.
+    aliases: Vec<(PathBuf, PathBuf)>,
     rules: Vec<Rule>,
     settle: Settle,
     handled: Handled,
@@ -196,6 +210,13 @@ impl Worker {
             let _ = self.watcher.unwatch(&path);
             self.watched.remove(&path);
         }
+        self.aliases = wanted
+            .keys()
+            .filter_map(|path| {
+                let real = std::fs::canonicalize(path).ok()?;
+                (real != *path).then(|| (real, path.clone()))
+            })
+            .collect();
         for (path, mode) in wanted {
             if self.watched.contains_key(&path) {
                 continue;
@@ -219,20 +240,25 @@ impl Worker {
     }
 
     fn on_event(&mut self, event: Event, now: Instant) {
+        let paths: Vec<PathBuf> = event
+            .paths
+            .into_iter()
+            .map(|path| localize(&self.aliases, path))
+            .collect();
         match event.kind {
             EventKind::Remove(_) | EventKind::Modify(ModifyKind::Name(RenameMode::From)) => {
-                for path in &event.paths {
+                for path in &paths {
                     self.settle.forget(path);
                 }
             }
             EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
-                if let [from, to] = event.paths.as_slice() {
+                if let [from, to] = paths.as_slice() {
                     self.settle.forget(from);
                     self.consider(to.clone(), now);
                 }
             }
             EventKind::Create(_) | EventKind::Modify(_) | EventKind::Any => {
-                for path in event.paths {
+                for path in paths {
                     self.consider(path, now);
                 }
             }
@@ -430,6 +456,25 @@ mod tests {
         fs::write(&nested, [3u8; 100]).unwrap();
         let (_, seen, _) = files.recv_timeout(Duration::from_secs(10)).unwrap();
         assert_eq!(seen, nested);
+    }
+
+    #[test]
+    fn real_paths_from_the_system_take_the_rules_form() {
+        let aliases = vec![(
+            PathBuf::from("/private/var/folders/İzlenen"),
+            PathBuf::from("/var/folders/İzlenen"),
+        )];
+        assert_eq!(
+            localize(
+                &aliases,
+                PathBuf::from("/private/var/folders/İzlenen/a 🖼️.png")
+            ),
+            Path::new("/var/folders/İzlenen/a 🖼️.png")
+        );
+        assert_eq!(
+            localize(&aliases, PathBuf::from("/Users/ayşe/b.png")),
+            Path::new("/Users/ayşe/b.png")
+        );
     }
 
     #[test]
