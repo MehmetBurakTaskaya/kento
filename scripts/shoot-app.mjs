@@ -37,6 +37,13 @@ const SHOTS = [
   // The windows outside the main one, at their own sizes.
   ['surface-wheel-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'convert' }],
   ['surface-wheel-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'actions' }],
+  // The Window ring, and Settings on macOS before the Accessibility permission is given.
+  ['surface-wheel-window-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'window' }],
+  ['surface-wheel-window-pseudo-rtl', { lang: 'ar-XB', appearance: 'dark', surface: 'wheel', wheel: 'window' }],
+  [
+    'settings-layouts-light-en-mac',
+    { lang: 'en', appearance: 'light', section: 'settings', platform: 'macos', layouts: 'missing' },
+  ],
   ['surface-shelf-light-tr', { lang: 'tr', appearance: 'light', surface: 'shelf' }],
   ['surface-toast-dark-en', { lang: 'en', appearance: 'dark', surface: 'toast' }],
   // The image editors on a sample photo the demo paints, and Compress with a mixed selection.

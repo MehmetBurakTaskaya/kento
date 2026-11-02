@@ -9,9 +9,10 @@ import { formatBytes } from '../i18n/format';
 import { api, type Settings as SettingsData, type ToolGroupStatus, type WheelKey } from '../ipc';
 import { useApp } from '../state/store';
 import { listThemes } from '../theme/registry';
+import { LayoutSettings } from './LayoutSettings';
 import { useToolStatus } from './Setup';
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+export function Group({ title, children }: { title: string; children: ReactNode }) {
   const id = useId();
   return (
     <section className="card settings-group" aria-labelledby={id}>
@@ -23,7 +24,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Row({ label, children, htmlFor }: { label: string; children: ReactNode; htmlFor?: string }) {
+export function Row({ label, children, htmlFor }: { label: string; children: ReactNode; htmlFor?: string }) {
   return (
     <div className="row">
       {htmlFor ? (
@@ -67,7 +68,15 @@ function Segmented<T extends string>({
   );
 }
 
-function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (on: boolean) => void }) {
+export function Switch({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (on: boolean) => void;
+}) {
   return (
     <button
       type="button"
@@ -351,6 +360,8 @@ export function Settings() {
         </Row>
         <p className="note muted">{t('settings.wheel.note')}</p>
       </Group>
+
+      <LayoutSettings />
 
       {!mac && (
         <Group title={t('settings.shell.title')}>
