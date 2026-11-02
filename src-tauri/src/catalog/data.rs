@@ -322,6 +322,9 @@ pub fn routes() -> &'static [Route] {
             )
             .add(ARCHIVE_IN, ARCHIVE_OUT, E::Archive, G::Core, false, None);
         for route in &mut r.0 {
+            if route.engine == E::LibreOffice && route.note.is_none() {
+                route.note = office_note(route.from, route.to);
+            }
             if matches!(route.from, "rtfd" | "textclipping") && route.note.is_none() {
                 route.note = Some("best effort");
             }
@@ -348,6 +351,20 @@ pub fn routes() -> &'static [Route] {
             };
         }
         r.0
+    })
+}
+
+/// What a LibreOffice route cannot keep, where the result is approximate (SPEC 5.4, complex
+/// documents).
+fn office_note(from: &str, to: &str) -> Option<&'static str> {
+    Some(match (from, to) {
+        ("pdf", "docx" | "epub" | "html") => "best effort, as text boxes",
+        ("numbers", "csv" | "tsv") => "best effort, the first sheet",
+        ("pages" | "numbers" | "key", _) => "best effort",
+        ("rtfd", _) => "best effort, without attachments",
+        (_, "md") => "text and structure, without pictures",
+        ("epub", _) => "text and pictures, without the book's styles",
+        _ => return None,
     })
 }
 
