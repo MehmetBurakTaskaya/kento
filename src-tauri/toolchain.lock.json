@@ -64,10 +64,10 @@
               "sha256": "ff4b911403b67ee9e6249f820f9782c44bb32c94fdaa45b0da53a8e419e5307a",
               "archive": "msi",
               "entries": {
-                "soffice": "LibreOffice/program/soffice.exe"
+                "soffice": "program/soffice.exe"
               },
               "folders": {
-                "LibreOffice": "LibreOffice"
+                "/": "LibreOffice"
               }
             }
           ]

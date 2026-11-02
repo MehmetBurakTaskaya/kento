@@ -16,6 +16,10 @@ const EMBEDDED: &str = include_str!("../../toolchain.lock.json");
 /// The platform keys a lockfile may use.
 pub const PLATFORMS: [&str; 3] = ["windows-x64", "macos-arm64", "macos-x64"];
 
+/// A kept folder named so is the whole image: an administrative install unpacks LibreOffice's
+/// folders (`program`, `share`, …) at the top of the image, with no folder around them.
+pub const IMAGE_ROOT: &str = "/";
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Lock {
@@ -111,7 +115,11 @@ impl Download {
     /// of the entry's path inside it. Such a tool runs from where it lies in the folder.
     pub fn kept<'a>(&'a self, inner: &'a str) -> Option<(&'a str, &'a str)> {
         self.folders.iter().find_map(|(folder, name)| {
-            let rest = inner.strip_prefix(folder.as_str())?.strip_prefix('/')?;
+            let rest = if folder == IMAGE_ROOT {
+                inner
+            } else {
+                inner.strip_prefix(folder.as_str())?.strip_prefix('/')?
+            };
             Some((name.as_str(), rest))
         })
     }
@@ -257,7 +265,14 @@ fn check_platform(group: &Group, key: &str, platform: &Platform) -> Result<(), S
             covered.push(tool.as_str());
         }
         for (inner, name) in &file.folders {
-            if !inner_path(inner) {
+            if inner == IMAGE_ROOT {
+                if file.archive != ArchiveKind::Msi || file.folders.len() > 1 {
+                    return Err(at(format!(
+                        "only an installer package keeps its whole image, as its one folder ({})",
+                        file.url
+                    )));
+                }
+            } else if !inner_path(inner) {
                 return Err(at(format!("bad folder path {inner:?}")));
             }
             if !plain_name(name) || !placed.insert(name.clone()) {
@@ -497,6 +512,34 @@ mod tests {
                     .collect::<PathBuf>()
             );
         }
+
+        // An administrative install has no folder around its own: the package keeps the whole
+        // image, as its one kept folder, and its programs lie anywhere in it.
+        let whole = msi
+            .replace("\"Office/program/ffmpeg.exe\"", "\"program/ffmpeg.exe\"")
+            .replace("{\"Office\":\"Office\"}", "{\"/\":\"Office\"}");
+        let lock = Lock::parse(&lock_on("windows-x64", &whole)).unwrap();
+        assert_eq!(
+            lock.groups[0].platforms["windows-x64"].programs(|tool| format!("{tool}.exe"))
+                ["ffmpeg"],
+            ["Office", "program", "ffmpeg.exe"]
+                .iter()
+                .collect::<PathBuf>()
+        );
+        assert!(Lock::parse(&lock_on(
+            "windows-x64",
+            &whole.replace(
+                "{\"/\":\"Office\"}",
+                "{\"/\":\"Office\",\"share\":\"share\"}"
+            )
+        ))
+        .is_err());
+        assert!(Lock::parse(&lock_on(
+            "macos-arm64",
+            &dmg.replace("{\"Office.app\":\"Office.app\"}", "{\"/\":\"Office.app\"}")
+                .replace("\"Office.app/Contents", "\"Contents")
+        ))
+        .is_err());
 
         // Each image only on its own system.
         assert!(Lock::parse(&lock_on("macos-arm64", &msi)).is_err());

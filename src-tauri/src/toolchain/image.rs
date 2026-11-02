@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
-use super::manifest::ArchiveKind;
+use super::manifest::{ArchiveKind, IMAGE_ROOT};
 use super::Error;
 
 /// Unpacking LibreOffice takes a minute or two; a tool still busy after this is stuck.
@@ -51,6 +51,10 @@ fn unpack_msi(
     fs::create_dir_all(scratch)?;
     let result = admin_install(package, scratch).and_then(|()| {
         for (inner, dest) in folders {
+            if inner == IMAGE_ROOT {
+                keep_root(scratch, dest)?;
+                continue;
+            }
             let from = inside(scratch, inner);
             if !from.is_dir() {
                 return Err(missing(scratch, inner));
@@ -194,6 +198,30 @@ fn unpack_dmg(_: &Path, _: &BTreeMap<String, PathBuf>, _: &Path) -> Result<(), E
     Err(Error::DiskImage("a disk image opens only on macOS".into()))
 }
 
+/// Moves everything at the top of an unpacked image into `dest`, except the administrative copy
+/// of the package that `msiexec /a` leaves there.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn keep_root(root: &Path, dest: &Path) -> Result<(), Error> {
+    fs::create_dir_all(dest)?;
+    let mut kept = 0;
+    for entry in fs::read_dir(root)? {
+        let entry = entry?;
+        let path = entry.path();
+        let package = entry.file_type()?.is_file()
+            && path
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("msi"));
+        if !package {
+            fs::rename(&path, dest.join(entry.file_name()))?;
+            kept += 1;
+        }
+    }
+    if kept == 0 {
+        return Err(Error::MissingEntry("anything besides the package".into()));
+    }
+    Ok(())
+}
+
 /// The path of `inner` (with `/` between parts, checked by the lockfile) under `root`.
 #[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
 fn inside(root: &Path, inner: &str) -> PathBuf {
@@ -307,6 +335,36 @@ mod tests {
             matches!(&err, Error::MissingEntry(text) if text == "LibreOffice (the image holds program, setup.msi)"),
             "{err:?}"
         );
+    }
+
+    #[test]
+    fn a_whole_image_is_kept_without_its_package() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("image ğ 🧪");
+        fs::create_dir_all(root.join("program")).unwrap();
+        fs::write(root.join("program").join("soffice.exe"), b"x").unwrap();
+        fs::create_dir_all(root.join("share")).unwrap();
+        fs::write(root.join("LibreOffice_26.8.2_Win_x86-64.msi"), b"package").unwrap();
+        fs::write(root.join("readme.txt"), b"r").unwrap();
+        let dest = dir.path().join("26.8.2.partial").join("LibreOffice");
+        keep_root(&root, &dest).unwrap();
+        let mut names: Vec<String> = fs::read_dir(&dest)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort_unstable();
+        assert_eq!(names, ["program", "readme.txt", "share"]);
+        assert!(dest.join("program").join("soffice.exe").is_file());
+        // Only the package is left behind, for the scratch folder to go with.
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+
+        let empty = dir.path().join("empty");
+        fs::create_dir_all(&empty).unwrap();
+        fs::write(empty.join("setup.MSI"), b"package").unwrap();
+        assert!(matches!(
+            keep_root(&empty, &dir.path().join("nothing")),
+            Err(Error::MissingEntry(_))
+        ));
     }
 
     #[test]
