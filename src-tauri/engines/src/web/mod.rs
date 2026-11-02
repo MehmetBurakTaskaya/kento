@@ -93,6 +93,9 @@ pub enum WebChoice {
     Video { max_height: Option<u32> },
     /// The sound only, as MP3.
     Audio,
+    /// The sound only in another format: M4A (AAC), or the best sound as the site serves it.
+    /// `Audio` stays MP3, so older requests mean what they meant.
+    AudioAs { format: AudioFormat },
     /// The thumbnail on its own, as JPG.
     Thumbnail,
     /// These pictures of a photo post (indexes from `WebInfo::images`), saved in the post's
@@ -100,6 +103,28 @@ pub enum WebChoice {
     Images { indexes: Vec<usize> },
     /// The media as the site serves it, unconverted.
     Original,
+}
+
+/// The format of a sound download.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AudioFormat {
+    Mp3,
+    /// AAC in M4A: the site's AAC as it is when it has one, otherwise converted.
+    M4a,
+    /// The best sound as the site serves it (Opus, AAC…), taken out of its file unconverted.
+    Original,
+}
+
+impl AudioFormat {
+    /// The extension of a converted result; None for the original, whatever it is.
+    fn extension(self) -> Option<&'static str> {
+        match self {
+            AudioFormat::Mp3 => Some("mp3"),
+            AudioFormat::M4a => Some("m4a"),
+            AudioFormat::Original => None,
+        }
+    }
 }
 
 /// One download.
@@ -175,8 +200,11 @@ pub fn download(run: &WebRun) -> Result<Vec<PathBuf>> {
     let args = args::download(deno, ffmpeg, &dirs, run.choice, url);
     let post = instagram_post(url);
     let mut meter = Meter::new(match run.choice {
-        // Turning the sound into MP3 takes a while; merging and remuxing copy streams.
-        WebChoice::Audio => 0.15,
+        // Turning the sound into MP3 or AAC takes a while; merging and remuxing copy streams.
+        WebChoice::Audio
+        | WebChoice::AudioAs {
+            format: AudioFormat::Mp3 | AudioFormat::M4a,
+        } => 0.15,
         _ => 0.05,
     });
     let mut items = Vec::new();
@@ -217,6 +245,7 @@ pub fn download(run: &WebRun) -> Result<Vec<PathBuf>> {
     let converted = match run.choice {
         WebChoice::Video { .. } => Some("mp4"),
         WebChoice::Audio => Some("mp3"),
+        WebChoice::AudioAs { format } => format.extension(),
         WebChoice::Thumbnail => Some("jpg"),
         WebChoice::Images { .. } | WebChoice::Original => None,
     };

@@ -286,7 +286,10 @@ fn checked(choice: WebChoice) -> Result<WebChoice> {
     let fine = match &choice {
         WebChoice::Video { max_height } => max_height.is_none_or(|h| (144..=8640).contains(&h)),
         WebChoice::Images { indexes } => !indexes.is_empty() && indexes.len() <= 1000,
-        WebChoice::Audio | WebChoice::Thumbnail | WebChoice::Original => true,
+        WebChoice::Audio
+        | WebChoice::AudioAs { .. }
+        | WebChoice::Thumbnail
+        | WebChoice::Original => true,
     };
     if !fine {
         return Err(Error::Invalid(format!("{choice:?} is not offered")));
@@ -628,7 +631,17 @@ mod tests {
                 indexes: vec![0, 2, 3]
             }
         );
-        for plain in [WebChoice::Audio, WebChoice::Thumbnail, WebChoice::Original] {
+        for plain in [
+            WebChoice::Audio,
+            WebChoice::AudioAs {
+                format: kento_engines::web::AudioFormat::M4a,
+            },
+            WebChoice::AudioAs {
+                format: kento_engines::web::AudioFormat::Original,
+            },
+            WebChoice::Thumbnail,
+            WebChoice::Original,
+        ] {
             assert_eq!(checked(plain.clone()).unwrap(), plain);
         }
     }

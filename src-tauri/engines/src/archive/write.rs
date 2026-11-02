@@ -49,6 +49,29 @@ pub(super) fn create<'a>(to: &str, dest: &Path, temp: &'a Path) -> Result<Box<dy
 /// Packs files and folders into a new ZIP at `dest`, each stored under its own name (relative to
 /// its parent folder). Symbolic links are skipped, never followed.
 pub fn create_zip(inputs: &[PathBuf], dest: &Path, progress: &Progress) -> Result<()> {
+    pack(inputs, progress, || {
+        Ok(Box::new(ZipSink::new(BufWriter::new(File::create(dest)?))))
+    })
+}
+
+/// Like `create_zip`, in the archive format `to` (a catalog id: `zip`, `7z`, `tar`, `tar-gz`);
+/// `temp` holds the entries a TAR spools.
+pub fn create_archive(
+    inputs: &[PathBuf],
+    to: &str,
+    dest: &Path,
+    temp: &Path,
+    progress: &Progress,
+) -> Result<()> {
+    pack(inputs, progress, || create(to, dest, temp))
+}
+
+/// Collects the inputs, then writes them into the archive `sink` makes.
+fn pack<'a>(
+    inputs: &[PathBuf],
+    progress: &Progress,
+    sink: impl FnOnce() -> Result<Box<dyn Sink + 'a>>,
+) -> Result<()> {
     let mut items = Vec::new();
     let mut top = HashSet::new();
     for input in inputs {
@@ -75,7 +98,7 @@ pub fn create_zip(inputs: &[PathBuf], dest: &Path, progress: &Progress) -> Resul
         sum.saturating_add(item.entry.size.unwrap_or(0))
     });
     let ticker = Ticker::new(progress, total);
-    let mut sink = ZipSink::new(BufWriter::new(File::create(dest)?));
+    let mut sink = sink()?;
     for item in &items {
         progress.check()?;
         if item.entry.kind == Kind::Dir {
@@ -85,7 +108,7 @@ pub fn create_zip(inputs: &[PathBuf], dest: &Path, progress: &Progress) -> Resul
             sink.file(&item.entry.name, &item.entry, &mut data)?;
         }
     }
-    Box::new(sink).finish()?;
+    sink.finish()?;
     progress.report(1.0);
     Ok(())
 }

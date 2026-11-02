@@ -17,7 +17,7 @@ use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, DateTime, System, ZipArchive, ZipWriter};
 
 use super::entry::{self, Entry, Kind};
-use super::{convert, create_zip, extract, read, safe, supports, Limits, OUTPUTS};
+use super::{convert, create_archive, create_zip, extract, read, safe, supports, Limits, OUTPUTS};
 use crate::{Conversion, Error, Options, Progress};
 
 /// 2021-05-06 07:08:10 UTC: even seconds, so MS-DOS times hold it exactly.
@@ -648,6 +648,59 @@ fn create_zip_packs_files_and_nested_folders() {
     assert_eq!(
         modified(&out.join("Proje/a.txt")),
         modified(&project.join("a.txt"))
+    );
+}
+
+#[test]
+fn create_archive_packs_7z_and_tar_gz_too() {
+    let tmp = tempfile::tempdir().unwrap();
+    let project = tmp.path().join("Proje");
+    fs::create_dir_all(project.join("alt")).unwrap();
+    fs::write(project.join("alt/b.txt"), "b").unwrap();
+    fs::write(project.join("c.bin"), noise(20_000)).unwrap();
+    let single = tmp.path().join("Kento ğüşıöç 🧪.txt");
+    fs::write(&single, "tek").unwrap();
+    for to in ["7z", "tar-gz", "zip"] {
+        let read_as = read_id(to);
+        let dest = tmp.path().join(format!("packed.{to}"));
+        let spool = tmp.path().join(format!("spool-{to}"));
+        fs::create_dir(&spool).unwrap();
+        create_archive(
+            &[project.clone(), single.clone()],
+            to,
+            &dest,
+            &spool,
+            &Progress::none(),
+        )
+        .unwrap();
+        let out = tmp.path().join(format!("out-{to}"));
+        unpack(&dest, read_as, &out).unwrap();
+        assert_eq!(
+            fs::read(out.join("Proje/c.bin")).unwrap(),
+            noise(20_000),
+            "{to}"
+        );
+        assert_eq!(
+            fs::read_to_string(out.join("Proje/alt/b.txt")).unwrap(),
+            "b",
+            "{to}"
+        );
+        assert_eq!(
+            fs::read_to_string(out.join("Kento ğüşıöç 🧪.txt")).unwrap(),
+            "tek",
+            "{to}"
+        );
+    }
+    let result = create_archive(
+        &[single],
+        "rar",
+        &tmp.path().join("x.rar"),
+        tmp.path(),
+        &Progress::none(),
+    );
+    assert!(
+        matches!(result, Err(Error::Unsupported { .. })),
+        "{result:?}"
     );
 }
 

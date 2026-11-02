@@ -194,6 +194,35 @@ impl Lab {
         dest
     }
 
+    /// Like `convert`, with options a slice's choice sets (a GIF's size, a bit rate).
+    fn convert_tuned(
+        &self,
+        input: &Path,
+        from: &str,
+        to: &str,
+        tune: impl Fn(&mut Options),
+    ) -> PathBuf {
+        let dest = self.out(&format!("{from}-to-tuned.{to}"));
+        let _ = fs::remove_file(&dest);
+        let temp = tempfile::tempdir().unwrap();
+        let mut options = Options {
+            tools: self.tools.clone(),
+            ..Options::default()
+        };
+        tune(&mut options);
+        crate::convert(&Conversion {
+            input,
+            from,
+            to,
+            dest: &dest,
+            temp: temp.path(),
+            options: &options,
+            progress: &Progress::none(),
+        })
+        .unwrap();
+        dest
+    }
+
     fn convert_with(
         &self,
         input: &Path,
@@ -580,6 +609,91 @@ fn converts_audio() {
         let probe = lab.probe(&lab.convert(input, from, to));
         near(probe.info.duration, 1.5, 0.1);
     }
+}
+
+#[test]
+fn gif_size_follows_the_options() {
+    let Some(lab) = Lab::new() else { return };
+    let mp4 = lab.video(&format!("{NAME} wide.mp4"), "960x540", 1.0, false);
+    for (width, fps) in [(320, 10), (480, 12), (720, 15)] {
+        let gif = lab.probe(&lab.convert_tuned(&mp4, "mp4", "gif", |options| {
+            options.gif_width = width;
+            options.gif_fps = fps;
+        }));
+        let picture = video_of(&gif);
+        assert_eq!(picture.width, width);
+        assert_eq!(picture.height, width * 9 / 16);
+        // A GIF times its frames in hundredths of a second: 15 a second reads as 100/6.
+        near(picture.fps, f64::from(fps), 2.0);
+    }
+    // The usual settings are the medium size.
+    let usual = lab.probe(&lab.convert(&mp4, "mp4", "gif"));
+    assert_eq!(video_of(&usual).width, Options::default().gif_width);
+}
+
+#[test]
+fn audio_bit_rate_follows_the_options() {
+    let Some(lab) = Lab::new() else { return };
+    // Pink noise fills any bit rate, so the sizes tell the rates apart.
+    let noise = lab.ffmpeg(
+        &[
+            "-f",
+            "lavfi",
+            "-i",
+            "anoisesrc=d=4:c=pink:r=44100:a=0.3",
+            "-ac",
+            "2",
+            "-c:a",
+            "pcm_s16le",
+        ],
+        &lab.path(&format!("{NAME} noise.wav")),
+    );
+    // A video whose sound is that noise as AAC at FFmpeg's usual 128 kbit/s.
+    let mp4 = lab.ffmpeg(
+        &[
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=160x90:r=25:d=4",
+            "-i",
+            &noise.to_string_lossy(),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+        ],
+        &lab.path(&format!("{NAME} sound.mp4")),
+    );
+    for (from, input) in [("wav", &noise), ("mp4", &mp4)] {
+        for to in ["mp3", "m4a"] {
+            let sizes: Vec<f64> = [128, 320]
+                .into_iter()
+                .map(|kbps| {
+                    let out = lab
+                        .convert_tuned(input, from, to, |options| options.audio_kbps = Some(kbps));
+                    let probe = lab.probe(&out);
+                    assert_eq!(
+                        audio_of(&probe).codec,
+                        if to == "mp3" { "mp3" } else { "aac" }
+                    );
+                    fs::metadata(&out).unwrap().len() as f64
+                })
+                .collect();
+            // 128 kbit/s for four seconds is 64 kB.
+            near(sizes[0] / 64_000.0, 1.0, 0.3);
+            // LAME's constant rate fills 320 kbit/s; FFmpeg's AAC spends what the sound needs
+            // up to it.
+            assert!(sizes[1] > sizes[0] * 1.5, "{from} to {to}: {sizes:?}");
+        }
+    }
+    // Without a rate, a video's AAC still goes into M4A as it is.
+    let copied = lab.convert(&mp4, "mp4", "m4a");
+    let tuned = lab.convert_tuned(&mp4, "mp4", "m4a", |options| options.audio_kbps = Some(320));
+    assert!(fs::metadata(&tuned).unwrap().len() > fs::metadata(&copied).unwrap().len());
 }
 
 #[test]

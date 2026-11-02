@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use super::codec::{AudioCodec, Container, Subtitle, VideoCodec};
+use super::codec::{AudioCodec, Container, Rate, Subtitle, VideoCodec};
 use super::probe::{self, Probe};
 use super::run::{self, Cmd, Watch};
 use crate::{Conversion, Error, Result};
@@ -44,15 +44,19 @@ pub(super) fn convert(job: &Conversion) -> Result<Vec<PathBuf>> {
     let mut cmd = Cmd::new();
     cmd.input(job.input);
     if target == Container::Gif {
-        gif(&mut cmd, &probe)?;
+        gif(&mut cmd, &probe, job.options.gif_width, job.options.gif_fps)?;
     } else {
+        let audio = match job.options.audio_kbps {
+            Some(kbps) => Audio::Bitrate(u64::from(kbps.clamp(32, 512)) * 1000),
+            None => Audio::Fit,
+        };
         apply(
             &mut cmd,
             &probe,
             &Recipe {
                 container: target,
                 video: Video::Fit,
-                audio: Audio::Fit,
+                audio,
                 subtitles: true,
                 graph: None,
             },
@@ -65,17 +69,19 @@ pub(super) fn convert(job: &Conversion) -> Result<Vec<PathBuf>> {
 }
 
 /// An optimised GIF: a palette made from the clip itself (`palettegen`) and applied in the same
-/// graph (`paletteuse`), at 12 frames a second and at most 480 pixels wide, scaled with Lanczos.
-fn gif(cmd: &mut Cmd, probe: &Probe) -> Result<()> {
+/// graph (`paletteuse`), at `fps` frames a second (12 by default) and at most `width` pixels wide
+/// (480), scaled with Lanczos.
+fn gif(cmd: &mut Cmd, probe: &Probe, width: u32, fps: u32) -> Result<()> {
     let video = probe
         .video()
         .ok_or_else(|| Error::Other("the file has no video to turn into a GIF".into()))?;
+    let (width, fps) = (width.clamp(16, 3840), fps.clamp(1, 50));
     cmd.map(video.index)
         .arg("-filter:v:0")
-        .arg(
-            "fps=12,scale=w='min(480,iw)':h=-1:flags=lanczos,\
-             split[a][b];[a]palettegen[p];[b][p]paletteuse",
-        )
+        .arg(format!(
+            "fps={fps},scale=w='min({width},iw)':h=-1:flags=lanczos,\
+             split[a][b];[a]palettegen[p];[b][p]paletteuse"
+        ))
         .args(["-c:v:0", "gif"]);
     Ok(())
 }
@@ -113,6 +119,9 @@ pub(super) enum Audio {
     Graph {
         keep_codec: bool,
     },
+    /// Encoded with the container's encoder at this many bits per second, even when the stream
+    /// would fit as it is (a conversion's chosen bit rate).
+    Bitrate(u64),
 }
 
 #[derive(Debug, Clone)]
@@ -220,7 +229,11 @@ pub(super) fn apply(cmd: &mut Cmd, probe: &Probe, recipe: &Recipe) -> Result<()>
                     if let Some(filter) = filter {
                         cmd.arg(format!("-filter:a:{k}")).arg(filter);
                     }
-                    codec.push(cmd, k, Some(audio));
+                    let rate = match rule {
+                        Audio::Bitrate(bits) => Rate::Bitrate(*bits),
+                        _ => Rate::Default,
+                    };
+                    codec.push_at(cmd, k, Some(audio), rate);
                 }
                 streams += 1;
             }

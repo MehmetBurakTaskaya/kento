@@ -23,7 +23,7 @@ use crate::{Conversion, Error, Output, Progress, Result};
 
 use entry::{Entry, Kind};
 
-pub use write::create_zip;
+pub use write::{create_archive, create_zip};
 
 /// Safety limits against archive bombs.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -106,6 +106,14 @@ pub struct Options {
     pub background: [u8; 3],
     /// Pixel density for PDF pages turned into images.
     pub page_dpi: u16,
+    /// Video → GIF: the widest the picture gets, in pixels (a narrower video keeps its width)...
+    pub gif_width: u32,
+    /// ...and its frames a second.
+    pub gif_fps: u32,
+    /// The bit rate of the sound written by a conversion, in kbit/s. None keeps each encoder's
+    /// usual rate (MP3 at LAME's variable quality 2, about 190 kbit/s; AAC at 192 kbit/s) and
+    /// copies sound the output holds as it is.
+    pub audio_kbps: Option<u32>,
     /// The sizes inside a written ICO.
     pub ico_sizes: Vec<u32>,
     /// Safety limits for archives.
@@ -196,6 +204,9 @@ impl Default for Options {
             avif_speed: 7,
             background: [255, 255, 255],
             page_dpi: 150,
+            gif_width: 480,
+            gif_fps: 12,
+            audio_kbps: None,
             ico_sizes: vec![16, 24, 32, 48, 64, 128, 256],
             archive_limits: archive::Limits::default(),
             tools: Tools::default(),

@@ -8,7 +8,7 @@ use std::path::Path;
 
 use super::info::limit;
 use super::run::Dirs;
-use super::WebChoice;
+use super::{AudioFormat, WebChoice};
 
 /// The flags every run starts with.
 const PRIVATE: [&str; 9] = [
@@ -155,7 +155,10 @@ fn chosen(choice: &WebChoice) -> Vec<String> {
         }
         // The best sound (or the sound of the best file), converted by FFmpeg to MP3 at
         // VBR quality 2 (about 190 kbit/s), well above what sites serve.
-        WebChoice::Audio => list(&[
+        WebChoice::Audio
+        | WebChoice::AudioAs {
+            format: AudioFormat::Mp3,
+        } => list(&[
             "--format",
             "ba/b",
             "--extract-audio",
@@ -164,6 +167,24 @@ fn chosen(choice: &WebChoice) -> Vec<String> {
             "--audio-quality",
             "2",
         ]),
+        // AAC in M4A: the site's own AAC sound comes first and is only moved into M4A; any other
+        // sound is converted at 192 kbit/s.
+        WebChoice::AudioAs {
+            format: AudioFormat::M4a,
+        } => list(&[
+            "--format",
+            "ba[acodec^=mp4a]/ba/b",
+            "--extract-audio",
+            "--audio-format",
+            "m4a",
+            "--audio-quality",
+            "192K",
+        ]),
+        // The best sound as the site serves it, taken out of its file without converting it
+        // ("--audio-format best", yt-dlp's default, only moves the stream).
+        WebChoice::AudioAs {
+            format: AudioFormat::Original,
+        } => list(&["--format", "ba/b", "--extract-audio"]),
         // The best thumbnail alone, as JPG; the video's formats do not matter for it.
         WebChoice::Thumbnail => list(&[
             "--skip-download",
@@ -287,6 +308,12 @@ mod tests {
                 max_height: Some(720),
             },
             WebChoice::Audio,
+            WebChoice::AudioAs {
+                format: AudioFormat::M4a,
+            },
+            WebChoice::AudioAs {
+                format: AudioFormat::Original,
+            },
             WebChoice::Thumbnail,
             WebChoice::Images {
                 indexes: vec![2, 0],
@@ -422,6 +449,41 @@ mod tests {
         assert!(audio.contains(&"--extract-audio".to_owned()));
         assert_eq!(after(&audio, "--audio-format"), ["mp3"]);
         assert_eq!(after(&audio, "--format"), ["ba/b"]);
+        let mp3 = run(WebChoice::AudioAs {
+            format: AudioFormat::Mp3,
+        });
+        assert_eq!(mp3, audio);
+        let m4a = run(WebChoice::AudioAs {
+            format: AudioFormat::M4a,
+        });
+        assert!(m4a.contains(&"--extract-audio".to_owned()));
+        assert_eq!(after(&m4a, "--audio-format"), ["m4a"]);
+        assert_eq!(after(&m4a, "--format"), ["ba[acodec^=mp4a]/ba/b"]);
+        assert_eq!(after(&m4a, "--audio-quality"), ["192K"]);
+        // The sound as served: taken out of its file, never converted.
+        let served = run(WebChoice::AudioAs {
+            format: AudioFormat::Original,
+        });
+        assert!(served.contains(&"--extract-audio".to_owned()));
+        assert_eq!(after(&served, "--format"), ["ba/b"]);
+        assert!(after(&served, "--audio-format").is_empty());
+        assert!(after(&served, "--audio-quality").is_empty());
+
+        // Older requests still mean MP3; the others name their format.
+        let parse = |json: &str| serde_json::from_str::<WebChoice>(json).unwrap();
+        assert_eq!(parse(r#"{"kind":"audio"}"#), WebChoice::Audio);
+        assert_eq!(
+            parse(r#"{"kind":"audioAs","format":"m4a"}"#),
+            WebChoice::AudioAs {
+                format: AudioFormat::M4a
+            }
+        );
+        assert_eq!(
+            parse(r#"{"kind":"audioAs","format":"original"}"#),
+            WebChoice::AudioAs {
+                format: AudioFormat::Original
+            }
+        );
 
         let thumbnail = run(WebChoice::Thumbnail);
         assert!(thumbnail.contains(&"--skip-download".to_owned()));
