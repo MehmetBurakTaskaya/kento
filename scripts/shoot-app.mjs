@@ -144,7 +144,15 @@ const SHOTS = [
   ],
   ['surface-wheel-copy-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'actions' }, 'choices:3'],
   ['surface-wheel-zip-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'actions' }, 'choices:8'],
+  // Two rings in, settled: the hub's breadcrumb over the ring's title (Convert › Image › JPG's
+  // picture quality, for the mixed selection).
+  ['wheel-trail-light-en', { lang: 'en', appearance: 'light', files: 'demo' }, 'convert-trail'],
+  ['wheel-trail-dark-tr', { lang: 'tr', appearance: 'dark', files: 'demo' }, 'convert-trail'],
+  ['wheel-trail-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', files: 'demo' }, 'convert-trail'],
 ];
+
+// `npm run shots -- wheel-trail` takes only the shots whose names hold the text.
+const only = process.argv[2];
 
 const SIZES = { wheel: [520, 520], shelf: [300, 480], toast: [400, 200] };
 
@@ -359,10 +367,14 @@ async function act(page, action) {
   else await page.keyboard.press('Control+a').then(() => page.keyboard.press('Enter'));
   await page.waitForSelector('[role=dialog]');
   await page.waitForTimeout(700);
-  // Image group of the mixed selection, or the first tool.
-  if (action === 'convert-image' || action === 'tools') {
+  // Image group of the mixed selection, or the first tool; then the choices of its first target.
+  if (action === 'convert-image' || action === 'convert-trail' || action === 'tools') {
     await page.keyboard.press('ArrowDown');
     await page.waitForTimeout(200);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(900);
+  }
+  if (action === 'convert-trail') {
     await page.keyboard.press('Enter');
     await page.waitForTimeout(900);
   }
@@ -373,7 +385,8 @@ await server.listen();
 const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch();
 const errors = [];
-for (const [name, params, action] of SHOTS) {
+const shots = SHOTS.filter(([name]) => !only || name.includes(only));
+for (const [name, params, action] of shots) {
   const tall = params.section === 'settings' ? 2200 : params.section === 'automation' && !action ? 1250 : 680;
   const [width, height] = SIZES[params.surface] ?? [1000, tall];
   const page = await browser.newPage({ viewport: { width, height } });
@@ -395,4 +408,4 @@ if (errors.length) {
   console.error(errors.join('\n'));
   process.exit(1);
 }
-console.log(`${SHOTS.length} screenshots in artifacts/app-shots`);
+console.log(`${shots.length} screenshots in artifacts/app-shots`);
