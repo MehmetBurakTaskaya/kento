@@ -2,7 +2,8 @@
 //! `kento --smoke-test`: starts the app without showing it, checks the parts that exist so far and
 //! writes a JSON report to the data folder (smoke-test.json), then quits with 0 when all passed.
 //! The media check runs only where FFmpeg is installed or found, the office check only where
-//! LibreOffice is.
+//! LibreOffice is. The command line and the licence texts beside the app are skipped in a build
+//! that has none, except in a release copy (see `release_copy`).
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -309,6 +310,74 @@ fn engines(dir: &Path) -> Result<String, String> {
     Ok("svg → png → jpg and pdf, pdf → png with PDFium, md → html, zip made and extracted".into())
 }
 
+/// The address every copy reads for updates (SPEC 5.16).
+const UPDATE_ENDPOINT: &str =
+    "https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/latest.json";
+
+/// How every minisign public key starts once in base64: "untrusted comment: minisign public key:".
+const MINISIGN_PUBLIC_KEY: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6";
+
+/// Whether this is a copy as users get it, where everything a release ships must be in place: an
+/// installed Windows copy (Tauri's uninstall.exe beside it), a macOS app bundle, or any copy when
+/// KENTO_REQUIRE_RELEASE=1 (the release workflow tests the portable folder that way). A build run
+/// from `target/` skips what it does not carry.
+fn release_copy(exe: &Path) -> bool {
+    let required = std::env::var_os("KENTO_REQUIRE_RELEASE").is_some_and(|value| value == "1");
+    let installed = exe.parent().is_some_and(|dir| {
+        if cfg!(windows) {
+            dir.join("uninstall.exe").is_file()
+        } else {
+            dir.ends_with("Contents/MacOS")
+        }
+    });
+    required || installed
+}
+
+/// The updater's settings as built in: a minisign public key, the one fixed address, and
+/// updates whose signed version must match what latest.json announces.
+fn updater(settings: Option<&serde_json::Value>) -> Result<String, String> {
+    let updater = settings.ok_or("no updater settings")?;
+    let key = updater["pubkey"].as_str().unwrap_or_default();
+    if !key.starts_with(MINISIGN_PUBLIC_KEY) || key.len() < 100 {
+        return Err("the public key is not a minisign public key".into());
+    }
+    let endpoints = updater["endpoints"].as_array().cloned().unwrap_or_default();
+    if endpoints != [serde_json::Value::from(UPDATE_ENDPOINT)] {
+        return Err(format!("the endpoints are {endpoints:?}"));
+    }
+    if updater["requireSignedVersion"] != true {
+        return Err("requireSignedVersion is off".into());
+    }
+    Ok(format!("public key and {UPDATE_ENDPOINT}"))
+}
+
+/// The licence texts that ship beside the app: in its folder on Windows, in the bundle's
+/// Resources on macOS.
+fn notices(resources: Option<PathBuf>, release: bool) -> Result<String, String> {
+    let names = ["LICENSE.txt", "THIRD-PARTY-NOTICES.md"];
+    let found: Vec<PathBuf> = resources
+        .iter()
+        .flat_map(|dir| names.map(|name| dir.join(name)))
+        .filter(|path| path.is_file())
+        .collect();
+    if found.len() < names.len() {
+        return if release {
+            Err(format!("{} must be beside the app", names.join(" and ")))
+        } else {
+            Ok("skipped: no licence texts beside this build".into())
+        };
+    }
+    let read = |path: &Path| std::fs::read_to_string(path).map_err(|err| err.to_string());
+    let license = read(&found[0])?;
+    if !license.starts_with("MIT License") || !license.contains("Mehmet Burak Taşkaya") {
+        return Err("LICENSE.txt is not Kento's licence".into());
+    }
+    if read(&found[1])?.trim().is_empty() {
+        return Err("THIRD-PARTY-NOTICES.md is empty".into());
+    }
+    Ok(names.join(" and "))
+}
+
 /// The command line shipped beside the app (`kento.com` or `kento-cli.exe` on Windows, `kento-cli`
 /// in the macOS bundle): it answers with the app's version, and turns an SVG into a PDF and that
 /// PDF's page into a PNG, which needs the bundled PDFium from where the command line looks.
@@ -326,7 +395,11 @@ fn command_line(dir: &Path, version: &str) -> Result<String, String> {
         .map(|name| beside.join(name))
         .find(|p| p.is_file())
     else {
-        return Ok("skipped: no command line beside the app".into());
+        return if release_copy(&exe) {
+            Err(format!("no {} beside the app", names[0]))
+        } else {
+            Ok("skipped: no command line beside the app".into())
+        };
     };
     let run = |args: &[&OsStr]| -> Result<serde_json::Value, String> {
         let mut command = std::process::Command::new(&cli);
@@ -536,6 +609,16 @@ pub async fn run(app: AppHandle) -> bool {
     };
     checks.push(check("command line", cli_result));
 
+    let release = std::env::current_exe().is_ok_and(|exe| release_copy(&exe));
+    checks.push(check(
+        "licence texts",
+        notices(app.path().resource_dir().ok(), release),
+    ));
+    checks.push(check(
+        "updater settings",
+        updater(app.config().plugins.0.get("updater")),
+    ));
+
     checks.push(check(
         "floating wheel",
         match app.get_webview_window(crate::overlay::wheel::LABEL) {
@@ -603,4 +686,57 @@ pub async fn run(app: AppHandle) -> bool {
     );
     println!("{}", path.display());
     passed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn built_in() -> serde_json::Value {
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        config["plugins"]["updater"].clone()
+    }
+
+    #[test]
+    fn the_built_in_updater_settings_pass() {
+        updater(Some(&built_in())).unwrap();
+    }
+
+    #[test]
+    fn updater_settings_without_the_key_the_address_or_the_signed_version_fail() {
+        let changed = |key: &str, value: serde_json::Value| {
+            let mut settings = built_in();
+            settings[key] = value;
+            updater(Some(&settings))
+        };
+        assert!(updater(None).is_err());
+        assert!(changed("pubkey", json!("")).is_err());
+        assert!(changed("pubkey", json!(MINISIGN_PUBLIC_KEY)).is_err());
+        let api = "https://api.github.com/repos/MehmetBurakTaskaya/kento/releases/latest";
+        assert!(changed("endpoints", json!([api])).is_err());
+        assert!(changed("endpoints", json!([UPDATE_ENDPOINT, api])).is_err());
+        assert!(changed("requireSignedVersion", json!(false)).is_err());
+    }
+
+    #[test]
+    fn the_licence_texts_are_needed_only_in_a_release_copy() {
+        let dir = tempfile::tempdir().unwrap();
+        let resources = Some(dir.path().to_path_buf());
+        let write = |name: &str, text: &str| std::fs::write(dir.path().join(name), text).unwrap();
+        assert!(notices(resources.clone(), false)
+            .unwrap()
+            .starts_with("skipped"));
+        assert!(notices(resources.clone(), true).is_err());
+        assert!(notices(None, true).is_err());
+        write("LICENSE.txt", include_str!("../../LICENSE"));
+        assert!(notices(resources.clone(), true).is_err());
+        write("THIRD-PARTY-NOTICES.md", " \n");
+        assert!(notices(resources.clone(), false).is_err());
+        write("THIRD-PARTY-NOTICES.md", "# Third-party notices\n");
+        assert!(notices(resources.clone(), true).is_ok());
+        write("LICENSE.txt", "Another licence");
+        assert!(notices(resources, true).is_err());
+    }
 }
