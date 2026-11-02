@@ -179,7 +179,13 @@ pub struct Settings {
     pub shelf: ShelfSettings,
     pub web: WebSettings,
     pub layouts: LayoutSettings,
+    /// The folders last chosen for Copy and Move, newest first (the wheel offers them). Kept by
+    /// the core: a window's older copy of the settings never replaces them.
+    pub recent_folders: Vec<PathBuf>,
 }
+
+/// How many folders Copy and Move remember.
+pub const RECENT_FOLDERS: usize = 5;
 
 impl Default for Settings {
     fn default() -> Self {
@@ -201,8 +207,36 @@ impl Default for Settings {
             shelf: ShelfSettings::default(),
             web: WebSettings::default(),
             layouts: LayoutSettings::default(),
+            recent_folders: Vec::new(),
         }
     }
+}
+
+/// Whether two paths name the same folder: Windows and macOS compare names without case.
+pub fn same_folder(a: &Path, b: &Path) -> bool {
+    let plain = |path: &Path| {
+        let text = path.to_string_lossy();
+        let text = text.trim_end_matches(['\\', '/']);
+        if cfg!(any(windows, target_os = "macos")) {
+            text.to_lowercase()
+        } else {
+            text.to_owned()
+        }
+    };
+    plain(a) == plain(b)
+}
+
+/// The recent folders with `folder` first, each once, at most `RECENT_FOLDERS`.
+pub fn with_recent_folder(recent: &[PathBuf], folder: &Path) -> Vec<PathBuf> {
+    std::iter::once(folder.to_path_buf())
+        .chain(
+            recent
+                .iter()
+                .filter(|known| !same_folder(known, folder))
+                .cloned(),
+        )
+        .take(RECENT_FOLDERS)
+        .collect()
 }
 
 impl Settings {
@@ -237,6 +271,14 @@ impl Settings {
         if self.output.location == OutputLocation::Folder && self.output.folder.is_none() {
             self.output.location = OutputLocation::NextToSource;
         }
+        let mut folders: Vec<PathBuf> = Vec::new();
+        for folder in std::mem::take(&mut self.recent_folders) {
+            if folder.is_absolute() && !folders.iter().any(|known| same_folder(known, &folder)) {
+                folders.push(folder);
+            }
+        }
+        folders.truncate(RECENT_FOLDERS);
+        self.recent_folders = folders;
         self
     }
 }
@@ -325,6 +367,41 @@ mod tests {
         let saved: Settings =
             serde_json::from_str(r#"{"web":{"shortcut":false,"noticeShown":true}}"#).unwrap();
         assert!(!saved.web.shortcut && saved.web.notice_shown);
+    }
+
+    #[test]
+    fn copy_and_move_remember_five_folders_newest_first() {
+        let root = std::env::temp_dir();
+        let folder = |name: &str| root.join(name);
+        let mut recent = Vec::new();
+        for name in ["a", "b", "c", "d", "e", "f"] {
+            recent = with_recent_folder(&recent, &folder(name));
+        }
+        assert_eq!(recent, ["f", "e", "d", "c", "b"].map(folder));
+        // Choosing a known folder again moves it to the front, once.
+        recent = with_recent_folder(&recent, &folder("c"));
+        assert_eq!(recent, ["c", "f", "e", "d", "b"].map(folder));
+        if cfg!(any(windows, target_os = "macos")) {
+            recent = with_recent_folder(&recent, &folder("D"));
+            assert_eq!(recent.len(), 5);
+            assert!(same_folder(&recent[0], &folder("d")));
+        }
+
+        // A file from before has none; a hand-edited one keeps five absolute folders, each once.
+        let old: Settings = serde_json::from_str(r#"{"language":"tr"}"#).unwrap();
+        assert!(old.recent_folders.is_empty());
+        let edited = Settings {
+            recent_folders: ["a", "a", "b", "c", "d", "e", "f"]
+                .map(folder)
+                .into_iter()
+                .chain([PathBuf::from("relative")])
+                .collect(),
+            ..Settings::default()
+        }
+        .normalized();
+        assert_eq!(edited.recent_folders, ["a", "b", "c", "d", "e"].map(folder));
+        let json = serde_json::to_string(&edited).unwrap();
+        assert!(json.contains("\"recentFolders\""));
     }
 
     #[test]

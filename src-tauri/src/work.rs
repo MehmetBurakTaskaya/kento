@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use kento_engines::{self as engines, Codec, Error as EngineError, Options, WebProblem};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::catalog::{self, Category, Format, Status, ToolGroup};
@@ -259,8 +259,94 @@ fn needs(
     }
 }
 
+/// A choice from a Convert slice's ring (SPEC 5.3) that tunes the conversion; without one the
+/// engines' usual settings apply, and the middle choice of each ring is those settings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Preset {
+    /// Picture quality of JPG, WEBP and AVIF.
+    High,
+    Balanced,
+    Small,
+    /// The resolution of PDF and slide pages turned into PNG or JPG: 96, 150 and 300 dpi.
+    Screen,
+    Normal,
+    Print,
+    /// The size of a GIF made from a video.
+    GifSmall,
+    GifMedium,
+    GifLarge,
+    /// The bit rate of MP3 and M4A.
+    Kbps128,
+    Kbps192,
+    Kbps320,
+}
+
+impl Preset {
+    /// Whether the preset means something for this route.
+    pub(crate) fn fits(self, from: &Format, to: &str) -> bool {
+        match self {
+            Preset::High | Preset::Balanced | Preset::Small => {
+                from.category == Category::Image && matches!(to, "jpg" | "webp" | "avif")
+            }
+            Preset::Screen | Preset::Normal | Preset::Print => {
+                matches!(from.category, Category::Pdf | Category::Presentation)
+                    && matches!(to, "png" | "jpg")
+            }
+            Preset::GifSmall | Preset::GifMedium | Preset::GifLarge => {
+                from.category == Category::Video && to == "gif"
+            }
+            Preset::Kbps128 | Preset::Kbps192 | Preset::Kbps320 => {
+                matches!(from.category, Category::Video | Category::Audio)
+                    && matches!(to, "mp3" | "m4a")
+            }
+        }
+    }
+
+    /// Sets what the preset changes; Balanced, Normal, Medium and 192 kbit/s are the defaults.
+    pub(crate) fn apply(self, options: &mut Options) {
+        let usual = Options::default();
+        match self {
+            Preset::High => {
+                (
+                    options.jpeg_quality,
+                    options.webp_quality,
+                    options.avif_quality,
+                ) = (95, 92, 88)
+            }
+            Preset::Balanced => {
+                (
+                    options.jpeg_quality,
+                    options.webp_quality,
+                    options.avif_quality,
+                ) = (usual.jpeg_quality, usual.webp_quality, usual.avif_quality)
+            }
+            Preset::Small => {
+                (
+                    options.jpeg_quality,
+                    options.webp_quality,
+                    options.avif_quality,
+                ) = (75, 70, 55)
+            }
+            Preset::Screen => options.page_dpi = 96,
+            Preset::Normal => options.page_dpi = usual.page_dpi,
+            Preset::Print => options.page_dpi = 300,
+            Preset::GifSmall => (options.gif_width, options.gif_fps) = (320, 10),
+            Preset::GifMedium => {
+                (options.gif_width, options.gif_fps) = (usual.gif_width, usual.gif_fps)
+            }
+            Preset::GifLarge => (options.gif_width, options.gif_fps) = (720, 15),
+            Preset::Kbps128 => options.audio_kbps = Some(128),
+            // MP3 keeps its usual variable rate around 192 kbit/s, and sound that fits M4A as it
+            // is stays as it is.
+            Preset::Kbps192 => options.audio_kbps = usual.audio_kbps,
+            Preset::Kbps320 => options.audio_kbps = Some(320),
+        }
+    }
+}
+
 /// Converts every file to `to`, one job per file (batch conversion, SPEC 5.3), and returns the
-/// job ids.
+/// job ids. `preset` is a choice from the target's ring.
 #[tauri::command]
 pub fn convert(
     app: AppHandle,
@@ -268,6 +354,7 @@ pub fn convert(
     state: State<'_, AppState>,
     paths: Vec<PathBuf>,
     to: String,
+    preset: Option<Preset>,
 ) -> Result<Vec<u64>> {
     let target = catalog::format(&to)
         .filter(|f| f.write)
@@ -284,12 +371,18 @@ pub fn convert(
                 format.id, target.id
             )));
         }
+        if let Some(preset) = preset.filter(|preset| !preset.fits(format, target.id)) {
+            return Err(Error::Invalid(format!(
+                "{preset:?} does not fit {} to {}",
+                format.id, target.id
+            )));
+        }
         sources.push((path, format));
     }
     let ctx = Context::new(&app, &state)?;
     let ids: Vec<u64> = sources
         .into_iter()
-        .map(|(path, format)| ctx.submit_conversion(path, format, target))
+        .map(|(path, format)| ctx.submit_conversion_with(path, format, target, preset))
         .collect();
     crate::actions::watch(&window, &state, &ids);
     Ok(ids)
@@ -360,15 +453,29 @@ impl Context {
         from: &'static Format,
         to: &'static Format,
     ) -> u64 {
+        self.submit_conversion_with(path, from, to, None)
+    }
+
+    /// Like `submit_conversion`, tuned by a choice from the target's ring.
+    pub(crate) fn submit_conversion_with(
+        &self,
+        path: PathBuf,
+        from: &'static Format,
+        to: &'static Format,
+        preset: Option<Preset>,
+    ) -> u64 {
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let options = Options {
+        let mut options = Options {
             tools: self.tools.clone(),
             office_profile: Some(self.office_profile.clone()),
             ..Options::default()
         };
+        if let Some(preset) = preset {
+            preset.apply(&mut options);
+        }
         let (target, work) = conversion(path.clone(), from, to, self.dir_for(&path), options);
         let lane = if engines::heavy(from.id, to.id) {
             Lane::Heavy
@@ -603,6 +710,85 @@ mod tests {
             assert!(!is_document(folder));
         }
         assert_eq!(entry(&file).unwrap().format.as_deref(), Some("pages"));
+    }
+
+    #[test]
+    fn presets_fit_their_routes_and_set_only_their_options() {
+        let format = |id: &str| catalog::format(id).unwrap();
+        let parse = |name: &str| serde_json::from_value::<Preset>(serde_json::json!(name)).unwrap();
+        // The page's names for them.
+        assert_eq!(parse("gif-small"), Preset::GifSmall);
+        assert_eq!(parse("kbps320"), Preset::Kbps320);
+        assert_eq!(parse("print"), Preset::Print);
+
+        assert!(Preset::High.fits(format("heic"), "jpg"));
+        assert!(Preset::Small.fits(format("png"), "avif"));
+        assert!(!Preset::High.fits(format("png"), "pdf"));
+        assert!(!Preset::High.fits(format("pdf"), "jpg"));
+        assert!(Preset::Print.fits(format("pdf"), "png"));
+        assert!(Preset::Screen.fits(format("pptx"), "jpg"));
+        assert!(!Preset::Print.fits(format("png"), "jpg"));
+        assert!(Preset::GifLarge.fits(format("mov"), "gif"));
+        assert!(!Preset::GifLarge.fits(format("png"), "gif"));
+        assert!(Preset::Kbps128.fits(format("mp4"), "mp3"));
+        assert!(Preset::Kbps320.fits(format("flac"), "m4a"));
+        assert!(!Preset::Kbps320.fits(format("flac"), "ogg"));
+
+        let usual = Options::default();
+        let tuned = |preset: Preset| {
+            let mut options = Options::default();
+            preset.apply(&mut options);
+            options
+        };
+        let high = tuned(Preset::High);
+        let small = tuned(Preset::Small);
+        assert!(high.jpeg_quality > usual.jpeg_quality && small.jpeg_quality < usual.jpeg_quality);
+        assert!(high.webp_quality > usual.webp_quality && small.webp_quality < usual.webp_quality);
+        assert!(high.avif_quality > usual.avif_quality && small.avif_quality < usual.avif_quality);
+        assert_eq!(high.page_dpi, usual.page_dpi);
+        assert_eq!(
+            [Preset::Screen, Preset::Normal, Preset::Print].map(|p| tuned(p).page_dpi),
+            [96, 150, 300]
+        );
+        assert_eq!(
+            [Preset::GifSmall, Preset::GifMedium, Preset::GifLarge]
+                .map(|p| (tuned(p).gif_width, tuned(p).gif_fps)),
+            [(320, 10), (480, 12), (720, 15)]
+        );
+        assert_eq!(
+            [Preset::Kbps128, Preset::Kbps192, Preset::Kbps320].map(|p| tuned(p).audio_kbps),
+            [Some(128), None, Some(320)]
+        );
+        // The middle choice of every ring is what a plain drop always did.
+        for preset in [
+            Preset::Balanced,
+            Preset::Normal,
+            Preset::GifMedium,
+            Preset::Kbps192,
+        ] {
+            let options = tuned(preset);
+            assert_eq!(
+                (
+                    options.jpeg_quality,
+                    options.webp_quality,
+                    options.avif_quality,
+                    options.page_dpi,
+                    options.gif_width,
+                    options.gif_fps,
+                    options.audio_kbps
+                ),
+                (
+                    usual.jpeg_quality,
+                    usual.webp_quality,
+                    usual.avif_quality,
+                    usual.page_dpi,
+                    usual.gif_width,
+                    usual.gif_fps,
+                    usual.audio_kbps
+                ),
+                "{preset:?}"
+            );
+        }
     }
 
     /// The catalog and the engines agree: what the catalog calls ready, an engine runs, and an

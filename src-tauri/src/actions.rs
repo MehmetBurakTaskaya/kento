@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 //! The file actions wheel (SPEC 5.7): share, put on the shelf, copy or move to a folder, copy the
-//! path, open a terminal there, show in Explorer or Finder, and pack into a ZIP. Copying and moving
-//! follow the naming rules (SPEC 5.14): nothing at the destination is ever overwritten, and Move is
-//! the one action that touches the original, after the user confirms it.
+//! path, open a terminal there, show in Explorer or Finder, and pack into a ZIP (or a 7Z or a
+//! TAR.GZ). Copying and moving follow the naming rules (SPEC 5.14): nothing at the destination is
+//! ever overwritten, and Move is the one action that touches the original, after the user confirms
+//! it. The folders last chosen for them are offered again on the wheel.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,18 +20,26 @@ use crate::library::Origin;
 use crate::overlay::{self, toast};
 use crate::platform;
 use crate::work::{stem_of, Context};
-use crate::{files, AppState};
+use crate::{files, settings, AppState};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionEntry {
     pub id: String,
     pub icon: String,
+    /// Copy and Move: the folders last chosen for either, newest first, that still exist.
+    pub folders: Vec<PathBuf>,
 }
 
 /// The actions that work here; they apply to any files and folders (SPEC 5.3).
 #[tauri::command]
-pub fn actions() -> Vec<ActionEntry> {
+pub fn actions(state: State<'_, AppState>) -> Vec<ActionEntry> {
+    let folders: Vec<PathBuf> = state
+        .settings()
+        .recent_folders
+        .into_iter()
+        .filter(|folder| folder.is_dir())
+        .collect();
     catalog::actions()
         .iter()
         .filter(|action| action.status == Status::Ready)
@@ -38,10 +47,58 @@ pub fn actions() -> Vec<ActionEntry> {
         .map(|action| ActionEntry {
             id: action.id.to_string(),
             icon: action.icon.to_string(),
+            folders: if matches!(action.id, "copy" | "move") {
+                folders.clone()
+            } else {
+                Vec::new()
+            },
         })
         .collect()
 }
 
+/// The folder to copy or move to: one of the recent folders the wheel offered, or one picked in
+/// the folder dialog now (None when it was cancelled). The page never names any other folder.
+async fn destination(
+    app: &AppHandle,
+    state: &AppState,
+    folder: Option<PathBuf>,
+) -> Result<Option<PathBuf>> {
+    let Some(folder) = folder else {
+        return pick_folder(app).await;
+    };
+    let known = state
+        .settings()
+        .recent_folders
+        .iter()
+        .any(|recent| settings::same_folder(recent, &folder));
+    if !known || !folder.is_dir() {
+        return Err(Error::Invalid("not one of the recent folders".into()));
+    }
+    Ok(Some(folder))
+}
+
+/// Puts `folder` first in the recent folders and stores the settings.
+fn remember_folder(state: &AppState, folder: &Path) {
+    let mut settings = state.settings();
+    settings.recent_folders = settings::with_recent_folder(&settings.recent_folders, folder);
+    state.replace_settings(settings.clone());
+    if let Err(err) = settings::save(&state.paths.settings_file(), &settings) {
+        tracing::warn!("the recent folders were not saved: {err}");
+    }
+}
+
+/// The archive a ZIP slice's choice packs into, as a catalog id; ZIP without one.
+fn archive_format(format: Option<&str>) -> Result<&'static str> {
+    match format {
+        None | Some("zip") => Ok("zip"),
+        Some("7z") => Ok("7z"),
+        Some("tar-gz") => Ok("tar-gz"),
+        Some(other) => Err(Error::Invalid(format!("no archive format {other}"))),
+    }
+}
+
+/// Runs an action on the files. `folder` names one of the recent folders for Copy and Move
+/// (without it the folder dialog asks); `format` packs ZIP's archive as a 7Z or a TAR.GZ.
 #[tauri::command]
 pub async fn run_action(
     app: AppHandle,
@@ -49,6 +106,8 @@ pub async fn run_action(
     state: State<'_, AppState>,
     action: String,
     paths: Vec<PathBuf>,
+    folder: Option<PathBuf>,
+    format: Option<String>,
 ) -> Result<Vec<u64>> {
     let paths: Vec<PathBuf> = paths.into_iter().filter(|p| p.exists()).collect();
     let first = paths
@@ -62,13 +121,14 @@ pub async fn run_action(
         "share" => share(&app, &window, paths)?,
         "shelf" => overlay::shelf::put(&app, &paths)?,
         "copy" | "move" => {
-            let Some(dir) = pick_folder(&app).await? else {
+            let Some(dir) = destination(&app, &state, folder).await? else {
                 return Ok(started);
             };
             let moving = action == "move";
             if moving && !confirm_move(&app, &text("move.confirm"), &dir).await {
                 return Ok(started);
             }
+            remember_folder(&state, &dir);
             let ctx = Context::new(&app, &state)?;
             let ids: Vec<u64> = paths
                 .iter()
@@ -101,6 +161,7 @@ pub async fn run_action(
         }
         "reveal" => files::reveal_path(first)?,
         "zip" => {
+            let to = archive_format(format.as_deref())?;
             let ctx = Context::new(&app, &state)?;
             let name = if paths.len() == 1 {
                 stem_of(&first)
@@ -111,15 +172,26 @@ pub async fn run_action(
                     .map(|n| n.to_string_lossy().into_owned())
                     .unwrap_or_else(|| text("action.zip"))
             };
+            let (label, extension) = match catalog::format(to) {
+                Some(format) if to != "zip" => (
+                    text("action.archive").replace("{format}", format.label),
+                    format.extensions[0],
+                ),
+                _ => (text("action.zip"), "zip"),
+            };
             let target = Target::File {
                 dir: ctx.dir_for(&first),
                 stem: name,
-                extension: "zip".into(),
+                extension: extension.into(),
             };
-            let title = format!("{} · {}", text("action.zip"), display(&first));
+            let title = format!("{label} · {}", display(&first));
             let inputs = paths.clone();
-            let work: Work = Box::new(move |dest, _, progress| {
-                kento_engines::archive::create_zip(&inputs, dest, progress)
+            let work: Work = Box::new(move |dest, temp, progress| {
+                if to == "zip" {
+                    kento_engines::archive::create_zip(&inputs, dest, progress)
+                } else {
+                    kento_engines::archive::create_archive(&inputs, to, dest, temp, progress)
+                }
             });
             let id = ctx.submit(title, target, work, Origin::Tool, Some(first));
             watch(&window, &state, &[id]);
@@ -322,6 +394,21 @@ pub fn take_pending_tool(state: State<'_, AppState>) -> Option<(String, Vec<Path
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn zip_packs_into_the_offered_formats_only() {
+        assert_eq!(archive_format(None).unwrap(), "zip");
+        assert_eq!(archive_format(Some("zip")).unwrap(), "zip");
+        assert_eq!(archive_format(Some("7z")).unwrap(), "7z");
+        assert_eq!(archive_format(Some("tar-gz")).unwrap(), "tar-gz");
+        assert!(archive_format(Some("rar")).is_err());
+        assert!(archive_format(Some("tar")).is_err());
+        // Each one the catalog names, with the extension the file gets.
+        for to in ["7z", "tar-gz"] {
+            assert!(catalog::format(to).is_some_and(|format| format.write));
+        }
+        assert_eq!(catalog::format("tar-gz").unwrap().extensions[0], "tar.gz");
+    }
 
     #[test]
     fn names_split_like_the_naming_rules_expect() {

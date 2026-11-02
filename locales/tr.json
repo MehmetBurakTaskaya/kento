@@ -123,6 +123,7 @@
   "action.reveal.windows": "Explorer'da göster",
   "action.reveal.mac": "Finder'da göster",
   "action.zip": "Arşivle (ZIP)",
+  "action.archive": "Arşivle ({format})",
   "home.files.title": "{count, plural, one {# dosya} other {# dosya}}",
   "home.files.label": "Üzerinde çalışılacak dosyalar",
   "home.files.convert": "{count, plural, one {Dönüştür} other {# dosyayı dönüştür}}",

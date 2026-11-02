@@ -98,6 +98,8 @@ pub fn save_settings(
     // The first-use notice of web downloads, once shown, stays shown, whatever an older copy of
     // the settings in a window says (the wheel's quick download marks it in the core).
     new.web.notice_shown |= state.settings().web.notice_shown;
+    // Copy and Move keep their recent folders in the core.
+    new.recent_folders = state.settings().recent_folders;
     let old = state.replace_settings(new.clone());
     settings::save(&state.paths.settings_file(), &new)?;
     if old.launch_at_login != new.launch_at_login {

@@ -123,6 +123,7 @@
   "action.reveal.windows": "Show in Explorer",
   "action.reveal.mac": "Show in Finder",
   "action.zip": "Archive (ZIP)",
+  "action.archive": "Archive ({format})",
   "home.files.title": "{count, plural, one {# file} other {# files}}",
   "home.files.label": "Files to work on",
   "home.files.convert": "{count, plural, one {Convert} other {Convert # files}}",

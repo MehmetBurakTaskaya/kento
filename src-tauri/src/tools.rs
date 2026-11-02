@@ -279,23 +279,30 @@ pub async fn scan_qr(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Result<
         .collect())
 }
 
-/// Saves the codes as "photo - QR codes.txt" (or .csv, .json) next to the first scanned file.
+/// Saves the codes as "photo - QR codes.txt" (or .csv, .json) next to the first scanned file. From
+/// the floating wheel's Read QR choices, the corner card says where they went, or that there were
+/// none.
 #[tauri::command]
 pub fn save_qr_report(
     app: AppHandle,
+    window: WebviewWindow,
     state: State<'_, AppState>,
     found: Vec<FoundCode>,
     report: String,
 ) -> Result<Entry> {
+    let outside = window.label() != crate::window::MAIN;
+    let lang = state.lang();
     let (kind, extension) = match report.as_str() {
         "csv" => (qr::Report::Csv, "csv"),
         "json" => (qr::Report::Json, "json"),
         _ => (qr::Report::Txt, "txt"),
     };
-    let first = found
-        .first()
-        .map(|code| code.file.clone())
-        .ok_or_else(|| Error::Invalid("no codes to save".into()))?;
+    let Some(first) = found.first().map(|code| code.file.clone()) else {
+        if outside {
+            crate::overlay::toast::note(&app, i18n::text(&lang, "tools.qr.none"));
+        }
+        return Err(Error::Invalid("no codes to save".into()));
+    };
     let ctx = Context::new(&app, &state)?;
     let reservation = Reservation::claim(
         &ctx.dir_for(&first),
@@ -317,13 +324,21 @@ pub fn save_qr_report(
         .library
         .add(Origin::Tool, Some(&first), std::slice::from_ref(&path));
     let _ = app.emit("library", ());
+    if outside {
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let saved = i18n::text(&lang, "tools.qr.saved").replace("{name}", &name);
+        crate::overlay::toast::note(&app, saved);
+    }
     let id = item.first().map(|item| item.id).unwrap_or_default();
     state
         .library
         .entries()
         .into_iter()
         .find(|entry| entry.item.id == id)
-        .ok_or_else(|| Error::Invalid(i18n::text(&state.lang(), "error.other")))
+        .ok_or_else(|| Error::Invalid(i18n::text(&lang, "error.other")))
 }
 
 /// More than any QR code holds (2953 bytes at its lowest correction): the preview says so without
