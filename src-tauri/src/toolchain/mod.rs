@@ -777,9 +777,10 @@ pub fn engine_tools(state: &AppState) -> kento_engines::Tools {
     state.toolchain.engine_tools()
 }
 
-/// Starts LibreOffice once with Kento's profile, so the first office job does not wait while the
-/// profile is made (SPEC 7: its first start is slow). Runs on a thread of its own; a call while
-/// one runs does nothing, and a failure is only logged.
+/// Starts LibreOffice with Kento's profile, so the first office job does not wait while the
+/// profile is made (SPEC 7: its first start is slow); it then stays for the jobs that follow, until
+/// it has been idle for a while. Runs on a thread of its own; a call while one runs does nothing,
+/// and a failure is only logged.
 pub fn warm_up_office(app: &AppHandle) {
     static RUNNING: AtomicBool = AtomicBool::new(false);
     /// Frees the flag however the warm-up ends.
@@ -833,6 +834,10 @@ pub fn tools_install(
         Ok(None) => return Ok(()),
         Err(err) => return Err(explain(&state, &err)),
     };
+    if group == OFFICE {
+        // A new copy replaces Kento's earlier one, whose folder a running LibreOffice holds.
+        kento_engines::office::stop_kept();
+    }
     tauri::async_runtime::spawn(async move {
         let emit = |state: InstallState| {
             let progress = InstallProgress {
@@ -846,7 +851,7 @@ pub fn tools_install(
         let last = match toolchain.run(job, &emit).await {
             Ok(()) => {
                 tracing::info!("the {group} tools are installed");
-                if group == "office" {
+                if group == OFFICE {
                     warm_up_office(&app);
                 }
                 InstallState::Ready
@@ -886,9 +891,19 @@ pub async fn tools_remove(
     group: String,
 ) -> crate::error::Result<Vec<ToolGroupStatus>> {
     let toolchain = app.state::<AppState>().toolchain.clone();
-    let result = tauri::async_runtime::spawn_blocking(move || toolchain.remove(&group)).await?;
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        if group == OFFICE {
+            // A running LibreOffice holds the folder that goes.
+            kento_engines::office::stop_kept();
+        }
+        toolchain.remove(&group)
+    })
+    .await?;
     result.map_err(|err| explain(&app.state::<AppState>(), &err))
 }
+
+/// The Office group's id in the lockfile.
+const OFFICE: &str = "office";
 
 /// What "Update yt-dlp" did (`YtDlpUpdate` in src/ipc.ts).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

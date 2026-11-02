@@ -402,12 +402,11 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("Kento could not start")
-        .run(|app, event| {
+        .run(|app, event| match event {
             // With the tray icon on, closing the window keeps Kento running in the tray.
-            if let RunEvent::ExitRequested {
+            RunEvent::ExitRequested {
                 code: None, api, ..
-            } = event
-            {
+            } => {
                 let keep = app
                     .try_state::<AppState>()
                     .is_some_and(|state| state.settings().tray_icon);
@@ -415,5 +414,9 @@ pub fn run() {
                     api.prevent_exit();
                 }
             }
+            // The LibreOffice kept for office jobs goes with Kento. On Windows its job object
+            // would end it with the process anyway; elsewhere nothing else would.
+            RunEvent::Exit => kento_engines::office::shutdown(),
+            _ => {}
         });
 }

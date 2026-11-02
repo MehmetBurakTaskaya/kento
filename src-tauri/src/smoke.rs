@@ -105,12 +105,14 @@ fn media(dir: &Path, tools: kento_engines::Tools) -> Result<String, String> {
 
 /// A short text turned into a Word document and that into a PDF by LibreOffice, then read back
 /// with PDFium, when the Office tools are installed or found. The profile is the one jobs use,
-/// so this also makes it ready.
+/// so this also makes it ready, and LibreOffice is kept between the two as for jobs (the run
+/// ends it as it quits).
 fn office(dir: &Path, tools: kento_engines::Tools, profile: PathBuf) -> Result<String, String> {
     use kento_engines as e;
     let options = e::Options {
         tools,
         office_profile: Some(profile),
+        keep_office: true,
         ..e::Options::default()
     };
     let run = |input: &Path, from: &str, to: &str, dest: &Path| {

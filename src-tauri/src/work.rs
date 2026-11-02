@@ -423,11 +423,13 @@ impl Context {
         self.tools.clone()
     }
 
-    /// The engines' options for this request: the tools found and LibreOffice's profile.
+    /// The engines' options for this request: the tools found and LibreOffice's profile, with
+    /// LibreOffice kept running between office jobs.
     pub(crate) fn options(&self) -> Options {
         Options {
             tools: self.tools.clone(),
             office_profile: Some(self.office_profile.clone()),
+            keep_office: true,
             ..Options::default()
         }
     }
@@ -468,11 +470,7 @@ impl Context {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let mut options = Options {
-            tools: self.tools.clone(),
-            office_profile: Some(self.office_profile.clone()),
-            ..Options::default()
-        };
+        let mut options = self.options();
         if let Some(preset) = preset {
             preset.apply(&mut options);
         }
