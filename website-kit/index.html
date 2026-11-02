@@ -1,0 +1,715 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MIT -->
+<!-- A one-page draft of Kento's page, in English and Turkish, whose texts the project page on
+     mehmetburaktaskaya.com can reuse. It pulls in download-section.html and conversion-table.html, so
+     open it through a local web server (website-kit/README.md). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Kento – local file conversion for Windows and macOS</title>
+  <meta name="description" content="Drag a file, press a key, drop it on the wheel: Kento converts, compresses and edits files on your computer. Free and open source, for Windows and macOS.">
+  <style>
+    :root {
+      --bg: #f2f3f5;
+      --surface: #ffffff;
+      --surface-2: #f5f6f8;
+      --border: #dcdfe4;
+      --border-strong: #aab1ba;
+      --text: #15181c;
+      --muted: #555c67;
+      --accent: #2a4ea6;
+      --accent-hi: #3a62c2;
+      --on-accent: #ffffff;
+      --focus: #2a4ea6;
+      --keycap: #e8ebef;
+      --keycap-text: #2b3036;
+      --keycap-edge: #c3c8ce;
+      --desk: radial-gradient(120% 100% at 18% 0%, #f8f9fa 0%, #e7eaee 52%, #d4d9df 100%);
+      --steel: linear-gradient(90deg, #c7ccd2 0%, #a8aeb6 10%, #91979f 19%, #b4bac1 30%, #eef1f3 38%, #c3c8ce 46%, #a0a6ae 57%, #8a9098 68%, #aeb4bb 78%, #f7f8fa 88%, #d6dade 96%, #c7ccd2 100%);
+      --dial-shadow: drop-shadow(0 1px 2px rgba(26, 34, 48, 0.24)) drop-shadow(0 14px 34px rgba(26, 34, 48, 0.3));
+      --font: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+      --gutter: clamp(16px, 4vw, 48px);
+      --max: 1120px;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #16181b;
+        --surface: #1f2226;
+        --surface-2: #272b30;
+        --border: #32373e;
+        --border-strong: #58606a;
+        --text: #eef0f3;
+        --muted: #a3abb6;
+        --accent: #89a7f5;
+        --accent-hi: #a3bbff;
+        --on-accent: #0a1530;
+        --focus: #a3bbff;
+        --keycap: #30353c;
+        --keycap-text: #dfe4ea;
+        --keycap-edge: #4a5158;
+        --desk: radial-gradient(120% 100% at 18% 0%, #353a40 0%, #1f2226 52%, #121417 100%);
+        --steel: linear-gradient(90deg, #6b7179 0%, #555b63 10%, #454b53 19%, #5d646c 30%, #9ba2aa 38%, #676e76 46%, #4d535b 57%, #3f454c 68%, #585e66 78%, #a9b0b8 88%, #7c838b 96%, #6b7179 100%);
+        --dial-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)) drop-shadow(0 14px 34px rgba(0, 0, 0, 0.62));
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #16181b;
+      --surface: #1f2226;
+      --surface-2: #272b30;
+      --border: #32373e;
+      --border-strong: #58606a;
+      --text: #eef0f3;
+      --muted: #a3abb6;
+      --accent: #89a7f5;
+      --accent-hi: #a3bbff;
+      --on-accent: #0a1530;
+      --focus: #a3bbff;
+      --keycap: #30353c;
+      --keycap-text: #dfe4ea;
+      --keycap-edge: #4a5158;
+      --desk: radial-gradient(120% 100% at 18% 0%, #353a40 0%, #1f2226 52%, #121417 100%);
+      --steel: linear-gradient(90deg, #6b7179 0%, #555b63 10%, #454b53 19%, #5d646c 30%, #9ba2aa 38%, #676e76 46%, #4d535b 57%, #3f454c 68%, #585e66 78%, #a9b0b8 88%, #7c838b 96%, #6b7179 100%);
+      --dial-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)) drop-shadow(0 14px 34px rgba(0, 0, 0, 0.62));
+      color-scheme: dark;
+    }
+
+    /* One language at a time (the switch in the header sets <html lang>). */
+    html:lang(tr) [data-l="en"],
+    html:not(:lang(tr)) [data-l="tr"] {
+      display: none !important;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+    a:hover { color: var(--accent-hi); }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+    h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+    p { margin: 0; }
+    code, pre { font-family: var(--mono); }
+    .wrap { max-inline-size: var(--max); margin-inline: auto; padding-inline: var(--gutter); }
+    .skip { position: absolute; inset-inline-start: 8px; inset-block-start: -100px; padding: 8px 12px; background: var(--surface); }
+    .skip:focus { inset-block-start: 8px; z-index: 10; }
+
+    /* Header */
+    .top { border-block-end: 1px solid var(--border); background: var(--surface); }
+    .top .wrap { display: flex; gap: 16px; align-items: center; min-block-size: 60px; }
+    .brand { display: inline-flex; gap: 10px; align-items: center; color: var(--text); font-size: 1.125rem; font-weight: 600; text-decoration: none; }
+    .brand svg { inline-size: 32px; block-size: 32px; }
+    .nav { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-inline-start: auto; font-size: 0.9375rem; }
+    .nav a { color: var(--muted); text-decoration: none; }
+    .nav a:hover { color: var(--text); }
+    .langs { display: inline-flex; padding: 2px; border: 1px solid var(--border); border-radius: 6px; }
+    .langs button {
+      min-block-size: 32px;
+      padding: 2px 10px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .langs button[aria-pressed="true"] { background: var(--keycap); color: var(--text); font-weight: 600; }
+    @media (max-width: 760px) {
+      .nav a:not(.nav-download) { display: none; }
+    }
+
+    /* Hero */
+    .hero { background: var(--desk); border-block-end: 1px solid var(--border); }
+    .hero .wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); align-items: center; padding-block: clamp(40px, 7vw, 88px); }
+    .eyebrow { color: var(--muted); font-size: 0.9375rem; font-weight: 600; }
+    .hero h1 { margin-block-start: 12px; font-size: clamp(2rem, 1.3rem + 3vw, 3.25rem); letter-spacing: -0.02em; text-wrap: balance; }
+    .hero .lede { margin-block-start: 18px; max-inline-size: 36rem; color: var(--muted); font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem); }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-block-start: 28px; }
+    .button {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      min-block-size: 44px;
+      padding: 10px 20px;
+      border-radius: 6px;
+      background: var(--accent);
+      color: var(--on-accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .button:hover { background: var(--accent-hi); color: var(--on-accent); }
+    .facts { margin-block-start: 22px; color: var(--muted); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+    .hero-dial { position: relative; inline-size: min(100%, 460px); margin-inline: auto; aspect-ratio: 1; touch-action: manipulation; }
+    .hero-dial svg { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; overflow: visible; filter: var(--dial-shadow); user-select: none; }
+    .hero-dial .is-dark { display: none; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .hero-dial .is-light { display: none; }
+      :root:not([data-theme="light"]) .hero-dial .is-dark { display: block; }
+    }
+    :root[data-theme="dark"] .hero-dial .is-light { display: none; }
+    :root[data-theme="dark"] .hero-dial .is-dark { display: block; }
+    .hero-dial .kw-dial,
+    .hero-dial .kw-handle { transform-box: fill-box; transform-origin: center; transition: transform 170ms cubic-bezier(0.12, 0.75, 0.3, 1.06); }
+    .hero-dial.is-opening .kw-dial { transition-duration: 900ms; }
+    .hero-dial .kw-handle { transition: transform 360ms cubic-bezier(0.45, 0, 0.35, 1); }
+    .hero-dial .kw-bolt { transition: transform 300ms cubic-bezier(0.3, 0, 0.2, 1) 100ms; }
+    .hero-dial .kw-cell, .hero-dial .kw-window, .hero-dial .kw-keyline, .hero-dial .kw-inlay, .hero-dial .kw-latch { transition: opacity 110ms; }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-dial .kw-dial, .hero-dial .kw-handle, .hero-dial .kw-bolt { transition: none !important; }
+    }
+    @media (max-width: 820px) {
+      .hero .wrap { grid-template-columns: minmax(0, 1fr); }
+      .hero-dial { inline-size: min(100%, 360px); }
+    }
+
+    /* Sections */
+    main > section { padding-block: clamp(44px, 7vw, 80px); border-block-end: 1px solid var(--border); }
+    main > section:nth-of-type(even) { background: var(--surface); }
+    .section-head { max-inline-size: 46rem; }
+    .section-head h2 { font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.125rem); text-wrap: balance; }
+    .section-head p { margin-block-start: 14px; color: var(--muted); font-size: 1.0625rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-block-start: 32px; }
+    .card { padding: 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+    main > section:nth-of-type(even) .card { background: var(--surface-2); }
+    .card h3 { font-size: 1.125rem; }
+    .card p { margin-block-start: 8px; color: var(--muted); }
+    .card .tag { display: inline-block; margin-block-end: 10px; color: var(--muted); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .steel-rule { block-size: 4px; margin-block-end: 18px; border-radius: 2px; background: var(--steel); inline-size: 56px; }
+    kbd {
+      display: inline-block;
+      min-inline-size: 1.6em;
+      padding: 0 0.45em;
+      border: 1px solid var(--keycap-edge);
+      border-block-end-width: 2px;
+      border-radius: 4px;
+      background: var(--keycap);
+      color: var(--keycap-text);
+      font-size: 0.85em;
+      font-weight: 600;
+      line-height: 1.5;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* The keys of the three wheels */
+    .wheels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-block-start: 32px; }
+    .wheel-card { padding: 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+    .wheel-card h3 { font-size: 1.125rem; }
+    .wheel-card .keys { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-block-start: 10px; color: var(--muted); font-size: 0.875rem; }
+    .wheel-card p { margin-block-start: 10px; color: var(--muted); font-size: 0.9375rem; }
+    @media (max-width: 760px) { .wheels { grid-template-columns: minmax(0, 1fr); } }
+    .ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px 32px; margin: 28px 0 0; padding: 0; list-style: none; }
+    .ways li { padding-inline-start: 18px; border-inline-start: 2px solid var(--border-strong); color: var(--muted); }
+    .ways strong { color: var(--text); font-weight: 600; }
+    .note { margin-block-start: 22px; color: var(--muted); font-size: 0.9375rem; }
+
+    /* Tools */
+    .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px 28px; margin-block-start: 28px; }
+    .tools h3 { font-size: 0.8125rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .tools ul { margin: 8px 0 0; padding: 0; list-style: none; }
+    .tools li { padding-block: 3px; border-block-end: 1px solid var(--border); }
+
+    /* Command line */
+    pre {
+      overflow-x: auto;
+      margin: 24px 0 0;
+      padding: 18px 20px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #15181c;
+      color: #e3e8ed;
+      font-size: 0.9375rem;
+      line-height: 1.7;
+    }
+    pre .prompt { color: #8a929c; user-select: none; }
+
+    /* Privacy and updates */
+    .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(24px, 4vw, 56px); }
+    @media (max-width: 760px) { .split { grid-template-columns: minmax(0, 1fr); } }
+    .split ul { margin: 14px 0 0; padding-inline-start: 1.25rem; color: var(--muted); }
+    .split li + li { margin-block-start: 6px; }
+    .split p + p { margin-block-start: 12px; }
+    .split .body { color: var(--muted); margin-block-start: 14px; }
+
+    /* FAQ */
+    .faq { margin-block-start: 28px; max-inline-size: 52rem; }
+    .faq details { border-block-end: 1px solid var(--border); }
+    .faq summary { padding-block: 14px; font-weight: 600; cursor: pointer; }
+    .faq details p { padding-block-end: 16px; color: var(--muted); }
+
+    /* Footer */
+    footer { padding-block: 32px 48px; color: var(--muted); font-size: 0.9375rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; }
+    footer .made { color: var(--text); font-weight: 600; }
+    .include-missing { padding: 18px; border: 1px dashed var(--border-strong); border-radius: 10px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main"><span data-l="en">Skip to the content</span><span data-l="tr">İçeriğe geç</span></a>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="Kento">
+        <svg viewBox="0 0 256 256" aria-hidden="true">
+          <defs>
+            <radialGradient id="mark-face" cx="0.4" cy="0.32" r="0.78"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e1e5e9"/></radialGradient>
+            <linearGradient id="mark-blue" x1="0.15" y1="0" x2="0.85" y2="1"><stop offset="0" stop-color="#4b74d8"/><stop offset="0.55" stop-color="#2a4ea6"/><stop offset="1" stop-color="#1a3170"/></linearGradient>
+            <linearGradient id="mark-ring" x1="0.2" y1="0.05" x2="0.8" y2="0.95"><stop offset="0" stop-color="#c3c8ce"/><stop offset="0.5" stop-color="#858c95"/><stop offset="1" stop-color="#4a5159"/></linearGradient>
+            <linearGradient id="mark-bolt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6d747d"/><stop offset="0.3" stop-color="#fbfcfd"/><stop offset="0.56" stop-color="#b9bfc6"/><stop offset="0.86" stop-color="#737a83"/><stop offset="1" stop-color="#4c535b"/></linearGradient>
+          </defs>
+          <g transform="rotate(45 128 128)"><rect x="104.77" y="10.84" width="46.46" height="46.46" rx="2.53" fill="url(#mark-bolt)" stroke="#2b3138" stroke-opacity="0.85" stroke-width="9.09"/></g>
+          <g transform="rotate(135 128 128)"><rect x="104.77" y="10.84" width="46.46" height="46.46" rx="2.53" fill="url(#mark-bolt)" stroke="#2b3138" stroke-opacity="0.85" stroke-width="9.09"/></g>
+          <g transform="rotate(225 128 128)"><rect x="104.77" y="10.84" width="46.46" height="46.46" rx="2.53" fill="url(#mark-bolt)" stroke="#2b3138" stroke-opacity="0.85" stroke-width="9.09"/></g>
+          <g transform="rotate(315 128 128)"><rect x="104.77" y="10.84" width="46.46" height="46.46" rx="2.53" fill="url(#mark-bolt)" stroke="#2b3138" stroke-opacity="0.85" stroke-width="9.09"/></g>
+          <circle cx="128" cy="128" r="101" fill="url(#mark-ring)" stroke="#2b3138" stroke-opacity="0.9" stroke-width="9.09"/>
+          <circle cx="128" cy="128" r="64.64" fill="url(#mark-face)"/>
+          <path d="M128 128L93.75 73.18A64.64 64.64 0 0 1 162.25 73.18Z" fill="url(#mark-blue)"/>
+        </svg>
+        Kento
+      </a>
+      <nav class="nav" aria-label="Kento">
+        <a href="#wheel"><span data-l="en">The wheel</span><span data-l="tr">Çark</span></a>
+        <a href="#conversions"><span data-l="en">Formats</span><span data-l="tr">Biçimler</span></a>
+        <a href="#privacy"><span data-l="en">Privacy</span><span data-l="tr">Gizlilik</span></a>
+        <a href="#faq"><span data-l="en">Questions</span><span data-l="tr">Sorular</span></a>
+        <a class="nav-download" href="#download"><span data-l="en">Download</span><span data-l="tr">İndir</span></a>
+      </nav>
+      <div class="langs" role="group" aria-label="Language / Dil">
+        <button type="button" data-set-lang="en" lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-set-lang="tr" lang="tr" aria-pressed="false">TR</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="hero" id="top">
+      <div class="wrap">
+        <div>
+          <p class="eyebrow"><span data-l="en">Free and open source · Windows and macOS</span><span data-l="tr">Ücretsiz ve açık kaynak · Windows ve macOS</span></p>
+          <h1><span data-l="en">Drag a file, press a key, drop it on the wheel.</span><span data-l="tr">Dosyayı sürükleyin, bir tuşa basın, çarka bırakın.</span></h1>
+          <p class="lede"><span data-l="en">Kento converts, compresses and edits files right where you work. Press Shift while you drag a file and a steel dial opens under the pointer. Drop the file on a slice and the job runs at once, on your computer.</span><span data-l="tr">Kento dosyaları çalıştığınız yerde dönüştürür, sıkıştırır ve düzenler. Bir dosyayı sürüklerken Shift’e basın: imlecin altında çelik bir kadran açılır. Dosyayı bir dilime bırakın; iş hemen, bilgisayarınızda yapılır.</span></p>
+          <div class="actions">
+            <a class="button" href="#download"><span data-l="en">Download</span><span data-l="tr">İndir</span></a>
+            <a href="https://github.com/MehmetBurakTaskaya/kento"><span data-l="en">Source code on GitHub</span><span data-l="tr">GitHub’daki kaynak kodu</span></a>
+          </div>
+          <p class="facts" data-facts><span data-l="en"><span data-n="formats">54</span> formats · <span data-n="routes">355</span> conversions · <span data-n="tools">31</span> tools · no account, no telemetry</span><span data-l="tr"><span data-n="formats">54</span> biçim · <span data-n="routes">355</span> dönüştürme · <span data-n="tools">31</span> araç · hesap yok, telemetri yok</span></p>
+        </div>
+        <div class="hero-dial" data-dial aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <section id="wheel" aria-labelledby="wheel-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="steel-rule"></div>
+          <h2 id="wheel-title"><span data-l="en">One gesture, three wheels</span><span data-l="tr">Tek hareket, üç çark</span></h2>
+          <p><span data-l="en">While you drag files from File Explorer, Finder or another app, press a modifier key and the wheel opens under the pointer. Keep dragging and drop the files on a slice; you can let go of the key whenever you like. Esc, or a drop outside the wheel, cancels.</span><span data-l="tr">Explorer’dan, Finder’dan ya da başka bir uygulamadan dosya sürüklerken bir değiştirici tuşa basın; çark imlecin altında açılır. Sürüklemeyi sürdürün ve dosyaları bir dilime bırakın; tuşu istediğiniz an bırakabilirsiniz. Esc ya da çarkın dışına bırakmak işlemi iptal eder.</span></p>
+        </div>
+        <div class="wheels">
+          <div class="wheel-card">
+            <h3><span data-l="en">Convert</span><span data-l="tr">Dönüştür</span></h3>
+            <p class="keys"><span>Windows <kbd>Shift</kbd></span><span>macOS <kbd>Shift</kbd></span></p>
+            <p><span data-l="en">Only the formats that fit every selected file; several files convert in one go.</span><span data-l="tr">Yalnızca seçili dosyaların hepsine uyan biçimler; birden çok dosya tek seferde dönüşür.</span></p>
+          </div>
+          <div class="wheel-card">
+            <h3><span data-l="en">Tools</span><span data-l="tr">Araçlar</span></h3>
+            <p class="keys"><span>Windows <kbd>Ctrl</kbd></span><span>macOS <kbd>⌘</kbd></span></p>
+            <p><span data-l="en">Compress, crop, trim, merge, edit metadata and more, with your recipes under Favorites.</span><span data-l="tr">Sıkıştırma, kırpma, kesme, birleştirme, meta veri düzenleme ve daha fazlası; tarifleriniz Favoriler altında.</span></p>
+          </div>
+          <div class="wheel-card">
+            <h3><span data-l="en">File actions</span><span data-l="tr">Dosya işlemleri</span></h3>
+            <p class="keys"><span>Windows <kbd>Alt</kbd></span><span>macOS <kbd>⌃</kbd></span></p>
+            <p><span data-l="en">Share, put on the shelf, copy, move, copy the path, open a terminal there, or pack it into a ZIP.</span><span data-l="tr">Paylaşın, rafa koyun, kopyalayın, taşıyın, yolunu kopyalayın, orada terminal açın ya da ZIP’leyin.</span></p>
+          </div>
+        </div>
+        <p class="note"><span data-l="en">Every key and combination can be changed in Settings. Pressing another modifier while the wheel is open switches to its wheel.</span><span data-l="tr">Her tuş ve tuş birleşimi Ayarlar’dan değiştirilebilir. Çark açıkken başka bir değiştirici tuşa basmak, o tuşun çarkına geçer.</span></p>
+        <ul class="ways">
+          <li><strong><span data-l="en">Rings of choices.</span><span data-l="tr">Seçenek halkaları.</span></strong> <span data-l="en">Rest on a slice for half a second and its choices open around it: picture quality, one PDF or one per picture, Compress presets, recent folders for Copy and Move. Rest on the hub to go back; a plain drop applies the default.</span><span data-l="tr">Bir dilimin üzerinde yarım saniye bekleyin, seçenekleri çevresinde açılır: görsel kalitesi, tek PDF ya da her görsele bir PDF, Sıkıştır ön ayarları, Kopyala ve Taşı için son klasörler. Geri dönmek için göbekte bekleyin; doğrudan bırakmak varsayılanı uygular.</span></li>
+          <li><strong><span data-l="en">Selected files.</span><span data-l="tr">Seçili dosyalar.</span></strong> <span data-l="en"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (<kbd>⌃⇧Space</kbd> on a Mac) opens the wheel for the files selected in File Explorer or Finder.</span><span data-l="tr"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (Mac’te <kbd>⌃⇧Space</kbd>), Explorer’da ya da Finder’da seçili dosyalar için çarkı açar.</span></li>
+          <li><strong><span data-l="en">The main window.</span><span data-l="tr">Ana pencere.</span></strong> <span data-l="en">Drop files, choose them with <kbd>Ctrl</kbd>+<kbd>O</kbd> or paste with <kbd>Ctrl</kbd>+<kbd>V</kbd>: pasted text becomes a .txt file, a picture a .png and a link a download.</span><span data-l="tr">Dosyaları bırakın, <kbd>Ctrl</kbd>+<kbd>O</kbd> ile seçin ya da <kbd>Ctrl</kbd>+<kbd>V</kbd> ile yapıştırın: yapıştırılan metin .txt dosyası, görsel .png, bağlantı ise indirme olur.</span></li>
+          <li><strong><span data-l="en">Links from the browser.</span><span data-l="tr">Tarayıcıdan bağlantılar.</span></strong> <span data-l="en">Drag a video or a link with a modifier key and the wheel offers to download it.</span><span data-l="tr">Bir videoyu ya da bağlantıyı bir değiştirici tuşla sürükleyin; çark onu indirmeyi önerir.</span></li>
+          <li><strong><span data-l="en">Send To and the right-click menu</span><span data-l="tr">Gönder ve sağ tık menüsü</span></strong> <span data-l="en">on Windows, each switchable in Settings.</span><span data-l="tr">Windows’ta; ikisi de Ayarlar’dan açılıp kapatılabilir.</span></li>
+          <li><strong><span data-l="en">The keyboard.</span><span data-l="tr">Klavye.</span></strong> <span data-l="en">Everything on the wheel works with the arrow keys, Enter and Esc, and every slice has a label for screen readers.</span><span data-l="tr">Çarktaki her şey yön tuşları, Enter ve Esc ile çalışır; her dilimin ekran okuyucular için bir etiketi vardır.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="conversions" aria-labelledby="conversions-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="steel-rule"></div>
+          <h2 id="conversions-title"><span data-l="en">Conversions</span><span data-l="tr">Dönüştürme</span></h2>
+          <p><span data-l="en">Pictures, video, audio, documents, spreadsheets, presentations, subtitles, PDF and archives. Kento never overwrites a file: photo.heic becomes photo.jpg next to it, or photo (2).jpg when that name is taken.</span><span data-l="tr">Görseller, video, ses, belgeler, tablolar, sunumlar, altyazılar, PDF ve arşivler. Kento hiçbir dosyanın üzerine yazmaz: foto.heic yanında foto.jpg olur; bu ad doluysa foto (2).jpg.</span></p>
+          <p><span data-l="en">Pictures, PDF, archives, text and spreadsheets work as soon as Kento is installed. For video and audio Kento downloads FFmpeg, for office documents LibreOffice: it shows the size first, checks every download against a fixed fingerprint and uses the copies you already have.</span><span data-l="tr">Görseller, PDF, arşivler, metin ve tablolar Kento kurulur kurulmaz çalışır. Video ve ses için Kento FFmpeg’i, ofis belgeleri için LibreOffice’i indirir: önce boyutunu gösterir, her indirmeyi sabit bir parmak izine göre doğrular ve bilgisayarınızda zaten olanları kullanır.</span></p>
+        </div>
+        <div data-include="conversion-table.html"><p class="include-missing"><a href="conversion-table.html">conversion-table.html</a></p></div>
+      </div>
+    </section>
+
+    <section id="tools" aria-labelledby="tools-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="steel-rule"></div>
+          <h2 id="tools-title"><span data-l="en">Tools</span><span data-l="tr">Araçlar</span></h2>
+          <p><span data-l="en">The Tools wheel offers what fits the file. Each tool opens in a small window with a preview and saves the result as a new copy. Compress works by quality, by a share of the original size or to a target such as under 25 MB.</span><span data-l="tr">Araçlar çarkı dosyaya uyanları sunar. Her araç önizlemeli küçük bir pencerede açılır ve sonucu yeni bir kopya olarak kaydeder. Sıkıştır; bir kaliteye, özgün boyutun bir oranına ya da “25 MB’ın altı” gibi bir hedefe göre çalışır.</span></p>
+        </div>
+        <div class="tools">
+          <div>
+            <h3><span data-l="en">Image</span><span data-l="tr">Görsel</span></h3>
+            <ul data-l="en"><li>Compress</li><li>Metadata</li><li>Edit image</li><li>Mark up</li><li>Add frame</li><li>Crop image</li><li>Make a collage</li><li>Redact image</li><li>Remove background</li><li>Extract text</li><li>Read QR codes</li><li>Make a QR code</li></ul>
+            <ul data-l="tr"><li>Sıkıştır</li><li>Meta veri</li><li>Görseli düzenle</li><li>İşaretle</li><li>Çerçeve ekle</li><li>Görseli kırp</li><li>Kolaj oluştur</li><li>Görselde gizle</li><li>Arka planı kaldır</li><li>Metni çıkar</li><li>QR kod oku</li><li>QR kod oluştur</li></ul>
+          </div>
+          <div>
+            <h3><span data-l="en">Video</span><span data-l="tr">Video</span></h3>
+            <ul data-l="en"><li>Compress</li><li>Trim video</li><li>Split video</li><li>Merge videos</li><li>Crop video area</li><li>Change video speed</li><li>Remove audio</li><li>Extract frames</li><li>Redact video</li><li>Burn in subtitles</li><li>Metadata</li></ul>
+            <ul data-l="tr"><li>Sıkıştır</li><li>Videoyu kes</li><li>Videoyu böl</li><li>Videoları birleştir</li><li>Video alanını kırp</li><li>Video hızını değiştir</li><li>Videonun sesini kaldır</li><li>Video karelerini çıkar</li><li>Videoda gizle</li><li>Altyazı göm</li><li>Meta veri</li></ul>
+          </div>
+          <div>
+            <h3><span data-l="en">Audio</span><span data-l="tr">Ses</span></h3>
+            <ul data-l="en"><li>Compress</li><li>Normalize loudness</li><li>Trim audio</li><li>Audio channels</li><li>Redact audio</li><li>Audio to video</li><li>Metadata</li></ul>
+            <ul data-l="tr"><li>Sıkıştır</li><li>Ses seviyesini normalize et</li><li>Sesi kes</li><li>Ses kanalları</li><li>Seste gizle</li><li>Sesten video</li><li>Meta veri</li></ul>
+          </div>
+          <div>
+            <h3><span data-l="en">PDF and archives</span><span data-l="tr">PDF ve arşivler</span></h3>
+            <ul data-l="en"><li>Compress</li><li>Split PDF</li><li>Edit PDF</li><li>Merge PDFs</li><li>PDF from images</li><li>Metadata</li><li>Extract archive: ZIP, TAR, GZIP, RAR, 7Z</li></ul>
+            <ul data-l="tr"><li>Sıkıştır</li><li>PDF’yi böl</li><li>PDF’yi düzenle</li><li>PDF’leri birleştir</li><li>Görsellerden PDF</li><li>Meta veri</li><li>Arşivi aç: ZIP, TAR, GZIP, RAR, 7Z</li></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="more" aria-labelledby="more-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="steel-rule"></div>
+          <h2 id="more-title"><span data-l="en">Around the wheel</span><span data-l="tr">Çarkın çevresinde</span></h2>
+          <p><span data-l="en">A shelf, web downloads, folder rules and a few tools that do one thing well.</span><span data-l="tr">Bir raf, web’den indirmeler, klasör kuralları ve tek bir işi iyi yapan birkaç araç.</span></p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <h3><span data-l="en">File actions</span><span data-l="tr">Dosya işlemleri</span></h3>
+            <p><span data-l="en">Share, Put on shelf, Copy to…, Move to…, Copy path, Open in terminal, Show in Explorer or Finder, and Archive. They take any file, folders and mixed selections. Move is the one action that touches the original, and it asks first.</span><span data-l="tr">Paylaş, Rafa koy, Kopyala…, Taşı…, Yolu kopyala, Terminalde aç, Explorer’da ya da Finder’da göster ve Arşivle. Her dosyayla, klasörlerle ve karışık seçimlerle çalışır. Özgün dosyaya dokunan tek işlem Taşı’dır ve önce sorar.</span></p>
+          </article>
+          <article class="card">
+            <h3><span data-l="en">Shelf</span><span data-l="tr">Raf</span></h3>
+            <p><span data-l="en">A small steel tray at the edge of the screen. Drop files on it, go to another folder, then drag them out where they belong. The shelf keeps a reference, not a copy, and shows when a file was moved or deleted.</span><span data-l="tr">Ekranın kenarında küçük, çelik bir tepsi. Dosyaları üzerine bırakın, başka bir klasöre geçin, sonra onları ait oldukları yere sürükleyin. Raf dosyanın kopyasını değil yerini tutar ve bir dosya taşındığında ya da silindiğinde bunu gösterir.</span></p>
+          </article>
+          <article class="card">
+            <h3><span data-l="en">Web downloads</span><span data-l="tr">Web’den indirme</span></h3>
+            <p><span data-l="en">Paste a link on Home, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> for the link on the clipboard, or drag a video from the browser with a modifier: the video, the audio as MP3, or the original. Only download content you have the right to download. Content with DRM, live streams, content behind a login, whole profiles and playlists are not supported.</span><span data-l="tr">Ana Sayfa’da bir bağlantı yapıştırın, panodaki bağlantı için <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>’ye basın ya da tarayıcıdan bir videoyu değiştirici tuşla sürükleyin: video, MP3 olarak ses ya da orijinali. Yalnızca indirme hakkınız olan içerikleri indirin. DRM’li içerikler, canlı yayınlar, giriş gerektiren içerikler, profillerin tamamı ve oynatma listeleri desteklenmez.</span></p>
+          </article>
+          <article class="card">
+            <h3><span data-l="en">Folder rules and recipes</span><span data-l="tr">Klasör kuralları ve tarifler</span></h3>
+            <p><span data-l="en">A rule watches a folder and handles every new file that lands in it: PNGs that land in Screenshots become WEBP files in Optimized. A recipe chains steps under a name, such as Ready for Instagram: crop to 4:5, resize to 1080 px, compress under 2 MB. Recipes appear on the Tools wheel under Favorites.</span><span data-l="tr">Bir kural bir klasörü izler ve oraya düşen her yeni dosyayı işler: Ekran Görüntüleri’ne düşen PNG’ler Optimize klasöründe WEBP olur. Tarif, adımları bir ad altında birleştirir; örneğin Instagram için hazır: 4:5 kırp, 1080 piksele küçült, 2 MB’ın altına sıkıştır. Tarifler Araçlar çarkında Favoriler altında görünür.</span></p>
+          </article>
+          <article class="card">
+            <h3><span data-l="en">Remove background</span><span data-l="tr">Arka planı kaldır</span></h3>
+            <p><span data-l="en">Turns a photo into a PNG with a transparent background, with a model that runs on your computer. ONNX Runtime and the BEN2 Base model, both under the MIT License, come with the Extras tools when you ask for them.</span><span data-l="tr">Bir fotoğrafı, bilgisayarınızda çalışan bir modelle arka planı saydam bir PNG’ye çevirir. ONNX Runtime ve BEN2 Base modeli (ikisi de MIT lisanslı), siz istediğinizde Ekstra araçlarla gelir.</span></p>
+          </article>
+          <article class="card">
+            <h3><span data-l="en">Extract text</span><span data-l="tr">Metni çıkar</span></h3>
+            <p><span data-l="en">Reads the text in pictures and scanned pages with the recognizer built into Windows, or Apple Vision on a Mac. Nothing extra to download; Kento says when a language’s recognizer is missing.</span><span data-l="tr">Görsellerdeki ve taranmış sayfalardaki metni Windows’un yerleşik tanıyıcısıyla, Mac’te Apple Vision ile okur. Ek bir indirme gerekmez; bir dilin tanıyıcısı eksikse Kento bunu söyler.</span></p>
+          </article>
+          <article class="card">
+            <h3><span data-l="en">QR codes</span><span data-l="tr">QR kodlar</span></h3>
+            <p><span data-l="en">Read the QR codes in pictures and PDF pages and keep them as a TXT, CSV or JSON report, or make a QR code as PNG or SVG from a text or a link.</span><span data-l="tr">Görsellerdeki ve PDF sayfalarındaki QR kodları okuyup TXT, CSV ya da JSON raporu olarak saklayın; ya da bir metinden veya bağlantıdan PNG ya da SVG biçiminde QR kod oluşturun.</span></p>
+          </article>
+          <article class="card">
+            <h3><span data-l="en">Subtitles</span><span data-l="tr">Altyazılar</span></h3>
+            <p><span data-l="en">Convert SRT and VTT into each other or into plain text, and burn subtitles into a video for good.</span><span data-l="tr">SRT ile VTT’yi birbirine ya da düz metne dönüştürün; altyazıları bir videoya kalıcı olarak gömün.</span></p>
+          </article>
+          <article class="card">
+            <h3><span data-l="en">Window layouts</span><span data-l="tr">Pencere yerleşimleri</span></h3>
+            <p><span data-l="en">Off until you turn it on in Settings. Then <kbd>Ctrl</kbd>+<kbd>Alt</kbd> with an arrow, Home, End, Page Up or Page Down (<kbd>⌃⌥⌘</kbd> with an arrow or U, I, J, K on a Mac) puts the active window in a half, a quarter, the middle or the whole screen, and so does the wheel’s Window ring. No shortcut uses the Windows key, so Snap stays as it is.</span><span data-l="tr">Ayarlar’dan açana kadar kapalıdır. Açıldığında <kbd>Ctrl</kbd>+<kbd>Alt</kbd> ile birlikte bir yön tuşu, Home, End, Page Up ya da Page Down (Mac’te <kbd>⌃⌥⌘</kbd> ile birlikte bir yön tuşu ya da U, I, J, K) etkin pencereyi ekranın bir yarısına, bir çeyreğine, ortasına ya da tamamına yerleştirir; çarkın Pencere halkası da aynısını yapar. Hiçbir kısayol Windows tuşunu kullanmaz; Windows’un Snap özelliği olduğu gibi kalır.</span></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="cli" aria-labelledby="cli-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="steel-rule"></div>
+          <h2 id="cli-title"><span data-l="en">Command line</span><span data-l="tr">Komut satırı</span></h2>
+          <p><span data-l="en">The kento command converts, compresses and runs recipes from a terminal or a script, without opening a window. Results go next to each file or into the --out folder, and the exit code tells a script how it went.</span><span data-l="tr">kento komutu bir terminalden ya da betikten dönüştürür, sıkıştırır ve tarif çalıştırır; pencere açmaz. Sonuçlar her dosyanın yanına ya da --out klasörüne yazılır; çıkış kodu, betiğe işin nasıl gittiğini söyler.</span></p>
+        </div>
+<pre data-l="en"><code><span class="prompt">&gt; </span>kento convert photo.heic --to jpg
+<span class="prompt">&gt; </span>kento tool compress video.mp4 --target-size 25MB
+<span class="prompt">&gt; </span>kento recipe run "Ready for Instagram" beach.jpg
+<span class="prompt">&gt; </span>kento routes heic</code></pre>
+<pre data-l="tr"><code><span class="prompt">&gt; </span>kento convert foto.heic --to jpg
+<span class="prompt">&gt; </span>kento tool compress video.mp4 --target-size 25MB
+<span class="prompt">&gt; </span>kento recipe run "Instagram için hazır" sahil.jpg
+<span class="prompt">&gt; </span>kento routes heic</code></pre>
+      </div>
+    </section>
+
+    <section id="privacy" aria-labelledby="privacy-title">
+      <div class="wrap split">
+        <div>
+          <div class="steel-rule"></div>
+          <h2 id="privacy-title"><span data-l="en">Your files stay on your computer</span><span data-l="tr">Dosyalarınız bilgisayarınızda kalır</span></h2>
+          <p class="body"><span data-l="en">Kento converts and edits files on your computer and never uploads them. There is no account, no analytics and no telemetry, and nothing about you is sent anywhere. Kento goes online only:</span><span data-l="tr">Kento dosyaları bilgisayarınızda dönüştürür ve düzenler; onları hiçbir yere yüklemez. Hesap, analiz ya da telemetri yoktur ve sizinle ilgili hiçbir bilgi bir yere gönderilmez. Kento yalnızca şu durumlarda internete bağlanır:</span></p>
+          <ul data-l="en">
+            <li>to check GitHub for updates;</li>
+            <li>to download the tools you agreed to install (FFmpeg, LibreOffice, yt-dlp, Deno, ExifTool, ONNX Runtime and the background-removal model), each from its own builds and checked against a fixed fingerprint;</li>
+            <li>to download the links you asked it to download.</li>
+          </ul>
+          <ul data-l="tr">
+            <li>güncellemeler için GitHub’a bakmak;</li>
+            <li>kurmayı kabul ettiğiniz araçları (FFmpeg, LibreOffice, yt-dlp, Deno, ExifTool, ONNX Runtime ve arka plan kaldırma modeli) indirmek; her biri kendi derlemelerinden gelir ve sabit bir parmak izine göre doğrulanır;</li>
+            <li>indirmesini istediğiniz bağlantıları indirmek.</li>
+          </ul>
+          <p class="body"><span data-l="en">It never reads your browser’s cookies and never watches your clipboard: it reads the clipboard only when you paste.</span><span data-l="tr">Tarayıcınızın çerezlerini okumaz, panonuzu izlemez: panoyu yalnızca siz yapıştırdığınızda okur.</span></p>
+        </div>
+        <div id="updates">
+          <div class="steel-rule"></div>
+          <h2><span data-l="en">Signed updates, the same for everyone</span><span data-l="tr">İmzalı güncellemeler, herkes için aynı</span></h2>
+          <p class="body"><span data-l="en">Updates are mandatory. Kento looks for a new version when it starts and every few hours, downloads it in the background and checks its signature against the project’s key before anything is installed. Jobs that are running finish first; then Kento restarts with the new version.</span><span data-l="tr">Güncellemeler zorunludur. Kento açılışta ve birkaç saatte bir yeni sürüm arar, onu arka planda indirir ve hiçbir şey kurulmadan önce imzasını projenin anahtarıyla doğrular. Süren işler önce biter; ardından Kento yeni sürümle yeniden başlar.</span></p>
+          <p class="body"><span data-l="en">There is no “skip this version”: only the newest release is published, and everyone runs it. Without a connection Kento keeps working and updates once it is back online. The portable ZIP updates itself the same way, and <kbd>Ctrl</kbd>+<kbd>U</kbd> (<kbd>⌘U</kbd>) checks at once.</span><span data-l="tr">“Bu sürümü atla” seçeneği yoktur: yalnızca en yeni sürüm yayımdadır ve herkes onu kullanır. Bağlantı yokken Kento çalışmayı sürdürür ve internete yeniden bağlanınca güncellenir. Taşınabilir ZIP de kendini aynı şekilde günceller; <kbd>Ctrl</kbd>+<kbd>U</kbd> (<kbd>⌘U</kbd>) hemen denetler.</span></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" aria-labelledby="faq-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="steel-rule"></div>
+          <h2 id="faq-title"><span data-l="en">Questions</span><span data-l="tr">Sorular</span></h2>
+        </div>
+        <div class="faq">
+          <details>
+            <summary><span data-l="en">Is Kento free?</span><span data-l="tr">Kento ücretsiz mi?</span></summary>
+            <p><span data-l="en">Yes. Kento is free and open source under the MIT License: no account, no subscription and no paid version.</span><span data-l="tr">Evet. Kento, MIT Lisansı ile ücretsiz ve açık kaynaktır: hesap, abonelik ya da ücretli sürüm yoktur.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Which systems does it run on?</span><span data-l="tr">Hangi sistemlerde çalışır?</span></summary>
+            <p><span data-l="en">Windows 10 (version 1809 or later) and Windows 11 on x64 processors, and macOS 12 or later on Macs with Apple silicon or Intel processors.</span><span data-l="tr">x64 işlemcilerde Windows 10 (1809 ya da sonrası) ve Windows 11; Apple silicon ya da Intel işlemcili Mac’lerde macOS 12 ya da sonrası.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Why does Windows or macOS warn me the first time?</span><span data-l="tr">Windows ya da macOS ilk açılışta neden uyarıyor?</span></summary>
+            <p><span data-l="en">Kento’s Windows builds are not code-signed and its Mac builds are not notarized by Apple; both need paid certificates. Updates are signed with the project’s own key, and every release lists a SHA-256 checksum for each file. On Windows choose More info, then Run anyway. On a Mac close the warning, then choose Open Anyway in System Settings › Privacy &amp; Security.</span><span data-l="tr">Kento’nun Windows derlemeleri kod imzalı değil, Mac derlemeleri de Apple’ın onay sürecinden (notarization) geçmiyor; ikisi de ücretli sertifika ister. Güncellemeler projenin kendi anahtarıyla imzalanır ve her sürüm, her dosyanın SHA-256 sağlama toplamını listeler. Windows’ta Ek bilgi’yi, ardından Yine de çalıştır’ı seçin. Mac’te uyarıyı kapatın, sonra Sistem Ayarları › Gizlilik ve Güvenlik’te Yine de Aç’ı seçin.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Does Kento upload my files?</span><span data-l="tr">Kento dosyalarımı bir yere yükler mi?</span></summary>
+            <p><span data-l="en">No. Every conversion and edit happens on your computer. Kento goes online only for update checks, for the tools you agree to download and for the links you ask it to download.</span><span data-l="tr">Hayır. Her dönüştürme ve düzenleme bilgisayarınızda yapılır. Kento yalnızca güncelleme denetimi, indirmeyi kabul ettiğiniz araçlar ve indirmesini istediğiniz bağlantılar için internete bağlanır.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Do I need to install anything else?</span><span data-l="tr">Başka bir şey kurmam gerekir mi?</span></summary>
+            <p><span data-l="en">Not for pictures, PDF, archives, QR codes, text and spreadsheets. Video and audio need the Media tools (FFmpeg, plus yt-dlp and Deno for web downloads), office documents the Office tools (LibreOffice), and metadata and background removal the Extras tools. Kento shows each group’s size, downloads it when you ask and uses the copies you already have.</span><span data-l="tr">Görseller, PDF, arşivler, QR kodlar, metin ve tablolar için hayır. Video ve ses Medya araçlarını (FFmpeg; web’den indirmeler için ayrıca yt-dlp ve Deno), ofis belgeleri Ofis araçlarını (LibreOffice), meta veri ve arka plan kaldırma ise Ekstra araçları ister. Kento her grubun boyutunu gösterir, siz istediğinizde indirir ve bilgisayarınızda zaten olanları kullanır.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Will Kento overwrite or change my files?</span><span data-l="tr">Kento dosyalarımın üzerine yazar ya da onları değiştirir mi?</span></summary>
+            <p><span data-l="en">No. Every job writes a new copy next to the original, under a name of its own. The only exception is Move, which you choose yourself and which asks first.</span><span data-l="tr">Hayır. Her iş, özgün dosyanın yanına kendi adıyla yeni bir kopya yazar. Tek istisna, sizin seçtiğiniz ve önce soran Taşı işlemidir.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Can I turn updates off?</span><span data-l="tr">Güncellemeleri kapatabilir miyim?</span></summary>
+            <p><span data-l="en">No. Updates are mandatory so that everyone runs the newest signed release. Kento never interrupts a running job for an update, and it keeps working offline.</span><span data-l="tr">Hayır. Güncellemeler, herkes en yeni imzalı sürümü kullansın diye zorunludur. Kento süren bir işi güncelleme için kesmez ve çevrimdışıyken de çalışır.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Which languages does Kento speak?</span><span data-l="tr">Kento hangi dilleri konuşuyor?</span></summary>
+            <p><span data-l="en">English and Turkish. Kento follows the system language, and Settings › Language picks another one. More languages are planned.</span><span data-l="tr">İngilizce ve Türkçe. Kento sistem dilini izler; Ayarlar › Dil’den başka bir dil seçilebilir. Başka diller de planlanıyor.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Can I download any video?</span><span data-l="tr">Her videoyu indirebilir miyim?</span></summary>
+            <p><span data-l="en">Only content you have the right to download. Content with DRM, live streams, content behind a login, whole profiles and playlists are not supported, and Kento never reads your browser’s cookies.</span><span data-l="tr">Yalnızca indirme hakkınız olan içerikleri. DRM’li içerikler, canlı yayınlar, giriş gerektiren içerikler, profillerin tamamı ve oynatma listeleri desteklenmez; Kento tarayıcınızın çerezlerini okumaz.</span></p>
+          </details>
+          <details>
+            <summary><span data-l="en">Where does Kento keep its data?</span><span data-l="tr">Kento verilerini nerede tutar?</span></summary>
+            <p><span data-l="en">In %LOCALAPPDATA%\Kento on Windows and in ~/Library/Application Support/Kento on macOS: the settings, the Library, recipes and the tools it downloaded. Updates never delete it.</span><span data-l="tr">Windows’ta %LOCALAPPDATA%\Kento, macOS’te ~/Library/Application Support/Kento klasöründe: ayarlar, Kütüphane, tarifler ve indirdiği araçlar. Güncellemeler bunları silmez.</span></p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="download" aria-label="Download / İndir">
+      <div class="wrap">
+        <div data-include="download-section.html"><p class="include-missing"><a href="https://github.com/MehmetBurakTaskaya/kento/releases/latest">github.com/MehmetBurakTaskaya/kento/releases/latest</a></p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="made"><span data-l="en">Made by Mehmet Burak Taşkaya</span><span data-l="tr">Mehmet Burak Taşkaya tarafından yapıldı</span></span>
+      <a href="https://mehmetburaktaskaya.com">mehmetburaktaskaya.com</a>
+      <a href="https://github.com/MehmetBurakTaskaya/kento"><span data-l="en">Source code on GitHub</span><span data-l="tr">GitHub’daki kaynak kodu</span></a>
+      <a href="https://github.com/MehmetBurakTaskaya/kento/blob/main/LICENSE"><span data-l="en">MIT License</span><span data-l="tr">MIT Lisansı</span></a>
+    </div>
+  </footer>
+
+  <script>
+    // The page's language: ?lang=tr or ?lang=en, then the last choice, then the browser's language.
+    (function () {
+      var META = {
+        en: {
+          title: 'Kento – local file conversion for Windows and macOS',
+          description: 'Drag a file, press a key, drop it on the wheel: Kento converts, compresses and edits files on your computer. Free and open source, for Windows and macOS.',
+        },
+        tr: {
+          title: 'Kento – Windows ve macOS için yerel dosya dönüştürme',
+          description: 'Dosyayı sürükleyin, bir tuşa basın, çarka bırakın: Kento dosyaları bilgisayarınızda dönüştürür, sıkıştırır ve düzenler. Ücretsiz ve açık kaynak; Windows ve macOS için.',
+        },
+      };
+      function apply(lang, remember) {
+        document.documentElement.lang = lang;
+        document.title = META[lang].title;
+        document.querySelector('meta[name="description"]').setAttribute('content', META[lang].description);
+        [].forEach.call(document.querySelectorAll('[data-set-lang]'), function (button) {
+          button.setAttribute('aria-pressed', String(button.getAttribute('data-set-lang') === lang));
+        });
+        if (remember) {
+          try { localStorage.setItem('kento-site-lang', lang); } catch (error) { /* a preference only */ }
+        }
+      }
+      var asked = new URLSearchParams(location.search).get('lang');
+      var saved = null;
+      try { saved = localStorage.getItem('kento-site-lang'); } catch (error) { /* none */ }
+      var lang = asked === 'tr' || asked === 'en' ? asked : saved === 'tr' || saved === 'en' ? saved : /^tr\b/i.test(navigator.language || '') ? 'tr' : 'en';
+      apply(lang, false);
+      [].forEach.call(document.querySelectorAll('[data-set-lang]'), function (button) {
+        button.addEventListener('click', function () { apply(button.getAttribute('data-set-lang'), true); });
+      });
+    })();
+
+    // The download section and the conversion table are the very files the website embeds; they are
+    // fetched and put in place here, and their scripts run as they would on that page.
+    (function () {
+      [].forEach.call(document.querySelectorAll('[data-include]'), function (slot) {
+        var file = slot.getAttribute('data-include');
+        fetch(file)
+          .then(function (response) {
+            if (!response.ok) throw new Error(String(response.status));
+            return response.text();
+          })
+          .then(function (html) {
+            slot.innerHTML = html;
+            [].forEach.call(slot.querySelectorAll('script'), function (old) {
+              var script = document.createElement('script');
+              [].forEach.call(old.attributes, function (a) { script.setAttribute(a.name, a.value); });
+              script.textContent = old.textContent;
+              old.replaceWith(script);
+            });
+          })
+          .catch(function () {
+            slot.innerHTML = '';
+            var box = document.createElement('p');
+            box.className = 'include-missing';
+            box.innerHTML = '<span data-l="en">This part is loaded from </span><span data-l="tr">Bu bölüm şu dosyadan yüklenir: </span><a></a><span data-l="en">. Open the page through a local web server to see it (website-kit/README.md).</span><span data-l="tr">. Görmek için sayfayı yerel bir web sunucusuyla açın (website-kit/README.md).</span>';
+            var link = box.querySelector('a');
+            link.href = file;
+            link.textContent = file;
+            slot.appendChild(box);
+          });
+      });
+    })();
+
+    // The hero's numbers come from catalog.json when it is there.
+    fetch('catalog.json')
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (catalog) {
+        if (!catalog || !catalog.summary) return;
+        [].forEach.call(document.querySelectorAll('[data-facts] [data-n]'), function (slot) {
+          var value = catalog.summary[slot.getAttribute('data-n')];
+          if (typeof value === 'number') slot.textContent = String(value);
+        });
+      })
+      .catch(function () { /* the numbers in the page stay */ });
+  </script>
+  <script type="module">
+    // The wheel in the hero: the Convert wheel of a photo, drawn by assets/dial.js in light and dark
+    // steel. Pointing at a slice turns the dial to it; a click throws the bolts, as applying does.
+    import { dialSvg, setState, sliceAt, LIGHT, DARK } from './assets/dial.js';
+
+    const host = document.querySelector('[data-dial]');
+    const SLICES = {
+      en: { title: 'Convert', file: 'photo.heic', more: 'More…' },
+      tr: { title: 'Dönüştür', file: 'foto.heic', more: 'Daha fazla…' },
+    };
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    let state = { hover: 0, selected: null };
+    let timer = 0;
+
+    function slices(lang) {
+      return [
+        { label: 'JPG', choices: true },
+        { label: 'PNG' },
+        { label: 'WEBP', choices: true },
+        { label: 'AVIF', choices: true },
+        { label: 'PDF' },
+        { label: 'TIFF' },
+        { label: 'GIF', choices: true },
+        { label: SLICES[lang].more, small: true },
+      ];
+    }
+
+    function draw(opening) {
+      const lang = document.documentElement.lang === 'tr' ? 'tr' : 'en';
+      const common = { slices: slices(lang), title: SLICES[lang].title, subtitle: SLICES[lang].file, hover: null };
+      host.innerHTML =
+        dialSvg({ ...common, palette: LIGHT, id: 'hero-l', attrs: 'class="is-light"' }) +
+        dialSvg({ ...common, palette: DARK, id: 'hero-d', attrs: 'class="is-dark"' });
+      if (opening && !reduced.matches) {
+        // The dial spins in from almost a full turn back and settles on the first slice.
+        host.classList.add('is-opening');
+        for (const dial of host.querySelectorAll('.kw-dial')) {
+          dial.style.transition = 'none';
+          dial.style.transform = 'rotate(-322.5deg)';
+        }
+        host.getBoundingClientRect();
+        for (const dial of host.querySelectorAll('.kw-dial')) dial.style.transition = '';
+        setTimeout(() => host.classList.remove('is-opening'), 950);
+      }
+      update();
+    }
+
+    function update() {
+      const [light, dark] = host.querySelectorAll('svg');
+      setState(light, LIGHT, state);
+      setState(dark, DARK, state);
+    }
+
+    function sliceUnder(event) {
+      const box = host.getBoundingClientRect();
+      // The drawing is 460 units wide and starts 30 units before the wheel's 400-unit space.
+      const x = ((event.clientX - box.left) / box.width) * 460 - 30;
+      const y = ((event.clientY - box.top) / box.height) * 460 - 30;
+      return sliceAt(x, y, 8);
+    }
+
+    host.addEventListener('pointermove', (event) => {
+      if (state.selected !== null) return;
+      const slice = sliceUnder(event);
+      if (slice !== null && slice !== state.hover) {
+        state = { hover: slice, selected: null };
+        update();
+      }
+    });
+    host.addEventListener('click', (event) => {
+      const slice = sliceUnder(event);
+      if (slice === null) return;
+      clearTimeout(timer);
+      state = { hover: slice, selected: slice };
+      update();
+      timer = setTimeout(() => {
+        state = { hover: slice, selected: null };
+        update();
+      }, 1600);
+    });
+
+    draw(true);
+    new MutationObserver(() => draw(false)).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+  </script>
+</body>
+</html>
