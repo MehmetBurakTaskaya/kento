@@ -40,6 +40,9 @@ impl Kind {
         let Ok(exe) = std::env::current_exe() else {
             return Kind::Development;
         };
+        if built_by_cargo(&exe) {
+            return Kind::Development;
+        }
         #[cfg(windows)]
         {
             on_windows(&exe)
@@ -72,6 +75,16 @@ impl Kind {
     pub fn target(self) -> Option<&'static str> {
         (self == Kind::Portable).then_some(PORTABLE_TARGET)
     }
+}
+
+/// A release build run where Cargo made it, which leaves its lock file in the profile folder
+/// (`target/release`, or a few folders above a Mac bundle made there): a development build, so a
+/// published version never replaces the build folder's files.
+fn built_by_cargo(exe: &Path) -> bool {
+    exe.ancestors()
+        .skip(1)
+        .take(6)
+        .any(|dir| dir.join(".cargo-lock").is_file())
 }
 
 /// A Windows release build: installed when Tauri's uninstaller sits beside the program.
@@ -153,6 +166,24 @@ mod tests {
         assert_eq!(on_windows(&exe), Kind::Installed);
         assert_eq!(Kind::Portable.target(), Some("windows-x86_64-portable"));
         assert_eq!(Kind::Installed.target(), None);
+    }
+
+    #[test]
+    fn a_release_build_where_cargo_made_it_never_updates() {
+        let dir = tempfile::tempdir().unwrap();
+        let release = dir.path().join("kento ğüş").join("target").join("release");
+        let bundle = release.join("bundle/macos/Kento.app/Contents/MacOS");
+        fs::create_dir_all(&bundle).unwrap();
+        let exe = release.join("kento.exe");
+        let app = bundle.join("kento");
+        assert!(!built_by_cargo(&exe));
+        assert!(!built_by_cargo(&app));
+        fs::write(release.join(".cargo-lock"), "").unwrap();
+        assert!(built_by_cargo(&exe));
+        assert!(built_by_cargo(&app));
+        // The portable copy unpacked anywhere else has no lock file near it.
+        let portable = dir.path().join("Kento").join("Kento.exe");
+        assert!(!built_by_cargo(&portable));
     }
 
     #[test]
