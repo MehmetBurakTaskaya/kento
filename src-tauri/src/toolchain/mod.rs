@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 //! The optional external tools (SPEC 4.2, 5.15, 5.17): what is on this computer, and installing
-//! the pinned builds on request. The network is used only when the page asks for an install.
+//! the pinned builds on request. The network is used only when the page asks for an install or
+//! for a newer yt-dlp.
 //!
 //! Layout under the data folder: `tools/paths.json` (paths set in Settings), `tools/downloads/`
 //! (`<file>.part` while downloading, `<file>.image` while an installer image is open),
@@ -15,6 +16,7 @@ mod image;
 mod install;
 pub mod manifest;
 mod unpack;
+pub mod ytdlp;
 
 use std::cmp::Ordering as Order;
 use std::collections::{BTreeMap, HashMap};
@@ -113,6 +115,12 @@ pub enum Error {
     DiskImage(String),
     #[error("{0} did not run, or is older than Kento needs")]
     NotWorking(String),
+    #[error("{0} is not installed")]
+    Missing(String),
+    #[error("{0} was not installed by Kento; it is updated where it came from")]
+    Elsewhere(String),
+    #[error("the newest release: {0}")]
+    Release(String),
     #[error("cancelled")]
     Cancelled,
     #[error("the {0} group is being installed")]
@@ -140,6 +148,9 @@ impl Error {
             Error::NotWorking(tool) if tool == "yt-dlp" => "toolchain.failed.check.ytdlp",
             Error::NotWorking(tool) if tool == "deno" => "toolchain.failed.check.deno",
             Error::NotWorking(_) => "toolchain.failed.check",
+            Error::Missing(_) => "toolchain.ytdlp.missing",
+            Error::Elsewhere(_) => "toolchain.ytdlp.elsewhere",
+            Error::Release(_) => "toolchain.failed.release",
             Error::Cancelled => "toolchain.failed.cancelled",
             Error::Unavailable(_) => "toolchain.failed.unavailable",
             Error::Busy(_) => "toolchain.failed.busy",
@@ -582,6 +593,9 @@ impl Toolchain {
                 }
             }
         }
+        if entry.tools.iter().any(|tool| tool == ytdlp::TOOL) {
+            result = result.and(gone(fs::remove_dir_all(ytdlp::scratch(&downloads))));
+        }
         drop(running);
         let status = self.refresh();
         result.map(|()| status)
@@ -821,6 +835,39 @@ pub async fn tools_remove(
     let toolchain = app.state::<AppState>().toolchain.clone();
     let result = tauri::async_runtime::spawn_blocking(move || toolchain.remove(&group)).await?;
     result.map_err(|err| explain(&app.state::<AppState>(), &err))
+}
+
+/// What "Update yt-dlp" did (`YtDlpUpdate` in src/ipc.ts).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YtDlpUpdate {
+    /// `updated`, or `current` when the copy in use is the newest release already.
+    pub outcome: &'static str,
+    pub version: String,
+    pub status: Vec<ToolGroupStatus>,
+}
+
+/// Settings › Tools › Update yt-dlp: the only time Kento asks GitHub about yt-dlp.
+#[tauri::command]
+pub async fn tools_update_ytdlp(app: AppHandle) -> crate::error::Result<YtDlpUpdate> {
+    let toolchain = app.state::<AppState>().toolchain.clone();
+    let (outcome, version) = match toolchain.update_ytdlp(&ytdlp::Releases::github()).await {
+        Ok(ytdlp::Outcome::Updated(version)) => {
+            tracing::info!("yt-dlp is updated to {version}");
+            ("updated", version)
+        }
+        Ok(ytdlp::Outcome::Current(version)) => ("current", version),
+        Err(err) => {
+            tracing::warn!("updating yt-dlp failed: {err}");
+            return Err(explain(&app.state::<AppState>(), &err));
+        }
+    };
+    let status = tauri::async_runtime::spawn_blocking(move || toolchain.status()).await?;
+    Ok(YtDlpUpdate {
+        outcome,
+        version,
+        status,
+    })
 }
 
 /// Settings › Tools › Choose: the program is picked in the system's file dialog, so the page can
@@ -1705,6 +1752,7 @@ mod tests {
             Error::NotWorking("soffice".into()),
             Error::NotWorking("yt-dlp".into()),
             Error::NotWorking("deno".into()),
+            Error::Release("x".into()),
             Error::AdminInstall("x".into()),
             Error::DiskImage("x".into()),
             Error::Cancelled,
@@ -1727,5 +1775,11 @@ mod tests {
             Error::NotWorking("deno".into()).message_key(),
             "toolchain.failed.check.deno"
         );
+        for err in [
+            Error::Missing("yt-dlp".into()),
+            Error::Elsewhere("yt-dlp".into()),
+        ] {
+            assert!(err.message_key().starts_with("toolchain.ytdlp."));
+        }
     }
 }

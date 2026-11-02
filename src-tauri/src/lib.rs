@@ -320,6 +320,7 @@ pub fn run() {
             toolchain::tools_remove,
             toolchain::tools_choose,
             toolchain::tools_clear_path,
+            toolchain::tools_update_ytdlp,
             overlay::toast::toast_cards,
             overlay::toast::toast_layout,
             overlay::toast::toast_dismiss,

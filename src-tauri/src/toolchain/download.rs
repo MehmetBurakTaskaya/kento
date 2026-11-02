@@ -181,6 +181,47 @@ async fn stream(
     }
 }
 
+/// Reads a small answer whole, such as release metadata or a checksum list; one larger than `limit`
+/// bytes is refused, so a wrong address cannot fill the memory.
+pub async fn get(
+    client: &reqwest::Client,
+    url: &str,
+    accept: &str,
+    limit: usize,
+    cancel: &Cancel,
+) -> Result<Vec<u8>, Error> {
+    let request = client.get(url).header(reqwest::header::ACCEPT, accept);
+    let mut response = tokio::select! {
+        biased;
+        _ = cancel.cancelled() => return Err(Error::Cancelled),
+        response = request.send() => response.map_err(network)?,
+    };
+    if response.status() != StatusCode::OK {
+        return Err(Error::Network(format!("HTTP {}", response.status())));
+    }
+    let too_large = || Error::Network(format!("the answer is larger than {limit} bytes"));
+    if response
+        .content_length()
+        .is_some_and(|length| length > limit as u64)
+    {
+        return Err(too_large());
+    }
+    let mut body = Vec::new();
+    loop {
+        let chunk = tokio::select! {
+            biased;
+            _ = cancel.cancelled() => return Err(Error::Cancelled),
+            chunk = response.chunk() => chunk.map_err(network)?,
+        };
+        let Some(chunk) = chunk else { break };
+        if body.len() + chunk.len() > limit {
+            return Err(too_large());
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
+}
+
 /// The first byte of a `Content-Range: bytes 100-199/200` answer.
 fn range_start(response: &reqwest::Response) -> Option<u64> {
     let value = response.headers().get(CONTENT_RANGE)?.to_str().ok()?;
@@ -489,6 +530,28 @@ pub(crate) mod tests {
         )
         .await;
         assert!(matches!(result, Err(Error::Network(_))), "{result:?}");
+    }
+
+    #[tokio::test]
+    async fn a_small_answer_is_read_whole_and_a_large_one_refused() {
+        let server = serve_routes(vec![
+            ("/small".into(), b"tag".to_vec()),
+            ("/large".into(), sample(10_000)),
+        ]);
+        let client = client(false).unwrap();
+        let cancel = Cancel::default();
+        let read = |path: &str| {
+            let url = format!("{}{path}", server.base);
+            let (client, cancel) = (client.clone(), cancel.clone());
+            async move { get(&client, &url, "text/plain", 4096, &cancel).await }
+        };
+        assert_eq!(read("/small").await.unwrap(), b"tag");
+        assert!(matches!(read("/large").await, Err(Error::Network(_))));
+        assert!(matches!(read("/missing").await, Err(Error::Network(_))));
+        assert_eq!(
+            *server.asked.lock().unwrap(),
+            ["/small", "/large", "/missing"]
+        );
     }
 
     #[test]
