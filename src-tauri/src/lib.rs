@@ -103,29 +103,33 @@ pub(crate) fn sync_autostart(app: &AppHandle, enabled: bool) {
 /// Loads the bundled PDFium (SPEC 4.1). Without it PDF work fails with a plain message; the rest
 /// of Kento runs on.
 fn load_pdfium(app: &AppHandle) {
-    let name = if cfg!(windows) {
-        "pdfium.dll"
-    } else {
-        "libpdfium.dylib"
-    };
-    let bundled = app
-        .path()
-        .resource_dir()
-        .map(|dir| dir.join("pdfium").join(name));
-    // A development build runs from target/, next to the fetched copy.
-    let fetched = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("resources")
-        .join("pdfium")
-        .join(name);
-    let library = bundled
-        .ok()
-        .filter(|path| path.is_file())
-        .or_else(|| (cfg!(debug_assertions) && fetched.is_file()).then_some(fetched));
+    let library = pdfium_library(app.path().resource_dir().ok());
     match library.map(|path| kento_engines::pdf::init(&path)) {
         Some(Ok(())) => {}
         Some(Err(err)) => tracing::error!("PDFium could not be loaded: {err}"),
         None => tracing::error!("PDFium is missing"),
     }
+}
+
+/// The bundled PDFium library in the app's resource folder, or in a development build the copy
+/// `npm run pdfium` fetched. The app and the command line load the same one.
+pub(crate) fn pdfium_library(
+    resource_dir: Option<std::path::PathBuf>,
+) -> Option<std::path::PathBuf> {
+    let name = if cfg!(windows) {
+        "pdfium.dll"
+    } else {
+        "libpdfium.dylib"
+    };
+    let bundled = resource_dir.map(|dir| dir.join("pdfium").join(name));
+    // A development build runs from target/, next to the fetched copy.
+    let fetched = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("resources")
+        .join("pdfium")
+        .join(name);
+    bundled
+        .filter(|path| path.is_file())
+        .or_else(|| (cfg!(debug_assertions) && fetched.is_file()).then_some(fetched))
 }
 
 fn setup(

@@ -324,7 +324,7 @@ fn site(url: &str) -> Option<String> {
 /// A title made a folder name: characters Windows forbids become spaces, runs of space shrink,
 /// the end loses dots and spaces (Windows drops them) and the start its dots (hidden on macOS),
 /// device names get a leading "_", and the length stays modest.
-fn safe_name(text: &str) -> Option<String> {
+pub(crate) fn safe_name(text: &str) -> Option<String> {
     let cleaned: String = text
         .chars()
         .map(|c| {

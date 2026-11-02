@@ -54,7 +54,7 @@ pub fn entry(path: &Path) -> Option<FileEntry> {
 }
 
 /// The format Kento reads this file as; ".tar.gz" reads as GZ.
-fn readable_format(path: &Path) -> Option<&'static Format> {
+pub(crate) fn readable_format(path: &Path) -> Option<&'static Format> {
     catalog::format_for_extension(&path.extension()?.to_string_lossy())
 }
 
@@ -68,7 +68,7 @@ fn is_package(path: &Path) -> bool {
 }
 
 /// A file to convert: a file, or a package document.
-fn is_document(path: &Path) -> bool {
+pub(crate) fn is_document(path: &Path) -> bool {
     path.is_file() || is_package(path)
 }
 
@@ -141,7 +141,11 @@ pub(crate) fn engine_tools(state: &AppState) -> engines::Tools {
 
 /// The tool group a route or tool still needs, or None when it is ready to run.
 pub(crate) fn missing(state: &AppState, group: ToolGroup) -> Option<ToolGroup> {
-    let tools = engine_tools(state);
+    missing_in(&engine_tools(state), group)
+}
+
+/// The tool group still missing from `tools`, or None when the group's tools are there.
+pub(crate) fn missing_in(tools: &engines::Tools, group: ToolGroup) -> Option<ToolGroup> {
     let ready = match group {
         ToolGroup::Core => true,
         ToolGroup::Media => tools.ffmpeg.is_some() && tools.ffprobe.is_some(),
@@ -360,38 +364,13 @@ impl Context {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let stem = stem_of(&path);
-        let dir = self.dir_for(&path);
-        let target = match engines::output(from.id, to.id) {
-            Some(engines::Output::Folder) => Target::Folder { dir, name: stem },
-            _ => Target::File {
-                dir,
-                stem,
-                extension: to.extensions[0].to_string(),
-            },
+        let options = Options {
+            tools: self.tools.clone(),
+            office_profile: Some(self.office_profile.clone()),
+            ..Options::default()
         };
-        let (from_id, to_id) = (from.id, to.id);
-        let tools = self.tools.clone();
-        let office_profile = self.office_profile.clone();
-        let input = path.clone();
-        let work: Work = Box::new(move |dest, temp, progress| {
-            let options = Options {
-                tools,
-                office_profile: Some(office_profile),
-                ..Options::default()
-            };
-            engines::convert(&engines::Conversion {
-                input: &input,
-                from: from_id,
-                to: to_id,
-                dest,
-                temp,
-                options: &options,
-                progress,
-            })
-            .map(|_| ())
-        });
-        let lane = if engines::heavy(from_id, to_id) {
+        let (target, work) = conversion(path.clone(), from, to, self.dir_for(&path), options);
+        let lane = if engines::heavy(from.id, to.id) {
             Lane::Heavy
         } else {
             Lane::Light
@@ -475,6 +454,40 @@ impl Context {
             })),
         }))
     }
+}
+
+/// One conversion's output in `dir` ("photo.heic" → "photo.jpg", or a folder of pages) and its
+/// work, for the job queue and the command line alike.
+pub(crate) fn conversion(
+    input: PathBuf,
+    from: &'static Format,
+    to: &'static Format,
+    dir: PathBuf,
+    options: Options,
+) -> (Target, Work) {
+    let stem = stem_of(&input);
+    let target = match engines::output(from.id, to.id) {
+        Some(engines::Output::Folder) => Target::Folder { dir, name: stem },
+        _ => Target::File {
+            dir,
+            stem,
+            extension: to.extensions[0].to_string(),
+        },
+    };
+    let (from, to) = (from.id, to.id);
+    let work: Work = Box::new(move |dest, temp, progress| {
+        engines::convert(&engines::Conversion {
+            input: &input,
+            from,
+            to,
+            dest,
+            temp,
+            options: &options,
+            progress,
+        })
+        .map(|_| ())
+    });
+    (target, work)
 }
 
 /// "photo.heic" → "photo"; "backup.tar.gz" → "backup".

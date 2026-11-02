@@ -452,7 +452,25 @@ impl Toolchain {
 
     /// The paths jobs hand to the engines.
     pub fn engine_tools(&self) -> kento_engines::Tools {
-        let status = self.status();
+        Self::tools_in(&self.status())
+    }
+
+    /// The paths of the tools of some groups only (`media`, `office`, `extras`), looked for
+    /// afresh and not cached: the command line runs only what one command needs.
+    pub fn engine_tools_of(&self, groups: &[&str]) -> kento_engines::Tools {
+        let custom = lock(&self.inner.custom).clone();
+        let status: Vec<ToolGroupStatus> = self
+            .inner
+            .lock
+            .groups
+            .iter()
+            .filter(|group| groups.contains(&group.id.as_str()))
+            .map(|group| self.detect(group, &custom))
+            .collect();
+        Self::tools_in(&status)
+    }
+
+    fn tools_in(status: &[ToolGroupStatus]) -> kento_engines::Tools {
         let path = |id: &str| {
             status
                 .iter()

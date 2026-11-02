@@ -218,12 +218,38 @@ pub(crate) fn submit(
     from: &'static Format,
 ) -> u64 {
     let source = inputs[0].clone();
-    let name = file_name(
-        &stem_of(&source),
-        Some(&ctx.text(&format!("suffix.{}", tool.id()))),
-        "",
+    let more = if inputs.len() > 1 {
+        format!(" +{}", inputs.len() - 1)
+    } else {
+        String::new()
+    };
+    let title = format!(
+        "{} · {}{more}",
+        ctx.text(&format!("tool.{}", tool.id())),
+        source
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default()
     );
+    let suffix = ctx.text(&format!("suffix.{}", tool.id()));
     let dir = ctx.dir_for(&source);
+    let (target, work) = job(tool, inputs, from, dir, &suffix, ctx.tools());
+    ctx.submit(title, target, work, Origin::Tool, Some(source))
+}
+
+/// A media tool's output in `dir` ("clip - silent.mp4", with the suffix in the interface
+/// language, or a folder for the folder tools) and its work, for the job queue and the command
+/// line alike.
+pub(crate) fn job(
+    tool: Tool,
+    inputs: Vec<PathBuf>,
+    from: &'static Format,
+    dir: PathBuf,
+    suffix: &str,
+    tools: kento_engines::Tools,
+) -> (Target, Work) {
+    let source = inputs[0].clone();
+    let name = file_name(&stem_of(&source), Some(suffix), "");
     let target = match tool.output() {
         kento_engines::Output::Folder => Target::Folder { dir, name },
         kento_engines::Output::File => {
@@ -242,20 +268,6 @@ pub(crate) fn submit(
             }
         }
     };
-    let more = if inputs.len() > 1 {
-        format!(" +{}", inputs.len() - 1)
-    } else {
-        String::new()
-    };
-    let title = format!(
-        "{} · {}{more}",
-        ctx.text(&format!("tool.{}", tool.id())),
-        source
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default()
-    );
-    let tools = ctx.tools();
     let work: Work = Box::new(move |dest, temp, progress| {
         media::run_tool(&ToolRun {
             inputs: &inputs,
@@ -267,5 +279,5 @@ pub(crate) fn submit(
         })
         .map(|_| ())
     });
-    ctx.submit(title, target, work, Origin::Tool, Some(source))
+    (target, work)
 }

@@ -56,7 +56,7 @@ fn check(compression: Compression) -> Result<()> {
 }
 
 /// The catalog format and the engine's kind of a file Compress takes.
-fn compressible(path: &Path) -> Result<(&'static Format, FileKind)> {
+pub(crate) fn compressible(path: &Path) -> Result<(&'static Format, FileKind)> {
     let format = path
         .is_file()
         .then(|| path.extension())
@@ -84,17 +84,6 @@ fn submit(
     format: &'static Format,
     kind: FileKind,
 ) -> u64 {
-    let name = file_name(&stem_of(&source), Some(&ctx.text("suffix.compress")), "");
-    // The result keeps the input's own extension (`.m4v` stays `.m4v`).
-    let extension = source
-        .extension()
-        .map(|ext| ext.to_string_lossy().to_lowercase())
-        .unwrap_or_else(|| format.extensions[0].to_owned());
-    let target = Target::File {
-        dir: ctx.dir_for(&source),
-        stem: name,
-        extension,
-    };
     let title = format!(
         "{} · {}",
         ctx.text("tool.compress"),
@@ -103,8 +92,37 @@ fn submit(
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default()
     );
-    let tools = ctx.tools();
-    let input = source.clone();
+    let (target, work) = job(
+        source.clone(),
+        (format, kind),
+        compression,
+        ctx.dir_for(&source),
+        &ctx.text("suffix.compress"),
+        ctx.tools(),
+    );
+    ctx.submit(title, target, work, Origin::Tool, Some(source))
+}
+
+/// One file's output in `dir` ("clip - compressed.mp4", with the suffix in the interface
+/// language) and its work, for the job queue and the command line alike.
+pub(crate) fn job(
+    source: PathBuf,
+    (format, kind): (&'static Format, FileKind),
+    compression: Compression,
+    dir: PathBuf,
+    suffix: &str,
+    tools: kento_engines::Tools,
+) -> (Target, Work) {
+    // The result keeps the input's own extension (`.m4v` stays `.m4v`).
+    let extension = source
+        .extension()
+        .map(|ext| ext.to_string_lossy().to_lowercase())
+        .unwrap_or_else(|| format.extensions[0].to_owned());
+    let target = Target::File {
+        dir,
+        stem: file_name(&stem_of(&source), Some(suffix), ""),
+        extension,
+    };
     let from = format.id;
     let work: Work = Box::new(move |dest, temp, progress| {
         let options = Options {
@@ -112,7 +130,7 @@ fn submit(
             ..Options::default()
         };
         compress::compress(&CompressRun {
-            input: &input,
+            input: &source,
             from,
             kind,
             compression,
@@ -123,7 +141,7 @@ fn submit(
         })
         .map(|_| ())
     });
-    ctx.submit(title, target, work, Origin::Tool, Some(source))
+    (target, work)
 }
 
 #[cfg(test)]

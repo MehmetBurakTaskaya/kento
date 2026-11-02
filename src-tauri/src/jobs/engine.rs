@@ -86,30 +86,40 @@ impl EngineJob {
         let report = |fraction: Option<f32>| meter.report(fraction);
         let cancelled = || ctx.is_cancelled();
         let progress = Progress::new(&report, &cancelled);
-        let output = match self.target {
-            Target::File {
-                dir,
-                stem,
-                extension,
-            } => {
-                let reservation = Reservation::claim(&dir, &stem, &extension)?;
-                (self.work)(reservation.temp_path(), &temp, &progress)?;
-                progress.check()?;
-                reservation.commit()?
-            }
-            Target::Folder { dir, name } => {
-                let reservation = FolderReservation::claim(&dir, &name)?;
-                (self.work)(reservation.temp_path(), &temp, &progress)?;
-                progress.check()?;
-                reservation.commit()?
-            }
-        };
-        let outputs = vec![output];
+        let outputs = vec![write(self.target, self.work, &temp, &progress)?];
         if let Some(done) = self.done {
             done(&outputs);
         }
         Ok(outputs)
     }
+}
+
+/// Runs `work` under a claimed name in `target` and gives the result its final name; on failure
+/// or cancellation nothing is left behind. The command line runs its jobs this way too.
+pub fn write(
+    target: Target,
+    work: Work,
+    temp: &Path,
+    progress: &Progress,
+) -> kento_engines::Result<PathBuf> {
+    Ok(match target {
+        Target::File {
+            dir,
+            stem,
+            extension,
+        } => {
+            let reservation = Reservation::claim(&dir, &stem, &extension)?;
+            work(reservation.temp_path(), temp, progress)?;
+            progress.check()?;
+            reservation.commit()?
+        }
+        Target::Folder { dir, name } => {
+            let reservation = FolderReservation::claim(&dir, &name)?;
+            work(reservation.temp_path(), temp, progress)?;
+            progress.check()?;
+            reservation.commit()?
+        }
+    })
 }
 
 /// Passes progress on at most every 100 ms or 1 %, with a time-left estimate once the job is a
