@@ -276,12 +276,14 @@ mod tests {
 
     #[test]
     fn office_client_python_is_where_libreoffice_keeps_it() {
+        // Forward slashes, so that the Windows case reads the same on a Mac, where a backslash is
+        // part of a name.
         assert_eq!(
             python_beside(
-                Path::new(r"C:\Program Files\LibreOffice\program\soffice.exe"),
+                Path::new("C:/Program Files/LibreOffice/program/soffice.exe"),
                 Os::Windows
             ),
-            Path::new(r"C:\Program Files\LibreOffice\program").join("python.exe")
+            Path::new("C:/Program Files/LibreOffice/program").join("python.exe")
         );
         assert_eq!(
             python_beside(
