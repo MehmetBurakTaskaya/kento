@@ -81,12 +81,12 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 9: release readiness (v1.0)
 
-- [ ] Mandatory updates and a signed `latest.json`
-- [ ] NSIS installer, portable ZIP and universal DMG
-- [ ] Fixed-name assets, SHA256SUMS and old-release cleanup
-- [ ] README (EN/TR), repository documents, notices file
-- [ ] Website kit, demo video script, `--smoke-test`
-- [ ] Release checklist
+- [x] Mandatory updates and a signed `latest.json`
+- [x] NSIS installer, portable ZIP and universal DMG
+- [x] Fixed-name assets, SHA256SUMS and old-release cleanup (older releases become drafts, as in Panopin)
+- [x] README (EN/TR), repository documents, notices file
+- [x] Website kit, demo video script, `--smoke-test`
+- [x] Release checklist
 
 ## Phase 10: growth
 

@@ -533,7 +533,8 @@ Updates are mandatory:
 
 - No "Skip", "Later" or "Ignore this version".
 - The new version downloads in the background and its signature is verified.
-- Once it is downloaded, no new job can start. Running and queued jobs finish, then the app restarts after a short notice and installs it.
+- Once it is downloaded, no new job can start. Running and queued jobs finish, then the app restarts after a short notice and installs it. A job started meanwhile is refused with a message that says why; folder automation keeps the files that arrive and handles them after the restart. A dialog in Kento's window that holds the user's work puts the restart off until it closes, and Settings › Updates says what the update waits for.
+- A Mac app that macOS runs translocated asks to be moved to Applications; one in a folder Kento may not change installs only on "Update and restart", since macOS then asks for an administrator's password. Development builds never install; their Updates section links to the release page.
 - Offline, the app keeps working (local first) and updates at the first check after the connection returns.
 
 Infrastructure:
@@ -544,11 +545,11 @@ Infrastructure:
 
 Check times:
 
-- At startup.
-- Periodically (for example every 6 hours).
-- By hand: Ctrl+U (⌘U on macOS).
+- 30 seconds after start.
+- Every 6 hours, or an hour after a failed check.
+- By hand: Ctrl+U (⌘U on macOS) in Kento's windows, "Check for updates" in the tray menu and "Check now" in Settings.
 
-Release notes appear on the first launch after an update.
+The `notes` of `latest.json` are kept before installing and shown once on Home at the first launch after the update.
 
 Only the newest release stays on GitHub:
 
@@ -581,15 +582,15 @@ Only the newest release stays on GitHub:
 - Tools: each tool's status, version and path; "Verify again", "Update" and "Remove".
 - Performance: number of concurrent jobs.
 - Library: clear the library.
-- Updates: last check time, "Check now" and an explanation of the mandatory update policy.
-- Privacy: the privacy statement.
+- Updates: the version, the last check time, where an update stands (downloading, waiting for jobs, ready to restart, failed), "Check now" and an explanation of the mandatory update policy.
+- Privacy: the privacy statement, including that update checks read `latest.json` from GitHub and send nothing about the user or their files.
 - Explorer integration: on / off.
 
 ### 5.18 Platform notes
 
 **Windows (first)**
 
-- Tray menu: Home, show/hide shelf, pause, settings, quit.
+- Tray menu: Home, show/hide shelf, pause, settings, check for updates, quit.
 - Install: a per-user NSIS installer without administrator rights that installs at once (a progress bar only, then Kento starts), plus a portable ZIP. The uninstaller removes what Kento registered (Start at sign-in, the Explorer entries, the Path entry), and Kento's data with the downloaded tools only when "Delete the application data" is ticked; updates keep everything.
 - WebView2: installed by the installer's bootstrapper when missing.
 - Accessibility: follows High Contrast mode.
