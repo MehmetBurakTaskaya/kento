@@ -98,6 +98,11 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = ["s
 
 [dev-dependencies]
 tempfile = "3.27.0"
+# The update tests make a key pair, sign packages the way `tauri signer sign` does and check them
+# with the updater plugin in a mock app; the plugin takes keys and signatures in base64.
+minisign = "0.10.0"
+base64 = "0.23.1"
+tauri = { version = "2.12.5", features = ["test"] }
 tokio = { version = "1.54.1", default-features = false, features = ["sync", "time", "rt", "rt-multi-thread", "macros"] }
 # The toolchain tests build 7z archives.
 sevenz-rust2 = { version = "0.24.2", default-features = false, features = ["compress", "util"] }
