@@ -5,7 +5,7 @@
 //   node scripts/fetch-pdfium.mjs mac-univ   a named build (win-x64, mac-univ)
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,9 +33,12 @@ if (!build) {
 }
 
 const library = path.join(out, path.basename(build.library));
+// The licences of PDFium and of the libraries built into it, which ship beside the library
+// (THIRD-PARTY-NOTICES.md points there). A copy fetched without them is fetched again.
+const licences = path.join(out, 'licenses');
 const stamp = path.join(out, 'version.txt');
 const wanted = `${RELEASE} ${name} ${build.sha256}`;
-if (existsSync(library) && existsSync(stamp) && readFileSync(stamp, 'utf8').trim() === wanted) {
+if (existsSync(library) && existsSync(licences) && existsSync(stamp) && readFileSync(stamp, 'utf8').trim() === wanted) {
   console.log(`PDFium ${RELEASE} (${name}) is already in src-tauri/resources/pdfium`);
   process.exit(0);
 }
@@ -57,6 +60,7 @@ try {
   mkdirSync(out, { recursive: true });
   copyFileSync(path.join(work, build.library), library);
   copyFileSync(path.join(work, 'LICENSE'), path.join(out, 'LICENSE'));
+  cpSync(path.join(work, 'licenses'), licences, { recursive: true });
   writeFileSync(stamp, `${wanted}\n`);
 } finally {
   rmSync(work, { recursive: true, force: true });
