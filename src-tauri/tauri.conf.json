@@ -73,7 +73,9 @@
       }
     },
     "resources": {
-      "resources/pdfium/": "pdfium/"
+      "resources/pdfium/": "pdfium/",
+      "../LICENSE": "LICENSE.txt",
+      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
     },
     "createUpdaterArtifacts": true
   },
