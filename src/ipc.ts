@@ -622,18 +622,50 @@ export interface AutomationFailure {
   details: string | null;
 }
 
+/** How this copy updates (SPEC 5.16): the installer, the portable ZIP, a Mac app (one Kento may
+ *  change, one it may not, one macOS runs translocated) or a development build that never does. */
+export type UpdateKind = 'installed' | 'portable' | 'bundle' | 'lockedBundle' | 'translocated' | 'development';
+
+export type UpdateReason = 'offline' | 'signature' | 'install' | 'other';
+
+export type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'upToDate' }
+  | { state: 'available'; version: string }
+  | { state: 'downloading'; version: string; received: number; total: number | null }
+  | { state: 'confirm'; version: string }
+  | { state: 'waiting'; version: string; jobs: number; paused: boolean; editing: boolean; installs: boolean }
+  | { state: 'restarting'; version: string }
+  | { state: 'failed'; reason: UpdateReason };
+
+export interface UpdateView {
+  current: string;
+  kind: UpdateKind;
+  /** When the last check that reached GitHub ended, in Unix milliseconds. */
+  lastCheck: number | null;
+  status: UpdateStatus;
+}
+
+/** The release notes of the version this start installed: plain text, never markup. */
+export interface UpdateNews {
+  version: string;
+  notes: string;
+}
+
 export interface Api {
   bootstrap(): Promise<Bootstrap>;
   saveSettings(settings: Settings): Promise<Saved>;
   uiReady(): Promise<void>;
-  openLink(which: 'website' | 'repository'): Promise<void>;
+  openLink(which: 'website' | 'repository' | 'releases'): Promise<void>;
   chooseFolder(): Promise<string | null>;
   setJobsPaused(paused: boolean): Promise<void>;
   cancelJob(id: number): Promise<void>;
   log(level: 'info' | 'warn' | 'error', message: string): Promise<void>;
   onJob(handler: (job: JobInfo) => void): Promise<UnlistenFn>;
   onPaused(handler: (paused: boolean) => void): Promise<UnlistenFn>;
-  onNavigate(handler: (section: Section) => void): Promise<UnlistenFn>;
+  /** The core opens a page: one of the sections, or Settings › Updates. */
+  onNavigate(handler: (section: Section | 'updates') => void): Promise<UnlistenFn>;
   onLibrary(handler: () => void): Promise<UnlistenFn>;
   /** Files or a link dropped on the main window; `hover` says whether a drop would be taken. */
   onDrop(handler: (dropped: Dropped) => void, hover: (over: boolean) => void): Promise<UnlistenFn>;
@@ -778,6 +810,16 @@ export interface Api {
   automationClearActivity(): Promise<AutomationView>;
   onAutomation(handler: () => void): Promise<UnlistenFn>;
   onAutomationFailed(handler: (failure: AutomationFailure) => void): Promise<UnlistenFn>;
+  updatesView(): Promise<UpdateView>;
+  /** Looks for a new version now; `show` opens Settings › Updates in the main window. */
+  updatesCheck(show: boolean): Promise<void>;
+  /** "Update and restart": a Mac app Kento may not change installs once the user asks. */
+  updatesInstall(): Promise<void>;
+  /** Whether a dialog in the main window holds the user's work; a ready update waits for it. */
+  updatesEditing(editing: boolean): Promise<void>;
+  /** The notes of the version this start installed, once. */
+  updatesNews(): Promise<UpdateNews | null>;
+  onUpdates(handler: (view: UpdateView) => void): Promise<UnlistenFn>;
 }
 
 /** Kento's drag event as the core sends it: physical pixels. */
@@ -798,7 +840,7 @@ const tauriApi: Api = {
   log: (level, message) => invoke('log_message', { level, message }),
   onJob: (handler) => listen<JobInfo>('job', (event) => handler(event.payload)),
   onPaused: (handler) => listen<boolean>('jobs-paused', (event) => handler(event.payload)),
-  onNavigate: (handler) => listen<Section>('navigate', (event) => handler(event.payload)),
+  onNavigate: (handler) => listen<Section | 'updates'>('navigate', (event) => handler(event.payload)),
   onLibrary: (handler) => listen('library', () => handler()),
   onDrop: (handler, hover) => {
     // Only files and links are taken; a drag of anything else leaves Home as it is.
@@ -950,6 +992,12 @@ const tauriApi: Api = {
   automationClearActivity: () => invoke('automation_clear_activity'),
   onAutomation: (handler) => listen('automation', () => handler()),
   onAutomationFailed: (handler) => listen<AutomationFailure>('automation-failed', (event) => handler(event.payload)),
+  updatesView: () => invoke('updates_view'),
+  updatesCheck: (show) => invoke('updates_check', { show }),
+  updatesInstall: () => invoke('updates_install'),
+  updatesEditing: (editing) => invoke('updates_editing', { editing }),
+  updatesNews: () => invoke('updates_news'),
+  onUpdates: (handler) => listen<UpdateView>('updates', (event) => handler(event.payload)),
 };
 
 /** PNG bytes from a command as an image Blob; a file without a preview gives null. */
@@ -1032,8 +1080,13 @@ export function browserApi(params: URLSearchParams): Api {
     },
     uiReady: async () => {},
     openLink: async (which) => {
+      const repository = 'https://github.com/MehmetBurakTaskaya/kento';
       window.open(
-        which === 'website' ? 'https://mehmetburaktaskaya.com' : 'https://github.com/MehmetBurakTaskaya/kento',
+        which === 'website'
+          ? 'https://mehmetburaktaskaya.com'
+          : which === 'releases'
+            ? `${repository}/releases/latest`
+            : repository,
       );
     },
     chooseFolder: async () => (platform === 'macos' ? '/Users/me/Documents/Kento' : 'C:\\Users\\me\\Documents\\Kento'),
@@ -1313,8 +1366,45 @@ export function browserApi(params: URLSearchParams): Api {
     automationClearActivity: async () => setAutomation({ activity: [] }),
     onAutomation: async () => () => {},
     onAutomationFailed: async () => () => {},
+    updatesView: async () => demoUpdate(params),
+    updatesCheck: async () => {},
+    updatesInstall: async () => {},
+    updatesEditing: async () => {},
+    // ?news=demo: the first start after an update, with its notes on Home.
+    updatesNews: async () => (params.get('news') === 'demo' ? DEMO_NEWS : null),
+    onUpdates: async () => () => {},
   };
 }
+
+/** Settings › Updates in the browser: ?update=waiting (or another state) and ?update-kind=portable
+ *  (or another kind of copy). */
+function demoUpdate(params: URLSearchParams): UpdateView {
+  const version = DEMO_NEWS.version;
+  const statuses: Record<UpdateStatus['state'], UpdateStatus> = {
+    idle: { state: 'idle' },
+    checking: { state: 'checking' },
+    upToDate: { state: 'upToDate' },
+    available: { state: 'available', version },
+    downloading: { state: 'downloading', version, received: 12_400_000, total: 31_000_000 },
+    confirm: { state: 'confirm', version },
+    waiting: { state: 'waiting', version, jobs: 2, paused: false, editing: true, installs: false },
+    restarting: { state: 'restarting', version },
+    failed: { state: 'failed', reason: 'offline' },
+  };
+  const state = params.get('update') as UpdateStatus['state'] | null;
+  return {
+    current: '0.1.0',
+    kind: (params.get('update-kind') as UpdateKind | null) ?? 'installed',
+    lastCheck: Date.now() - 25 * 60_000,
+    status: (state && statuses[state]) || statuses.upToDate,
+  };
+}
+
+const DEMO_NEWS: UpdateNews = {
+  version: '1.1.0',
+  notes:
+    'Added\n- Folder automation keeps the files that arrive while an update installs.\n\nFixed\n- Turkish file names in the command line.',
+};
 
 /** A text the core would give in the interface language. */
 function coreText(lang: string | null, key: string): string {

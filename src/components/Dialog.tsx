@@ -1,8 +1,23 @@
 // SPDX-License-Identifier: MIT
-// A modal panel: Esc or the backdrop closes it, focus starts inside and comes back afterwards.
+// A modal panel: Esc or the backdrop closes it, focus starts inside and comes back afterwards. An
+// open dialog holds the user's work (a tool's choices, an editor, a rule being written), so an
+// update that is ready to install waits until the last one closes.
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { api } from '../ipc';
 import { Icon } from './Icon';
+
+/** The dialogs open in this window. */
+let open = 0;
+
+function useHoldsWork() {
+  useEffect(() => {
+    if (open++ === 0) void api.updatesEditing(true);
+    return () => {
+      if (--open === 0) void api.updatesEditing(false);
+    };
+  }, []);
+}
 
 export function Dialog({
   title,
@@ -19,6 +34,7 @@ export function Dialog({
 }) {
   const { t } = useTranslation();
   const box = useRef<HTMLDivElement>(null);
+  useHoldsWork();
 
   useEffect(() => {
     const before = document.activeElement as HTMLElement | null;

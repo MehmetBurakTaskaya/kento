@@ -18,6 +18,7 @@ import { useFileInput } from './input';
 import { Library } from './Library';
 import { Settings } from './Settings';
 import { Setup } from './Setup';
+import { isUpdateShortcut } from './UpdateSettings';
 import { WheelHost } from './WheelHost';
 
 const NAV: { section: Section; icon: IconName; key: string; shortcut: string }[] = [
@@ -29,7 +30,7 @@ const NAV: { section: Section; icon: IconName; key: string; shortcut: string }[]
 
 export function App() {
   const { t } = useTranslation();
-  const { boot, settings, section, setSection, jobChanged, setPaused, refreshLibrary } = useApp();
+  const { boot, settings, section, setSection, showUpdates, jobChanged, setPaused, refreshLibrary } = useApp();
   useFileInput(boot?.app.platform === 'macos');
 
   // Theme and motion follow the settings and the system.
@@ -56,14 +57,16 @@ export function App() {
     const stops = [
       api.onJob(jobChanged),
       api.onPaused(setPaused),
-      api.onNavigate(setSection),
+      api.onNavigate((next) => (next === 'updates' ? showUpdates() : setSection(next))),
       api.onLibrary(() => void refreshLibrary()),
       // A folder rule's failure, while this window has the focus (else it is the corner card).
       api.onAutomationFailed((failure) => useApp.getState().toast({ kind: 'failed', jobId: 0, ...failure })),
     ];
     void refreshLibrary();
+    // The notes of a version installed just now, which the core hands out once.
+    void api.updatesNews().then((news) => news && useApp.getState().setNews(news));
     return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
-  }, [jobChanged, setPaused, setSection, refreshLibrary]);
+  }, [jobChanged, setPaused, setSection, showUpdates, refreshLibrary]);
 
   // A tool chosen on the floating wheel opens its panel here.
   useEffect(() => {
@@ -106,10 +109,17 @@ export function App() {
     return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
   }, []);
 
-  // Ctrl+1, Ctrl+2 and Ctrl+, (⌘ on macOS) switch pages.
+  // Ctrl+1, Ctrl+2 and Ctrl+, (⌘ on macOS) switch pages; Ctrl+U looks for a new version and shows
+  // Settings › Updates.
   useEffect(() => {
     const mac = boot?.app.platform === 'macos';
     const onKey = (event: KeyboardEvent) => {
+      if (isUpdateShortcut(event, mac)) {
+        event.preventDefault();
+        void api.updatesCheck(false);
+        showUpdates();
+        return;
+      }
       if ((mac ? event.metaKey : event.ctrlKey) && !event.altKey && !event.shiftKey) {
         const target = NAV.find((item) => item.shortcut === event.key);
         if (target) {
@@ -120,7 +130,7 @@ export function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [boot, setSection]);
+  }, [boot, setSection, showUpdates]);
 
   // The window appears once the first page has painted (a hidden smoke-test window stays hidden).
   useEffect(() => {

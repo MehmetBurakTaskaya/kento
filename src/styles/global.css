@@ -481,6 +481,11 @@ select {
   flex-wrap: wrap;
   gap: 8px;
 }
+.update-status {
+  display: grid;
+  gap: 6px;
+  max-inline-size: 70ch;
+}
 
 .settings-group > .segmented {
   justify-self: start;

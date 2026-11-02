@@ -149,6 +149,24 @@ const SHOTS = [
   ['wheel-trail-light-en', { lang: 'en', appearance: 'light', files: 'demo' }, 'convert-trail'],
   ['wheel-trail-dark-tr', { lang: 'tr', appearance: 'dark', files: 'demo' }, 'convert-trail'],
   ['wheel-trail-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', files: 'demo' }, 'convert-trail'],
+  // Settings › Updates while a downloaded update waits for the work under way, a Mac app that asks
+  // for the go-ahead, and the new version's notes on Home after it installed.
+  ['updates-waiting-light-tr', { lang: 'tr', appearance: 'light', section: 'updates', update: 'waiting' }],
+  ['updates-waiting-pseudo-long', { lang: 'en-XA', appearance: 'dark', section: 'updates', update: 'waiting' }],
+  [
+    'updates-confirm-dark-en-mac',
+    {
+      lang: 'en',
+      appearance: 'dark',
+      section: 'updates',
+      platform: 'macos',
+      update: 'confirm',
+      'update-kind': 'lockedBundle',
+    },
+  ],
+  ['updates-downloading-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', section: 'updates', update: 'downloading' }],
+  ['home-news-light-en', { lang: 'en', appearance: 'light', section: 'home', news: 'demo' }],
+  ['home-news-dark-tr', { lang: 'tr', appearance: 'dark', section: 'home', news: 'demo' }],
 ];
 
 // `npm run shots -- wheel-trail` takes only the shots whose names hold the text.

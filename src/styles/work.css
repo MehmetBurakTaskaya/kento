@@ -26,6 +26,16 @@
 .card-head .card-actions .button {
   margin-inline-start: 0;
 }
+/* What the update that started this version changed: plain text, kept to its lines. */
+.news .card-head .icon-button {
+  margin-inline-start: auto;
+}
+.news-notes {
+  max-inline-size: 80ch;
+  max-block-size: 220px;
+  overflow-y: auto;
+  white-space: pre-line;
+}
 .file-list {
   display: grid;
   gap: 2px;

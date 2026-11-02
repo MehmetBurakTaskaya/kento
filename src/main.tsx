@@ -28,6 +28,8 @@ async function start() {
   store.setBoot(boot);
   const section = new URLSearchParams(window.location.search).get('section');
   if (section && (SECTIONS as string[]).includes(section)) store.setSection(section as Section);
+  // The tray's "Check for updates" and Ctrl+U in another window open Settings › Updates.
+  if (section === 'updates') store.showUpdates();
   document.documentElement.dataset.platform = boot.app.platform;
   // Paint the first frame in the right theme; App keeps it in step afterwards.
   const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;

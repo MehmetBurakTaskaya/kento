@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // The page's state: what the core said at start, the settings, the jobs, the open section, the
-// files on Home, the Library, the open wheel or tool panel and the cards in the corner.
+// files on Home, the Library, the open wheel or tool panel, the cards in the corner and the notes
+// of an update this start installed.
 // Settings are saved through the core, which applies their side effects (tray, sign-in item…).
 import { create } from 'zustand';
 import type { ImagePanel, MediaPanel } from '../editors';
@@ -13,6 +14,7 @@ import {
   type LibraryEntry,
   type Section,
   type Settings,
+  type UpdateNews,
 } from '../ipc';
 
 export type WheelKind = 'convert' | 'tools' | 'actions';
@@ -60,8 +62,15 @@ interface AppStore {
   /** The web download dialog for one link (SPEC 5.10). */
   web: { url: string } | null;
   toasts: Toast[];
+  /** What the update that started this version changed, until Home's card is closed. */
+  news: UpdateNews | null;
+  /** Settings › Updates should come into view once it is on screen. */
+  revealUpdates: boolean;
   setBoot(boot: Bootstrap): void;
   setSection(section: Section): void;
+  /** Opens Settings and brings its Updates group into view. */
+  showUpdates(): void;
+  setNews(news: UpdateNews | null): void;
   update(patch: Partial<Settings>): Promise<void>;
   jobChanged(job: JobInfo): void;
   setPaused(paused: boolean): void;
@@ -103,6 +112,8 @@ export const useApp = create<AppStore>((set, get) => ({
   setup: false,
   web: null,
   toasts: [],
+  news: null,
+  revealUpdates: false,
   setBoot: (boot) =>
     set({
       boot,
@@ -112,6 +123,8 @@ export const useApp = create<AppStore>((set, get) => ({
       jobs: Object.fromEntries(boot.jobs.map((job) => [job.id, job])),
     }),
   setSection: (section) => set({ section }),
+  showUpdates: () => set({ section: 'settings', revealUpdates: true }),
+  setNews: (news) => set({ news }),
   update: async (patch) => {
     const current = get().settings;
     if (!current) return;

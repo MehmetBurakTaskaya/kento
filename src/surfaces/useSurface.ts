@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // What every window outside the main one shares: it follows the settings saved in the main window
-// (theme, appearance, motion, language) and paints on a transparent background.
+// (theme, appearance, motion, language), paints on a transparent background, and takes Ctrl+U
+// (⌘U), which looks for a new version and opens Settings › Updates in the main window.
 import { useEffect } from 'react';
+import { isUpdateShortcut } from '../app/UpdateSettings';
 import { changeLanguage } from '../i18n';
 import { api } from '../ipc';
 import { useApp } from '../state/store';
@@ -33,5 +35,15 @@ export function useSurface() {
       void changeLanguage(saved.language);
     });
     return () => void stop.then((unlisten) => unlisten());
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!isUpdateShortcut(event, useApp.getState().boot?.app.platform === 'macos')) return;
+      event.preventDefault();
+      void api.updatesCheck(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 }

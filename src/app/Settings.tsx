@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Settings (SPEC 5.17). Updates join with the release work.
+// Settings (SPEC 5.17).
 import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import mark from '../../src-tauri/icons/128x128.png';
@@ -11,11 +11,13 @@ import { useApp } from '../state/store';
 import { listThemes } from '../theme/registry';
 import { LayoutSettings } from './LayoutSettings';
 import { useToolStatus } from './Setup';
+import { UpdateSettings } from './UpdateSettings';
 
-export function Group({ title, children }: { title: string; children: ReactNode }) {
+/** A group of settings; `anchor` names it, so it can be brought into view. */
+export function Group({ title, children, anchor }: { title: string; children: ReactNode; anchor?: string }) {
   const id = useId();
   return (
-    <section className="card settings-group" aria-labelledby={id}>
+    <section className="card settings-group" aria-labelledby={id} id={anchor}>
       <h2 id={id} className="card-title">
         {title}
       </h2>
@@ -513,6 +515,8 @@ export function Settings() {
           </select>
         </Row>
       </Group>
+
+      <UpdateSettings />
 
       <Group title={t('settings.privacy.title')}>
         <p className="prose">{t('settings.privacy.text')}</p>

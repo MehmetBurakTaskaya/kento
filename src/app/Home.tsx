@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Home (SPEC 5.9): the drop zone, the files to work on, recent results, the tool groups' setup
 // state and running jobs. Files arrive by dropping, choosing (Ctrl+O) or pasting (Ctrl+V); Make a
-// QR code, which takes text rather than files, starts here too.
+// QR code, which takes text rather than files, starts here too. After an update, the new version's
+// notes come first, once (SPEC 5.16).
 import { useTranslation } from 'react-i18next';
 import { FileIcon } from '../components/FileIcon';
 import { Icon } from '../components/Icon';
@@ -52,6 +53,8 @@ export function Home() {
     removeFiles,
     openSetup,
     openPanel,
+    news,
+    setNews,
   } = useApp();
   const [status] = useToolStatus();
   // Core needs nothing; the others follow the lockfile's order, Media → Office → Extras (SPEC 5.15).
@@ -70,6 +73,21 @@ export function Home() {
 
   return (
     <div className="page home">
+      {news && (
+        <section className="card news" aria-labelledby="news-title">
+          <div className="card-head">
+            <h2 id="news-title" className="card-title">
+              {t('home.news.title', { version: news.version })}
+            </h2>
+            <button type="button" className="icon-button" aria-label={t('toast.close')} onClick={() => setNews(null)}>
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+          {/* Plain text from the CHANGELOG, never markup. */}
+          <p className="news-notes">{news.notes}</p>
+        </section>
+      )}
+
       <section className={files.length ? 'drop compact' : 'drop'} aria-labelledby="drop-title">
         <DepositSlot />
         <h1 id="drop-title" className="drop-title">
