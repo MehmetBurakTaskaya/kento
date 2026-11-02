@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 //! The job queue (SPEC 5.13). Light jobs run side by side up to a limit; heavy jobs (LibreOffice)
 //! run one at a time. Every job can be cancelled, and a failed or cancelled job's temporary files
-//! are deleted. Pausing stops new jobs from starting; running ones finish.
+//! are deleted. Pausing stops new jobs from starting; running ones finish. Closing (an update waits
+//! to install, SPEC 5.16) refuses new jobs; running and queued ones finish.
 
 pub mod engine;
 pub mod naming;
@@ -161,6 +162,8 @@ struct State {
     running_heavy: usize,
     limit: usize,
     paused: bool,
+    /// Why new jobs are refused, in the interface language; None while the queue takes them.
+    refusal: Option<String>,
 }
 
 struct Shared {
@@ -189,6 +192,7 @@ impl JobQueue {
                 running_heavy: 0,
                 limit: limit.max(1),
                 paused: false,
+                refusal: None,
             }),
             spawn,
             listener,
@@ -204,16 +208,22 @@ impl JobQueue {
         (threads / 2).clamp(1, 4)
     }
 
+    /// Queues a job. A closed queue records it as failed with the reason instead, and never runs
+    /// it.
     pub fn submit(&self, job: Box<dyn Job>) -> JobId {
         let info = {
             let mut state = lock(&self.0.state);
             let id = state.next_id;
             state.next_id += 1;
+            let refused = state.refusal.clone().map(|message| JobState::Failed {
+                message,
+                details: None,
+            });
             let info = JobInfo {
                 id,
                 title: job.title(),
                 lane: job.lane(),
-                state: JobState::Queued,
+                state: refused.unwrap_or(JobState::Queued),
             };
             state.jobs.insert(
                 id,
@@ -222,12 +232,38 @@ impl JobQueue {
                     cancel: CancelToken::default(),
                 },
             );
-            state.waiting.push_back((id, job));
+            if info.state.is_finished() {
+                prune(&mut state);
+            } else {
+                state.waiting.push_back((id, job));
+            }
             info
         };
         (self.0.listener)(&info);
         self.pump();
         info.id
+    }
+
+    /// Refuses every new job from now on, with `message` as the reason; running and queued jobs
+    /// go on.
+    pub fn close(&self, message: String) {
+        lock(&self.0.state).refusal = Some(message);
+    }
+
+    /// Takes new jobs again.
+    pub fn reopen(&self) {
+        lock(&self.0.state).refusal = None;
+    }
+
+    /// Why new jobs are refused, or None while the queue takes them.
+    pub fn refusal(&self) -> Option<String> {
+        lock(&self.0.state).refusal.clone()
+    }
+
+    /// How many jobs are queued or running.
+    pub fn unfinished(&self) -> usize {
+        let state = lock(&self.0.state);
+        state.waiting.len() + state.running_light + state.running_heavy
     }
 
     /// Cancels a queued or running job; a finished job is left as it is.
@@ -548,6 +584,42 @@ mod tests {
             .iter()
             .all(|info| info.state == JobState::Queued));
         h.queue.set_paused(false);
+        let done = h.finished(1).await;
+        assert!(matches!(done[0].state, JobState::Done { .. }));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn a_closed_queue_refuses_new_jobs_and_finishes_the_others() {
+        let mut h = harness(1);
+        h.queue.submit(h.job(Lane::Light, 60));
+        h.queue.submit(h.job(Lane::Light, 10));
+        assert_eq!(h.queue.unfinished(), 2);
+        h.queue.close("Kento güncelleniyor".into());
+        let refused = h.queue.submit(h.job(Lane::Light, 10));
+        let snapshot = h.queue.snapshot();
+        let info = snapshot.iter().find(|info| info.id == refused).unwrap();
+        assert_eq!(
+            info.state,
+            JobState::Failed {
+                message: "Kento güncelleniyor".into(),
+                details: None
+            }
+        );
+        assert_eq!(h.queue.unfinished(), 2, "the refused job never waits");
+        let done = h.finished(3).await;
+        assert_eq!(
+            done.iter()
+                .filter(|info| matches!(info.state, JobState::Done { .. }))
+                .count(),
+            2,
+            "the running and the queued job finish"
+        );
+        assert_eq!(h.queue.unfinished(), 0);
+        assert_eq!(h.peak.load(Ordering::SeqCst), 1);
+
+        h.queue.reopen();
+        assert_eq!(h.queue.refusal(), None);
+        h.queue.submit(h.job(Lane::Light, 10));
         let done = h.finished(1).await;
         assert!(matches!(done[0].state, JobState::Done { .. }));
     }
