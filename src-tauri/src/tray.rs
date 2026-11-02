@@ -58,8 +58,7 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         &[
             &MenuItem::with_id(app, "home", t("nav.home"), true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
-            // The shelf window arrives in Phase 3.
-            &MenuItem::with_id(app, "shelf", t("tray.shelf"), false, None::<&str>)?,
+            &MenuItem::with_id(app, "shelf", t("tray.shelf"), true, None::<&str>)?,
             &MenuItem::with_id(
                 app,
                 "pause",
@@ -79,6 +78,10 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
     let result = match event.id().as_ref() {
         "home" => window::show_main(app, Some("home")),
         "settings" => window::show_main(app, Some("settings")),
+        "shelf" => {
+            crate::overlay::shelf::show(app);
+            Ok(())
+        }
         // Looks at once, with Settings › Updates open to show what it finds.
         "updates" => {
             crate::updates::check_now(app);
