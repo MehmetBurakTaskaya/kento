@@ -41,7 +41,8 @@ export function Home() {
   const { boot, jobs, paused, language, files, selected, library, openWheel, target, removeFiles, openSetup } =
     useApp();
   const [status] = useToolStatus();
-  // Core needs nothing; Media can be installed now; Office and Extras arrive later (optional).
+  // Core needs nothing; the others follow the lockfile's order, Media → Office → Extras (SPEC 5.15).
+  // A group with nothing to download for this computer is shown as optional.
   const groups = [
     { id: 'core', status: 'ready' },
     ...(status ?? []).map((group) => ({

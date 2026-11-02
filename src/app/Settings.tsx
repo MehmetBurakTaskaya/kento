@@ -83,7 +83,12 @@ function Switch({ label, checked, onChange }: { label: string; checked: boolean;
 }
 
 /** Product names, the same in every language. */
-const TOOL_NAMES: Record<string, string> = { ffmpeg: 'FFmpeg', ffprobe: 'ffprobe', exiftool: 'ExifTool' };
+const TOOL_NAMES: Record<string, string> = {
+  ffmpeg: 'FFmpeg',
+  ffprobe: 'ffprobe',
+  soffice: 'LibreOffice',
+  exiftool: 'ExifTool',
+};
 
 /** Each optional tool's state, version and path; choosing a program, checking again, updating and
  *  removing Kento's own download (SPEC 4.2, 5.17). */

@@ -862,7 +862,25 @@ function demoTools(ready: boolean): ToolGroupStatus[] {
       outdated: false,
       downloaded: ready,
     },
-    { id: 'office', ready: false, tools: [], download: 0, available: false, outdated: false, downloaded: false },
+    {
+      id: 'office',
+      ready,
+      tools: [
+        {
+          id: 'soffice',
+          path: ready
+            ? 'C:\\Users\\me\\AppData\\Local\\Kento\\tools\\office\\26.8.2\\LibreOffice\\program\\soffice.exe'
+            : null,
+          version: ready ? '26.8.2' : null,
+          source: ready ? ('kento' as const) : null,
+        },
+      ],
+      // The pinned Windows installer.
+      download: 375_934_976,
+      available: true,
+      outdated: false,
+      downloaded: ready,
+    },
     {
       id: 'extras',
       ready,
