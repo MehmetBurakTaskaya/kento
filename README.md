@@ -299,10 +299,11 @@ Kento keeps itself up to date, and updates are not optional: there is no Skip or
 
 ## Languages
 
-Kento speaks English and Turkish, and follows the system's language; Settings → Language changes it
-at once, in every window. Ten more are planned: Spanish, Simplified Chinese, Japanese, German,
-French, Brazilian Portuguese, Arabic (right to left), Korean, Italian and Russian. Corrections and
-translations are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+Kento speaks twelve languages and follows the system's language; Settings → Language changes it at
+once, in every window: English, Turkish, Spanish, Simplified Chinese, Japanese, German, French,
+Brazilian Portuguese, Arabic (right to left), Korean, Italian and Russian. English and Turkish are
+checked by hand; the other ten are new and wait for a native speaker's review. Corrections are
+welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Build from source
 

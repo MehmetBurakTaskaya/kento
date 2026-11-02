@@ -90,8 +90,8 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 10: growth
 
-- [ ] The remaining 10 languages, each checked with screenshots
-- [ ] Web playground
+- [x] The remaining 10 languages, each checked with screenshots (waiting for native review)
+- [x] Web playground
 - [ ] WinGet and Homebrew
 - [ ] Modern Windows 11 context menu
 - [ ] Touch support and ARM64

@@ -63,7 +63,8 @@ download the links you ask for.
   with Ctrl+U (⌘U), downloads it in the background, lets the running jobs finish and restarts into
   it. The Windows installer (for your user, with no administrator rights), the portable ZIP and the
   Mac app all keep themselves up to date.
-- **Languages:** English and Turkish. Kento follows the system language, and Settings → Language
-  changes it at once in every window.
+- **Languages:** English, Turkish, Spanish, Simplified Chinese, Japanese, German, French, Brazilian
+  Portuguese, Arabic (right to left), Korean, Italian and Russian. Kento follows the system
+  language, and Settings → Language changes it at once in every window.
 
 [1.0.0]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.0.0

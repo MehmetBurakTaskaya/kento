@@ -610,16 +610,16 @@ Only the newest release stays on GitHub:
 | --- | --- | --- |
 | English | en | 1 (source language) |
 | Türkçe | tr | 1 |
-| Español | es | 10 |
-| 简体中文 | zh-Hans | 10 |
-| 日本語 | ja | 10 |
-| Deutsch | de | 10 |
-| Français | fr | 10 |
-| Português (Brasil) | pt-BR | 10 |
-| العربية (right to left) | ar | 10 |
-| 한국어 | ko | 10 |
-| Italiano | it | 10 |
-| Русский | ru | 10 |
+| Español | es | 10 (needs native review) |
+| 简体中文 | zh-Hans | 10 (needs native review) |
+| 日本語 | ja | 10 (needs native review) |
+| Deutsch | de | 10 (needs native review) |
+| Français | fr | 10 (needs native review) |
+| Português (Brasil) | pt-BR | 10 (needs native review) |
+| العربية (right to left) | ar | 10 (needs native review) |
+| 한국어 | ko | 10 (needs native review) |
+| Italiano | it | 10 (needs native review) |
+| Русский | ru | 10 (needs native review) |
 
 Language choice:
 

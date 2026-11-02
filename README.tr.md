@@ -305,11 +305,11 @@ Kento kendini güncel tutar ve güncellemeler isteğe bağlı değildir: Atla ya
 
 ## Diller
 
-Kento İngilizce ve Türkçe konuşur ve sistemin dilini izler; Ayarlar → Dil onu hemen, bütün
-pencerelerde değiştirir. On dil daha planlanıyor: İspanyolca, Basitleştirilmiş Çince, Japonca,
-Almanca, Fransızca, Brezilya Portekizcesi, Arapça (sağdan sola), Korece, İtalyanca ve Rusça.
-Düzeltmeler ve çeviriler memnuniyetle karşılanır: [CONTRIBUTING.md](CONTRIBUTING.md) dosyasına bak
-(İngilizce).
+Kento on iki dil konuşur ve sistemin dilini izler; Ayarlar → Dil onu hemen, bütün pencerelerde
+değiştirir: İngilizce, Türkçe, İspanyolca, Basitleştirilmiş Çince, Japonca, Almanca, Fransızca,
+Brezilya Portekizcesi, Arapça (sağdan sola), Korece, İtalyanca ve Rusça. İngilizce ve Türkçe elle
+denetlendi; diğer on dil yeni ve anadili konuşan birinin gözden geçirmesini bekliyor. Düzeltmeler
+memnuniyetle karşılanır: [CONTRIBUTING.md](CONTRIBUTING.md) dosyasına bak (İngilizce).
 
 ## Kaynaktan derleme
 
