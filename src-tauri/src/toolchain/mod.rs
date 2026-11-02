@@ -100,7 +100,7 @@ pub enum Error {
     MissingEntry(String),
     #[error("unpacking: {0}")]
     Unpack(String),
-    #[error("{0} did not run, or is older than version {min}", min = detect::MIN_MAJOR)]
+    #[error("{0} did not run, or is older than Kento needs")]
     NotWorking(String),
     #[error("cancelled")]
     Cancelled,
@@ -122,6 +122,7 @@ impl Error {
             Error::Checksum => "toolchain.failed.checksum",
             Error::MissingEntry(_) | Error::Unpack(_) => "toolchain.failed.unpack",
             Error::Io(_) => "toolchain.failed.disk",
+            Error::NotWorking(tool) if tool == "exiftool" => "toolchain.failed.check.exiftool",
             Error::NotWorking(_) => "toolchain.failed.check",
             Error::Cancelled => "toolchain.failed.cancelled",
             Error::Unavailable(_) => "toolchain.failed.unavailable",
@@ -628,7 +629,7 @@ async fn set_path(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::toolchain::detect::tests::{fake_tool, FAKE_SUFFIX};
+    use crate::toolchain::detect::tests::{fake_exiftool, fake_tool, FAKE_SUFFIX};
     use crate::toolchain::download::tests::{serve, sha256, Mode};
     use crate::toolchain::unpack::tests::zip_of;
     use serde_json::json;
@@ -731,27 +732,56 @@ mod tests {
         let status = chain.status();
         let ids: Vec<&str> = status.iter().map(|g| g.id.as_str()).collect();
         assert_eq!(ids, ["media", "office", "extras"]);
-        let media = &status[0];
-        assert!(!media.ready);
-        assert_eq!(media.tools.len(), 2);
-        assert!(media
-            .tools
-            .iter()
-            .all(|t| t.path.is_none() && t.source.is_none()));
-        let pinned = Lock::embedded()
-            .group("media")
-            .unwrap()
-            .platform(manifest::current_platform());
-        assert_eq!(media.available, pinned.is_some());
-        assert_eq!(
-            media.download,
-            pinned.map_or(0, |p| p.files.iter().map(|f| f.size).sum())
-        );
-        for later in &status[1..] {
-            assert!(!later.ready && !later.available);
-            assert_eq!(later.download, 0);
+        for (group, tools) in [(&status[0], 2), (&status[2], 1)] {
+            assert!(!group.ready);
+            assert_eq!(group.tools.len(), tools);
+            assert!(group
+                .tools
+                .iter()
+                .all(|t| t.path.is_none() && t.source.is_none()));
+            let pinned = Lock::embedded()
+                .group(&group.id)
+                .unwrap()
+                .platform(manifest::current_platform());
+            assert_eq!(group.available, pinned.is_some());
+            assert_eq!(
+                group.download,
+                pinned.map_or(0, |p| p.files.iter().map(|f| f.size).sum())
+            );
         }
+        let office = &status[1];
+        assert!(!office.ready && !office.available);
+        assert_eq!(office.download, 0);
         assert_eq!(chain.engine_tools(), kento_engines::Tools::default());
+    }
+
+    #[test]
+    fn exiftool_is_found_and_handed_to_the_engines() {
+        let base = tempfile::tempdir().unwrap();
+        let root = base.path().join("tools");
+        let (system, places) = fake_exiftool(&base.path().join("system ğ 🧪"), "13.60");
+        let chain = toolchain(&root, places.clone());
+        let extras = &chain.status()[2];
+        assert!(extras.ready);
+        assert_eq!(extras.tools[0].version.as_deref(), Some("13.60"));
+        assert_eq!(chain.engine_tools().exiftool, Some(system));
+
+        // A chosen ExifTool must be one; FFmpeg is not.
+        let (ffmpeg, _) = fake_tool(&base.path().join("ffmpeg"), "ffmpeg", "9.0");
+        assert!(matches!(
+            chain.set_path("exiftool", Some(ffmpeg)),
+            Err(Error::NotWorking(tool)) if tool == "exiftool"
+        ));
+        let (custom, _) = fake_exiftool(&base.path().join("custom"), "12.40");
+        let status = chain
+            .set_path("exiftool", Some(custom.parent().unwrap().to_path_buf()))
+            .unwrap();
+        assert_eq!(status[2].tools[0].source, Some(Source::Custom));
+        assert_eq!(chain.engine_tools().exiftool, Some(custom));
+        assert_eq!(
+            Error::NotWorking("exiftool".into()).message_key(),
+            "toolchain.failed.check.exiftool"
+        );
     }
 
     #[test]
@@ -923,7 +953,20 @@ mod tests {
     #[tokio::test]
     #[ignore = "downloads the pinned FFmpeg build; run with --ignored"]
     async fn installs_the_pinned_build_for_this_computer() {
+        install_pinned("media").await;
+    }
+
+    /// The same for the Extras group: ExifTool with its Perl folder (Windows) or library (macOS).
+    #[tokio::test]
+    #[ignore = "downloads the pinned ExifTool; run with --ignored"]
+    async fn installs_the_pinned_exiftool_for_this_computer() {
+        install_pinned("extras").await;
+    }
+
+    async fn install_pinned(group: &str) {
         let base = tempfile::tempdir().unwrap();
+        // ExifTool's Windows launcher finds its Perl through the system code page, so it cannot
+        // start from a folder whose name has letters outside it (an emoji always is).
         let root = base.path().join("tools");
         let places = Places {
             search: Vec::new(),
@@ -931,7 +974,7 @@ mod tests {
         };
         let platform = manifest::current_platform();
         let chain = Toolchain::with(root.clone(), Lock::embedded(), platform, places, true);
-        let Some(job) = chain.begin("media").ok().flatten() else {
+        let Some(job) = chain.begin(group).ok().flatten() else {
             eprintln!("nothing pinned for this computer; skipped");
             return;
         };
@@ -950,11 +993,19 @@ mod tests {
             .run(job, &|state| eprintln!("{state:?}"))
             .await
             .unwrap();
-        let media = &chain.status()[0];
-        assert!(media.ready, "{media:?}");
-        for tool in &media.tools {
+        let pinned = Lock::embedded().group(group).unwrap().version.clone();
+        let status = chain.status();
+        let installed = status.iter().find(|g| g.id == group).unwrap();
+        assert!(installed.ready, "{installed:?}");
+        for tool in &installed.tools {
             assert_eq!(tool.source, Some(Source::Kento));
-            assert_eq!(tool.version.as_deref(), Some("9.0.2"));
+            assert_eq!(tool.version, pinned);
+            eprintln!(
+                "{} {} runs from {}",
+                tool.id,
+                tool.version.as_deref().unwrap_or_default(),
+                tool.path.as_ref().unwrap().display()
+            );
         }
     }
 

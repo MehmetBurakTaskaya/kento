@@ -72,7 +72,7 @@
   "group.office": "Office",
   "group.office.detail": "LibreOffice",
   "group.extras": "Extras",
-  "group.extras.detail": "ExifTool, background removal",
+  "group.extras.detail": "ExifTool, for the metadata of pictures",
   "category.image": "Image",
   "category.video": "Video",
   "category.audio": "Audio",
@@ -443,7 +443,7 @@
   "settings.tools.verify": "Verify again",
   "settings.tools.update": "Update ({size})",
   "settings.tools.remove": "Remove download",
-  "settings.tools.note": "Kento uses a tool it finds on this computer before its own download. A program you choose must be FFmpeg 6 or newer.",
+  "settings.tools.note": "Kento uses a tool it finds on this computer before its own download. A program you choose must be FFmpeg 6 or ExifTool 12, or newer.",
   "toolchain.failed.busy": "Wait for the download to finish, or cancel it, and try again.",
   "toolchain.failed.remove": "The tools are in use. Try again when the running jobs have finished.",
   "suffix.edit-image": "edited",
@@ -599,5 +599,6 @@
   "compress.mediaNote": "Video and audio are compressed with the media tools. If they are not set up yet, choose Complete setup on Home.",
   "compress.pdfNote": "PDF compression is an extra: it mostly makes the pictures inside smaller, so a PDF of plain text may not shrink.",
   "compress.run": "{count, plural, one {Compress the file} other {Compress # files}}",
-  "error.compress.unsupported": "Kento cannot make this kind of file smaller in its own format. Convert it first, for example WAV to MP3 or BMP to PNG."
+  "error.compress.unsupported": "Kento cannot make this kind of file smaller in its own format. Convert it first, for example WAV to MP3 or BMP to PNG.",
+  "toolchain.failed.check.exiftool": "ExifTool did not start, or it is older than version 12."
 }

@@ -58,6 +58,10 @@ pub struct Download {
     pub archive: ArchiveKind,
     /// Tool id → the path of its binary inside the archive, with `/` between folders.
     pub entries: BTreeMap<String, String>,
+    /// A folder inside the archive → the name Kento gives it next to the binaries, for tools that
+    /// need files of their own beside them (ExifTool's `exiftool_files` or its Perl `lib`).
+    #[serde(default)]
+    pub folders: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -66,6 +70,8 @@ pub enum ArchiveKind {
     Zip,
     #[serde(rename = "7z")]
     SevenZ,
+    #[serde(rename = "tar.gz")]
+    TarGz,
 }
 
 impl Download {
@@ -158,6 +164,12 @@ fn check_platform(group: &Group, key: &str, platform: &Platform) -> Result<(), S
     let at = |what: String| format!("{} {key}: {what}", group.id);
     let mut names = BTreeSet::new();
     let mut covered = Vec::new();
+    // Folder names share the install folder with the binaries, whose names come from the tool ids.
+    let mut placed: BTreeSet<String> = group
+        .tools
+        .iter()
+        .flat_map(|tool| [tool.clone(), format!("{tool}.exe")])
+        .collect();
     for file in &platform.files {
         if !file.url.starts_with("https://") {
             return Err(at(format!("{} is not HTTPS", file.url)));
@@ -174,10 +186,18 @@ fn check_platform(group: &Group, key: &str, platform: &Platform) -> Result<(), S
             return Err(at(format!("bad size or SHA-256 for {}", file.url)));
         }
         for (tool, inner) in &file.entries {
-            if inner.is_empty() || inner.contains('\\') || inner.split('/').any(|p| p == "..") {
+            if !inner_path(inner) {
                 return Err(at(format!("bad entry path {inner:?}")));
             }
             covered.push(tool.as_str());
+        }
+        for (inner, name) in &file.folders {
+            if !inner_path(inner) {
+                return Err(at(format!("bad folder path {inner:?}")));
+            }
+            if !plain_name(name) || !placed.insert(name.clone()) {
+                return Err(at(format!("bad or repeated folder name {name:?}")));
+            }
         }
     }
     covered.sort_unstable();
@@ -189,6 +209,15 @@ fn check_platform(group: &Group, key: &str, platform: &Platform) -> Result<(), S
         )));
     }
     Ok(())
+}
+
+/// A path inside an archive: relative, `/` between parts, never leaving the archive's root.
+fn inner_path(path: &str) -> bool {
+    !path.is_empty()
+        && !path.contains('\\')
+        && path
+            .split('/')
+            .all(|part| !part.is_empty() && part != "." && part != "..")
 }
 
 /// Letters, digits, `.`, `_` and `-`, not starting with a dot: safe as a file or folder name.
@@ -238,13 +267,47 @@ mod tests {
         assert_eq!(windows.archive, ArchiveKind::SevenZ);
         assert_eq!(windows.file_name(), "ffmpeg-9.0.2-essentials_build.7z");
         assert!(windows.entries["ffmpeg"].ends_with("/bin/ffmpeg.exe"));
+        assert!(windows.folders.is_empty());
 
-        for later in ["office", "extras"] {
-            let group = lock.group(later).unwrap();
-            assert!(!group.available);
-            assert!(group.platform(current_platform()).is_none());
+        // ExifTool: the Windows launcher with its Perl folder, the Perl script with its library on
+        // every Mac (Perl needs no Rosetta, so Apple silicon has its own entry).
+        let extras = lock.group("extras").unwrap();
+        assert!(extras.available);
+        assert_eq!(extras.tools, ["exiftool"]);
+        let version = extras.version.as_deref().unwrap();
+        for key in PLATFORMS {
+            let platform = &extras.platforms[key];
+            assert_eq!(platform.files.len(), 1);
+            let file = &platform.files[0];
+            assert!(file
+                .url
+                .starts_with("https://downloads.sourceforge.net/project/exiftool/"));
+            assert!(file.url.contains(version));
+            assert_eq!(file.folders.len(), 1);
         }
+        let windows = &extras.platforms["windows-x64"].files[0];
+        assert_eq!(windows.archive, ArchiveKind::Zip);
+        assert_eq!(windows.file_name(), "exiftool-13.60_64.zip");
+        assert!(windows.entries["exiftool"].ends_with("/exiftool(-k).exe"));
+        assert_eq!(
+            windows.folders["exiftool-13.60_64/exiftool_files"],
+            "exiftool_files"
+        );
+        let mac = &extras.platforms["macos-arm64"].files[0];
+        assert_eq!(mac.archive, ArchiveKind::TarGz);
+        assert_eq!(mac.file_name(), "Image-ExifTool-13.60.tar.gz");
+        assert_eq!(mac.entries["exiftool"], "Image-ExifTool-13.60/exiftool");
+        assert_eq!(mac.folders["Image-ExifTool-13.60/lib"], "lib");
+        assert_eq!(
+            extras.platform(Some("macos-arm64")).unwrap().files[0].url,
+            extras.platforms["macos-x64"].files[0].url
+        );
+
+        let office = lock.group("office").unwrap();
+        assert!(!office.available);
+        assert!(office.platform(current_platform()).is_none());
         assert_eq!(lock.group_of("ffprobe").unwrap().id, "media");
+        assert_eq!(lock.group_of("exiftool").unwrap().id, "extras");
         assert!(lock.group_of("soffice").is_none());
         // The embedded copy is the same file.
         assert_eq!(Lock::embedded().groups.len(), 3);
@@ -253,8 +316,10 @@ mod tests {
     #[test]
     fn this_platform_is_known() {
         if cfg!(all(windows, target_arch = "x86_64")) {
-            let media = Lock::embedded().group("media").unwrap();
-            assert!(media.platform(current_platform()).is_some());
+            for group in ["media", "extras"] {
+                let group = Lock::embedded().group(group).unwrap();
+                assert!(group.platform(current_platform()).is_some());
+            }
         }
         if let Some(key) = current_platform() {
             assert!(PLATFORMS.contains(&key));
@@ -280,6 +345,37 @@ mod tests {
             good.replace("bin/ffmpeg", "../ffmpeg"),
             good.replace("\"ffmpeg\":", "\"ffprobe\":"),
             good.replace("\"zip\"", "\"rar\""),
+            good.replace("bin/ffmpeg", "/bin/ffmpeg"),
+            good.replace("bin/ffmpeg", "bin//ffmpeg"),
+            good.replace("bin/ffmpeg", "./bin/ffmpeg"),
+        ] {
+            assert!(Lock::parse(&lock_with(&bad)).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn folders_and_tar_gz_are_read_and_checked() {
+        let good = r#"{"url":"https://example.org/a.tar.gz","size":1,"sha256":"0000000000000000000000000000000000000000000000000000000000000000","archive":"tar.gz","entries":{"ffmpeg":"pack/ffmpeg"},"folders":{"pack/lib":"lib"}}"#;
+        let lock = Lock::parse(&lock_with(good)).unwrap();
+        let file = &lock.groups[0].platforms["windows-x64"].files[0];
+        assert_eq!(file.archive, ArchiveKind::TarGz);
+        assert_eq!(file.file_name(), "a.tar.gz");
+        assert_eq!(file.folders["pack/lib"], "lib");
+        for bad in [
+            good.replace("\"pack/lib\"", "\"../lib\""),
+            good.replace("\"pack/lib\"", "\"pack\\\\lib\""),
+            good.replace("\"pack/lib\"", "\"\""),
+            good.replace(":\"lib\"", ":\"../lib\""),
+            good.replace(":\"lib\"", ":\"l/ib\""),
+            good.replace(":\"lib\"", ":\".lib\""),
+            // A folder may not take a binary's name.
+            good.replace(":\"lib\"", ":\"ffmpeg\""),
+            good.replace(":\"lib\"", ":\"ffmpeg.exe\""),
+            good.replace(
+                "\"folders\":{\"pack/lib\":\"lib\"}",
+                "\"folders\":{\"pack/lib\":\"lib\",\"pack/more\":\"lib\"}",
+            ),
+            good.replace("\"tar.gz\"", "\"tgz\""),
         ] {
             assert!(Lock::parse(&lock_with(&bad)).is_err(), "{bad}");
         }

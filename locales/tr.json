@@ -72,7 +72,7 @@
   "group.office": "Ofis",
   "group.office.detail": "LibreOffice",
   "group.extras": "Ekstra",
-  "group.extras.detail": "ExifTool, arka plan kaldırma",
+  "group.extras.detail": "ExifTool, görsellerin meta verisi için",
   "category.image": "Görsel",
   "category.video": "Video",
   "category.audio": "Ses",
@@ -443,7 +443,7 @@
   "settings.tools.verify": "Yeniden doğrula",
   "settings.tools.update": "Güncelle ({size})",
   "settings.tools.remove": "İndirileni kaldır",
-  "settings.tools.note": "Kento, kendi indirdiğinden önce bu bilgisayarda bulduğu aracı kullanır. Seçtiğiniz program FFmpeg 6 ya da daha yeni olmalıdır.",
+  "settings.tools.note": "Kento, kendi indirdiğinden önce bu bilgisayarda bulduğu aracı kullanır. Seçtiğiniz program FFmpeg 6 ya da ExifTool 12 veya daha yeni olmalıdır.",
   "toolchain.failed.busy": "İndirmenin bitmesini bekleyin ya da iptal edip yeniden deneyin.",
   "toolchain.failed.remove": "Araçlar kullanımda. Çalışan işler bitince yeniden deneyin.",
   "suffix.edit-image": "düzenlenmiş",
@@ -599,5 +599,6 @@
   "compress.mediaNote": "Video ve ses, medya araçlarıyla sıkıştırılır. Henüz kurulmadılarsa Ana Sayfa’da Kurulumu tamamla’yı seçin.",
   "compress.pdfNote": "PDF sıkıştırma ek bir özelliktir: çoğunlukla içindeki resimleri küçültür, bu yüzden düz metinden oluşan bir PDF küçülmeyebilir.",
   "compress.run": "{count, plural, one {Dosyayı sıkıştır} other {# dosyayı sıkıştır}}",
-  "error.compress.unsupported": "Kento bu tür bir dosyayı kendi biçiminde küçültemez. Önce dönüştürün; örneğin WAV’ı MP3’e ya da BMP’yi PNG’ye."
+  "error.compress.unsupported": "Kento bu tür bir dosyayı kendi biçiminde küçültemez. Önce dönüştürün; örneğin WAV’ı MP3’e ya da BMP’yi PNG’ye.",
+  "toolchain.failed.check.exiftool": "ExifTool başlamadı ya da sürümü 12’den eski."
 }

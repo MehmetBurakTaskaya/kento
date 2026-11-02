@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 //! Installing one group: download every pinned file (resuming), verify each SHA-256, then unpack
-//! only the needed binaries into `<data>/tools/<group>/<version>/`.
+//! only the needed binaries (and the folders a tool needs beside it) into
+//! `<data>/tools/<group>/<version>/`.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -9,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use super::download::{self, Cancel};
 use super::manifest::Download;
+use super::unpack::Wanted;
 use super::{Error, InstallState};
 
 /// How often download progress reaches the page.
@@ -104,17 +106,23 @@ fn unpack_all(archives: &[(PathBuf, Download)], layout: &Layout) -> Result<(), E
     }
     fs::create_dir_all(&stage)?;
     for (archive, file) in archives {
-        let mut wanted = BTreeMap::new();
+        let mut wanted = Wanted::default();
         for (tool, inner) in &file.entries {
             let name = layout
                 .names
                 .get(tool)
                 .ok_or_else(|| Error::UnknownTool(tool.clone()))?;
-            wanted.insert(inner.clone(), stage.join(name));
+            wanted.files.insert(inner.clone(), stage.join(name));
+        }
+        for (inner, name) in &file.folders {
+            wanted.folders.insert(inner.clone(), stage.join(name));
         }
         super::unpack::extract(archive, file.archive, &wanted)?;
-        for dest in wanted.values() {
+        for dest in wanted.files.values() {
             super::unpack::prepare(dest)?;
+        }
+        for dest in wanted.folders.values() {
+            super::unpack::prepare_folder(dest)?;
         }
     }
     if layout.dest.exists() {
@@ -137,7 +145,7 @@ mod tests {
     use super::*;
     use crate::toolchain::download::tests::{sample, serve, sha256, Mode};
     use crate::toolchain::manifest::ArchiveKind;
-    use crate::toolchain::unpack::tests::zip_of;
+    use crate::toolchain::unpack::tests::{tar_gz_of, zip_of};
     use std::sync::Mutex;
 
     fn layout(base: &Path) -> Layout {
@@ -164,6 +172,7 @@ mod tests {
             .into_iter()
             .map(|(tool, inner)| (tool.to_string(), inner.to_string()))
             .collect(),
+            folders: BTreeMap::new(),
         }
     }
 
@@ -262,6 +271,47 @@ mod tests {
             fs::read(layout.dest.join("ffprobe.exe")).unwrap(),
             b"ffprobe!"
         );
+    }
+
+    #[tokio::test]
+    async fn a_tar_gz_with_a_folder_installs_the_binary_and_the_folder_beside_it() {
+        let archive = tar_gz_of(
+            &[
+                ("Image-ExifTool-1.0/exiftool", b"#!/usr/bin/perl"),
+                ("Image-ExifTool-1.0/lib/Image/ExifTool.pm", b"1;"),
+                ("Image-ExifTool-1.0/html/index.html", b"docs"),
+            ],
+            &[],
+        );
+        let server = serve(archive.clone(), Mode::Ranges);
+        let base = tempfile::tempdir().unwrap();
+        let layout = Layout {
+            downloads: base.path().join("downloads"),
+            dest: base.path().join("extras ğ 🧪").join("1.0"),
+            names: [("exiftool".to_string(), "exiftool".to_string())].into(),
+        };
+        let file = Download {
+            url: server.url.replace("tool.zip", "Image-ExifTool-1.0.tar.gz"),
+            size: archive.len() as u64,
+            sha256: sha256(&archive),
+            archive: ArchiveKind::TarGz,
+            entries: [("exiftool".into(), "Image-ExifTool-1.0/exiftool".into())].into(),
+            folders: [("Image-ExifTool-1.0/lib".into(), "lib".into())].into(),
+        };
+        let client = download::client(false).unwrap();
+        install(&client, &[file], &layout, &Cancel::default(), &|_| {})
+            .await
+            .unwrap();
+        assert_eq!(
+            fs::read(layout.dest.join("exiftool")).unwrap(),
+            b"#!/usr/bin/perl"
+        );
+        assert_eq!(
+            fs::read(layout.dest.join("lib").join("Image").join("ExifTool.pm")).unwrap(),
+            b"1;"
+        );
+        assert_eq!(fs::read_dir(&layout.dest).unwrap().count(), 2);
+        assert_eq!(fs::read_dir(&layout.downloads).unwrap().count(), 0);
     }
 
     #[tokio::test]

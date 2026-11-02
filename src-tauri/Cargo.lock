@@ -2902,6 +2902,7 @@ name = "kento"
 version = "0.1.0"
 dependencies = [
  "drag",
+ "flate2",
  "kento-engines",
  "objc2",
  "objc2-app-kit",
@@ -2914,6 +2915,7 @@ dependencies = [
  "sevenz-rust2",
  "sha2 0.11.1",
  "sys-locale",
+ "tar",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",

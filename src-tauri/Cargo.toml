@@ -47,12 +47,15 @@ tracing = "0.1.44"
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "std"] }
 # Tool downloads (src/toolchain): rustls with the ring provider (no aws-lc, so no NASM or CMake)
-# and the system's certificate store; zip and 7z only to take the pinned binaries out.
+# and the system's certificate store; zip, 7z and tar.gz (the engines' own tar and flate2) only to
+# take the pinned binaries out.
 reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "system-proxy"] }
 rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 sha2 = "0.11.1"
 zip = { version = "9.2.1", default-features = false, features = ["deflate"] }
 sevenz-rust2 = { version = "0.24.2", default-features = false }
+tar = "0.4.46"
+flate2 = "1.1.10"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = ["ApplicationModel_DataTransfer", "Foundation", "Foundation_Collections", "Storage", "Storage_Search", "Storage_Streams", "Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Security", "Win32_System_Com", "Win32_System_DataExchange", "Win32_System_Ole", "Win32_System_Registry", "Win32_System_Threading", "Win32_System_Variant", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_UI_WindowsAndMessaging"] }

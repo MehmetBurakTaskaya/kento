@@ -15,6 +15,9 @@ use serde::Serialize;
 pub const MIN_MAJOR: u32 = 6;
 /// FFmpeg 6.0 shipped libavutil 58; snapshot builds carry no release number, only this.
 const MIN_AVUTIL: u32 = 58;
+/// The oldest ExifTool Kento drives: 12.0 (2020) reads and writes every image format Kento
+/// edits, takes UTF-8 file names from an argument file and writes JSON with group names.
+pub const MIN_EXIFTOOL: u32 = 12;
 /// A first run of a large static build can be slow while antivirus software scans it.
 const PROBE_TIMEOUT: Duration = Duration::from_secs(20);
 
@@ -94,8 +97,13 @@ fn extra_dirs() -> Vec<PathBuf> {
         if let Some(data) = env("ProgramData") {
             dirs.push(data.join("chocolatey").join("bin"));
         }
+        // The usual homes of FFmpeg and ExifTool, the latter for everyone or for one user.
         if let Some(programs) = env("ProgramFiles") {
             dirs.push(programs.join("ffmpeg").join("bin"));
+            dirs.push(programs.join("ExifTool"));
+        }
+        if let Some(local) = env("LOCALAPPDATA") {
+            dirs.push(local.join("Programs").join("ExifTool"));
         }
         if let Some(mut root) = std::env::var_os("SystemDrive") {
             // `C:` alone means the current folder on drive C, not its root.
@@ -151,10 +159,18 @@ pub fn find(
     None
 }
 
-/// Runs `<path> -version` and returns the version to show when the output is `tool`'s and the
-/// version is supported.
+/// Runs `<path> -version` (ExifTool: `-ver`) and returns the version to show when the output is
+/// `tool`'s and the version is supported.
 pub fn probe(tool: &str, path: &Path) -> Option<String> {
-    let output = run_version(path)?;
+    if tool == "exiftool" {
+        let (label, major) = parse_exiftool(&run_version(path, "-ver")?)?;
+        if major >= MIN_EXIFTOOL {
+            return Some(label);
+        }
+        tracing::info!("ExifTool {label} is older than {MIN_EXIFTOOL}; not used");
+        return None;
+    }
+    let output = run_version(path, "-version")?;
     let version = parse_version(tool, &output)?;
     if version.supported() {
         Some(version.label)
@@ -167,10 +183,28 @@ pub fn probe(tool: &str, path: &Path) -> Option<String> {
     }
 }
 
-fn run_version(path: &Path) -> Option<String> {
+/// ExifTool's `-ver` prints its version alone, `13.60`; anything else is another program.
+pub fn parse_exiftool(output: &str) -> Option<(String, u32)> {
+    let mut lines = output
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty());
+    let line = lines.next()?;
+    if lines.next().is_some() {
+        return None;
+    }
+    let (major, minor) = line.split_once('.')?;
+    let numeric = |part: &str| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit());
+    if !numeric(major) || !numeric(minor) {
+        return None;
+    }
+    Some((line.to_string(), major.parse().ok()?))
+}
+
+fn run_version(path: &Path, flag: &str) -> Option<String> {
     let mut command = Command::new(path);
     command
-        .arg("-version")
+        .arg(flag)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
@@ -417,6 +451,104 @@ pub(crate) mod tests {
         assert_eq!(found.source, Source::System);
     }
 
+    #[test]
+    fn reads_exiftool_versions() {
+        assert_eq!(parse_exiftool("13.60\r\n"), Some(("13.60".into(), 13)));
+        assert_eq!(parse_exiftool("\n12.40\n"), Some(("12.40".into(), 12)));
+        for other in [
+            "",
+            "13",
+            "13.60.1",
+            "v13.60",
+            "13.6a",
+            "13.60\nsomething else",
+            "ffmpeg version 9.0.2 Copyright",
+        ] {
+            assert_eq!(parse_exiftool(other), None, "{other:?}");
+        }
+    }
+
+    /// A stand-in for ExifTool that prints `version` for `-ver`.
+    pub(crate) fn fake_exiftool(dir: &Path, version: &str) -> (PathBuf, Places) {
+        std::fs::create_dir_all(dir).unwrap();
+        let text = if cfg!(windows) {
+            format!("@echo off\r\necho {version}\r\n")
+        } else {
+            format!("#!/bin/sh\necho '{version}'\n")
+        };
+        let path = dir.join(format!("exiftool{FAKE_SUFFIX}"));
+        std::fs::write(&path, text).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let places = Places {
+            search: vec![dir.to_path_buf()],
+            suffix: FAKE_SUFFIX,
+        };
+        (path, places)
+    }
+
+    #[test]
+    fn finds_exiftool_and_passes_over_old_ones_and_other_programs() {
+        let base = tempfile::tempdir().unwrap();
+        let (system, places) = fake_exiftool(&base.path().join("system ğ 🧪"), "13.60");
+        let found = find("exiftool", &places, None, &[]).unwrap();
+        assert_eq!(found.path, system);
+        assert_eq!(
+            (found.version.as_str(), found.source),
+            ("13.60", Source::System)
+        );
+
+        let (_, old) = fake_exiftool(&base.path().join("old"), "11.88");
+        assert!(find("exiftool", &old, None, &[]).is_none());
+
+        // FFmpeg under ExifTool's name is not ExifTool, and the other way round.
+        let (wrong, _) = fake_tool(&base.path().join("wrong"), "ffmpeg", "9.0");
+        let renamed = base.path().join("wrong").join(old.file_name("exiftool"));
+        std::fs::rename(&wrong, &renamed).unwrap();
+        assert!(probe("exiftool", &renamed).is_none());
+        assert!(probe("ffmpeg", &system).is_none());
+
+        // A custom path first, Kento's own copy last.
+        let (custom, _) = fake_exiftool(&base.path().join("custom"), "12.40");
+        let found = find("exiftool", &places, Some(&custom), &[]).unwrap();
+        assert_eq!(
+            (found.version.as_str(), found.source),
+            ("12.40", Source::Custom)
+        );
+        let (_, kento) = fake_exiftool(&base.path().join("kento"), "13.60");
+        let nowhere = Places {
+            search: vec![base.path().join("nothing")],
+            suffix: FAKE_SUFFIX,
+        };
+        let found = find("exiftool", &nowhere, None, &kento.search).unwrap();
+        assert_eq!(found.source, Source::Kento);
+    }
+
+    /// Where PATH has a recent ExifTool, detection must find it.
+    #[test]
+    fn finds_exiftool_on_this_computer_when_path_has_one() {
+        let places = Places::system();
+        let on_path = places
+            .search
+            .iter()
+            .map(|dir| dir.join(places.file_name("exiftool")))
+            .find(|path| path.is_file() && probe("exiftool", path).is_some());
+        let Some(expected) = on_path else {
+            eprintln!("no ExifTool {MIN_EXIFTOOL}+ on PATH; skipped");
+            return;
+        };
+        let found = find("exiftool", &places, None, &[]).unwrap();
+        assert_eq!(found.path, expected);
+        eprintln!(
+            "found ExifTool {} at {}",
+            found.version,
+            found.path.display()
+        );
+    }
+
     /// The author's machine has FFmpeg from WinGet; CI machines may not. Where PATH has a recent
     /// FFmpeg, detection must find it.
     #[test]
@@ -434,7 +566,8 @@ pub(crate) mod tests {
         let found = find("ffmpeg", &places, None, &[]).unwrap();
         assert_eq!(found.path, expected);
         assert_eq!(found.source, Source::System);
-        let version = parse_version("ffmpeg", &run_version(&found.path).unwrap()).unwrap();
+        let version =
+            parse_version("ffmpeg", &run_version(&found.path, "-version").unwrap()).unwrap();
         assert!(version.major.is_none_or(|major| major >= MIN_MAJOR));
         eprintln!("found FFmpeg {} at {}", found.version, found.path.display());
     }
