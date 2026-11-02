@@ -392,10 +392,17 @@ pub(crate) fn run(ffmpeg: &Path, cmd: &Cmd, watch: Watch) -> Result<Log> {
     });
 
     let mut open = true;
+    // FFmpeg's position can step back (a WebM muxer interleaving audio and video reports the last
+    // packet it wrote), so the bar follows only the furthest point reached.
+    let mut furthest = 0.0f64;
     let status = loop {
         if open {
             match positions.recv_timeout(POLL) {
-                Ok(seconds) => watch.at(seconds),
+                Ok(seconds) if seconds > furthest => {
+                    furthest = seconds;
+                    watch.at(seconds);
+                }
+                Ok(_) => {}
                 Err(RecvTimeoutError::Timeout) => {}
                 Err(RecvTimeoutError::Disconnected) => open = false,
             }
