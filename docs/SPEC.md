@@ -239,6 +239,7 @@ Placement:
 Slices:
 
 - At most 8 slices per ring. More use an inner/outer ring or a "More…" sub-wheel.
+- **Rings of choices.** A slice with variants opens a ring of them when the pointer rests on it (about half a second), with Enter or with the forward arrow; resting on the hub, Esc or the back arrow goes back one level. A plain drop or click on the slice applies its default. The hub shows the path (for example "Convert › PDF"), and going in and back has its own motion, sound and haptic feedback; with reduced motion it is a short cross-fade. Rings of choices: one PDF or separate PDFs for several pictures, picture quality (JPG, WEBP, AVIF), the resolution of pages and slides as pictures, GIF size, audio bit rate, Compress presets, Speed presets, Metadata quick actions, the QR report format, recent folders for Copy and Move, the archive format for ZIP, and the quality and audio format of a web download.
 - Recent choices and favorites come first; this learning stays local.
 
 Smart filter:
@@ -252,12 +253,14 @@ Keyboard and accessibility:
 
 | Key | Action |
 | --- | --- |
-| Arrows | Previous / next slice |
+| Up / Down | Previous / next slice |
+| Right (Left in right-to-left) / Enter | Open the slice's ring of choices, or apply it |
+| Left (Right in right-to-left) / Esc / Backspace | Back one ring; Esc on the first ring closes the wheel |
 | Home / End | First / last slice |
-| Enter / Space | Apply the selected slice |
-| Esc / Tab | Close the wheel |
+| Space | Apply the selected slice |
+| Tab | Close the wheel |
 
-Every slice has a screen-reader label. In the Arabic (right-to-left) interface the slice order is mirrored (counterclockwise) and the arrow keys follow the visual direction.
+Every slice has a screen-reader label. In the Arabic (right-to-left) interface the slice order is mirrored (counterclockwise), and the arrows that go into and out of a ring follow the reading direction.
 
 Feedback:
 
