@@ -141,7 +141,7 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 | Make a collage | Image | Core | ready |  |
 | Redact image | Image | Core | ready |  |
 | Read QR codes | Image, PDF | Core | ready |  |
-| Make a QR code [+] | text or a link | Core | planned | from text or a link |
+| Make a QR code [+] | text or a link | Core | ready | from text or a link |
 | Split PDF | PDF | Core | ready |  |
 | Edit PDF | PDF | Core | ready |  |
 | Merge PDFs | PDF | Core | ready |  |
@@ -160,9 +160,9 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 | Audio channels | Audio | Media | ready |  |
 | Redact audio | Audio | Media | ready |  |
 | Audio to video | Audio | Media | ready |  |
-| Remove background [+] | Image | Extras | planned | permissively licensed models only |
-| Extract text [+] | Image, PDF | Core | planned | Windows OCR and Apple Vision |
-| Burn in subtitles [+] | Video, Subtitles | Media | planned |  |
+| Remove background [+] | Image | Extras | ready | permissively licensed models only |
+| Extract text [+] | Image, PDF | Core | ready | Windows OCR and Apple Vision |
+| Burn in subtitles [+] | Video, Subtitles | Media | ready |  |
 
 ## File actions
 

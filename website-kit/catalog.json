@@ -4373,7 +4373,7 @@
     "actions": 8,
     "coreInputs": 46,
     "formats": 54,
-    "ready": 373,
+    "ready": 377,
     "routes": 355,
     "tools": 31
   },
@@ -4551,7 +4551,7 @@
       },
       "note": "from text or a link",
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4874,7 +4874,7 @@
       },
       "note": "permissively licensed models only",
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4892,7 +4892,7 @@
       },
       "note": "Windows OCR and Apple Vision",
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4910,7 +4910,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     }
   ]
 }

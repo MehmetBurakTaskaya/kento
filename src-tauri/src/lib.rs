@@ -3,8 +3,8 @@
 //! (catalog, jobs, settings, languages) and its desktop shell (window, tray, single instance).
 
 pub mod actions;
-pub mod bgremove;
 pub mod automation;
+pub mod bgremove;
 pub mod catalog;
 pub mod commands;
 pub mod compress;
