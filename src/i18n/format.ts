@@ -49,6 +49,10 @@ export function formatRelative(then: number, now: number, lang: string): string 
   return rtf.format(Math.round(value), 'year');
 }
 
+/** A name inside running text, bidi-isolated (FSI … PDI) so it keeps its own direction in a
+ * right-to-left sentence: "rapor*" stays "rapor*", "2026 rapor.pdf" keeps its order (SPEC 5.19). */
+export const isolate = (text: string) => `⁨${text}⁩`;
+
 export const upper = (text: string, lang: string) => text.toLocaleUpperCase(intlLocale(lang));
 export const lower = (text: string, lang: string) => text.toLocaleLowerCase(intlLocale(lang));
 

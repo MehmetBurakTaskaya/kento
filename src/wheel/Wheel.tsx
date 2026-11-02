@@ -28,6 +28,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '../components/Icon';
 import { intlLocale, isRtl } from '../i18n';
+import { isolate } from '../i18n/format';
 import { Face, Flyer, Ghost, type Entrance, type FaceSlice } from './Face';
 import {
   C,
@@ -192,8 +193,6 @@ type Spot = number | 'hub' | null;
 
 /** Icons that point along the reading direction mirror in right-to-left layouts. */
 const DIRECTIONAL = new Set<IconName>(['back', 'restart', 'move']);
-// File names are bidi-isolated wherever they appear (design/DESIGN.md, section 10).
-const isolate = (text: string) => `⁨${text}⁩`;
 const NO_SPACING = /^(ar|ja|zh|ko)\b/;
 
 function brandFamily(): string {

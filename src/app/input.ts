@@ -4,6 +4,7 @@
 // link opens the web download (SPEC 5.10), as a link dropped on the window does.
 import { useEffect } from 'react';
 import i18n from '../i18n';
+import { isolate } from '../i18n/format';
 import { api, type Dropped } from '../ipc';
 import { useApp } from '../state/store';
 import { isLink } from '../web/links';
@@ -34,7 +35,7 @@ export async function paste(text: string, image: File | null) {
   if (image) {
     const entry = await api.importImage(new Uint8Array(await image.arrayBuffer()));
     store.addEntries([entry]);
-    store.toast({ kind: 'info', message: i18n.t('paste.saved', { name: entry.name }) });
+    store.toast({ kind: 'info', message: i18n.t('paste.saved', { name: isolate(entry.name) }) });
     return;
   }
   const trimmed = text.trim();
@@ -45,7 +46,7 @@ export async function paste(text: string, image: File | null) {
   if (trimmed) {
     const entry = await api.importText(text);
     store.addEntries([entry]);
-    store.toast({ kind: 'info', message: i18n.t('paste.saved', { name: entry.name }) });
+    store.toast({ kind: 'info', message: i18n.t('paste.saved', { name: isolate(entry.name) }) });
   }
 }
 

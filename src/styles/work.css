@@ -200,6 +200,10 @@
   display: grid;
   min-inline-size: 0;
 }
+/* A name is isolated as its own direction; it still lines up with the interface's start edge. */
+.library-text .file-name {
+  text-align: match-parent;
+}
 .library-text .muted {
   font: var(--type-caption);
 }

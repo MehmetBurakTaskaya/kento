@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, type FileEntry, type MediaInfo, type MediaTool } from '../../ipc';
+import { isolate } from '../../i18n/format';
 import { OrderList } from '../../tools/OrderList';
 import { Section } from '../controls';
 import { EditorShell } from '../EditorShell';
@@ -85,7 +86,7 @@ export function Merge({ paths, ...props }: EditorProps) {
         >
           {order.map((clip, index) => (
             <option key={clip.path} value={clip.path}>
-              {t('editor.merge.clip', { index: index + 1, name: clip.name })}
+              {t('editor.merge.clip', { index: index + 1, name: isolate(clip.name) })}
             </option>
           ))}
         </select>

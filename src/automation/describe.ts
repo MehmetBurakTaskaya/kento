@@ -3,7 +3,7 @@
 // Compress under 2 MB"), what a rule takes and what it does. Shared by the Automation page and
 // the wheel's Favorites ring.
 import type { TFunction } from 'i18next';
-import { formatBytes, upper } from '../i18n/format';
+import { formatBytes, isolate, upper } from '../i18n/format';
 import type { ConvertFormat, Recipe, RecipeStep, Rule, RuleAction, RuleFilter } from '../ipc';
 
 /** A format's label, as the catalog writes it ("TAR.GZ"), or its id in capitals. */
@@ -35,8 +35,8 @@ export function describeSteps(steps: RecipeStep[], t: TFunction, lang: string, t
 /** "PNG, JPG · named Screenshot* · at least 100 kB", or "All files". */
 export function describeFilter(filter: RuleFilter, t: TFunction, lang: string): string {
   const parts = [
-    filter.extensions.map((ext) => upper(ext, lang)).join(', '),
-    filter.pattern && t('automation.filter.pattern', { pattern: filter.pattern }),
+    filter.extensions.length > 0 && isolate(filter.extensions.map((ext) => upper(ext, lang)).join(', ')),
+    filter.pattern && t('automation.filter.pattern', { pattern: isolate(filter.pattern) }),
     filter.minSize != null && t('automation.filter.min', { size: formatBytes(filter.minSize, lang) }),
     filter.maxSize != null && t('automation.filter.max', { size: formatBytes(filter.maxSize, lang) }),
   ].filter((part): part is string => !!part);
@@ -57,7 +57,7 @@ export function describeAction(
       return t(`tool.${action.tool}`);
     case 'recipe':
       return t('automation.action.recipe', {
-        name: recipes.find((recipe) => recipe.id === action.recipe)?.name ?? action.recipe,
+        name: isolate(recipes.find((recipe) => recipe.id === action.recipe)?.name ?? action.recipe),
       });
     case 'move':
       return t('automation.action.move');

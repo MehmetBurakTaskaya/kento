@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileIcon } from '../components/FileIcon';
 import { Icon } from '../components/Icon';
-import { formatBytes, formatRelative, matchesSearch } from '../i18n/format';
+import { formatBytes, formatRelative, isolate, matchesSearch } from '../i18n/format';
 import { api, type Category, type LibraryEntry } from '../ipc';
 import { useApp } from '../state/store';
 import { useNow } from './useNow';
@@ -104,7 +104,7 @@ export function Library() {
                     <span className="muted">
                       {item.exists ? (
                         <>
-                          {item.source && <bdi>{t('library.from', { name: item.source })} · </bdi>}
+                          {item.source && <bdi>{t('library.from', { name: isolate(item.source) })} · </bdi>}
                           {item.size != null && `${formatBytes(item.size, language)} · `}
                           {formatRelative(item.created, now, language)}
                         </>

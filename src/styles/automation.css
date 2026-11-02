@@ -142,6 +142,9 @@
   gap: 1px;
   min-inline-size: 0;
 }
+.activity-text .file-name {
+  text-align: match-parent;
+}
 .activity-text .muted,
 .activity-message {
   font: var(--type-caption);

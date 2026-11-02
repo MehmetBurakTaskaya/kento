@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isImagePanel, isMediaPanel } from '../editors';
+import { isolate } from '../i18n/format';
 import { api, type FileEntry } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
 import { Wheel } from '../wheel/Wheel';
@@ -91,7 +92,7 @@ export function WheelHost() {
           .then(async (found) => {
             if (!found.length) return toast({ kind: 'info', message: t('tools.qr.none') });
             const saved = await api.saveQrReport(found, plan.report);
-            toast({ kind: 'info', message: t('tools.qr.saved', { name: saved.name }) });
+            toast({ kind: 'info', message: t('tools.qr.saved', { name: isolate(saved.name) }) });
           })
           .catch(failed);
     }

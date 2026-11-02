@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '../components/Dialog';
 import { ImageEditor, isImagePanel, isMediaPanel, MediaEditor } from '../editors';
+import { isolate } from '../i18n/format';
 import { Icon } from '../components/Icon';
 import { api, type FileEntry, type PageSize, type QrFound, type QrReport } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
@@ -210,6 +211,7 @@ function SplitPdf({ entries, onClose }: PanelProps) {
           <input
             type="text"
             inputMode="numeric"
+            dir="ltr"
             placeholder={t('tools.split.rangesExample')}
             value={text}
             disabled={mode !== 'ranges'}
@@ -445,7 +447,7 @@ function ReadQr({ entries, onClose }: PanelProps) {
     api
       .saveQrReport(found ?? [], report)
       .then((item) => {
-        toast({ kind: 'info', message: t('tools.qr.saved', { name: item.name }) });
+        toast({ kind: 'info', message: t('tools.qr.saved', { name: isolate(item.name) }) });
         void api.libraryReveal(item.id);
       })
       .catch((reason) => setError(String(reason)));

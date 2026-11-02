@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { initI18n } from '../i18n';
+import { isolate } from '../i18n/format';
 import { api, type Activity, type AutomationView, type Recipe, type RuleView } from '../ipc';
 import { Automation } from './Automation';
 import { draftOf, stepOf } from './RecipeDialog';
@@ -113,14 +114,19 @@ describe('automation page', () => {
     expect(first.getAttribute('aria-checked')).toBe('true');
     expect(screen.getByRole('switch', { name: 'Rule: Arşivler' }).getAttribute('aria-checked')).toBe('false');
     expect(screen.getByText('2 rules on')).toBeTruthy();
-    expect(screen.getByText('PNG · Convert to WEBP')).toBeTruthy();
+    // Inserted lists and names are bidi-isolated, so they read right in Arabic too.
+    expect(screen.getByText(`${isolate('PNG')} · Convert to WEBP`)).toBeTruthy();
     // A rule without a name goes by its folder.
     expect(screen.getByRole('switch', { name: 'Rule: Instagram 📷' })).toBeTruthy();
-    expect(screen.getByText('JPG, HEIC · named IMG_* · at least 100 kB · Recipe: Ready for Instagram')).toBeTruthy();
+    expect(
+      screen.getByText(
+        `${isolate('JPG, HEIC')} · named ${isolate('IMG_*')} · at least 100 kB · Recipe: ${isolate('Ready for Instagram')}`,
+      ),
+    ).toBeTruthy();
     expect(screen.getByText('with subfolders')).toBeTruthy();
     expect(screen.getByText(/^The output folder is inside the watched folder/)).toBeTruthy();
     expect(screen.getByText('The output folder is gone.')).toBeTruthy();
-    expect(screen.getByText('PNG · Extract archive')).toBeTruthy();
+    expect(screen.getByText(`${isolate('PNG')} · Extract archive`)).toBeTruthy();
     fireEvent.click(first);
     expect(setEnabled).toHaveBeenCalledWith('shots', false);
   });
