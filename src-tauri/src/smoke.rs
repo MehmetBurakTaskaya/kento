@@ -307,6 +307,73 @@ fn engines(dir: &Path) -> Result<String, String> {
     Ok("svg → png → jpg and pdf, pdf → png with PDFium, md → html, zip made and extracted".into())
 }
 
+/// The command line shipped beside the app (`kento.com` or `kento-cli.exe` on Windows, `kento-cli`
+/// in the macOS bundle): it answers with the app's version, and turns an SVG into a PDF and that
+/// PDF's page into a PNG, which needs the bundled PDFium from where the command line looks.
+fn command_line(dir: &Path, version: &str) -> Result<String, String> {
+    use std::ffi::OsStr;
+    let exe = std::env::current_exe().map_err(|err| err.to_string())?;
+    let beside = exe.parent().ok_or("the app has no folder")?;
+    let names: &[&str] = if cfg!(windows) {
+        &["kento.com", "kento-cli.exe"]
+    } else {
+        &["kento-cli"]
+    };
+    let Some(cli) = names
+        .iter()
+        .map(|name| beside.join(name))
+        .find(|p| p.is_file())
+    else {
+        return Ok("skipped: no command line beside the app".into());
+    };
+    let run = |args: &[&OsStr]| -> Result<serde_json::Value, String> {
+        let mut command = std::process::Command::new(&cli);
+        command.args(args).arg("--json");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            // CREATE_NO_WINDOW: the hidden run shows no console.
+            command.creation_flags(0x0800_0000);
+        }
+        let output = command.output().map_err(|err| err.to_string())?;
+        let answer: serde_json::Value = serde_json::from_slice(&output.stdout)
+            .map_err(|err| format!("{err}: {}", String::from_utf8_lossy(&output.stderr).trim()))?;
+        if answer["ok"] != true {
+            return Err(format!("{args:?}: {answer}"));
+        }
+        Ok(answer)
+    };
+    let answer = run(&[OsStr::new("--version")])?;
+    if answer["version"] != version {
+        return Err(format!("the command line is {}", answer["version"]));
+    }
+    let svg = dir.join("Kento ğüşıöç 🧪.svg");
+    std::fs::write(
+        &svg,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48"><rect width="64" height="48" fill="#2a4ea6"/></svg>"##,
+    )
+    .map_err(|err| err.to_string())?;
+    let convert = |file: &Path, to: &str| {
+        let answer = run(&[
+            OsStr::new("convert"),
+            file.as_os_str(),
+            OsStr::new("--to"),
+            OsStr::new(to),
+        ])?;
+        let output = answer["results"][0]["outputs"][0]
+            .as_str()
+            .map(PathBuf::from);
+        output.ok_or_else(|| format!("no result: {answer}"))
+    };
+    let pdf = convert(&svg, "pdf")?;
+    let pages = convert(&pdf, "png")?;
+    if !pages.exists() {
+        return Err(format!("pdf → png: {} is missing", pages.display()));
+    }
+    let name = cli.file_name().unwrap_or_default().to_string_lossy();
+    Ok(format!("{name} {version}: svg → pdf → png"))
+}
+
 fn check(name: &'static str, result: Result<String, String>) -> Check {
     match result {
         Ok(detail) => Check {
@@ -456,6 +523,16 @@ pub async fn run(app: AppHandle) -> bool {
         (true, Err(err)) => Err(err.to_string()),
     };
     checks.push(check("office", office_result));
+
+    let dir = scratch.join("command line");
+    let version = app.package_info().version.to_string();
+    let cli_result = match std::fs::create_dir_all(&dir) {
+        Ok(()) => tauri::async_runtime::spawn_blocking(move || command_line(&dir, &version))
+            .await
+            .unwrap_or_else(|err| Err(err.to_string())),
+        Err(err) => Err(err.to_string()),
+    };
+    checks.push(check("command line", cli_result));
 
     checks.push(check(
         "floating wheel",
