@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-//! Installing one group: download every pinned file (resuming), verify each SHA-256, then unpack
-//! only the needed binaries (and the folders a tool needs beside it or runs from) into
-//! `<data>/tools/<group>/<version>/`.
+//! Installing what a group lacks: download each pinned file of the folders to fill (resuming),
+//! verify each SHA-256, then unpack only the needed binaries (and the folders a tool needs beside
+//! it or runs from) into `<data>/tools/<group>/<version>/`, or `<group>/<tool>/<version>/` for a
+//! tool with a version of its own.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -16,16 +17,24 @@ use super::{Error, InstallState};
 /// How often download progress reaches the page.
 const PROGRESS_EVERY: Duration = Duration::from_millis(150);
 
-/// Where one install reads and writes.
+/// Where one install folder's downloads are read and written.
 #[derive(Debug, Clone)]
 pub struct Layout {
     /// `<data>/tools/downloads`
     pub downloads: PathBuf,
-    /// `<data>/tools/<group>/<version>`
+    /// `<data>/tools/<group>/<version>`, or `<data>/tools/<group>/<tool>/<version>`
     pub dest: PathBuf,
     /// Tool id → its program relative to `dest`: `ffmpeg.exe`, or
-    /// `LibreOffice/program/soffice.exe` for a tool that runs inside its kept folder.
+    /// `LibreOffice/program/soffice.exe` for a tool that runs inside its kept folder. Only the
+    /// tools this folder holds.
     pub programs: BTreeMap<String, PathBuf>,
+}
+
+/// One install folder and the pinned files that fill it.
+#[derive(Debug, Clone)]
+pub struct Unit {
+    pub files: Vec<Download>,
+    pub layout: Layout,
 }
 
 /// The folder an installer image is unpacked or attached in while its folders are taken out:
@@ -34,48 +43,62 @@ pub fn image_scratch(downloads: &Path, file: &Download) -> PathBuf {
     downloads.join(format!("{}.image", file.file_name()))
 }
 
+/// Downloads every file of `units` with one progress over all of them, then fills each unit's
+/// folder. A folder already filled stays when a later one fails.
 pub async fn install(
     client: &reqwest::Client,
-    files: &[Download],
-    layout: &Layout,
+    units: &[Unit],
     cancel: &Cancel,
     report: &(dyn Fn(InstallState) + Send + Sync),
 ) -> Result<(), Error> {
-    fs::create_dir_all(&layout.downloads)?;
-    let total: u64 = files.iter().map(|file| file.size).sum();
+    let total: u64 = units
+        .iter()
+        .flat_map(|unit| &unit.files)
+        .map(|file| file.size)
+        .sum();
     let mut before = 0;
-    let mut archives = Vec::new();
-    for file in files {
-        cancel.check()?;
-        let archive = layout.downloads.join(file.file_name());
-        if !verified_already(&archive, file, report).await? {
-            let part = layout.downloads.join(format!("{}.part", file.file_name()));
-            let mut last: Option<Instant> = None;
-            let mut progress = |done: u64| {
-                let due = last.is_none_or(|at| at.elapsed() >= PROGRESS_EVERY);
-                if due || done == file.size {
-                    last = Some(Instant::now());
-                    report(InstallState::Downloading {
-                        done: before + done,
-                        total,
-                    });
-                }
-            };
-            download::fetch(client, &file.url, &part, file.size, cancel, &mut progress).await?;
-            report(InstallState::Verifying);
-            let (checked, sha256) = (part.clone(), file.sha256.clone());
-            blocking(move || download::verify(&checked, &sha256)).await?;
-            fs::rename(&part, &archive)?;
+    let mut filled = Vec::new();
+    for unit in units {
+        let downloads = &unit.layout.downloads;
+        fs::create_dir_all(downloads)?;
+        let mut archives = Vec::new();
+        for file in &unit.files {
+            cancel.check()?;
+            let archive = downloads.join(file.file_name());
+            if !verified_already(&archive, file, report).await? {
+                let part = downloads.join(format!("{}.part", file.file_name()));
+                let mut last: Option<Instant> = None;
+                let mut progress = |done: u64| {
+                    let due = last.is_none_or(|at| at.elapsed() >= PROGRESS_EVERY);
+                    if due || done == file.size {
+                        last = Some(Instant::now());
+                        report(InstallState::Downloading {
+                            done: before + done,
+                            total,
+                        });
+                    }
+                };
+                download::fetch(client, &file.url, &part, file.size, cancel, &mut progress).await?;
+                report(InstallState::Verifying);
+                let (checked, sha256) = (part.clone(), file.sha256.clone());
+                blocking(move || download::verify(&checked, &sha256)).await?;
+                fs::rename(&part, &archive)?;
+            }
+            before += file.size;
+            archives.push((archive, file.clone()));
         }
-        before += file.size;
-        archives.push((archive, file.clone()));
+        filled.push((archives, unit.layout.clone()));
     }
     cancel.check()?;
     report(InstallState::Unpacking);
-    let layout = layout.clone();
-    let unpacked = archives.clone();
-    blocking(move || unpack_all(&unpacked, &layout)).await?;
-    for (archive, _) in archives {
+    let unpacked = filled.clone();
+    blocking(move || {
+        unpacked
+            .iter()
+            .try_for_each(|(archives, layout)| unpack_all(archives, layout))
+    })
+    .await?;
+    for (archive, _) in filled.into_iter().flat_map(|(archives, _)| archives) {
         if let Err(err) = fs::remove_file(&archive) {
             tracing::warn!("a used tool download was not removed: {err}");
         }
@@ -186,7 +209,7 @@ async fn blocking<T: Send + 'static>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::toolchain::download::tests::{sample, serve, sha256, Mode};
+    use crate::toolchain::download::tests::{sample, serve, serve_routes, sha256, Mode};
     use crate::toolchain::manifest::ArchiveKind;
     use crate::toolchain::unpack::tests::{tar_gz_of, zip_of};
     use std::sync::Mutex;
@@ -200,6 +223,13 @@ mod tests {
                 .map(|(tool, name)| (tool.to_string(), PathBuf::from(name)))
                 .collect(),
         }
+    }
+
+    fn one(file: Download, layout: &Layout) -> Vec<Unit> {
+        vec![Unit {
+            files: vec![file],
+            layout: layout.clone(),
+        }]
     }
 
     fn pinned(url: &str, archive: &[u8], sha256: String) -> Download {
@@ -244,7 +274,7 @@ mod tests {
 
         let states = Mutex::new(Vec::new());
         let client = download::client(false).unwrap();
-        install(&client, &[file], &layout, &Cancel::default(), &|state| {
+        install(&client, &one(file, &layout), &Cancel::default(), &|state| {
             states.lock().unwrap().push(state)
         })
         .await
@@ -290,7 +320,7 @@ mod tests {
         let layout = layout(base.path());
         let file = pinned(&server.url, &archive, sha256(b"some other file"));
         let client = download::client(false).unwrap();
-        let result = install(&client, &[file], &layout, &Cancel::default(), &|_| {}).await;
+        let result = install(&client, &one(file, &layout), &Cancel::default(), &|_| {}).await;
         assert!(matches!(result, Err(Error::Checksum)), "{result:?}");
         assert_eq!(fs::read_dir(&layout.downloads).unwrap().count(), 0);
         assert!(!layout.dest.exists());
@@ -307,7 +337,7 @@ mod tests {
         // Nothing listens on this port: a request would fail.
         let file = pinned("http://127.0.0.1:9/tool.zip", &archive, sha256(&archive));
         let client = download::client(false).unwrap();
-        install(&client, &[file], &layout, &Cancel::default(), &|_| {})
+        install(&client, &one(file, &layout), &Cancel::default(), &|_| {})
             .await
             .unwrap();
         assert_eq!(
@@ -342,7 +372,7 @@ mod tests {
             folders: [("Image-ExifTool-1.0/lib".into(), "lib".into())].into(),
         };
         let client = download::client(false).unwrap();
-        install(&client, &[file], &layout, &Cancel::default(), &|_| {})
+        install(&client, &one(file, &layout), &Cancel::default(), &|_| {})
             .await
             .unwrap();
         assert_eq!(
@@ -396,8 +426,7 @@ mod tests {
         let client = download::client(false).unwrap();
         install(
             &client,
-            &[kept_folder(&server.url, &archive)],
-            &layout,
+            &one(kept_folder(&server.url, &archive), &layout),
             &Cancel::default(),
             &|_| {},
         )
@@ -427,7 +456,7 @@ mod tests {
         fs::write(layout.downloads.join("tool.zip"), &archive).unwrap();
         let file = kept_folder("http://127.0.0.1:9/tool.zip", &archive);
         let client = download::client(false).unwrap();
-        let result = install(&client, &[file], &layout, &Cancel::default(), &|_| {}).await;
+        let result = install(&client, &one(file, &layout), &Cancel::default(), &|_| {}).await;
         assert!(
             matches!(&result, Err(Error::MissingEntry(inner)) if inner == "pack/Office/program/soffice.exe"),
             "{result:?}"
@@ -448,8 +477,110 @@ mod tests {
         let cancel = Cancel::default();
         cancel.cancel();
         let client = download::client(false).unwrap();
-        let result = install(&client, &[file], &layout, &cancel, &|_| {}).await;
+        let result = install(&client, &one(file, &layout), &cancel, &|_| {}).await;
         assert!(matches!(result, Err(Error::Cancelled)));
         assert!(!layout.dest.exists());
+    }
+
+    /// yt-dlp's shape: the download is the program, kept under the name Kento gives it.
+    fn single(url: &str, program: &[u8]) -> Download {
+        Download {
+            url: url.to_string(),
+            size: program.len() as u64,
+            sha256: sha256(program),
+            archive: ArchiveKind::File,
+            entries: [("yt-dlp".into(), "yt-dlp.exe".into())].into(),
+            folders: BTreeMap::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_single_program_download_is_kept_under_kentos_name() {
+        let program = sample(90_000);
+        let server = serve_routes(vec![("/yt-dlp.exe".into(), program.clone())]);
+        let base = tempfile::tempdir().unwrap();
+        let layout = Layout {
+            downloads: base.path().join("downloads"),
+            dest: base
+                .path()
+                .join("media ğ 🧪")
+                .join("yt-dlp")
+                .join("2026.10.26"),
+            programs: [("yt-dlp".to_string(), PathBuf::from("yt-dlp"))].into(),
+        };
+        let client = download::client(false).unwrap();
+        let file = single(&format!("{}/yt-dlp.exe", server.base), &program);
+        install(&client, &one(file, &layout), &Cancel::default(), &|_| {})
+            .await
+            .unwrap();
+        assert_eq!(fs::read(layout.dest.join("yt-dlp")).unwrap(), program);
+        assert_eq!(fs::read_dir(&layout.dest).unwrap().count(), 1);
+        assert_eq!(fs::read_dir(&layout.downloads).unwrap().count(), 0);
+
+        // A file that does not match its pinned hash is never kept.
+        let wrong = Layout {
+            dest: base
+                .path()
+                .join("media ğ 🧪")
+                .join("yt-dlp")
+                .join("9999.01.01"),
+            ..layout.clone()
+        };
+        let mut file = single(&format!("{}/yt-dlp.exe", server.base), &program);
+        file.sha256 = sha256(b"another program");
+        let result = install(&client, &one(file, &wrong), &Cancel::default(), &|_| {}).await;
+        assert!(matches!(result, Err(Error::Checksum)), "{result:?}");
+        assert!(!wrong.dest.exists());
+    }
+
+    #[tokio::test]
+    async fn several_folders_fill_in_one_run_with_one_progress() {
+        let archive = archive();
+        let program = sample(50_000);
+        let server = serve_routes(vec![
+            ("/tool.zip".into(), archive.clone()),
+            ("/yt-dlp.exe".into(), program.clone()),
+        ]);
+        let base = tempfile::tempdir().unwrap();
+        let media = layout(base.path());
+        let ytdlp = Layout {
+            downloads: media.downloads.clone(),
+            dest: base.path().join("media").join("yt-dlp").join("2026.10.26"),
+            programs: [("yt-dlp".to_string(), PathBuf::from("yt-dlp.exe"))].into(),
+        };
+        let units = vec![
+            Unit {
+                files: vec![pinned(
+                    &format!("{}/tool.zip", server.base),
+                    &archive,
+                    sha256(&archive),
+                )],
+                layout: media.clone(),
+            },
+            Unit {
+                files: vec![single(&format!("{}/yt-dlp.exe", server.base), &program)],
+                layout: ytdlp.clone(),
+            },
+        ];
+        let states = Mutex::new(Vec::new());
+        let client = download::client(false).unwrap();
+        install(&client, &units, &Cancel::default(), &|state| {
+            states.lock().unwrap().push(state)
+        })
+        .await
+        .unwrap();
+        assert_eq!(
+            fs::read(media.dest.join("ffprobe.exe")).unwrap(),
+            b"ffprobe!"
+        );
+        assert_eq!(fs::read(ytdlp.dest.join("yt-dlp.exe")).unwrap(), program);
+        // The tool with a version of its own has its folder beside the group's version folder.
+        assert_eq!(fs::read_dir(base.path().join("media")).unwrap().count(), 2);
+        let total = (archive.len() + program.len()) as u64;
+        let states = states.into_inner().unwrap();
+        assert!(states.contains(&InstallState::Downloading { done: total, total }));
+        assert!(states.iter().all(
+            |state| !matches!(state, InstallState::Downloading { total: t, .. } if *t != total)
+        ));
     }
 }

@@ -35,7 +35,7 @@ pub fn unpack(
     match kind {
         ArchiveKind::Msi => unpack_msi(image, folders, scratch),
         ArchiveKind::Dmg => unpack_dmg(image, folders, scratch),
-        ArchiveKind::Zip | ArchiveKind::SevenZ | ArchiveKind::TarGz => {
+        ArchiveKind::Zip | ArchiveKind::SevenZ | ArchiveKind::TarGz | ArchiveKind::File => {
             Err(Error::Unpack("not an installer image".into()))
         }
     }

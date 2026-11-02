@@ -85,6 +85,7 @@ pub fn extract(archive: &Path, kind: ArchiveKind, wanted: &Wanted) -> Result<(),
         ArchiveKind::Zip => extract_zip(archive, wanted, &mut found)?,
         ArchiveKind::SevenZ => extract_7z(archive, wanted, &mut found)?,
         ArchiveKind::TarGz => extract_tar_gz(archive, wanted, &mut found)?,
+        ArchiveKind::File => copy_file(archive, wanted, &mut found)?,
         // An installer image is opened by its system's own tool, in `image.rs`.
         ArchiveKind::Msi | ArchiveKind::Dmg => {
             return Err(Error::Unpack("an installer image is not an archive".into()))
@@ -233,6 +234,24 @@ fn extract_tar_gz(archive: &Path, wanted: &Wanted, found: &mut Found) -> Result<
         if found.files_done(wanted) {
             break;
         }
+    }
+    Ok(())
+}
+
+/// A download that is the program itself: its one wanted entry is the file under its own name,
+/// copied whole to the name Kento gives it.
+fn copy_file(download: &Path, wanted: &Wanted, found: &mut Found) -> Result<(), Error> {
+    if !wanted.folders.is_empty() {
+        return Err(Error::Unpack("a single file has no folders".into()));
+    }
+    let name = download.file_name().map(|name| name.to_string_lossy());
+    for (inner, dest) in &wanted.files {
+        if name.as_deref() != Some(inner.as_str()) {
+            return Err(Error::MissingEntry(inner.clone()));
+        }
+        let place = Place::File(dest.clone());
+        put(&place, &mut File::open(download)?)?;
+        found.note(wanted, inner, &place);
     }
     Ok(())
 }

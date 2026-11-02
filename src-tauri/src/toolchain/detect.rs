@@ -21,10 +21,16 @@ const MIN_AVUTIL: u32 = 58;
 pub const MIN_EXIFTOOL: u32 = 12;
 /// The oldest LibreOffice Kento drives (7.0, 2020).
 pub const MIN_LIBREOFFICE: u32 = 7;
+/// The oldest yt-dlp Kento drives: 2025.11.12, the first release that solves YouTube's JavaScript
+/// challenges with an external runtime such as Deno.
+pub const MIN_YTDLP: [u32; 3] = [2025, 11, 12];
+/// The oldest Deno Kento drives: yt-dlp refuses Deno before 2.3 since its 2026.06.09 release.
+pub const MIN_DENO: [u32; 2] = [2, 3];
 /// A first run of a large static build can be slow while antivirus software scans it.
 const PROBE_TIMEOUT: Duration = Duration::from_secs(20);
-/// LibreOffice loads far more than one program on its first start from a new folder.
-const SOFFICE_TIMEOUT: Duration = Duration::from_secs(60);
+/// LibreOffice loads far more than one program on its first start from a new folder, and yt-dlp's
+/// builds unpack a whole Python before they answer.
+const SLOW_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -134,6 +140,23 @@ fn extra_dirs() -> Vec<PathBuf> {
     } else {
         dirs.push(PathBuf::from("/usr/bin"));
     }
+    dirs.extend(user_dirs());
+    dirs
+}
+
+/// Where installers for one user put Deno and yt-dlp: Deno's own installer (`~/.deno/bin`, or
+/// `bin` in the folder `DENO_INSTALL` names) and pipx (`~/.local/bin`).
+fn user_dirs() -> Vec<PathBuf> {
+    let env = |name: &str| std::env::var_os(name).filter(|value| !value.is_empty());
+    let mut dirs = Vec::new();
+    if let Some(root) = env("DENO_INSTALL") {
+        dirs.push(PathBuf::from(root).join("bin"));
+    }
+    if let Some(home) = env(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) {
+        let home = PathBuf::from(home);
+        dirs.push(home.join(".deno").join("bin"));
+        dirs.push(home.join(".local").join("bin"));
+    }
     dirs
 }
 
@@ -179,8 +202,15 @@ pub fn find(
 /// The program a path chosen in Settings stands for. A folder means the tool inside it; for
 /// LibreOffice that may also be its install folder (`program\soffice.exe` inside) or
 /// `LibreOffice.app`, and `soffice.com`, its console twin on Windows, means the program beside it.
+/// A folder holding yt-dlp's macOS program under its download name, `yt-dlp_macos`, means that.
 pub fn resolve(tool: &str, path: &Path, places: &Places) -> PathBuf {
     let name = places.file_name(tool);
+    if tool == "yt-dlp" && path.is_dir() && !path.join(&name).is_file() {
+        let download = path.join("yt-dlp_macos");
+        if download.is_file() {
+            return download;
+        }
+    }
     if tool == "soffice" {
         if path.is_dir() {
             let inside = [
@@ -208,11 +238,30 @@ pub fn resolve(tool: &str, path: &Path, places: &Places) -> PathBuf {
     }
 }
 
-/// Runs `<path> -version` (ExifTool: `-ver`, LibreOffice: `--version`) and returns the version to
-/// show when the output is `tool`'s and the version is supported.
+/// Runs `<path> -version` (ExifTool: `-ver`; LibreOffice, yt-dlp and Deno: `--version`) and
+/// returns the version to show when the output is `tool`'s and the version is supported.
 pub fn probe(tool: &str, path: &Path) -> Option<String> {
+    if tool == "yt-dlp" {
+        let (label, parts) = parse_ytdlp(&run_version(path, &["--version"], &[], SLOW_TIMEOUT)?)?;
+        if parts[..] >= MIN_YTDLP[..] {
+            return Some(label);
+        }
+        tracing::info!("yt-dlp {label} cannot use Deno; not used");
+        return None;
+    }
+    if tool == "deno" {
+        // Deno may look online for a newer release; Kento goes online only when asked.
+        let quiet = [("DENO_NO_UPDATE_CHECK", "1")];
+        let (label, release) =
+            parse_deno(&run_version(path, &["--version"], &quiet, PROBE_TIMEOUT)?)?;
+        if release >= MIN_DENO {
+            return Some(label);
+        }
+        tracing::info!("Deno {label} is older than yt-dlp accepts; not used");
+        return None;
+    }
     if tool == "exiftool" {
-        let (label, major) = parse_exiftool(&run_version(path, &["-ver"], PROBE_TIMEOUT)?)?;
+        let (label, major) = parse_exiftool(&run_version(path, &["-ver"], &[], PROBE_TIMEOUT)?)?;
         if major >= MIN_EXIFTOOL {
             return Some(label);
         }
@@ -227,7 +276,7 @@ pub fn probe(tool: &str, path: &Path) -> Option<String> {
         tracing::info!("LibreOffice {label} is older than {MIN_LIBREOFFICE}; not used");
         return None;
     }
-    let output = run_version(path, &["-version"], PROBE_TIMEOUT)?;
+    let output = run_version(path, &["-version"], &[], PROBE_TIMEOUT)?;
     let version = parse_version(tool, &output)?;
     if version.supported() {
         Some(version.label)
@@ -238,6 +287,60 @@ pub fn probe(tool: &str, path: &Path) -> Option<String> {
         );
         None
     }
+}
+
+/// yt-dlp's `--version` prints its release alone, a date: `2026.10.26`, a fix the same day
+/// `2022.06.22.1`, a nightly build `2026.10.27.012345`. The numbers come back for comparing.
+/// Anything else is another program.
+pub fn parse_ytdlp(output: &str) -> Option<(String, Vec<u32>)> {
+    let mut lines = output
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty());
+    let line = lines.next()?;
+    if lines.next().is_some() {
+        return None;
+    }
+    let parts: Vec<&str> = line.split('.').collect();
+    let digits = |part: &&str| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit());
+    if !(3..=4).contains(&parts.len())
+        || !parts.iter().all(digits)
+        || parts[0].len() != 4
+        || parts[1].len() != 2
+        || parts[2].len() != 2
+    {
+        return None;
+    }
+    let numbers: Vec<u32> = parts
+        .iter()
+        .map(|part| part.parse().ok())
+        .collect::<Option<_>>()?;
+    let date = (1..=12).contains(&numbers[1]) && (1..=31).contains(&numbers[2]);
+    date.then(|| (line.to_string(), numbers))
+}
+
+/// Deno's `--version` starts with `deno 2.9.8 (stable, release, x86_64-pc-windows-msvc)` (a canary
+/// build: `deno 2.9.8+1a2b3c4 (canary, …)`). The number shown is the release, `2.9.8`; its major
+/// and minor come back for comparing. Anything else is another program.
+pub fn parse_deno(output: &str) -> Option<(String, [u32; 2])> {
+    let first = output
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())?;
+    let mut words = first.split_whitespace();
+    if words.next()? != "deno" {
+        return None;
+    }
+    let release = words.next()?.split(['+', '-']).next()?;
+    let parts: Vec<u32> = release
+        .split('.')
+        .map(|part| {
+            (!part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()))
+                .then(|| part.parse().ok())
+                .flatten()
+        })
+        .collect::<Option<_>>()?;
+    (parts.len() == 3).then(|| (release.to_string(), [parts[0], parts[1]]))
 }
 
 /// ExifTool's `-ver` prints its version alone, `13.60`; anything else is another program.
@@ -295,7 +398,7 @@ fn soffice_version(path: &Path) -> Option<String> {
         PROBES.fetch_add(1, Ordering::Relaxed)
     ));
     let isolated = format!("-env:UserInstallation={}", file_url(&profile));
-    let output = run_version(&program, &[&isolated, "--version"], SOFFICE_TIMEOUT);
+    let output = run_version(&program, &[&isolated, "--version"], &[], SLOW_TIMEOUT);
     if profile.exists() {
         let _ = std::fs::remove_dir_all(&profile);
     }
@@ -336,10 +439,16 @@ fn file_url(path: &Path) -> String {
     url
 }
 
-fn run_version(path: &Path, args: &[&str], limit: Duration) -> Option<String> {
+fn run_version(
+    path: &Path,
+    args: &[&str],
+    env: &[(&str, &str)],
+    limit: Duration,
+) -> Option<String> {
     let mut command = Command::new(path);
     command
         .args(args)
+        .envs(env.iter().copied())
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
@@ -932,10 +1041,267 @@ pub(crate) mod tests {
         assert_eq!(found.source, Source::System);
         let version = parse_version(
             "ffmpeg",
-            &run_version(&found.path, &["-version"], PROBE_TIMEOUT).unwrap(),
+            &run_version(&found.path, &["-version"], &[], PROBE_TIMEOUT).unwrap(),
         )
         .unwrap();
         assert!(version.major.is_none_or(|major| major >= MIN_MAJOR));
         eprintln!("found FFmpeg {} at {}", found.version, found.path.display());
+    }
+
+    #[test]
+    fn reads_ytdlp_versions() {
+        for (output, label, numbers) in [
+            ("2026.10.26\n", "2026.10.26", vec![2026, 10, 26]),
+            ("\r\n2025.11.12\r\n", "2025.11.12", vec![2025, 11, 12]),
+            ("2022.06.22.1", "2022.06.22.1", vec![2022, 6, 22, 1]),
+            (
+                "2026.10.27.012345",
+                "2026.10.27.012345",
+                vec![2026, 10, 27, 12345],
+            ),
+        ] {
+            assert_eq!(
+                parse_ytdlp(output),
+                Some((label.to_string(), numbers)),
+                "{output:?}"
+            );
+        }
+        for other in [
+            "",
+            "13.60",
+            "2026.10",
+            "26.10.26",
+            "2026.1.26",
+            "2026.13.01",
+            "2026.10.32",
+            "v2026.10.26",
+            "2026.10.26 extra",
+            "2026.10.26.1.2",
+            "2026.10.26\n2026.10.27",
+            "ffmpeg version 9.0.2 Copyright",
+            "deno 2.9.8 (stable, release, x86_64-pc-windows-msvc)",
+        ] {
+            assert_eq!(parse_ytdlp(other), None, "{other:?}");
+        }
+    }
+
+    #[test]
+    fn reads_deno_versions() {
+        for (output, label, release) in [
+            (
+                "deno 2.9.8 (stable, release, x86_64-pc-windows-msvc)\r\nv8 14.7.173.20-rusty\r\ntypescript 5.9.2\r\n",
+                "2.9.8",
+                [2, 9],
+            ),
+            (
+                "deno 2.3.0 (stable, release, aarch64-apple-darwin)",
+                "2.3.0",
+                [2, 3],
+            ),
+            ("deno 2.10.1+1a2b3c4 (canary, release, x86_64)", "2.10.1", [2, 10]),
+            ("\ndeno 1.46.3 (release, x86_64-apple-darwin)", "1.46.3", [1, 46]),
+        ] {
+            assert_eq!(
+                parse_deno(output),
+                Some((label.to_string(), release)),
+                "{output:?}"
+            );
+        }
+        for other in [
+            "",
+            "deno",
+            "deno 2.9",
+            "deno x.y.z",
+            "Deno 2.9.8",
+            "denox 2.9.8",
+            "v22.11.0",
+            "node v22.11.0",
+            "2026.10.26",
+            "ffmpeg version 9.0.2 Copyright",
+        ] {
+            assert_eq!(parse_deno(other), None, "{other:?}");
+        }
+    }
+
+    /// Writes a stand-in program: a batch file on Windows, a shell script elsewhere.
+    fn script(path: &Path, windows: &str, unix: &str) {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let text = if cfg!(windows) {
+            format!("@echo off\r\n{}", windows.replace('\n', "\r\n"))
+        } else {
+            format!("#!/bin/sh\n{unix}")
+        };
+        std::fs::write(path, text).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+    }
+
+    /// The text of a stand-in for yt-dlp that prints `version` for `--version`.
+    pub(crate) fn ytdlp_script(version: &str) -> String {
+        if cfg!(windows) {
+            format!("@echo off\r\nif not \"%~1\"==\"--version\" exit /b 1\r\necho {version}\r\n")
+        } else {
+            format!("#!/bin/sh\n[ \"$1\" = --version ] || exit 1\necho '{version}'\n")
+        }
+    }
+
+    /// A stand-in for yt-dlp in `dir`.
+    pub(crate) fn fake_ytdlp(dir: &Path, version: &str) -> (PathBuf, Places) {
+        std::fs::create_dir_all(dir).unwrap();
+        let path = dir.join(format!("yt-dlp{FAKE_SUFFIX}"));
+        std::fs::write(&path, ytdlp_script(version)).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let places = Places {
+            search: vec![dir.to_path_buf()],
+            suffix: FAKE_SUFFIX,
+        };
+        (path, places)
+    }
+
+    /// A stand-in for Deno that answers `--version` only when the probe has turned off its update
+    /// check.
+    pub(crate) fn fake_deno(dir: &Path, version: &str) -> (PathBuf, Places) {
+        let path = dir.join(format!("deno{FAKE_SUFFIX}"));
+        let line = format!("deno {version} (stable, release, x86_64-pc-windows-msvc)");
+        script(
+            &path,
+            &format!(
+                "if not \"%DENO_NO_UPDATE_CHECK%\"==\"1\" exit /b 1\n\
+                 echo {line}\necho v8 14.7.173.20-rusty\necho typescript 5.9.2\n"
+            ),
+            &format!(
+                "[ \"$DENO_NO_UPDATE_CHECK\" = 1 ] || exit 1\n[ \"$1\" = --version ] || exit 1\n\
+                 echo '{line}'\necho 'v8 14.7.173.20-rusty'\necho 'typescript 5.9.2'\n"
+            ),
+        );
+        let places = Places {
+            search: vec![dir.to_path_buf()],
+            suffix: FAKE_SUFFIX,
+        };
+        (path, places)
+    }
+
+    #[test]
+    fn finds_ytdlp_and_deno_and_passes_over_old_ones_and_other_programs() {
+        let base = tempfile::tempdir().unwrap();
+        let dir = base.path().join("araçlar ğ 🧪");
+        let (ytdlp, places) = fake_ytdlp(&dir, "2026.10.26");
+        let (deno, _) = fake_deno(&dir, "2.9.8");
+        let found = find("yt-dlp", &places, None, &[]).unwrap();
+        assert_eq!(
+            (found.path, found.version.as_str(), found.source),
+            (ytdlp.clone(), "2026.10.26", Source::System)
+        );
+        let found = find("deno", &places, None, &[]).unwrap();
+        assert_eq!(
+            (found.path, found.version.as_str()),
+            (deno.clone(), "2.9.8")
+        );
+
+        // The first yt-dlp that runs Deno, and the first Deno today's yt-dlp accepts.
+        let (_, old) = fake_ytdlp(&base.path().join("old ytdlp"), "2025.10.22");
+        assert!(find("yt-dlp", &old, None, &[]).is_none());
+        let (edge, _) = fake_ytdlp(&base.path().join("edge ytdlp"), "2025.11.12");
+        assert_eq!(probe("yt-dlp", &edge).as_deref(), Some("2025.11.12"));
+        let (_, old) = fake_deno(&base.path().join("old deno"), "2.2.12");
+        assert!(find("deno", &old, None, &[]).is_none());
+        let (edge, _) = fake_deno(&base.path().join("edge deno"), "2.3.0");
+        assert_eq!(probe("deno", &edge).as_deref(), Some("2.3.0"));
+
+        // Each under the other's name, or another tool under theirs, is not it.
+        assert!(probe("yt-dlp", &deno).is_none());
+        assert!(probe("deno", &ytdlp).is_none());
+        let (exiftool, _) = fake_exiftool(&base.path().join("exif"), "13.60");
+        assert!(probe("yt-dlp", &exiftool).is_none());
+        let (ffmpeg, _) = fake_tool(&base.path().join("ffmpeg"), "ffmpeg", "9.0");
+        assert!(probe("deno", &ffmpeg).is_none());
+        assert!(probe("ffmpeg", &deno).is_none());
+
+        // Kento's own copies come last, the first that works winning.
+        let nowhere = Places {
+            search: vec![base.path().join("nothing")],
+            suffix: FAKE_SUFFIX,
+        };
+        let (newer, _) = fake_ytdlp(&base.path().join("kento").join("2026.11.01"), "2026.11.01");
+        let found = find("yt-dlp", &nowhere, None, &[newer.clone(), ytdlp.clone()]).unwrap();
+        assert_eq!((found.path, found.source), (newer, Source::Kento));
+    }
+
+    #[test]
+    fn a_chosen_folder_with_ytdlps_mac_download_means_that_program() {
+        let base = tempfile::tempdir().unwrap();
+        let places = Places {
+            search: Vec::new(),
+            suffix: FAKE_SUFFIX,
+        };
+        let folder = base.path().join("İndirilenler 🧪");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("yt-dlp_macos"), b"program").unwrap();
+        assert_eq!(
+            resolve("yt-dlp", &folder, &places),
+            folder.join("yt-dlp_macos")
+        );
+        // Its own name wins, and other tools keep the plain rule.
+        fake_ytdlp(&folder, "2026.10.26");
+        assert_eq!(
+            resolve("yt-dlp", &folder, &places),
+            folder.join(places.file_name("yt-dlp"))
+        );
+        assert_eq!(
+            resolve("deno", &folder, &places),
+            folder.join(places.file_name("deno"))
+        );
+    }
+
+    #[test]
+    fn denos_own_install_folder_is_searched() {
+        let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" });
+        let Some(home) = home.filter(|home| !home.is_empty()) else {
+            return;
+        };
+        let deno = PathBuf::from(home).join(".deno").join("bin");
+        assert!(extra_dirs().contains(&deno));
+        let path = std::env::join_paths([PathBuf::from("/nowhere")]).unwrap();
+        assert!(search_dirs(&path, extra_dirs()).contains(&deno));
+    }
+
+    /// A tool from an environment variable (`KENTO_YTDLP`, `KENTO_DENO`), or else from PATH and the
+    /// usual folders.
+    fn installed(tool: &str, variable: &str) -> Option<Found> {
+        let places = Places::system();
+        let custom = std::env::var_os(variable).map(PathBuf::from);
+        find(tool, &places, custom.as_deref(), &[])
+    }
+
+    /// Where this computer has yt-dlp and Deno, detection must find them and read their versions.
+    /// CI installs both and sets `KENTO_REQUIRE_YTDLP=1`, so there a missing or old one fails.
+    #[test]
+    fn finds_ytdlp_and_deno_on_this_computer_when_installed() {
+        let required = std::env::var("KENTO_REQUIRE_YTDLP").is_ok_and(|v| v == "1");
+        for (tool, variable) in [("yt-dlp", "KENTO_YTDLP"), ("deno", "KENTO_DENO")] {
+            match installed(tool, variable) {
+                Some(found) => eprintln!(
+                    "found {tool} {} at {} ({:?})",
+                    found.version,
+                    found.path.display(),
+                    found.source
+                ),
+                None => {
+                    assert!(
+                        !required,
+                        "KENTO_REQUIRE_YTDLP is set, but no {tool} Kento accepts answered \
+                         (set {variable} or put it on PATH)"
+                    );
+                    eprintln!("no {tool} Kento accepts on this computer; skipped");
+                }
+            }
+        }
     }
 }

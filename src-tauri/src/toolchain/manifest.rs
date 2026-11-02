@@ -3,6 +3,7 @@
 //! and built into the app: a download can only ever be a file whose size and SHA-256 are listed
 //! there.
 
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -34,9 +35,15 @@ pub struct Group {
     pub id: String,
     /// False for groups whose phase has not come yet: they are listed but offer nothing.
     pub available: bool,
-    /// Names the install folder `<data>/tools/<group>/<version>/`.
+    /// Names the install folder `<data>/tools/<group>/<version>/` of the tools without a version
+    /// of their own.
     #[serde(default)]
     pub version: Option<String>,
+    /// Tools pinned at a version of their own (yt-dlp and Deno beside FFmpeg). Each comes alone in
+    /// its download, installs into `<data>/tools/<group>/<tool>/<version>/` and is installed or
+    /// updated without touching the rest of the group.
+    #[serde(default)]
+    pub versions: BTreeMap<String, String>,
     #[serde(default)]
     pub license: Option<String>,
     #[serde(default)]
@@ -86,6 +93,10 @@ pub enum ArchiveKind {
     /// A macOS disk image, attached read-only while its folders are copied out with `ditto`.
     #[serde(rename = "dmg")]
     Dmg,
+    /// Not an archive: the download is the program itself (yt-dlp), kept under the name Kento
+    /// gives it. Its one entry names the file itself.
+    #[serde(rename = "file")]
+    File,
 }
 
 impl ArchiveKind {
@@ -100,7 +111,7 @@ impl ArchiveKind {
         match self {
             ArchiveKind::Msi => platform.starts_with("windows-"),
             ArchiveKind::Dmg => platform.starts_with("macos-"),
-            ArchiveKind::Zip | ArchiveKind::SevenZ | ArchiveKind::TarGz => true,
+            ArchiveKind::Zip | ArchiveKind::SevenZ | ArchiveKind::TarGz | ArchiveKind::File => true,
         }
     }
 }
@@ -147,6 +158,23 @@ impl Platform {
 }
 
 impl Group {
+    /// The version a tool is pinned at: its own, or the group's.
+    pub fn version_of(&self, tool: &str) -> Option<&str> {
+        self.versions
+            .get(tool)
+            .or(self.version.as_ref())
+            .map(String::as_str)
+    }
+
+    /// The tool with a version of its own that a download holds; None for a download of the
+    /// tools under the group's version.
+    pub fn own_tool<'a>(&self, file: &'a Download) -> Option<&'a str> {
+        file.entries
+            .keys()
+            .find(|tool| self.versions.contains_key(*tool))
+            .map(String::as_str)
+    }
+
     /// This computer's downloads, when the group offers any.
     pub fn platform(&self, key: Option<&str>) -> Option<&Platform> {
         if !self.available {
@@ -214,6 +242,15 @@ impl Lock {
             if group.available && group.version.as_deref().is_none_or(|v| !plain_name(v)) {
                 return Err(format!("{}: an available group needs a version", group.id));
             }
+            // A tool's own folder sits beside the group's version folders, so the names must differ.
+            for (tool, version) in &group.versions {
+                if !group.tools.contains(tool)
+                    || !plain_name(version)
+                    || group.version.as_deref() == Some(tool.as_str())
+                {
+                    return Err(format!("{}: bad own version for {tool:?}", group.id));
+                }
+            }
             for (key, platform) in &group.platforms {
                 if !PLATFORMS.contains(&key.as_str()) {
                     return Err(format!("{}: unknown platform {key}", group.id));
@@ -252,6 +289,22 @@ fn check_platform(group: &Group, key: &str, platform: &Platform) -> Result<(), S
         }
         if !file.archive.allowed_on(key) {
             return Err(at(format!("{} cannot be unpacked here", file.url)));
+        }
+        if group.own_tool(file).is_some() && file.entries.len() != 1 {
+            return Err(at(format!(
+                "a tool with a version of its own comes alone in its download ({})",
+                file.url
+            )));
+        }
+        if file.archive == ArchiveKind::File
+            && (file.entries.len() != 1
+                || file.entries.values().any(|inner| inner != file.file_name())
+                || !file.folders.is_empty())
+        {
+            return Err(at(format!(
+                "a plain file is one program, named as the file ({})",
+                file.url
+            )));
         }
         for (tool, inner) in &file.entries {
             if !inner_path(inner) {
@@ -317,6 +370,26 @@ fn plain_name(name: &str) -> bool {
             .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
 }
 
+/// Orders version names part by part as numbers: `2026.10.26` before `2026.11.1`, `2.9.8` before
+/// `2.10.0`. A name that is not all numbers comes before every one that is.
+pub fn compare_versions(a: &str, b: &str) -> Ordering {
+    let numbers = |name: &str| -> Option<Vec<u64>> {
+        name.split('.')
+            .map(|part| {
+                (!part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()))
+                    .then(|| part.parse().ok())
+                    .flatten()
+            })
+            .collect()
+    };
+    match (numbers(a), numbers(b)) {
+        (Some(a), Some(b)) => a.cmp(&b),
+        (Some(_), None) => Ordering::Greater,
+        (None, Some(_)) => Ordering::Less,
+        (None, None) => a.cmp(b),
+    }
+}
+
 /// This computer's key in the lockfile; None where Kento offers no downloads.
 pub fn current_platform() -> Option<&'static str> {
     if cfg!(all(windows, target_arch = "x86_64")) {
@@ -342,20 +415,81 @@ mod tests {
 
         let media = lock.group("media").unwrap();
         assert!(media.available);
-        assert_eq!(media.tools, ["ffmpeg", "ffprobe"]);
-        assert!(media.platforms.contains_key("windows-x64"));
-        for (key, platform) in &media.platforms {
-            assert!(PLATFORMS.contains(&key.as_str()));
-            assert!(!platform.files.is_empty());
+        assert_eq!(media.tools, ["ffmpeg", "ffprobe", "yt-dlp", "deno"]);
+        assert_eq!(media.version_of("ffmpeg"), Some("9.0.2"));
+        assert_eq!(media.version_of("yt-dlp"), Some("2026.10.26"));
+        assert_eq!(media.version_of("deno"), Some("2.9.8"));
+        for key in PLATFORMS {
+            let platform = &media.platforms[key];
             for file in &platform.files {
-                assert!(file.url.contains(media.version.as_deref().unwrap()));
+                // Each download is of one version, which its address names.
+                let tool = file.entries.keys().next().unwrap();
+                assert!(
+                    file.url.contains(media.version_of(tool).unwrap()),
+                    "{}",
+                    file.url
+                );
+                assert!(file.url.starts_with("https://"));
             }
         }
-        let windows = &media.platforms["windows-x64"].files[0];
-        assert_eq!(windows.archive, ArchiveKind::SevenZ);
-        assert_eq!(windows.file_name(), "ffmpeg-9.0.2-essentials_build.7z");
-        assert!(windows.entries["ffmpeg"].ends_with("/bin/ffmpeg.exe"));
-        assert!(windows.folders.is_empty());
+        let windows = &media.platforms["windows-x64"].files;
+        assert_eq!(windows.len(), 3);
+        assert_eq!(windows[0].archive, ArchiveKind::SevenZ);
+        assert_eq!(windows[0].file_name(), "ffmpeg-9.0.2-essentials_build.7z");
+        assert!(windows[0].entries["ffmpeg"].ends_with("/bin/ffmpeg.exe"));
+        assert!(windows[0].folders.is_empty());
+        assert_eq!(media.own_tool(&windows[0]), None);
+
+        // yt-dlp is one program, not an archive: Windows takes yt-dlp.exe; every Mac the universal
+        // yt-dlp_macos, installed as yt-dlp.
+        assert_eq!(windows[1].archive, ArchiveKind::File);
+        assert_eq!(windows[1].file_name(), "yt-dlp.exe");
+        assert_eq!(windows[1].entries["yt-dlp"], "yt-dlp.exe");
+        assert_eq!(media.own_tool(&windows[1]), Some("yt-dlp"));
+        assert_eq!(
+            media.platforms["windows-x64"].programs(|tool| format!("{tool}.exe"))["yt-dlp"],
+            PathBuf::from("yt-dlp.exe")
+        );
+        for key in ["macos-arm64", "macos-x64"] {
+            let mac = &media.platforms[key];
+            let ytdlp = mac
+                .files
+                .iter()
+                .find(|f| f.entries.contains_key("yt-dlp"))
+                .unwrap();
+            assert_eq!(ytdlp.archive, ArchiveKind::File);
+            assert_eq!(ytdlp.file_name(), "yt-dlp_macos");
+            assert_eq!(
+                mac.programs(|tool| tool.to_string())["yt-dlp"],
+                PathBuf::from("yt-dlp")
+            );
+        }
+
+        // Deno: the official zips, a native one for Apple silicon; FFmpeg's Intel build serves
+        // every Mac.
+        assert_eq!(windows[2].file_name(), "deno-x86_64-pc-windows-msvc.zip");
+        assert_eq!(windows[2].entries["deno"], "deno.exe");
+        let deno = |key: &str| {
+            media.platforms[key]
+                .files
+                .iter()
+                .find(|f| f.entries.contains_key("deno"))
+                .unwrap()
+                .file_name()
+                .to_string()
+        };
+        assert_eq!(deno("macos-arm64"), "deno-aarch64-apple-darwin.zip");
+        assert_eq!(deno("macos-x64"), "deno-x86_64-apple-darwin.zip");
+        let urls = |key: &str| -> Vec<String> {
+            media.platforms[key]
+                .files
+                .iter()
+                .filter(|f| media.own_tool(f).is_none())
+                .map(|f| f.url.clone())
+                .collect()
+        };
+        assert_eq!(urls("macos-arm64"), urls("macos-x64"));
+        assert_eq!(media.platform(Some("macos-arm64")).unwrap().files.len(), 4);
 
         // ExifTool: the Windows launcher with its Perl folder, the Perl script with its library on
         // every Mac (Perl needs no Rosetta, so Apple silicon has its own entry).
@@ -444,6 +578,8 @@ mod tests {
         );
 
         assert_eq!(lock.group_of("ffprobe").unwrap().id, "media");
+        assert_eq!(lock.group_of("yt-dlp").unwrap().id, "media");
+        assert_eq!(lock.group_of("deno").unwrap().id, "media");
         assert_eq!(lock.group_of("exiftool").unwrap().id, "extras");
         assert_eq!(lock.group_of("soffice").unwrap().id, "office");
         // The embedded copy is the same file.
@@ -627,6 +763,129 @@ mod tests {
             good.replace("\"tar.gz\"", "\"tgz\""),
         ] {
             assert!(Lock::parse(&lock_with(&bad)).is_err(), "{bad}");
+        }
+    }
+
+    /// A Media group like the pinned one: FFmpeg under the group's version, yt-dlp as a plain
+    /// program and Deno in a zip, each at a version of its own.
+    fn media_with(versions: &str, ytdlp: &str, deno: &str) -> String {
+        format!(
+            r#"{{"schema":1,"groups":[{{"id":"media","available":true,"version":"9.0.2",
+            "tools":["ffmpeg","yt-dlp","deno"],"versions":{versions},
+            "platforms":{{"macos-arm64":{{"source":"test","files":[
+            {{"url":"https://example.org/ffmpeg-9.0.2.zip","size":1,"sha256":"{NO_HASH}","archive":"zip","entries":{{"ffmpeg":"ffmpeg"}}}},
+            {ytdlp},{deno}]}}}}}}]}}"#
+        )
+    }
+
+    const VERSIONS: &str = r#"{"yt-dlp":"2026.10.26","deno":"2.9.8"}"#;
+
+    fn ytdlp_file() -> String {
+        format!(
+            r#"{{"url":"https://example.org/2026.10.26/yt-dlp_macos","size":1,"sha256":"{NO_HASH}","archive":"file","entries":{{"yt-dlp":"yt-dlp_macos"}}}}"#
+        )
+    }
+
+    fn deno_file() -> String {
+        format!(
+            r#"{{"url":"https://example.org/v2.9.8/deno-aarch64-apple-darwin.zip","size":1,"sha256":"{NO_HASH}","archive":"zip","entries":{{"deno":"deno"}}}}"#
+        )
+    }
+
+    #[test]
+    fn tools_with_versions_of_their_own_and_plain_programs_are_read() {
+        let lock = Lock::parse(&media_with(VERSIONS, &ytdlp_file(), &deno_file())).unwrap();
+        let media = &lock.groups[0];
+        assert_eq!(media.version_of("ffmpeg"), Some("9.0.2"));
+        assert_eq!(media.version_of("yt-dlp"), Some("2026.10.26"));
+        assert_eq!(media.version_of("ffplay"), Some("9.0.2"));
+        let files = &media.platforms["macos-arm64"].files;
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| media.own_tool(file))
+                .collect::<Vec<_>>(),
+            [None, Some("yt-dlp"), Some("deno")]
+        );
+        assert_eq!(files[1].archive, ArchiveKind::File);
+        assert!(!files[1].archive.is_image());
+        let programs = media.platforms["macos-arm64"].programs(|tool| tool.to_string());
+        assert_eq!(programs["yt-dlp"], PathBuf::from("yt-dlp"));
+        assert_eq!(programs["deno"], PathBuf::from("deno"));
+        // A plain program works on every platform.
+        assert!(Lock::parse(&lock_on(
+            "windows-x64",
+            &format!(
+                r#"{{"url":"https://example.org/ffmpeg.exe","size":1,"sha256":"{NO_HASH}","archive":"file","entries":{{"ffmpeg":"ffmpeg.exe"}}}}"#
+            )
+        ))
+        .is_ok());
+    }
+
+    #[test]
+    fn a_tool_of_its_own_version_comes_alone_and_a_plain_program_is_the_file() {
+        let ytdlp = ytdlp_file();
+        let deno = deno_file();
+        for bad in [
+            // A plain program's one entry is the file itself, with no folders.
+            media_with(
+                VERSIONS,
+                &ytdlp.replace(":\"yt-dlp_macos\"}", ":\"yt-dlp\"}"),
+                &deno,
+            ),
+            media_with(
+                VERSIONS,
+                &ytdlp.replace("}}", "},\"folders\":{\"lib\":\"lib\"}}"),
+                &deno,
+            ),
+            media_with(
+                VERSIONS,
+                &ytdlp.replace(
+                    "{\"yt-dlp\":\"yt-dlp_macos\"}",
+                    "{\"yt-dlp\":\"yt-dlp_macos\",\"deno\":\"yt-dlp_macos\"}",
+                ),
+                &deno.replace("\"deno\":\"deno\"", "\"x\":\"deno\""),
+            ),
+            // A tool with a version of its own shares no download.
+            media_with(
+                VERSIONS,
+                &ytdlp,
+                &deno.replace(
+                    "{\"deno\":\"deno\"}",
+                    "{\"deno\":\"deno\",\"ffmpeg\":\"ffmpeg\"}",
+                ),
+            ),
+            // Own versions only for the group's tools, as plain names, never a version folder's.
+            media_with(r#"{"yt-dlp":"2026.10.26","ffplay":"1"}"#, &ytdlp, &deno),
+            media_with(r#"{"yt-dlp":"../2026","deno":"2.9.8"}"#, &ytdlp, &deno),
+            media_with(r#"{"yt-dlp":"","deno":"2.9.8"}"#, &ytdlp, &deno),
+            media_with(VERSIONS, &ytdlp, &deno).replace("\"9.0.2\"", "\"deno\""),
+            // Every tool still in exactly one download.
+            media_with(
+                VERSIONS,
+                &ytdlp,
+                &ytdlp_file().replace("yt-dlp_macos\"", "yt-dlp_2\""),
+            ),
+            media_with(VERSIONS, &ytdlp, &deno).replace("\"file\"", "\"bin\""),
+        ] {
+            assert!(Lock::parse(&bad).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn versions_are_ordered_as_numbers() {
+        use Ordering::*;
+        for (a, b, order) in [
+            ("2026.10.26", "2026.11.01", Less),
+            ("2026.11.1", "2026.10.26", Greater),
+            ("2.9.8", "2.10.0", Less),
+            ("2022.06.22.1", "2022.06.22", Greater),
+            ("9.0.2", "9.0.2", Equal),
+            ("9.0.2.partial", "1.0", Less),
+            ("", "1", Less),
+        ] {
+            assert_eq!(compare_versions(a, b), order, "{a} {b}");
+            assert_eq!(compare_versions(b, a), order.reverse(), "{b} {a}");
         }
     }
 }

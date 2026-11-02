@@ -614,6 +614,8 @@
   "error.compress.unsupported": "Kento bu tür bir dosyayı kendi biçiminde küçültemez. Önce dönüştürün; örneğin WAV’ı MP3’e ya da BMP’yi PNG’ye.",
   "toolchain.failed.check.exiftool": "ExifTool başlamadı ya da sürümü 12’den eski.",
   "toolchain.failed.check.soffice": "LibreOffice başlamadı ya da sürümü 7’den eski.",
+  "toolchain.failed.check.ytdlp": "yt-dlp başlamadı ya da sürümü 2025.11.12’den eski.",
+  "toolchain.failed.check.deno": "Deno başlamadı ya da sürümü 2.3’ten eski.",
   "metadata.intro": "Değişiklikler yeni bir kopyaya yazılır; asıl dosya olduğu gibi kalır.",
   "metadata.readOnly": "Kento bu biçimin meta verisini gösterebilir ama değiştiremez.",
   "metadata.loading": "Dosya okunuyor…",

@@ -614,6 +614,8 @@
   "error.compress.unsupported": "Kento cannot make this kind of file smaller in its own format. Convert it first, for example WAV to MP3 or BMP to PNG.",
   "toolchain.failed.check.exiftool": "ExifTool did not start, or it is older than version 12.",
   "toolchain.failed.check.soffice": "LibreOffice did not start, or it is older than version 7.",
+  "toolchain.failed.check.ytdlp": "yt-dlp did not start, or it is older than 2025.11.12.",
+  "toolchain.failed.check.deno": "Deno did not start, or it is older than version 2.3.",
   "metadata.intro": "Changes go into a new copy; the original stays as it is.",
   "metadata.readOnly": "Kento can show this format’s metadata but not change it.",
   "metadata.loading": "Reading the file…",

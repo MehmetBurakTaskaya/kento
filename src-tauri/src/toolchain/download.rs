@@ -308,6 +308,58 @@ pub(crate) mod tests {
         Server { url, ranges }
     }
 
+    /// A tiny HTTP/1.1 server on 127.0.0.1 with several files: each request gets the body for its
+    /// path (whole, 200) or a 404, and each path asked for is recorded.
+    pub(crate) struct Routes {
+        /// `http://127.0.0.1:<port>`, without a slash at the end.
+        pub base: String,
+        pub asked: Arc<Mutex<Vec<String>>>,
+    }
+
+    pub(crate) fn serve_routes(routes: Vec<(String, Vec<u8>)>) -> Routes {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let asked = Arc::new(Mutex::new(Vec::new()));
+        let seen = asked.clone();
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { break };
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                let mut first = String::new();
+                if reader.read_line(&mut first).unwrap_or(0) == 0 {
+                    continue;
+                }
+                loop {
+                    let mut line = String::new();
+                    if reader.read_line(&mut line).unwrap_or(0) == 0 || line.trim_end().is_empty() {
+                        break;
+                    }
+                }
+                let path = first.split_whitespace().nth(1).unwrap_or("").to_string();
+                seen.lock().unwrap().push(path.clone());
+                let body = routes
+                    .iter()
+                    .find(|(route, _)| *route == path)
+                    .map(|(_, b)| b);
+                let head = match body {
+                    Some(body) => format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                        body.len()
+                    ),
+                    None => {
+                        "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                            .to_string()
+                    }
+                };
+                let _ = stream.write_all(head.as_bytes());
+                if let Some(body) = body {
+                    let _ = stream.write_all(body);
+                }
+            }
+        });
+        Routes { base, asked }
+    }
+
     pub(crate) fn sample(len: usize) -> Vec<u8> {
         (0..len).map(|i| (i * 31 % 251) as u8).collect()
     }

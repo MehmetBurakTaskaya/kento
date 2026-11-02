@@ -3,8 +3,10 @@
 //! the pinned builds on request. The network is used only when the page asks for an install.
 //!
 //! Layout under the data folder: `tools/paths.json` (paths set in Settings), `tools/downloads/`
-//! (`<file>.part` while downloading, `<file>.image` while an installer image is open) and
-//! `tools/<group>/<version>/` (the unpacked binaries, or the program folder a tool runs from).
+//! (`<file>.part` while downloading, `<file>.image` while an installer image is open),
+//! `tools/<group>/<version>/` (the unpacked binaries, or the program folder a tool runs from) and
+//! `tools/<group>/<tool>/<version>/` for a tool pinned at a version of its own (yt-dlp, Deno),
+//! which is installed, updated and found on its own.
 
 mod custom;
 mod detect;
@@ -14,6 +16,7 @@ mod install;
 pub mod manifest;
 mod unpack;
 
+use std::cmp::Ordering as Order;
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::io;
@@ -27,8 +30,8 @@ use tauri::{AppHandle, Emitter, Manager, State};
 pub use detect::Source;
 use detect::{Found, Places};
 pub use download::Cancel;
-use install::Layout;
-use manifest::{Download, Group, Lock};
+use install::{Layout, Unit};
+use manifest::{compare_versions, Group, Lock};
 
 use crate::{i18n, AppState};
 
@@ -43,7 +46,8 @@ pub struct ToolGroupStatus {
     /// Every tool of the group works, from wherever it was found.
     pub ready: bool,
     pub tools: Vec<ToolStatus>,
-    /// Bytes to download for this computer; 0 when nothing is offered.
+    /// Bytes to download for this computer: only the downloads of tools missing or outdated, so
+    /// 0 when nothing is offered or nothing is needed.
     pub download: u64,
     pub available: bool,
     /// A tool in use comes from an earlier Kento download than the pinned version.
@@ -133,6 +137,8 @@ impl Error {
             Error::Io(_) => "toolchain.failed.disk",
             Error::NotWorking(tool) if tool == "exiftool" => "toolchain.failed.check.exiftool",
             Error::NotWorking(tool) if tool == "soffice" => "toolchain.failed.check.soffice",
+            Error::NotWorking(tool) if tool == "yt-dlp" => "toolchain.failed.check.ytdlp",
+            Error::NotWorking(tool) if tool == "deno" => "toolchain.failed.check.deno",
             Error::NotWorking(_) => "toolchain.failed.check",
             Error::Cancelled => "toolchain.failed.cancelled",
             Error::Unavailable(_) => "toolchain.failed.unavailable",
@@ -174,9 +180,22 @@ struct Inner {
 /// One install handed out by `Toolchain::begin`.
 pub struct Job {
     pub group: String,
-    files: Vec<Download>,
-    layout: Layout,
+    /// Every install folder this computer can download for the group; the run fills only those
+    /// with a tool that is missing or outdated.
+    units: Vec<Unit>,
     cancel: Cancel,
+}
+
+/// Whether a folder is an unpack that never finished.
+fn is_partial(path: &Path) -> bool {
+    path.to_string_lossy().ends_with(".partial")
+}
+
+/// The last part of a path, as text.
+fn name_of(path: &Path) -> String {
+    path.file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -243,18 +262,23 @@ impl Toolchain {
     }
 
     fn detect(&self, group: &Group, custom: &custom::Paths) -> ToolGroupStatus {
-        let kento = self.kento_dirs(group);
         let programs = self.programs(group);
         let places = &self.inner.places;
+        let kento: Vec<Vec<PathBuf>> = group
+            .tools
+            .iter()
+            .map(|tool| self.kento_dirs(group, tool))
+            .collect();
         // A first run of a large binary can take a while; the tools are probed side by side.
         let found: Vec<Option<Found>> = std::thread::scope(|scope| {
             let probes: Vec<_> = group
                 .tools
                 .iter()
-                .map(|tool| {
+                .zip(&kento)
+                .map(|(tool, dirs)| {
                     let custom = custom.get(tool).map(PathBuf::as_path);
                     let own: Vec<PathBuf> =
-                        kento.iter().map(|dir| dir.join(&programs[tool])).collect();
+                        dirs.iter().map(|dir| dir.join(&programs[tool])).collect();
                     scope.spawn(move || detect::find(tool, places, custom, &own))
                 })
                 .collect();
@@ -275,48 +299,107 @@ impl Toolchain {
             })
             .collect();
         let platform = group.platform(self.inner.platform);
-        let current = group
-            .version
-            .as_ref()
-            .map(|version| self.inner.root.join(&group.id).join(version));
-        let outdated = platform.is_some()
-            && tools.iter().any(|tool| {
-                tool.source == Some(Source::Kento)
-                    && tool
-                        .path
-                        .as_ref()
-                        .zip(current.as_ref())
-                        .is_some_and(|(path, current)| !path.starts_with(current))
-            });
+        // Only the downloads of what is missing or outdated: a working FFmpeg is not fetched again
+        // to add yt-dlp.
+        let download = platform.map_or(0, |platform| {
+            platform
+                .files
+                .iter()
+                .filter(|file| self.needs(group, &tools, group.own_tool(file)))
+                .map(|file| file.size)
+                .sum()
+        });
         ToolGroupStatus {
             id: group.id.clone(),
             ready: !tools.is_empty() && tools.iter().all(|tool| tool.path.is_some()),
+            outdated: platform.is_some() && tools.iter().any(|tool| self.outdated(group, tool)),
             tools,
-            download: platform.map_or(0, |p| p.files.iter().map(|file| file.size).sum()),
+            download,
             available: platform.is_some(),
-            outdated,
-            downloaded: kento.iter().any(|dir| dir.is_dir()),
+            downloaded: kento.iter().flatten().any(|dir| dir.is_dir()),
         }
     }
 
-    /// Kento's install folders for a group: the pinned version first, then versions an earlier
-    /// Kento installed, so an app update never leaves the user without tools.
-    fn kento_dirs(&self, group: &Group) -> Vec<PathBuf> {
+    /// The folder that holds the version folders of a tool: the group's own, or for a tool with a
+    /// version of its own a folder named after it inside the group's.
+    fn tool_dir(&self, group: &Group, tool: &str) -> PathBuf {
         let dir = self.inner.root.join(&group.id);
-        let current = group.version.as_ref().map(|version| dir.join(version));
-        let mut earlier: Vec<PathBuf> = fs::read_dir(&dir)
+        if group.versions.contains_key(tool) {
+            dir.join(tool)
+        } else {
+            dir
+        }
+    }
+
+    /// The pinned install folder of a tool.
+    fn pinned_dir(&self, group: &Group, tool: &str) -> Option<PathBuf> {
+        group
+            .version_of(tool)
+            .map(|version| self.tool_dir(group, tool).join(version))
+    }
+
+    /// Kento's install folders that may hold a tool, in the order they are tried. Under the
+    /// group's version: the pinned version first, then versions an earlier Kento installed, so an
+    /// app update never leaves the user without tools. A tool with a version of its own: the newest
+    /// first, so a yt-dlp updated in Settings comes before the pinned one.
+    fn kento_dirs(&self, group: &Group, tool: &str) -> Vec<PathBuf> {
+        let dir = self.tool_dir(group, tool);
+        let own = group.versions.contains_key(tool);
+        let mut found: Vec<PathBuf> = fs::read_dir(&dir)
             .into_iter()
             .flatten()
             .flatten()
             .map(|entry| entry.path())
             .filter(|path| {
+                // Beside the group's version folders lie the folders of tools with their own.
                 path.is_dir()
-                    && Some(path) != current.as_ref()
-                    && !path.to_string_lossy().ends_with(".partial")
+                    && !is_partial(path)
+                    && (own || !group.versions.contains_key(&name_of(path)))
             })
             .collect();
-        earlier.sort_unstable_by(|a, b| b.cmp(a));
-        current.into_iter().chain(earlier).collect()
+        if own {
+            found.sort_by(|a, b| compare_versions(&name_of(b), &name_of(a)));
+            return found;
+        }
+        let current = self.pinned_dir(group, tool);
+        found.retain(|path| Some(path) != current.as_ref());
+        found.sort_unstable_by(|a, b| b.cmp(a));
+        current.into_iter().chain(found).collect()
+    }
+
+    /// A tool in use is Kento's copy from a download older than the pinned one. A copy newer than
+    /// the pinned one (yt-dlp updated in Settings) is not.
+    fn outdated(&self, group: &Group, tool: &ToolStatus) -> bool {
+        let (Some(Source::Kento), Some(path), Some(pinned)) =
+            (tool.source, tool.path.as_ref(), group.version_of(&tool.id))
+        else {
+            return false;
+        };
+        let dir = self.tool_dir(group, &tool.id);
+        let folder = path
+            .strip_prefix(&dir)
+            .ok()
+            .and_then(|rest| rest.components().next())
+            .map(|part| part.as_os_str().to_string_lossy().into_owned());
+        match folder {
+            Some(folder) if group.versions.contains_key(&tool.id) => {
+                compare_versions(&folder, pinned) == Order::Less
+            }
+            Some(folder) => folder != pinned,
+            None => true,
+        }
+    }
+
+    /// Whether the downloads of an install folder are needed: one of its tools (those under the
+    /// group's version for `own == None`, else that one tool) is missing or outdated.
+    fn needs(&self, group: &Group, tools: &[ToolStatus], own: Option<&str>) -> bool {
+        tools
+            .iter()
+            .filter(|tool| match own {
+                Some(own) => tool.id == own,
+                None => !group.versions.contains_key(&tool.id),
+            })
+            .any(|tool| tool.path.is_none() || self.outdated(group, tool))
     }
 
     /// Where each tool of a group lies in one of Kento's install folders: next to the others
@@ -396,26 +479,62 @@ impl Toolchain {
         let platform = entry
             .platform(self.inner.platform)
             .ok_or_else(|| Error::Unavailable(group.to_string()))?;
-        let version = entry
-            .version
-            .as_deref()
-            .ok_or_else(|| Error::Lock(format!("{group} has no version")))?;
+        let programs = self.programs(entry);
+        // One install folder per version: the group's, and each tool's own.
+        let mut units: Vec<(Option<&str>, Unit)> = Vec::new();
+        for file in &platform.files {
+            let own = entry.own_tool(file);
+            if let Some((_, unit)) = units.iter_mut().find(|(key, _)| *key == own) {
+                unit.files.push(file.clone());
+                continue;
+            }
+            let tool = own.or_else(|| file.entries.keys().next().map(String::as_str));
+            let dest = tool
+                .and_then(|tool| self.pinned_dir(entry, tool))
+                .ok_or_else(|| Error::Lock(format!("{group} has no version")))?;
+            let tools: Vec<&String> = match own {
+                Some(own) => entry.tools.iter().filter(|t| *t == own).collect(),
+                None => entry
+                    .tools
+                    .iter()
+                    .filter(|t| !entry.versions.contains_key(*t))
+                    .collect(),
+            };
+            let layout = Layout {
+                downloads: self.inner.root.join("downloads"),
+                dest,
+                programs: tools
+                    .into_iter()
+                    .map(|tool| (tool.clone(), programs[tool].clone()))
+                    .collect(),
+            };
+            units.push((
+                own,
+                Unit {
+                    files: vec![file.clone()],
+                    layout,
+                },
+            ));
+        }
+        let Some(cancel) = self.claim(group) else {
+            return Ok(None);
+        };
+        Ok(Some(Job {
+            group: group.to_string(),
+            units: units.into_iter().map(|(_, unit)| unit).collect(),
+            cancel,
+        }))
+    }
+
+    /// Marks the group busy for an install, an update or a removal; None when it already is.
+    fn claim(&self, group: &str) -> Option<Cancel> {
         let mut running = lock(&self.inner.running);
         if running.contains_key(group) {
-            return Ok(None);
+            return None;
         }
         let cancel = Cancel::default();
         running.insert(group.to_string(), cancel.clone());
-        Ok(Some(Job {
-            group: group.to_string(),
-            files: platform.files.clone(),
-            layout: Layout {
-                downloads: self.inner.root.join("downloads"),
-                dest: self.inner.root.join(group).join(version),
-                programs: self.programs(entry),
-            },
-            cancel,
-        }))
+        Some(cancel)
     }
 
     /// Stops a running install; its partial download stays for the next try.
@@ -489,40 +608,100 @@ impl Toolchain {
         job: &Job,
         report: &(dyn Fn(InstallState) + Send + Sync),
     ) -> Result<(), Error> {
-        let client = download::client(self.inner.https_only)?;
-        install::install(&client, &job.files, &job.layout, &job.cancel, report).await?;
         let this = self.clone();
-        let layout = job.layout.clone();
+        let (group, units) = (job.group.clone(), job.units.clone());
+        let needed = blocking(move || Ok(this.needed(&group, units))).await?;
+        if !needed.is_empty() {
+            let client = download::client(self.inner.https_only)?;
+            install::install(&client, &needed, &job.cancel, report).await?;
+        }
+        let this = self.clone();
         let group = job.group.clone();
-        tokio::task::spawn_blocking(move || {
+        blocking(move || {
             // The new copies must work themselves, whatever else detection would find.
-            let broken = layout
-                .programs
-                .iter()
-                .find(|(tool, program)| detect::probe(tool, &layout.dest.join(program)).is_none());
-            if let Some((tool, _)) = broken {
-                return Err(Error::NotWorking(tool.clone()));
+            for layout in needed.iter().map(|unit| &unit.layout) {
+                let broken = layout.programs.iter().find(|(tool, program)| {
+                    detect::probe(tool, &layout.dest.join(program)).is_none()
+                });
+                if let Some((tool, _)) = broken {
+                    return Err(Error::NotWorking(tool.clone()));
+                }
             }
-            this.remove_earlier(&group, &layout.dest);
+            for layout in needed.iter().map(|unit| &unit.layout) {
+                this.remove_earlier(&group, layout);
+            }
             this.refresh();
             Ok(())
         })
         .await
-        .map_err(|err| Error::Unpack(err.to_string()))?
     }
 
-    /// Removes versions an earlier Kento installed once the pinned one works. A copy still in use
-    /// by a job stays until next time.
-    fn remove_earlier(&self, group: &str, current: &Path) {
-        let Ok(entries) = fs::read_dir(self.inner.root.join(group)) else {
+    /// The install folders of a job with a tool missing or outdated, as detection last saw them
+    /// (the page showed the same when the user chose to install).
+    fn needed(&self, group: &str, units: Vec<Unit>) -> Vec<Unit> {
+        let Some(entry) = self.inner.lock.group(group) else {
+            return Vec::new();
+        };
+        let status = self.status();
+        let Some(tools) = status.iter().find(|g| g.id == group).map(|g| &g.tools) else {
+            return units;
+        };
+        units
+            .into_iter()
+            .filter(|unit| {
+                let own = unit
+                    .layout
+                    .programs
+                    .keys()
+                    .find(|tool| entry.versions.contains_key(*tool));
+                self.needs(entry, tools, own.map(String::as_str))
+            })
+            .collect()
+    }
+
+    /// Once a pinned install works, removes what it replaces: under the group's version, the
+    /// versions an earlier Kento installed (never the folders of tools with their own); for a tool
+    /// with a version of its own, its older versions (a newer copy, made by "Update yt-dlp", stays).
+    /// A copy still in use by a job stays until next time.
+    fn remove_earlier(&self, group: &str, layout: &Layout) {
+        let Some(entry) = self.inner.lock.group(group) else {
             return;
         };
+        let current = &layout.dest;
+        let own = layout
+            .programs
+            .keys()
+            .any(|tool| entry.versions.contains_key(tool));
+        let Some(dir) = current.parent() else {
+            return;
+        };
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        let version = name_of(current);
         for path in entries.flatten().map(|entry| entry.path()) {
-            if path != current && path.is_dir() && fs::remove_dir_all(&path).is_err() {
+            if path == *current || !path.is_dir() {
+                continue;
+            }
+            let name = name_of(&path);
+            let keep = if own {
+                !is_partial(&path) && compare_versions(&name, &version) != Order::Less
+            } else {
+                entry.versions.contains_key(&name)
+            };
+            if !keep && fs::remove_dir_all(&path).is_err() {
                 tracing::info!("an earlier {group} install could not be removed yet");
             }
         }
     }
+}
+
+async fn blocking<T: Send + 'static>(
+    work: impl FnOnce() -> Result<T, Error> + Send + 'static,
+) -> Result<T, Error> {
+    tokio::task::spawn_blocking(work)
+        .await
+        .map_err(|err| Error::Unpack(err.to_string()))?
 }
 
 /// Fills the engines' tool paths for a job (SPEC 4.2). The first call after start or a change may
@@ -697,8 +876,10 @@ async fn set_path(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::toolchain::detect::tests::{fake_exiftool, fake_soffice, fake_tool, FAKE_SUFFIX};
-    use crate::toolchain::download::tests::{serve, sha256, Mode};
+    use crate::toolchain::detect::tests::{
+        fake_deno, fake_exiftool, fake_soffice, fake_tool, fake_ytdlp, ytdlp_script, FAKE_SUFFIX,
+    };
+    use crate::toolchain::download::tests::{serve, serve_routes, sha256, Mode};
     use crate::toolchain::unpack::tests::zip_of;
     use serde_json::json;
 
@@ -800,7 +981,7 @@ mod tests {
         let status = chain.status();
         let ids: Vec<&str> = status.iter().map(|g| g.id.as_str()).collect();
         assert_eq!(ids, ["media", "office", "extras"]);
-        for (group, tools) in [(&status[0], 2), (&status[1], 1), (&status[2], 1)] {
+        for (group, tools) in [(&status[0], 4), (&status[1], 1), (&status[2], 1)] {
             assert!(!group.ready);
             assert_eq!(group.tools.len(), tools);
             assert!(group
@@ -817,9 +998,11 @@ mod tests {
                 pinned.map_or(0, |p| p.files.iter().map(|f| f.size).sum())
             );
         }
-        // LibreOffice is the largest download: show it, so the page can say so up front.
+        // LibreOffice is the largest download: show it, so the page can say so up front. Media is
+        // FFmpeg, yt-dlp and Deno.
         if manifest::current_platform() == Some("windows-x64") {
             assert_eq!(status[1].download, 375_934_976);
+            assert_eq!(status[0].download, 35_430_500 + 23_575_744 + 42_917_472);
         }
         assert_eq!(chain.engine_tools(), kento_engines::Tools::default());
     }
@@ -858,6 +1041,8 @@ mod tests {
         let base = tempfile::tempdir().unwrap();
         let root = base.path().join("tools");
         let (system_ffprobe, places) = fake_tool(&base.path().join("system"), "ffprobe", "7.1");
+        let (system_ytdlp, _) = fake_ytdlp(&base.path().join("system"), "2026.10.26");
+        let (system_deno, _) = fake_deno(&base.path().join("system"), "2.9.8");
         let (custom, _) = fake_tool(&base.path().join("my tools ğ"), "ffmpeg", "8.0.1");
         let chain = toolchain(&root, places.clone());
 
@@ -894,10 +1079,12 @@ mod tests {
                 ffprobe: Some(system_ffprobe),
                 exiftool: None,
                 soffice: None,
-                ytdlp: None,
-                deno: None,
+                ytdlp: Some(system_ytdlp),
+                deno: Some(system_deno),
             }
         );
+        // Nothing of Media is downloaded while every tool of it works.
+        assert_eq!(media.download, 0);
 
         // Kept across restarts.
         let again = toolchain(&root, places.clone());
@@ -928,7 +1115,9 @@ mod tests {
         ));
         // LibreOffice runs from inside its program folder, as each platform's download lays it out.
         if let Some(job) = chain.begin("office").ok().flatten() {
-            let program = &job.layout.programs["soffice"];
+            assert_eq!(job.units.len(), 1);
+            let layout = &job.units[0].layout;
+            let program = &layout.programs["soffice"];
             let expected: PathBuf = match manifest::current_platform() {
                 Some("windows-x64") => ["LibreOffice", "program", "soffice.exe"].iter().collect(),
                 _ => ["LibreOffice.app", "Contents", "MacOS", "soffice"]
@@ -936,10 +1125,7 @@ mod tests {
                     .collect(),
             };
             assert_eq!(program, &expected);
-            assert!(job
-                .layout
-                .dest
-                .ends_with(Path::new("office").join("26.8.2")));
+            assert!(layout.dest.ends_with(Path::new("office").join("26.8.2")));
             chain.cancel("office");
         }
         let media = Lock::embedded().group("media").unwrap();
@@ -952,7 +1138,25 @@ mod tests {
         assert!(chain.begin("media").unwrap().is_none());
         chain.cancel("media");
         assert!(job.cancel.is_cancelled());
-        assert!(job.layout.dest.ends_with(Path::new("media").join("9.0.2")));
+        // FFmpeg under the group's version; yt-dlp and Deno each in a folder of their own.
+        let dests: Vec<&Path> = job
+            .units
+            .iter()
+            .map(|unit| unit.layout.dest.as_path())
+            .collect();
+        assert_eq!(dests.len(), 3);
+        assert!(dests[0].ends_with(Path::new("media").join("9.0.2")));
+        assert!(dests[1].ends_with(Path::new("media").join("yt-dlp").join("2026.10.26")));
+        assert!(dests[2].ends_with(Path::new("media").join("deno").join("2.9.8")));
+        let tools: Vec<Vec<&String>> = job
+            .units
+            .iter()
+            .map(|unit| unit.layout.programs.keys().collect())
+            .collect();
+        assert_eq!(
+            tools,
+            [vec!["ffmpeg", "ffprobe"], vec!["yt-dlp"], vec!["deno"]]
+        );
     }
 
     #[tokio::test]
@@ -1044,6 +1248,203 @@ mod tests {
         assert!(!root.join("media").exists());
         assert!(ffmpeg.is_file());
         assert_eq!(fs::read_dir(root.join("downloads")).unwrap().count(), 0);
+    }
+
+    /// The pinned Media downloads in small: FFmpeg and ffprobe in one zip under the group's
+    /// version, yt-dlp as a plain program and Deno in a zip, each at a version of its own.
+    struct MediaFiles {
+        ffmpeg: Vec<u8>,
+        ytdlp: Vec<u8>,
+        deno: Vec<u8>,
+    }
+
+    impl MediaFiles {
+        fn new(base: &Path) -> Self {
+            let built = base.join("built");
+            let (ffmpeg, _) = fake_tool(&built, "ffmpeg", "9.0.2");
+            let (ffprobe, _) = fake_tool(&built, "ffprobe", "9.0.2");
+            let (deno, _) = fake_deno(&built, "2.9.8");
+            Self {
+                ffmpeg: zip_of(&[
+                    (
+                        format!("pack/ffmpeg{FAKE_SUFFIX}").as_str(),
+                        fs::read(ffmpeg).unwrap().as_slice(),
+                    ),
+                    (
+                        format!("pack/ffprobe{FAKE_SUFFIX}").as_str(),
+                        fs::read(ffprobe).unwrap().as_slice(),
+                    ),
+                ]),
+                ytdlp: ytdlp_script("2026.10.26").into_bytes(),
+                deno: zip_of(&[(
+                    format!("deno{FAKE_SUFFIX}").as_str(),
+                    fs::read(deno).unwrap().as_slice(),
+                )]),
+            }
+        }
+
+        /// A local server with the three files, and a lockfile that pins them there.
+        fn serve(&self) -> (crate::toolchain::download::tests::Routes, &'static Lock) {
+            let server = serve_routes(vec![
+                ("/tool.zip".into(), self.ffmpeg.clone()),
+                ("/yt-dlp.exe".into(), self.ytdlp.clone()),
+                ("/deno.zip".into(), self.deno.clone()),
+            ]);
+            let file = |name: &str, bytes: &[u8], archive: &str, entries: serde_json::Value| {
+                json!({
+                    "url": format!("https://example.org/{name}"), "size": bytes.len(),
+                    "sha256": sha256(bytes), "archive": archive, "entries": entries
+                })
+            };
+            let text = json!({
+                "schema": 1,
+                "groups": [{
+                    "id": "media", "available": true, "version": "9.0.2",
+                    "tools": ["ffmpeg", "ffprobe", "yt-dlp", "deno"],
+                    "versions": { "yt-dlp": "2026.10.26", "deno": "2.9.8" },
+                    "platforms": { "windows-x64": { "source": "test", "files": [
+                        file("tool.zip", &self.ffmpeg, "zip", json!({
+                            "ffmpeg": format!("pack/ffmpeg{FAKE_SUFFIX}"),
+                            "ffprobe": format!("pack/ffprobe{FAKE_SUFFIX}")
+                        })),
+                        file("yt-dlp.exe", &self.ytdlp, "file", json!({ "yt-dlp": "yt-dlp.exe" })),
+                        file("deno.zip", &self.deno, "zip", json!({ "deno": format!("deno{FAKE_SUFFIX}") }))
+                    ]}}
+                }]
+            });
+            let mut lock = Lock::parse(&text.to_string()).unwrap();
+            let platform = lock.groups[0].platforms.get_mut("windows-x64").unwrap();
+            for file in &mut platform.files {
+                file.url = format!("{}/{}", server.base, file.file_name());
+            }
+            (server, Box::leak(Box::new(lock)))
+        }
+    }
+
+    /// The paths asked of a test server, sorted.
+    fn asked(server: &crate::toolchain::download::tests::Routes) -> Vec<String> {
+        let mut asked = server.asked.lock().unwrap().clone();
+        asked.sort();
+        asked
+    }
+
+    #[tokio::test]
+    async fn only_what_is_missing_is_downloaded_and_a_working_ffmpeg_stays() {
+        let base = tempfile::tempdir().unwrap();
+        let files = MediaFiles::new(base.path());
+        let (server, lock) = files.serve();
+        // The computer has FFmpeg already, older than the pinned one but good enough.
+        let system = base.path().join("system ğ 🧪");
+        let (ffmpeg, places) = fake_tool(&system, "ffmpeg", "8.0");
+        fake_tool(&system, "ffprobe", "8.0");
+        let root = base.path().join("tools ğ 🧪");
+        let chain = Toolchain::with(root.clone(), lock, Some("windows-x64"), places, false);
+
+        let before = &chain.status()[0];
+        assert!(!before.ready && !before.outdated && !before.downloaded);
+        assert_eq!(
+            before.download,
+            (files.ytdlp.len() + files.deno.len()) as u64
+        );
+
+        let job = chain.begin("media").unwrap().unwrap();
+        let states = Mutex::new(Vec::new());
+        chain
+            .run(job, &|state| states.lock().unwrap().push(state))
+            .await
+            .unwrap();
+        assert_eq!(asked(&server), ["/deno.zip", "/yt-dlp.exe"]);
+        // The progress counts only what was downloaded.
+        let total = before.download;
+        assert!(states
+            .into_inner()
+            .unwrap()
+            .contains(&InstallState::Downloading { done: total, total }));
+
+        let media = &chain.status()[0];
+        assert!(media.ready && media.downloaded && !media.outdated);
+        assert_eq!(media.download, 0);
+        assert_eq!(media.tools[0].path.as_deref(), Some(ffmpeg.as_path()));
+        assert_eq!(media.tools[0].source, Some(Source::System));
+        let own = |tool: &str, version: &str| {
+            root.join("media")
+                .join(tool)
+                .join(version)
+                .join(format!("{tool}{FAKE_SUFFIX}"))
+        };
+        for (tool, version) in [("yt-dlp", "2026.10.26"), ("deno", "2.9.8")] {
+            let status = media.tools.iter().find(|t| t.id == tool).unwrap();
+            assert_eq!(status.path, Some(own(tool, version)), "{tool}");
+            assert_eq!(status.version.as_deref(), Some(version));
+            assert_eq!(status.source, Some(Source::Kento));
+        }
+        assert!(!root.join("media").join("9.0.2").exists());
+        let tools = chain.engine_tools();
+        assert_eq!(tools.ytdlp, Some(own("yt-dlp", "2026.10.26")));
+        assert_eq!(tools.deno, Some(own("deno", "2.9.8")));
+        assert_eq!(tools.ffmpeg, Some(ffmpeg));
+
+        // Nothing left to do: a second install asks the network nothing.
+        server.asked.lock().unwrap().clear();
+        let job = chain.begin("media").unwrap().unwrap();
+        chain.run(job, &|_| {}).await.unwrap();
+        assert!(asked(&server).is_empty());
+    }
+
+    #[tokio::test]
+    async fn kentos_own_tools_are_replaced_one_folder_at_a_time() {
+        let base = tempfile::tempdir().unwrap();
+        let files = MediaFiles::new(base.path());
+        let (server, lock) = files.serve();
+        let root = base.path().join("tools ğ 🧪");
+        let media = root.join("media");
+        // An earlier Kento's FFmpeg and yt-dlp, the pinned Deno, and a yt-dlp newer than the pinned
+        // one, made by "Update yt-dlp".
+        fake_tool(&media.join("8.0"), "ffmpeg", "8.0");
+        fake_tool(&media.join("8.0"), "ffprobe", "8.0");
+        fake_ytdlp(&media.join("yt-dlp").join("2026.01.05"), "2026.01.05");
+        let (deno, _) = fake_deno(&media.join("deno").join("2.9.8"), "2.9.8");
+        let chain = Toolchain::with(
+            root.clone(),
+            lock,
+            Some("windows-x64"),
+            nowhere(base.path()),
+            false,
+        );
+        let before = &chain.status()[0];
+        assert!(before.ready && before.outdated && before.downloaded);
+        assert_eq!(
+            before.download,
+            (files.ffmpeg.len() + files.ytdlp.len()) as u64
+        );
+
+        let job = chain.begin("media").unwrap().unwrap();
+        chain.run(job, &|_| {}).await.unwrap();
+        assert_eq!(asked(&server), ["/tool.zip", "/yt-dlp.exe"]);
+        let after = &chain.status()[0];
+        assert!(after.ready && !after.outdated);
+        assert!(after.tools[0]
+            .path
+            .as_ref()
+            .unwrap()
+            .starts_with(media.join("9.0.2")));
+        // The replaced versions are gone; the folders of the other tools are untouched.
+        assert!(!media.join("8.0").exists());
+        assert!(!media.join("yt-dlp").join("2026.01.05").exists());
+        assert!(media.join("yt-dlp").join("2026.10.26").is_dir());
+        assert!(deno.is_file());
+        assert_eq!(after.tools[3].path.as_deref(), Some(deno.as_path()));
+
+        // A copy newer than the pinned one is used first, and is not outdated.
+        let (newer, _) = fake_ytdlp(&media.join("yt-dlp").join("2026.11.01"), "2026.11.01");
+        let status = &chain.refresh()[0];
+        assert_eq!(status.tools[2].path.as_deref(), Some(newer.as_path()));
+        assert!(!status.outdated);
+        assert_eq!(status.download, 0);
+        // A broken one is passed over for the next.
+        fs::write(&newer, b"").unwrap();
+        let status = &chain.refresh()[0];
+        assert_eq!(status.tools[2].version.as_deref(), Some("2026.10.26"));
     }
 
     /// A lockfile with one Office download for Windows: an installer image (`msi`) or, for the
@@ -1213,11 +1614,12 @@ mod tests {
         assert_eq!(refused.message_key(), "toolchain.failed.check.soffice");
     }
 
-    /// The real thing: installs the pinned Media build for this computer into a temporary folder
-    /// and runs it. `KENTO_TOOLCHAIN_DOWNLOADS` may name a folder that already holds the pinned
-    /// files (they are still verified); otherwise they are downloaded.
+    /// The real thing: installs the pinned Media builds for this computer (FFmpeg and ffprobe,
+    /// yt-dlp, Deno) into a temporary folder and runs each. `KENTO_TOOLCHAIN_DOWNLOADS` may name a
+    /// folder that already holds the pinned files (they are still verified); otherwise they are
+    /// downloaded.
     #[tokio::test]
-    #[ignore = "downloads the pinned FFmpeg build; run with --ignored"]
+    #[ignore = "downloads the pinned FFmpeg, yt-dlp and Deno builds; run with --ignored"]
     async fn installs_the_pinned_build_for_this_computer() {
         install_pinned("media").await;
     }
@@ -1253,27 +1655,36 @@ mod tests {
             return;
         };
         if let Some(cached) = std::env::var_os("KENTO_TOOLCHAIN_DOWNLOADS") {
-            fs::create_dir_all(&job.layout.downloads).unwrap();
-            for file in &job.files {
-                let name = file.file_name();
-                fs::copy(
-                    Path::new(&cached).join(name),
-                    job.layout.downloads.join(name),
-                )
-                .unwrap();
+            for unit in &job.units {
+                fs::create_dir_all(&unit.layout.downloads).unwrap();
+                for file in &unit.files {
+                    let name = file.file_name();
+                    fs::copy(
+                        Path::new(&cached).join(name),
+                        unit.layout.downloads.join(name),
+                    )
+                    .unwrap();
+                }
             }
         }
         chain
             .run(job, &|state| eprintln!("{state:?}"))
             .await
             .unwrap();
-        let pinned = Lock::embedded().group(group).unwrap().version.clone();
+        let pinned = Lock::embedded().group(group).unwrap();
         let status = chain.status();
         let installed = status.iter().find(|g| g.id == group).unwrap();
         assert!(installed.ready, "{installed:?}");
+        // Every tool of the group, each at its own pinned version.
+        let ids: Vec<&str> = installed
+            .tools
+            .iter()
+            .map(|tool| tool.id.as_str())
+            .collect();
+        assert_eq!(ids, pinned.tools);
         for tool in &installed.tools {
             assert_eq!(tool.source, Some(Source::Kento));
-            assert_eq!(tool.version, pinned);
+            assert_eq!(tool.version.as_deref(), pinned.version_of(&tool.id));
             eprintln!(
                 "{} {} runs from {}",
                 tool.id,
@@ -1292,6 +1703,8 @@ mod tests {
             Error::Io(io::Error::other("x")),
             Error::NotWorking("ffmpeg".into()),
             Error::NotWorking("soffice".into()),
+            Error::NotWorking("yt-dlp".into()),
+            Error::NotWorking("deno".into()),
             Error::AdminInstall("x".into()),
             Error::DiskImage("x".into()),
             Error::Cancelled,
@@ -1310,5 +1723,9 @@ mod tests {
             "toolchain.failed.dmg"
         );
         assert_eq!(Error::UnknownGroup("x".into()).message_key(), "error.other");
+        assert_eq!(
+            Error::NotWorking("deno".into()).message_key(),
+            "toolchain.failed.check.deno"
+        );
     }
 }

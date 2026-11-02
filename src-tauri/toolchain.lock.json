@@ -5,11 +5,15 @@
       "id": "media",
       "available": true,
       "version": "9.0.2",
-      "license": "GPL-3.0-or-later",
-      "tools": ["ffmpeg", "ffprobe"],
+      "license": "GPL-3.0-or-later AND MIT",
+      "tools": ["ffmpeg", "ffprobe", "yt-dlp", "deno"],
+      "versions": {
+        "yt-dlp": "2026.10.26",
+        "deno": "2.9.8"
+      },
       "platforms": {
         "windows-x64": {
-          "source": "gyan.dev release build 9.0.2, essentials (GPLv3; libx264, libvpx, libmp3lame, libopus, libvorbis), from the GyanD/codexffmpeg release mirror",
+          "source": "FFmpeg: gyan.dev release build 9.0.2, essentials (GPLv3; libx264, libvpx, libmp3lame, libopus, libvorbis), from the GyanD/codexffmpeg release mirror. yt-dlp 2026.10.26: the project's own Windows program (yt-dlp.exe, a PyInstaller build, GPLv3+ as a combined work) from the yt-dlp/yt-dlp GitHub release; size and SHA-256 as published there (the release's SHA2-256SUMS). Deno 2.9.8 (MIT): the official x86-64 Windows zip from the denoland/deno GitHub release; size and SHA-256 as published there (the file's .sha256sum).",
           "files": [
             {
               "url": "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.7z",
@@ -20,11 +24,29 @@
                 "ffmpeg": "ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe",
                 "ffprobe": "ffmpeg-9.0.2-essentials_build/bin/ffprobe.exe"
               }
+            },
+            {
+              "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp.exe",
+              "size": 23575744,
+              "sha256": "f5389d3698ecde4ef06f4e6b1ce0294fe9ac1396228c8990b8d3416d6d177a7d",
+              "archive": "file",
+              "entries": {
+                "yt-dlp": "yt-dlp.exe"
+              }
+            },
+            {
+              "url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-pc-windows-msvc.zip",
+              "size": 42917472,
+              "sha256": "cba84b26e0df5ae7f74fc66b86a95b866872a86292ebd84fa1e959927edd93bf",
+              "archive": "zip",
+              "entries": {
+                "deno": "deno.exe"
+              }
             }
           ]
         },
-        "macos-x64": {
-          "source": "evermeet.cx static release build 9.0.2 for Intel Macs (GPLv3; libx264, libvpx, libmp3lame, libopus, libvorbis); signature checked against GPG key 20F6EA3E0CFD6B4C53447A73476C4B611A660874 when pinned",
+        "macos-arm64": {
+          "source": "FFmpeg: evermeet.cx static release build 9.0.2 for Intel Macs, run through Rosetta 2 (GPLv3; libx264, libvpx, libmp3lame, libopus, libvorbis); signature checked against GPG key 20F6EA3E0CFD6B4C53447A73476C4B611A660874 when pinned. yt-dlp 2026.10.26: the project's own universal macOS program (yt-dlp_macos, a PyInstaller build, GPLv3+ as a combined work) from the yt-dlp/yt-dlp GitHub release, installed as yt-dlp; size and SHA-256 as published there (the release's SHA2-256SUMS). Deno 2.9.8 (MIT): the official Apple silicon zip from the denoland/deno GitHub release; size and SHA-256 as published there (the file's .sha256sum).",
           "files": [
             {
               "url": "https://evermeet.cx/pub/ffmpeg/ffmpeg-9.0.2.zip",
@@ -42,6 +64,65 @@
               "archive": "zip",
               "entries": {
                 "ffprobe": "ffprobe"
+              }
+            },
+            {
+              "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp_macos",
+              "size": 37466304,
+              "sha256": "0f922c15ccc0b83eefa1c8bc9104e434318c4bf16e408e1ee93b7745a6efe0aa",
+              "archive": "file",
+              "entries": {
+                "yt-dlp": "yt-dlp_macos"
+              }
+            },
+            {
+              "url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-aarch64-apple-darwin.zip",
+              "size": 38770795,
+              "sha256": "9f0bf660393da2eaff044cdc7444cb08c73f235849b61d224d825a194ce7c98e",
+              "archive": "zip",
+              "entries": {
+                "deno": "deno"
+              }
+            }
+          ]
+        },
+        "macos-x64": {
+          "source": "FFmpeg: evermeet.cx static release build 9.0.2 for Intel Macs (GPLv3; libx264, libvpx, libmp3lame, libopus, libvorbis); signature checked against GPG key 20F6EA3E0CFD6B4C53447A73476C4B611A660874 when pinned. yt-dlp 2026.10.26: the project's own universal macOS program (yt-dlp_macos, a PyInstaller build, GPLv3+ as a combined work) from the yt-dlp/yt-dlp GitHub release, installed as yt-dlp; size and SHA-256 as published there (the release's SHA2-256SUMS). Deno 2.9.8 (MIT): the official Intel Mac zip from the denoland/deno GitHub release; size and SHA-256 as published there (the file's .sha256sum).",
+          "files": [
+            {
+              "url": "https://evermeet.cx/pub/ffmpeg/ffmpeg-9.0.2.zip",
+              "size": 26198325,
+              "sha256": "4acc0be580f9b2788029eb7bd4d645ff87968911b0a62aeeb3940d42d54558d5",
+              "archive": "zip",
+              "entries": {
+                "ffmpeg": "ffmpeg"
+              }
+            },
+            {
+              "url": "https://evermeet.cx/pub/ffprobe/ffprobe-9.0.2.zip",
+              "size": 26104193,
+              "sha256": "24a9c968cd4da72d99c7245e914b921815835eb6dff01d99868031aebaf1d439",
+              "archive": "zip",
+              "entries": {
+                "ffprobe": "ffprobe"
+              }
+            },
+            {
+              "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp_macos",
+              "size": 37466304,
+              "sha256": "0f922c15ccc0b83eefa1c8bc9104e434318c4bf16e408e1ee93b7745a6efe0aa",
+              "archive": "file",
+              "entries": {
+                "yt-dlp": "yt-dlp_macos"
+              }
+            },
+            {
+              "url": "https://github.com/denoland/deno/releases/download/v2.9.8/deno-x86_64-apple-darwin.zip",
+              "size": 42797031,
+              "sha256": "4b2f5edd2639b7470f034238b321d7002d8dfb4726d8558f52c17afac370eb2c",
+              "archive": "zip",
+              "entries": {
+                "deno": "deno"
               }
             }
           ]
