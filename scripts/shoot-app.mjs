@@ -86,6 +86,26 @@ const SHOTS = [
   ['burn-light-en', { lang: 'en', appearance: 'light' }, 'panel:burn-subtitles'],
   ['burn-top-dark-tr', { lang: 'tr', appearance: 'dark' }, 'panel:burn-subtitles:top'],
   ['burn-pseudo-rtl', { lang: 'ar-XB', appearance: 'dark' }, 'panel:burn-subtitles'],
+  // Folder automation: rules, recipes and the log; no rules yet; the rule and recipe dialogs; the
+  // Tools wheel of a photo with its Favorites, and the recipes ring it opens.
+  ['automation-light-en', { lang: 'en', appearance: 'light', section: 'automation', automation: 'demo' }],
+  ['automation-dark-tr', { lang: 'tr', appearance: 'dark', section: 'automation', automation: 'demo' }],
+  ['automation-empty-light-tr', { lang: 'tr', appearance: 'light', section: 'automation' }],
+  ['automation-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', section: 'automation', automation: 'demo' }],
+  ['automation-pseudo-long', { lang: 'en-XA', appearance: 'dark', section: 'automation', automation: 'demo' }],
+  ['automation-rule-light-tr', { lang: 'tr', appearance: 'light', section: 'automation' }, 'automation:rule'],
+  ['automation-rule-dark-en', { lang: 'en', appearance: 'dark', section: 'automation' }, 'automation:rule'],
+  ['automation-recipe-light-en', { lang: 'en', appearance: 'light', section: 'automation' }, 'automation:recipe'],
+  ['automation-recipe-pseudo-rtl', { lang: 'ar-XB', appearance: 'dark', section: 'automation' }, 'automation:recipe'],
+  [
+    'surface-wheel-favorites-light-tr',
+    { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'tools', only: 'image' },
+  ],
+  [
+    'surface-wheel-recipes-dark-en',
+    { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'tools', only: 'image' },
+    'favorites',
+  ],
 ];
 
 const SIZES = { wheel: [520, 520], shelf: [300, 480], toast: [400, 200] };
@@ -256,10 +276,34 @@ async function panel(page, tool, option) {
   await page.waitForTimeout(500);
 }
 
+/** Opens the rule dialog with both folders chosen, or the example recipe's editor. */
+async function automation(page, which) {
+  await page.waitForSelector('.automation .card');
+  if (which === 'rule') {
+    await page.locator('.automation .card').first().locator('.card-head .button').click();
+    const choose = page.locator('[role=dialog] .folder .button');
+    await choose.nth(0).click();
+    await choose.nth(1).click();
+    await page.locator('[role=dialog] input[type=text]').nth(1).fill('png, jpg');
+  } else {
+    await page.locator('.recipe .button.small').first().click();
+  }
+  await page.waitForSelector('[role=dialog]');
+  await page.waitForTimeout(300);
+}
+
 /** Opens a wheel or a panel the way a person would with the keyboard. */
 async function act(page, action) {
   if (!action) return;
   if (action.startsWith('panel:')) return panel(page, ...action.split(':').slice(1));
+  if (action.startsWith('automation:')) return automation(page, action.split(':')[1]);
+  // The floating wheel's first slice, Favorites, opens the recipes.
+  if (action === 'favorites') {
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(900);
+    return;
+  }
   if (action.startsWith('web:')) return web(page, ...action.split(':').slice(1));
   if (action.startsWith('image:')) return imageEditor(page, action.slice('image:'.length));
   if (action.startsWith('compress')) return compress(page, action.split(':')[1]);
@@ -284,8 +328,8 @@ const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch();
 const errors = [];
 for (const [name, params, action] of SHOTS) {
-  const tall = params.section === 'settings';
-  const [width, height] = SIZES[params.surface] ?? [1000, tall ? 2200 : 680];
+  const tall = params.section === 'settings' ? 2200 : params.section === 'automation' && !action ? 1250 : 680;
+  const [width, height] = SIZES[params.surface] ?? [1000, tall];
   const page = await browser.newPage({ viewport: { width, height } });
   page.on('pageerror', (error) => errors.push(`${name}: ${error.message}`));
   page.on('console', (message) => message.type() === 'error' && errors.push(`${name}: ${message.text()}`));

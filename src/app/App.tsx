@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
-// The main window: a navigation rail (Home, Library, Settings) and the open page. It follows the
-// appearance and motion settings, listens to the core's events and shows the window once painted.
+// The main window: a navigation rail (Home, Library, Automation, Settings) and the open page. It
+// follows the appearance and motion settings, listens to the core's events and shows the window
+// once painted.
 import { Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Automation } from '../automation/Automation';
 import { Icon, type IconName } from '../components/Icon';
 import { Toasts } from '../components/Toasts';
 import { api, type Section } from '../ipc';
@@ -21,6 +23,7 @@ import { WheelHost } from './WheelHost';
 const NAV: { section: Section; icon: IconName; key: string; shortcut: string }[] = [
   { section: 'home', icon: 'home', key: 'nav.home', shortcut: '1' },
   { section: 'library', icon: 'library', key: 'nav.library', shortcut: '2' },
+  { section: 'automation', icon: 'automation', key: 'nav.automation', shortcut: '3' },
   { section: 'settings', icon: 'settings', key: 'nav.settings', shortcut: ',' },
 ];
 
@@ -55,6 +58,8 @@ export function App() {
       api.onPaused(setPaused),
       api.onNavigate(setSection),
       api.onLibrary(() => void refreshLibrary()),
+      // A folder rule's failure, while this window has the focus (else it is the corner card).
+      api.onAutomationFailed((failure) => useApp.getState().toast({ kind: 'failed', jobId: 0, ...failure })),
     ];
     void refreshLibrary();
     return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
@@ -150,6 +155,7 @@ export function App() {
           <>
             {section === 'home' && <Home />}
             {section === 'library' && <Library />}
+            {section === 'automation' && <Automation />}
             {section === 'settings' && <Settings />}
           </>
         )}
