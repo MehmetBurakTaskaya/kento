@@ -37,7 +37,7 @@ pub struct PageEdit {
 }
 
 /// Decompression of object and cross-reference streams while loading stops here.
-const MAX_STREAM: usize = 512 << 20;
+pub(super) const MAX_STREAM: usize = 512 << 20;
 /// Nesting deeper than this (objects, outline levels, the page tree) is not followed.
 const MAX_DEPTH: usize = 64;
 /// Outline items, name tree nodes and form fields visited at most.
@@ -236,7 +236,7 @@ fn extract(
     output.finish(dest)
 }
 
-fn load(path: &Path) -> Result<Document> {
+pub(super) fn load(path: &Path) -> Result<Document> {
     let options = LoadOptions {
         max_decompressed_size: Some(MAX_STREAM),
         ..LoadOptions::default()
@@ -255,7 +255,7 @@ fn load(path: &Path) -> Result<Document> {
 }
 
 /// Follows references, a bounded number of times.
-fn deref<'a>(doc: &'a Document, object: Option<&'a Object>) -> Option<&'a Object> {
+pub(super) fn deref<'a>(doc: &'a Document, object: Option<&'a Object>) -> Option<&'a Object> {
     let mut object = object?;
     for _ in 0..MAX_DEPTH {
         match object {
