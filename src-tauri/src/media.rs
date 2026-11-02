@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 //! The media editors' commands (SPEC 5.5, 5.6): what a file holds, a preview the page can play
 //! (the original, or a low-resolution proxy for codecs the WebView lacks), waveform peaks, single
-//! frames, and the 13 media tools as jobs. Local files reach the page through the asset protocol,
-//! opened one file at a time (SPEC section 6).
+//! frames, and the 13 media tools and Burn in subtitles as jobs. Local files reach the page
+//! through the asset protocol, opened one file at a time (SPEC section 6).
 
 use std::path::{Path, PathBuf};
 
 use kento_engines::media::{self, MediaInfo, Tool, ToolRun};
+use kento_engines::subtitle::{self, Sample};
 use kento_engines::Progress;
 use serde::Serialize;
 use tauri::ipc::Response;
@@ -124,8 +125,45 @@ pub async fn media_frame(
     Ok(Response::new(png))
 }
 
+/// The first subtitle of an SRT or VTT file, for the burn-in preview.
+#[tauri::command]
+pub async fn subtitle_sample(path: PathBuf) -> Result<Option<Sample>> {
+    subtitle_file(&path)?;
+    blocking(move || subtitle::sample(&path)).await
+}
+
+fn subtitle_file(path: &Path) -> Result<()> {
+    path.is_file()
+        .then(|| path.extension())
+        .flatten()
+        .and_then(|ext| catalog::format_for_extension(&ext.to_string_lossy()))
+        .filter(|format| format.category == Category::Subtitle)
+        .map(|_| ())
+        .ok_or_else(|| Error::Invalid("not a subtitle file".into()))
+}
+
+/// Burn in subtitles takes one video and one subtitle file, in either order; the engine gets the
+/// video first.
+fn video_and_subtitles(paths: &[PathBuf]) -> Result<(PathBuf, &'static Format, PathBuf)> {
+    let pair = || Error::Invalid("this tool takes a video and its subtitles".into());
+    let [first, second] = paths else {
+        return Err(pair());
+    };
+    let (video, subtitles) = if subtitle_file(second).is_ok() {
+        (first, second)
+    } else {
+        (second, first)
+    };
+    subtitle_file(subtitles)?;
+    let format = media_file(video)
+        .ok()
+        .filter(|format| format.category == Category::Video)
+        .ok_or_else(pair)?;
+    Ok((video.clone(), format, subtitles.clone()))
+}
+
 /// Runs a media tool. Remove audio takes several videos, one job each; Merge videos takes its
-/// files in order; every other tool takes one file.
+/// files in order; Burn in subtitles a video and its subtitles; every other tool takes one file.
 #[tauri::command]
 pub fn run_media_tool(
     app: AppHandle,
@@ -134,6 +172,13 @@ pub fn run_media_tool(
     tool: Tool,
     paths: Vec<PathBuf>,
 ) -> Result<Vec<u64>> {
+    if let Tool::BurnSubtitles { .. } = tool {
+        let (video, format, subtitles) = video_and_subtitles(&paths)?;
+        let ctx = Context::new(&app, &state)?;
+        let id = submit(&ctx, tool, vec![video, subtitles], format);
+        crate::actions::watch(&window, &state, &[id]);
+        return Ok(vec![id]);
+    }
     let files = paths
         .iter()
         .map(|path| media_file(path).map(|format| (path.clone(), format)))

@@ -708,6 +708,9 @@ const READY_TOOLS: &[&str] = &[
     "collage",
     "redact-image",
     "remove-background",
+    "make-qr",
+    "ocr",
+    "burn-subtitles",
 ];
 
 pub fn tools() -> &'static [Tool] {

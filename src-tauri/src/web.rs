@@ -252,6 +252,19 @@ pub async fn web_choose_folder(
     Ok(picked)
 }
 
+/// Where an output without a source file goes (a QR code): the folder the user picked in
+/// `web_choose_folder` this session, else the default one the dialog shows.
+pub(crate) fn output_folder(
+    app: &AppHandle,
+    state: &AppState,
+    requested: Option<&Path>,
+) -> Result<PathBuf> {
+    let downloads = downloads(app)?;
+    std::fs::create_dir_all(&downloads)?;
+    let default = default_folder(&state.settings().output, &downloads);
+    target_folder(requested, &lock(&state.web.chosen), &default)
+}
+
 /// The folder a download goes to: the default, or one the user picked this session. Any other
 /// folder the page names is refused.
 fn target_folder(requested: Option<&Path>, chosen: &[PathBuf], default: &Path) -> Result<PathBuf> {

@@ -210,6 +210,15 @@ pub fn tools(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<ToolEntry> 
             // One job per picture, so it takes one or several; hidden where ONNX Runtime cannot run.
             "remove-background" => all(&[Category::Image]) && engines::bgremove::supported(),
             "metadata" => count == 1 && all(tool.categories),
+            // Made from text or a link: Home, the download dialog and the link ring open it.
+            "make-qr" => false,
+            // One video and the subtitles to draw into it, dragged together.
+            "burn-subtitles" => {
+                let has = |wanted: Category| {
+                    categories.iter().filter(|c| **c == Some(wanted)).count() == 1
+                };
+                count == 2 && has(Category::Video) && has(Category::Subtitle)
+            }
             _ => all(tool.categories),
         })
         .map(|tool| ToolEntry {

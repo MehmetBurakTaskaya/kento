@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 //! The core tools as jobs (SPEC 5.5): Merge PDFs, Split PDF, Edit PDF, PDF from images, Extract
-//! archive and Read QR codes. Tools name their outputs with a translated suffix (SPEC 5.14):
-//! "report - merged.pdf".
+//! archive, Read QR codes and Make a QR code. Tools name their outputs with a translated suffix
+//! (SPEC 5.14): "report - merged.pdf".
 
 use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use kento_engines::{archive, pdf, qr, Options};
 use serde::{Deserialize, Serialize};
 use tauri::ipc::Response;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, State, WebviewWindow};
 
 use crate::catalog::{self, Category, Format};
 use crate::error::{Error, Result};
@@ -320,6 +321,95 @@ pub fn save_qr_report(
         .into_iter()
         .find(|entry| entry.item.id == id)
         .ok_or_else(|| Error::Invalid(i18n::text(&state.lang(), "error.other")))
+}
+
+/// More than any QR code holds (2953 bytes at its lowest correction): the preview says so without
+/// encoding a whole pasted book.
+const QR_TEXT_LIMIT: usize = 4096;
+
+/// What the Make a QR code panel shows while the text and the style change.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QrPreview {
+    /// The code as an SVG, when it can be made.
+    svg: Option<String>,
+    /// Why it cannot.
+    problem: Option<qr::Problem>,
+    /// WCAG's ratio of the two colours, 1 to 21.
+    contrast: f64,
+    /// Light modules on a dark background, which some readers miss.
+    inverted: bool,
+}
+
+/// The code for the text as it stands, drawn by the same code that writes the file.
+#[tauri::command]
+pub fn qr_preview(text: String, style: qr::Style) -> QrPreview {
+    let found = if text.len() > QR_TEXT_LIMIT {
+        Err(qr::Problem::TooLong)
+    } else {
+        qr::check(&text, &style)
+    };
+    QrPreview {
+        svg: found.as_ref().ok().map(|modules| qr::svg(modules, &style)),
+        problem: found.err(),
+        contrast: qr::contrast(style.dark, style.light),
+        inverted: qr::inverted(&style),
+    }
+}
+
+/// Saves the code as "example.com - QR code.png" (or .svg) in the default folder, or one the
+/// user picked in the folder dialog.
+#[tauri::command]
+pub fn make_qr(
+    app: AppHandle,
+    window: WebviewWindow,
+    state: State<'_, AppState>,
+    text: String,
+    style: qr::Style,
+    picture: qr::Picture,
+    folder: Option<PathBuf>,
+) -> Result<u64> {
+    if text.len() > QR_TEXT_LIMIT {
+        return Err(Error::Invalid("the text is too long for a QR code".into()));
+    }
+    if let Err(problem) = qr::check(&text, &style) {
+        return Err(Error::Invalid(format!("no QR code: {problem:?}")));
+    }
+    let dir = crate::web::output_folder(&app, &state, folder.as_deref())?;
+    let ctx = Context::new(&app, &state)?;
+    let stem = file_name(&qr::name_for(&text), Some(&ctx.text("suffix.make-qr")), "");
+    let title = format!("{} · {stem}", ctx.text("tool.make-qr"));
+    let target = Target::File {
+        dir,
+        stem,
+        extension: picture.extension().into(),
+    };
+    let work: Work = Box::new(move |dest, _, _| qr::make(&text, &style, picture, dest));
+    let id = ctx.submit(title, target, work, Origin::Tool, None);
+    crate::actions::watch(&window, &state, &[id]);
+    Ok(id)
+}
+
+/// Text for the Make a QR code panel, handed from the floating wheel's link ring to the main
+/// window, which takes it once it is ready.
+static QR_PENDING: Mutex<Option<String>> = Mutex::new(None);
+
+/// Opens Make a QR code in the main window for a link dropped on the wheel's QR slice.
+#[tauri::command]
+pub fn qr_open(app: AppHandle, text: String) -> Result<()> {
+    if text.trim().is_empty() || text.len() > QR_TEXT_LIMIT {
+        return Err(Error::Invalid("no text for a QR code".into()));
+    }
+    *QR_PENDING.lock().unwrap_or_else(|p| p.into_inner()) = Some(text);
+    crate::window::show_main(&app, None)?;
+    let _ = app.emit_to(crate::window::MAIN, "qr-open", ());
+    Ok(())
+}
+
+/// The text the main window should open Make a QR code with, once.
+#[tauri::command]
+pub fn qr_take_pending() -> Option<String> {
+    QR_PENDING.lock().unwrap_or_else(|p| p.into_inner()).take()
 }
 
 async fn blocking<T: Send + 'static>(

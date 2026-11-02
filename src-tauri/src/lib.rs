@@ -18,6 +18,7 @@ pub mod library;
 pub mod logging;
 pub mod media;
 pub mod metadata;
+pub mod ocr;
 pub mod overlay;
 pub mod paths;
 pub mod platform;
@@ -317,6 +318,9 @@ pub fn run() {
             media::media_peaks,
             media::media_frame,
             media::run_media_tool,
+            media::subtitle_sample,
+            ocr::ocr_languages,
+            ocr::run_ocr,
             images::image_info,
             images::image_preview,
             images::run_image_tool,
@@ -353,6 +357,10 @@ pub fn run() {
             tools::pdf_thumbnail,
             tools::scan_qr,
             tools::save_qr_report,
+            tools::qr_preview,
+            tools::make_qr,
+            tools::qr_open,
+            tools::qr_take_pending,
             web::web_needs,
             web::web_probe,
             web::web_preview,
