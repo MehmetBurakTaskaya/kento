@@ -55,9 +55,10 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 5: image editors and metadata
 
-- [ ] Edit image, Mark up, Add frame, Crop, Collage, Redact image
-- [ ] Metadata with ExifTool
-- [ ] Compress tool (including target size)
+- [x] Edit image, Mark up, Add frame, Crop, Collage, Redact image, with previews drawn by the engine
+- [x] Metadata: images with ExifTool (the Extras group's first tool), PDF, video and audio with chapters
+- [x] Compress tool for images, video and audio (quality, share or target size)
+- [x] PDF compression [+]
 
 ## Phase 6: office
 

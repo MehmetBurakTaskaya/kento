@@ -85,7 +85,7 @@ Core:
 - Frontend: React + TypeScript + Vite.
 - State: Zustand. Translation: i18next (ICU format).
 - Styling: design tokens as CSS custom properties.
-- Editors: Konva (drawing and markup), wavesurfer.js (waveforms).
+- Editors: plain SVG and canvas in React (markup, crop and redact areas, waveforms). Previews and results are drawn by the Rust engines from the same steps, so the page needs no drawing library (Konva and wavesurfer.js were considered and left out).
 - All free and MIT/BSD licensed.
 
 Rust side (current versions are verified when added; a better option is proposed with reasons):
@@ -114,12 +114,12 @@ Downloaded on request at first setup, never bundled.
 | --- | --- |
 | Media | FFmpeg + ffprobe (Windows: the gyan.dev "essentials" release build; macOS: the evermeet.cx static release builds for Intel, which Apple silicon runs through Rosetta 2 until a pinned arm64 build is added), yt-dlp (`yt-dlp.exe` / `yt-dlp_macos`), Deno (yt-dlp now needs a JavaScript runtime for YouTube) |
 | Office | LibreOffice. On Windows the official MSI is unpacked with `msiexec /a` (administrative install) into the app data folder and used portably; on macOS it is taken from the DMG. An existing system install is used when present. |
-| Extras | ExifTool, a background-removal model + ONNX Runtime |
+| Extras | ExifTool (Windows: the official 64-bit package; macOS: the Perl distribution run by the system's Perl), a background-removal model + ONNX Runtime |
 
 Rules:
 
 - **Pinned versions.** Each tool's version, URL, size and SHA-256 are pinned in `src-tauri/toolchain.lock.json`. A file that fails hash verification is never run.
-- **Existing installs.** Tools already on the system (PATH or standard install locations) are detected and used. A path can also be set by hand in Settings. A found tool counts only when it runs and is recent enough (FFmpeg 6 or newer).
+- **Existing installs.** Tools already on the system (PATH or standard install locations) are detected and used. A path can also be set by hand in Settings. A found tool counts only when it runs and is recent enough (FFmpeg 6, ExifTool 12 or newer).
 - **Platform security flags.** On macOS the `com.apple.quarantine` attribute is removed from verified tools, with an ad-hoc signature when needed. On Windows, Mark-of-the-Web and SmartScreen behavior is handled.
 - **Process isolation.** Tools run as separate processes. Arguments are always passed as arrays, never as a shell string. GPL tools are therefore never combined with the app's code, and the app stays MIT.
 - **yt-dlp updates.** yt-dlp has its own "Update yt-dlp" option, independent of app updates, with hash or signature verification.
@@ -297,7 +297,7 @@ Each tool opens in its own small window or panel, shows a preview and saves the 
 
 **Image**
 
-- **Compress:** images, video, audio and PDF. Three modes: quality, reduction ratio or target size (for example "under 25 MB", by binary search).
+- **Compress:** images, video, audio and PDF. Three modes: quality, reduction ratio or target size (for example "under 25 MB", by binary search). Each file keeps its format; formats that cannot shrink in themselves (WAV, AIFF, BMP, GIF) are explained, and a result that would not be smaller is not written.
 - **Metadata:** view, edit and remove for images, PDF and media; media also supports track and chapter fields. Engine: ExifTool + ffprobe/ffmpeg.
 - **Edit image:** resize, rotate, flip; brightness, contrast and saturation with a live preview.
 - **Mark up:** freehand, highlighter, shapes, text and arrows. Select/move, Delete, Ctrl+Z / Ctrl+Y.
