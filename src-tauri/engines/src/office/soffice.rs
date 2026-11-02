@@ -98,9 +98,12 @@ impl<'a> Office<'a> {
             .file_stem()
             .map(|stem| stem.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let (mut log, fresh) = self.run(&args, outdir)?;
-        if fresh && written(outdir, &stem, export.extension).is_none() {
-            // A first start may only set the new profile up and end; the second run converts.
+        let (mut log, fresh, ended_well) = self.run(&args, outdir)?;
+        if written(outdir, &stem, export.extension).is_none()
+            && (fresh || (!ended_well && !log.input_problem()))
+        {
+            // A first start may only set the new profile up and end, and a start right after a
+            // run that was ended can crash once; the second run converts.
             log = self.run(&args, outdir)?.0;
         }
         match written(outdir, &stem, export.extension) {
@@ -113,8 +116,9 @@ impl<'a> Office<'a> {
         }
     }
 
-    /// One run of LibreOffice, and whether its profile was new before it.
-    fn run(&self, args: &[OsString], cwd: &Path) -> Result<(Log, bool)> {
+    /// One run of LibreOffice, whether its profile was new before it, and whether it ended with
+    /// success.
+    fn run(&self, args: &[OsString], cwd: &Path) -> Result<(Log, bool, bool)> {
         self.progress.check()?;
         // One soffice per profile at a time (SPEC 6): the warm-up may run beside a job.
         let lock = profile::lock(self.profile);
@@ -163,7 +167,7 @@ impl<'a> Office<'a> {
         if !status.success() {
             tracing::warn!("LibreOffice ended with {status}");
         }
-        Ok((log, fresh))
+        Ok((log, fresh, status.success()))
     }
 }
 
@@ -326,6 +330,13 @@ impl Log {
         }
     }
 
+    /// Whether LibreOffice said it could not load or read the document.
+    pub(super) fn input_problem(&self) -> bool {
+        self.tail
+            .iter()
+            .any(|line| INPUT_PROBLEMS.iter().any(|problem| line.contains(problem)))
+    }
+
     /// The error for a run that wrote nothing: `Unreadable` with LibreOffice's message when it
     /// could not load the document, otherwise `Other`.
     pub(super) fn failure(&self) -> Error {
@@ -340,11 +351,7 @@ impl Log {
         } else {
             last.join(" | ")
         };
-        let input = self
-            .tail
-            .iter()
-            .any(|line| INPUT_PROBLEMS.iter().any(|problem| line.contains(problem)));
-        if input {
+        if self.input_problem() {
             Error::Unreadable(format!("LibreOffice: {detail}"))
         } else {
             Error::Other(format!("LibreOffice wrote nothing: {detail}"))
@@ -587,11 +594,42 @@ mod tests {
             office.convert(&input, None, &export, &out).unwrap(),
             out.join("in.pdf")
         );
-        // A profile in use gets no second run.
+        // A profile in use gets no second run when the first ended well.
         fs::remove_file(out.join("in.pdf")).unwrap();
         fs::remove_file(out.join("seen")).unwrap();
         fs::create_dir_all(profile.join("user").join("config")).unwrap();
         assert!(office.convert(&input, None, &export, &out).is_err());
+    }
+
+    #[test]
+    fn office_soffice_a_crash_gets_a_second_run_and_a_bad_document_does_not() {
+        let (dir, out, input, profile) = job();
+        fs::create_dir_all(profile.join("user").join("config")).unwrap();
+        // The stand-in crashes the first time, as LibreOffice can right after a run was ended.
+        let program = stand_in(
+            dir.path(),
+            "if exist seen (echo %%PDF-1.7> in.pdf) else (echo.> seen & exit /b 134)",
+            "if [ -e seen ]; then printf '%%PDF-1.7' > in.pdf; else : > seen; exit 134; fi",
+        );
+        let office = Office::new(&program, &profile, Progress::none());
+        let export = Export::new("pdf", "writer_pdf_Export");
+        assert_eq!(
+            office.convert(&input, None, &export, &out).unwrap(),
+            out.join("in.pdf")
+        );
+        // A document LibreOffice cannot load is not tried twice.
+        fs::remove_file(out.join("in.pdf")).unwrap();
+        fs::remove_file(out.join("seen")).unwrap();
+        let program = stand_in(
+            dir.path(),
+            "if exist seen (echo %%PDF-1.7> in.pdf) else (echo.> seen & echo Error: source file could not be loaded & exit /b 1)",
+            "if [ -e seen ]; then printf '%%PDF-1.7' > in.pdf; else : > seen; echo 'Error: source file could not be loaded'; exit 1; fi",
+        );
+        let office = Office::new(&program, &profile, Progress::none());
+        assert!(matches!(
+            office.convert(&input, None, &export, &out),
+            Err(Error::Unreadable(_))
+        ));
     }
 
     #[test]
