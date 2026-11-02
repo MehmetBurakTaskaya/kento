@@ -80,6 +80,10 @@ describe('choices', () => {
     expect(choiceFor('images', null, [])).toBeNull();
     expect(choiceFor('video', 720, [])).toEqual({ kind: 'video', maxHeight: 720 });
     expect(choiceFor('audio', 720, [1])).toEqual({ kind: 'audio' });
+    expect(choiceFor('audio', null, [], 'mp3')).toEqual({ kind: 'audio' });
+    expect(choiceFor('audio', null, [], 'm4a')).toEqual({ kind: 'audioAs', format: 'm4a' });
+    expect(choiceFor('audio', null, [], 'original')).toEqual({ kind: 'audioAs', format: 'original' });
+    expect(choiceFor('video', 720, [], 'm4a')).toEqual({ kind: 'video', maxHeight: 720 });
     expect(choiceFor('thumbnail', null, [])).toEqual({ kind: 'thumbnail' });
     expect(choiceFor('original', null, [])).toEqual({ kind: 'original' });
   });

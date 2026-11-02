@@ -1,52 +1,38 @@
 // SPDX-License-Identifier: MIT
-// Opens the wheel in the main window for the chosen files (SPEC 5.3): the Convert wheel shows the
-// targets valid for every file, by category when the selection is mixed; the Tools wheel shows the
-// tools that fit, after a Favorites slice that opens the recipes fitting the files (SPEC 5.11);
-// the file actions wheel works on any files and folders.
-import { useEffect, useMemo, useRef, useState } from 'react';
+// Opens the wheel in the main window for the chosen files (SPEC 5.3), with the same rings as the
+// floating wheel: the Convert wheel shows the targets valid for every file, by category when the
+// selection is mixed; the Tools wheel shows the tools that fit, after a Favorites slice that opens
+// the recipes fitting the files (SPEC 5.11); the file actions wheel works on any files and
+// folders. Slices with choices open them in place; tool windows open here.
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, type ActionEntry, type Category, type RecipeEntry, type TargetGroup, type ToolEntry } from '../ipc';
-import { useApp, type PanelTool } from '../state/store';
 import { isImagePanel, isMediaPanel } from '../editors';
+import { api, type FileEntry } from '../ipc';
+import { useApp, type PanelTool } from '../state/store';
 import { Wheel } from '../wheel/Wheel';
-import {
-  actionSlices,
-  categorySlices,
-  FAVORITES,
-  NEEDS_SETUP,
-  PANEL_TOOLS,
-  recipeOf,
-  recipeSlices,
-  remember,
-  targetSlices,
-  toolWheelSlices,
-} from './slices';
+import { PANEL_TOOLS, slicesFor, subtitleFor, type Plan, type Ring } from './slices';
 
 type Opened = NonNullable<ReturnType<typeof useApp.getState>['wheel']>;
 
 interface Loaded {
   wheel: Opened;
-  groups?: TargetGroup[];
-  tools?: ToolEntry[];
-  recipes?: RecipeEntry[];
-  actions?: ActionEntry[];
+  ring: Ring;
+  files: FileEntry[];
+}
+
+const isPanel = (tool: string) => PANEL_TOOLS.includes(tool) || isMediaPanel(tool) || isImagePanel(tool);
+
+/** The answer of a request, as job ids for the cards in the corner. */
+function jobIds(result: unknown): number[] {
+  if (typeof result === 'number') return [result];
+  return Array.isArray(result) ? result.filter((id): id is number => typeof id === 'number') : [];
 }
 
 export function WheelHost() {
   const { t, i18n } = useTranslation();
-  const { wheel, files, settings, boot, closeWheel, openPanel, openSetup, started, toast } = useApp();
-  // Results and choices belong to the wheel they were made for, so a new wheel starts clean.
+  const { wheel, settings, boot, closeWheel, openPanel, openSetup, started, toast } = useApp();
+  // The ring belongs to the wheel it was made for, so a new wheel starts clean.
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [choice, setChoice] = useState<{ wheel: Opened; category: Category | null } | null>(null);
-  const [favoritesFor, setFavoritesFor] = useState<Opened | null>(null);
-  const current = loaded?.wheel === wheel ? loaded : null;
-  const groups = current?.groups ?? null;
-  const category =
-    choice?.wheel === wheel ? choice.category : groups?.length === 1 ? (groups[0]?.category ?? null) : null;
-  const setCategory = (next: Category | null) => wheel && setChoice({ wheel, category: next });
-  // Choosing a category or Favorites swaps rings; the closing of the first ring must not end the
-  // session.
-  const advanced = useRef(false);
 
   useEffect(() => {
     if (!wheel) return;
@@ -55,165 +41,75 @@ export function WheelHost() {
       void api.log('warn', `wheel not filled: ${String(error)}`);
       closeWheel();
     };
-    const empty = (key: string) => {
-      toast({ kind: 'info', message: t(key) });
-      closeWheel();
-    };
-    if (wheel.kind === 'convert') {
-      api
-        .targets(wheel.paths)
-        .then((found) => {
-          if (!live) return;
-          const usable = found.filter((group) => group.targets.length);
-          if (usable.length) setLoaded({ wheel, groups: usable });
-          else empty('run.none');
-        })
-        .catch(fail);
-    } else if (wheel.kind === 'tools') {
-      Promise.all([api.tools(wheel.paths), api.recipesFor(wheel.paths).catch(() => [])])
-        .then(([tools, recipes]) => {
-          if (!live) return;
-          if (tools.length || recipes.length) setLoaded({ wheel, tools, recipes });
-          else empty('run.noTools');
-        })
-        .catch(fail);
-    } else {
-      api
-        .actions()
-        .then((found) => live && setLoaded({ wheel, actions: found }))
-        .catch(fail);
-    }
+    api
+      .inspect(wheel.paths)
+      .then(async (files) => {
+        const ring = await slicesFor(wheel.kind, files);
+        if (!live) return;
+        if (ring) setLoaded({ wheel, ring, files });
+        else {
+          toast({ kind: 'info', message: t(wheel.kind === 'convert' ? 'run.none' : 'run.noTools') });
+          closeWheel();
+        }
+      })
+      .catch(fail);
     return () => {
       live = false;
     };
   }, [wheel, closeWheel, toast, t]);
 
-  const paths = useMemo(() => {
-    if (!wheel) return [];
-    if (!category) return wheel.paths;
-    const inGroup = new Set(files.filter((file) => file.category === category).map((file) => file.path));
-    return wheel.paths.filter((path) => inGroup.has(path));
-  }, [wheel, category, files]);
-
-  if (!wheel || !settings || !current) return null;
+  const current = loaded?.wheel === wheel ? loaded : null;
   const mac = boot?.app.platform === 'macos';
-  const subtitle =
-    paths.length === 1
-      ? (files.find((file) => file.path === paths[0])?.name ?? '')
-      : t('wheel.files', { count: paths.length });
-  const common = {
-    subtitle,
-    sound: settings.sound,
-    reducedMotion: document.documentElement.classList.contains('reduce-motion'),
-    size: settings.wheelSize,
-    onClose: closeWheel,
-    onTick: mac ? () => void api.haptic() : undefined,
-  };
+  const lang = i18n.language;
+  // Made once per ring and language: a choice reorders the recent slices, and the jobs it starts
+  // re-render this host while the ring on screen plays its apply animation.
+  const view = useMemo(
+    () => current?.ring.view(t, (key) => i18n.exists(key), mac, lang) ?? null,
+    [current, t, i18n, mac, lang],
+  );
+  if (!wheel || !settings || !current || !view) return null;
   const failed = (error: unknown) => toast({ kind: 'info', message: String(error) });
 
-  if (current.groups) {
-    const group = current.groups.find((g) => g.category === category);
-    if (!group) {
-      return (
-        <Wheel
-          key="groups"
-          kind="convert"
-          title={t('wheel.convert')}
-          slices={categorySlices(current.groups, t)}
-          {...common}
-          onClose={() => {
-            if (advanced.current) advanced.current = false;
-            else closeWheel();
-          }}
-          onApply={(id) => {
-            advanced.current = true;
-            setCategory(id as Category);
-          }}
-        />
-      );
+  const carry = (plan: Plan) => {
+    switch (plan.kind) {
+      case 'setup':
+        return openSetup();
+      case 'panel':
+        if (isPanel(plan.tool)) openPanel(plan.tool as PanelTool, plan.paths);
+        return;
+      case 'run':
+        return void plan
+          .start()
+          .then((result) => {
+            started(jobIds(result));
+            if (plan.note) toast({ kind: 'info', message: t(plan.note) });
+          })
+          .catch(failed);
+      case 'qr-report':
+        return void api
+          .scanQr(plan.paths)
+          .then(async (found) => {
+            if (!found.length) return toast({ kind: 'info', message: t('tools.qr.none') });
+            const saved = await api.saveQrReport(found, plan.report);
+            toast({ kind: 'info', message: t('tools.qr.saved', { name: saved.name }) });
+          })
+          .catch(failed);
     }
-    return (
-      <Wheel
-        key={group.category}
-        kind="convert"
-        title={t('wheel.convert')}
-        slices={targetSlices(group, t, (key) => i18n.exists(key))}
-        {...common}
-        onBack={current.groups.length > 1 ? () => setCategory(null) : undefined}
-        onApply={(to) => {
-          if (to.startsWith(NEEDS_SETUP)) return openSetup();
-          remember(group.category, to);
-          api.convert(paths, to).then(started).catch(failed);
-        }}
-      />
-    );
-  }
-
-  if (current.tools) {
-    const tools = current.tools;
-    const recipes = current.recipes ?? [];
-    // Only recipes fit these files: the wheel opens on them.
-    if (favoritesFor === wheel || !tools.length) {
-      return (
-        <Wheel
-          key="favorites"
-          kind="tools"
-          title={t('wheel.favorites')}
-          slices={recipeSlices(recipes, t, i18n.language)}
-          {...common}
-          onBack={tools.length ? () => setFavoritesFor(null) : undefined}
-          onApply={(id) => {
-            if (id.startsWith(NEEDS_SETUP)) return openSetup();
-            const recipe = recipeOf(id);
-            if (recipe) api.runRecipe(recipe, paths).then(started).catch(failed);
-          }}
-        />
-      );
-    }
-    return (
-      <Wheel
-        key="tools"
-        kind="tools"
-        title={t('wheel.tools')}
-        slices={toolWheelSlices(tools, recipes, t)}
-        {...common}
-        onClose={() => {
-          if (advanced.current) advanced.current = false;
-          else closeWheel();
-        }}
-        onApply={(id) => {
-          if (id === FAVORITES) {
-            advanced.current = true;
-            setFavoritesFor(wheel);
-            return;
-          }
-          if (id.startsWith(NEEDS_SETUP)) return openSetup();
-          remember('tools', id);
-          if (PANEL_TOOLS.includes(id) || isMediaPanel(id) || isImagePanel(id)) openPanel(id as PanelTool, paths);
-          else if (id === 'extract') api.extract(paths).then(started).catch(failed);
-          else if (id === 'mute') api.runMediaTool({ tool: 'mute' }, paths).then(started).catch(failed);
-        }}
-      />
-    );
-  }
+  };
 
   return (
     <Wheel
-      key="actions"
-      kind="tools"
-      title={t('wheel.actions')}
-      slices={actionSlices(current.actions ?? [], t, mac)}
-      {...common}
-      onApply={(id) => {
-        remember('actions', id);
-        api
-          .runAction(id, paths)
-          .then((ids) => {
-            started(ids);
-            if (id === 'copy-path') toast({ kind: 'info', message: t('action.copied') });
-          })
-          .catch(failed);
-      }}
+      key={view.key}
+      kind={wheel.kind === 'convert' ? 'convert' : 'tools'}
+      title={view.title}
+      subtitle={subtitleFor(view, current.files, t)}
+      slices={view.slices}
+      sound={settings.sound}
+      reducedMotion={document.documentElement.classList.contains('reduce-motion')}
+      size={settings.wheelSize}
+      onClose={closeWheel}
+      onTick={mac ? () => void api.haptic() : undefined}
+      onApply={(id, trail) => carry(view.choose(id, trail))}
     />
   );
 }

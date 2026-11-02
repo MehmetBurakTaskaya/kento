@@ -2,11 +2,15 @@
 // The wheel (design/DESIGN.md, section 5): a brushed-steel combination dial round a white enamel face,
 // shown as a modal over the main window. Each slice is a target format or a tool. Pointing or the arrow
 // keys turn the dial to a slice; applying one turns the vault handle and throws the bolts, then the
-// wheel closes. Every visible or spoken text comes from the props or the locale files.
+// wheel closes. A slice may hold a ring of choices (its variants, a category's targets): resting on
+// it, Enter or the arrow in the reading direction opens that ring in place, unfolded from the slice,
+// and resting on the hub, Esc or the other arrow goes back a level. Every visible or spoken text
+// comes from the props or the locale files.
 import {
   useEffect,
   useId,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -22,11 +26,25 @@ import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '../components/Icon';
 import { intlLocale, isRtl } from '../i18n';
 import { Face, type FaceSlice } from './Face';
-import { C, fx, hitTest, layoutSlices, polar, R, restAngle, toView, turnTo, VIEW, type Direction } from './geometry';
+import {
+  C,
+  fx,
+  hitTest,
+  layoutSlices,
+  MAX_SLICES,
+  offsetFor,
+  polar,
+  R,
+  restAngle,
+  toView,
+  turnTo,
+  VIEW,
+  type Direction,
+} from './geometry';
 import { keyAction } from './keys';
 import { canvasMeasure, fitLabel, layoutBlock, type Measure } from './labels';
 import { closeDuration, MOTION, openDuration } from './motion';
-import { clampPage, pageCount, pageItems } from './paging';
+import { clampPage, PAGE_SIZE, pageCount, pageItems } from './paging';
 import { Bolts, DialIndex, DialScale, FixedRing, Glint, Handle, HubCap } from './parts';
 import { armWheelAudio, playWheelSound } from './sound';
 import './wheel.css';
@@ -43,15 +61,23 @@ export interface WheelSlice {
   disabled?: boolean;
   /** Shown faded but still applies (its tool group is not installed; applying offers the setup). */
   dimmed?: boolean;
-  /** Opens another ring (a category). During a drag, resting on it opens it, since a drop ends the drag. */
-  opens?: boolean;
+  /** A ring of choices, a level further in (and so on): resting on the slice, Enter or the arrow in
+   *  the reading direction opens it; resting on the hub, Esc or the other arrow comes back. */
+  variants?: WheelSlice[];
+  /** The variant a plain drop or click on the slice applies without opening its ring, so quick use
+   *  stays quick. Without one the slice only opens its ring (a category). */
+  default?: string;
+  /** The hub's second line while the slice's ring is open (a category's files); the wheel's
+   *  subtitle otherwise. */
+  subtitle?: string;
 }
 
 /** Drives the wheel from outside during a system drag, when no pointer events reach the page. */
 export interface WheelControl {
   /** The drag is over this point, in CSS pixels of the window. */
   point(x: number, y: number): void;
-  /** The drag dropped here: the slice under it applies, anywhere else the wheel closes. */
+  /** The drag dropped here: the slice under it applies (a slice with choices its default), anywhere
+   *  else the wheel closes. */
   drop(x: number, y: number): void;
   /** The drag left the window. */
   leave(): void;
@@ -66,13 +92,12 @@ export interface WheelProps {
   subtitle?: string;
   /** Any number; with more than eight, seven per page and a "More…" slice pages through the rest. */
   slices: WheelSlice[];
-  /** Called as soon as a slice is applied. A handler that swaps the slices (a category opening its
-   * sub-wheel) turns the wheel to the new ring instead of locking it. */
-  onApply(id: string): void;
+  /** Called as soon as a slice is applied, with the slices whose rings led to it, outermost first
+   *  (empty on the first ring). A handler that swaps the slices turns the wheel to the new ring
+   *  instead of locking it. */
+  onApply(id: string, trail: string[]): void;
   /** Called once the close or apply animation has ended. */
   onClose(): void;
-  /** When set, the hub shows a Back control (Backspace also works), for category sub-wheels. */
-  onBack?: () => void;
   sound: { enabled: boolean; volume: number };
   reducedMotion: boolean;
   /** CSS pixels, 300 to 440; the wheel also shrinks to fit a small window. */
@@ -86,18 +111,55 @@ export interface WheelProps {
 
 type Phase = 'opening' | 'open' | 'applying' | 'applied' | 'closing' | 'closed';
 
-interface Item {
+interface Item extends Omit<WheelSlice, 'id' | 'disabled'> {
   key: string;
   id: string | null;
-  label: string;
-  sublabel?: string;
-  icon?: IconName;
-  hint?: string;
   disabled: boolean;
-  dimmed?: boolean;
-  opens?: boolean;
   paging: { target: number } | null;
 }
+
+/** One ring opened inside another. */
+interface Level {
+  /** The slice that opened it. */
+  id: string;
+  /** Where that slice sat in the ring below, to come back to. */
+  index: number;
+  page: number;
+  /** Its angle: the new ring unfolds from there. */
+  at: number;
+  /** The slice of the new ring at that angle: the default, else the first. */
+  anchor: number;
+}
+
+/** The ring the levels lead to and the slices that opened them; null when the slices changed under
+ *  the levels. */
+function resolve(root: WheelSlice[], levels: Level[]): { ring: WheelSlice[]; parents: WheelSlice[] } | null {
+  let ring = root;
+  const parents: WheelSlice[] = [];
+  for (const level of levels) {
+    const parent = ring.find((slice) => slice.id === level.id);
+    if (!parent?.variants?.length) return null;
+    parents.push(parent);
+    ring = parent.variants;
+  }
+  return { ring, parents };
+}
+
+const opensRing = (item: { variants?: WheelSlice[]; disabled?: boolean } | null | undefined) =>
+  !!item?.variants?.length && !item.disabled;
+
+/** The variant that sits where its slice was: the default, when it is on the first page. */
+function anchorOf(item: { variants?: WheelSlice[]; default?: string }): number {
+  const variants = item.variants ?? [];
+  const at = item.default ? variants.findIndex((variant) => variant.id === item.default) : 0;
+  return at >= 0 && (variants.length <= MAX_SLICES || at < PAGE_SIZE) ? at : 0;
+}
+
+const keyOf = (kind: string, title: string, levels: Level[], ring: WheelSlice[]) =>
+  [kind, title, ...levels.map((level) => level.id), '', ...ring.map((slice) => slice.id)].join('\u0001');
+
+/** What the pointer rests on: a slice, the hub, or nothing. */
+type Spot = number | 'hub' | null;
 
 /** Icons that point along the reading direction mirror in right-to-left layouts. */
 const DIRECTIONAL = new Set<IconName>(['back', 'restart', 'move']);
@@ -132,7 +194,6 @@ export function Wheel({
   slices,
   onApply,
   onClose,
-  onBack,
   sound,
   reducedMotion,
   size = 360,
@@ -146,7 +207,20 @@ export function Wheel({
   const dir: Direction = isRtl(lang) ? 'rtl' : 'ltr';
   const uid = `wheel${useId().replace(/[^\w-]/g, '')}`;
 
-  const contentKey = [kind, title, ...slices.map((slice) => slice.id)].join('\u0001');
+  // The levels opened inside the first ring; they fall back to it when the slices change under them.
+  const [trail, setTrail] = useState<Level[]>([]);
+  const resolved = resolve(slices, trail);
+  if (!resolved && trail.length) setTrail([]);
+  const levels = resolved ? trail : [];
+  const { ring, parents } = resolved ?? { ring: slices, parents: [] };
+  const level = levels[levels.length - 1];
+  const parent = parents[parents.length - 1];
+  const depth = levels.length;
+  const path = levels.map((l) => l.id);
+  const shownTitle = parent?.label ?? title;
+  const shownSubtitle = parent ? (parent.subtitle ?? subtitle) : subtitle;
+
+  const contentKey = keyOf(kind, title, levels, ring);
   const [shownKey, setShownKey] = useState(contentKey);
   const [phase, setPhase] = useState<Phase>('opening');
   const [pageState, setPage] = useState(0);
@@ -160,23 +234,29 @@ export function Wheel({
   const [lastTip, setLastTip] = useState('');
   const [fontsReady, setFontsReady] = useState(() => !document.fonts || document.fonts.status === 'loaded');
 
-  // New slices while open (a category's sub-wheel, or Back): show the new ring from its first page
-  // instead of locking the old one.
+  /** Where slice 1 of a page sits: a ring opened from a slice turns so that its first page unfolds
+   *  from there, with its default where the pointer rested. */
+  const offsetOf = (on: Level | undefined, onPage: number, count: number) =>
+    on ? offsetFor(on.at, onPage === 0 ? on.anchor : 0, count, dir) : 0;
+
+  // New slices from the host while open: show the new ring from its first page instead of locking
+  // the old one.
   if (shownKey !== contentKey) {
     setShownKey(contentKey);
     setPage(0);
     setHover(null);
     setSelected(null);
     setGeneration((n) => n + 1);
-    setDial((angle) => turnTo(angle, restAngle(pageItems(slices, 0).length, dir)));
+    const first = pageItems(ring, 0).length;
+    setDial((angle) => turnTo(angle, restAngle(first, dir, offsetOf(level, 0, first))));
     if (phase === 'applying' || phase === 'applied') setPhase('open');
   }
 
-  const pages = pageCount(slices.length);
-  const page = clampPage(pageState, slices.length);
+  const pages = pageCount(ring.length);
+  const page = clampPage(pageState, ring.length);
   const items = useMemo<Item[]>(
     () =>
-      pageItems(slices, page).map((item) =>
+      pageItems(ring, page).map((item) =>
         item.type === 'slice'
           ? { ...item.slice, key: item.slice.id, disabled: !!item.slice.disabled, paging: null }
           : {
@@ -189,10 +269,11 @@ export function Wheel({
               paging: { target: item.target },
             },
       ),
-    [slices, page, t],
+    [ring, page, t],
   );
   const count = items.length;
-  const geometry = useMemo(() => layoutSlices(count, dir), [count, dir]);
+  const offset = offsetOf(level, page, count);
+  const geometry = useMemo(() => layoutSlices(count, dir, offset), [count, dir, offset]);
 
   const measures = useMemo(() => makeMeasures(lang, fontsReady), [lang, fontsReady]);
   const numerals = useMemo(() => new Intl.NumberFormat(locale, { useGrouping: false }), [locale]);
@@ -212,6 +293,10 @@ export function Wheel({
         flipIcon: dir === 'rtl' && !!item.icon && DIRECTIONAL.has(item.icon),
         disabled: item.disabled,
         dimmed: !!item.dimmed,
+        // Off the centre line, towards the next slice, where no label reaches.
+        ringMark: opensRing(item)
+          ? g.mid + (dir === 'rtl' ? -1 : 1) * Math.min(16, Math.max(6, g.step * 0.36))
+          : undefined,
         format,
         block: layoutBlock(
           { label: item.label, sublabel: item.sublabel, icon: !!item.icon, format },
@@ -226,18 +311,18 @@ export function Wheel({
 
   const hub = useMemo(() => {
     const fittedTitle = fitLabel(
-      title.toLocaleUpperCase(locale),
+      shownTitle.toLocaleUpperCase(locale),
       { size: 11.5, minSize: 7.5, maxWidth: 86, maxLines: 1 },
       measures.title,
     );
-    const fittedSubtitle = subtitle
-      ? fitLabel(subtitle, { size: 11, minSize: 8, maxWidth: 90, maxLines: 1, truncate: 'middle' }, measures.file)
+    const fittedSubtitle = shownSubtitle
+      ? fitLabel(shownSubtitle, { size: 11, minSize: 8, maxWidth: 90, maxLines: 1, truncate: 'middle' }, measures.file)
       : null;
     return {
       title: { text: fittedTitle.lines[0]!, size: fittedTitle.size },
       subtitle: fittedSubtitle ? { text: isolate(fittedSubtitle.lines[0]!), size: fittedSubtitle.size } : null,
     };
-  }, [title, subtitle, locale, measures]);
+  }, [shownTitle, shownSubtitle, locale, measures]);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const shakeRef = useRef<HTMLDivElement>(null);
@@ -322,6 +407,20 @@ export function Wheel({
 
   const interactive = phase === 'opening' || phase === 'open';
 
+  // Resting acts: on a slice with choices it opens them, on the hub it goes back a level, and during
+  // a drag (where nothing can be clicked) on "More…" it pages. Once a rest has acted, whatever lies
+  // under the pointer in the new ring waits until the pointer moves on, so rings never open in a
+  // chain.
+  const dwell = useRef<{ spot: Spot; timer: number; settled: boolean }>({ spot: null, timer: 0, settled: false });
+  // The ring changed and is not drawn yet: pointer positions would still meet the old one.
+  const stale = useRef(false);
+  const restOn = useRef<(spot: Spot) => void>(() => {});
+  const settle = () => {
+    window.clearTimeout(dwell.current.timer);
+    dwell.current = { spot: null, timer: 0, settled: true };
+    stale.current = true;
+  };
+
   const hoverTo = (index: number | null) => {
     if (index === hover) return;
     setHover(index);
@@ -334,14 +433,57 @@ export function Wheel({
   };
 
   const goToPage = (target: number, onPaging: boolean) => {
-    const next = pageItems(slices, target);
+    const next = pageItems(ring, target);
     const at = onPaging ? next.length - 1 : null;
-    const angle = at === null ? restAngle(next.length, dir) : layoutSlices(next.length, dir)[at]!.mid;
+    const nextOffset = offsetOf(level, target, next.length);
+    const angle =
+      at === null ? restAngle(next.length, dir, nextOffset) : layoutSlices(next.length, dir, nextOffset)[at]!.mid;
     setPage(target);
     setGeneration((n) => n + 1);
     setHover(at);
     setDial((current) => turnTo(current, angle));
     setAnnouncement(t('wheel.page', { count: target + 1 }));
+    settle();
+  };
+
+  /** Opens the ring of the slice at `index` in place, turned so that it unfolds from the slice; the
+   *  hover (and the focus) lands on its default, where a pointer that rested on the slice still is. */
+  const open = (index: number) => {
+    const item = items[index];
+    if (!interactive || !item?.id || !opensRing(item)) return;
+    const variants = item.variants!;
+    const anchor = anchorOf(item);
+    const at = geometry[index]!.mid;
+    const next = [...levels, { id: item.id, index, page, at, anchor }];
+    setTrail(next);
+    setShownKey(keyOf(kind, title, next, variants));
+    setPage(0);
+    setSelected(null);
+    setHover(anchor);
+    setGeneration((n) => n + 1);
+    setDial((angle) => turnTo(angle, at));
+    setAnnouncement(t('wheel.opened', { name: item.label, count: variants.length }));
+    settle();
+  };
+
+  /** Back one level. From the keyboard the focus goes back to the slice that opened the ring; from
+   *  the hub the dial comes to rest. */
+  const back = (via: 'key' | 'pointer') => {
+    const last = levels[levels.length - 1];
+    if (!interactive || !last) return;
+    const rest = levels.slice(0, -1);
+    const below = resolve(slices, rest) ?? { ring: slices, parents: [] };
+    const belowCount = pageItems(below.ring, last.page).length;
+    const belowOffset = offsetOf(rest[rest.length - 1], last.page, belowCount);
+    setTrail(rest);
+    setShownKey(keyOf(kind, title, rest, below.ring));
+    setPage(last.page);
+    setSelected(null);
+    setHover(via === 'key' ? last.index : null);
+    setGeneration((n) => n + 1);
+    setDial((angle) => turnTo(angle, via === 'key' ? last.at : restAngle(belowCount, dir, belowOffset)));
+    setAnnouncement(t('wheel.backTo', { name: below.parents[below.parents.length - 1]?.label ?? title }));
+    settle();
   };
 
   const deny = () => {
@@ -355,7 +497,18 @@ export function Wheel({
     });
   };
 
-  const activate = (index: number) => {
+  const choose = (id: string, from: string[], index: number) => {
+    onApply(id, from);
+    setHover(index);
+    setSelected(index);
+    setDial((angle) => turnTo(angle, geometry[index]!.mid));
+    setPhase(reducedMotion ? 'applied' : 'applying');
+    setApplied((n) => n + 1);
+  };
+
+  /** Enter applies a slice or opens its choices; a click or a drop applies a slice with choices as
+   *  its default, so quick use stays quick. */
+  const activate = (index: number, how: 'key' | 'pointer') => {
     const item = items[index];
     if (!interactive || !item) return;
     if (item.disabled) {
@@ -367,12 +520,12 @@ export function Wheel({
       goToPage(item.paging.target, true);
       return;
     }
-    onApply(item.id!);
-    setHover(index);
-    setSelected(index);
-    setDial((angle) => turnTo(angle, geometry[index]!.mid));
-    setPhase(reducedMotion ? 'applied' : 'applying');
-    setApplied((n) => n + 1);
+    if (opensRing(item)) {
+      if (how === 'pointer' && item.default) choose(item.default, [...path, item.id!], index);
+      else open(index);
+      return;
+    }
+    choose(item.id!, path, index);
   };
 
   const close = () => {
@@ -383,7 +536,7 @@ export function Wheel({
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     // The Back control answers Enter and Space itself.
     if (event.target instanceof HTMLButtonElement && (event.key === 'Enter' || event.key === ' ')) return;
-    const action = keyAction(event.key, hover, count, dir, !!onBack);
+    const action = keyAction(event.key, hover, count, dir, depth);
     if (!action) return;
     event.preventDefault();
     if (!keyboard) setKeyboard(true);
@@ -396,13 +549,18 @@ export function Wheel({
         hoverTo(action.index);
         break;
       case 'apply':
-        if (hover !== null) activate(hover);
+        if (hover !== null) activate(hover, 'key');
+        break;
+      case 'open':
+        // The forward arrow also turns the page on "More…".
+        if (hover !== null && items[hover]?.paging) activate(hover, 'key');
+        else if (hover !== null) open(hover);
         break;
       case 'close':
         close();
         break;
       case 'back':
-        onBack?.();
+        back('key');
         break;
       case 'page':
         if (pages > 1) goToPage((page + action.delta + pages) % pages, false);
@@ -414,52 +572,74 @@ export function Wheel({
     const box = discRef.current?.getBoundingClientRect();
     if (!box) return { index: null, radius: Infinity };
     const { x, y } = toView(event.clientX, event.clientY, box);
-    return { index: hitTest(x, y, count, dir), radius: Math.hypot(x - C, y - C) };
+    return { index: hitTest(x, y, count, dir, offset), radius: Math.hypot(x - C, y - C) };
   };
 
-  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (!interactive || event.pointerType === 'touch') return;
-    if (keyboard) setKeyboard(false);
-    hoverTo(pointAt(event).index);
+  useLayoutEffect(() => {
+    stale.current = false;
+    restOn.current = (spot) => {
+      if (spot === 'hub') return back('pointer');
+      const paging = spot === null ? null : items[spot]?.paging;
+      if (paging) goToPage(paging.target, true);
+      else if (spot !== null) open(spot);
+    };
+  });
+
+  const rests = (spot: Spot, drag: boolean) => {
+    if (spot === 'hub') return depth > 0;
+    const item = spot === null ? null : items[spot];
+    return !!item && !item.disabled && (opensRing(item) || (drag && !!item.paging));
   };
 
-  const onPointerLeave = (event: PointerEvent<HTMLDivElement>) => {
-    if (interactive && event.pointerType !== 'touch') hoverTo(null);
-  };
-
-  // Resting on a ring-opening slice, "More…" or the hub (Back) during a drag acts on it.
-  const dwell = useRef<{ target: number | 'hub' | null; timer: number }>({ target: null, timer: 0 });
-  const dwellOn = (target: number | 'hub' | null) => {
-    if (dwell.current.target === target) return;
-    window.clearTimeout(dwell.current.timer);
-    dwell.current = { target, timer: 0 };
-    if (target === null) return;
-    const item = target === 'hub' ? null : items[target];
-    const acts = target === 'hub' ? !!onBack : !!item && !item.disabled && (!!item.paging || !!item.opens);
-    if (!acts) return;
+  const dwellOn = (spot: Spot, drag: boolean) => {
+    const now = dwell.current;
+    if (now.settled) {
+      dwell.current = { spot, timer: 0, settled: false };
+      return;
+    }
+    if (now.spot === spot) return;
+    window.clearTimeout(now.timer);
+    dwell.current = { spot, timer: 0, settled: false };
+    if (!rests(spot, drag)) return;
     dwell.current.timer = window.setTimeout(() => {
-      dwell.current = { target: null, timer: 0 };
-      if (target === 'hub') onBack?.();
-      else activate(target);
+      dwell.current = { spot: null, timer: 0, settled: true };
+      restOn.current(spot);
     }, MOTION.dwell);
   };
   useEffect(() => () => window.clearTimeout(dwell.current.timer), []);
 
+  const pointTo = (x: number, y: number, drag: boolean) => {
+    const { index, radius } = pointAt({ clientX: x, clientY: y });
+    hoverTo(index);
+    dwellOn(index ?? (radius < R.WINDOW ? 'hub' : null), drag);
+  };
+
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!interactive || event.pointerType === 'touch' || stale.current) return;
+    if (keyboard) setKeyboard(false);
+    pointTo(event.clientX, event.clientY, false);
+  };
+
+  const onPointerLeave = (event: PointerEvent<HTMLDivElement>) => {
+    if (!interactive || event.pointerType === 'touch') return;
+    dwellOn(null, false);
+    hoverTo(null);
+  };
+
   useImperativeHandle(control, () => ({
     point(x, y) {
-      if (!interactive) return;
-      const { index, radius } = pointAt({ clientX: x, clientY: y });
-      hoverTo(index);
-      dwellOn(index ?? (radius < R.WINDOW ? 'hub' : null));
+      if (interactive && !stale.current) pointTo(x, y, true);
     },
     drop(x, y) {
-      dwellOn(null);
+      dwellOn(null, true);
       const { index } = pointAt({ clientX: x, clientY: y });
-      if (index !== null && interactive && !items[index]?.paging && !items[index]?.opens) activate(index);
-      else close();
+      const item = index === null ? null : items[index];
+      // A slice with choices applies its default; one without (a category) chose nothing.
+      if (index === null || !item || !interactive || item.paging || (opensRing(item) && !item.default)) close();
+      else activate(index, 'pointer');
     },
     leave() {
-      dwellOn(null);
+      dwellOn(null, true);
       if (interactive) hoverTo(null);
     },
     close,
@@ -468,7 +648,7 @@ export function Wheel({
   const onDiscClick = (event: MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const { index, radius } = pointAt(event);
-    if (index !== null) activate(index);
+    if (index !== null) activate(index, 'pointer');
     else if (radius > R.OUT) close();
   };
 
@@ -511,6 +691,7 @@ export function Wheel({
         dir={dir}
         lang={locale}
         data-kind={kind}
+        data-depth={depth}
         onKeyDown={onKeyDown}
         onMouseDown={(event) => event.preventDefault()}
       >
@@ -531,7 +712,7 @@ export function Wheel({
               hover={hover}
               selected={selected}
               generation={generation}
-              label={title}
+              label={shownTitle}
               describedBy={`${uid}-help`}
               menuRef={menuRef}
               itemRef={(index, element) => {
@@ -549,15 +730,15 @@ export function Wheel({
             <FixedRing uid={uid} />
             <Glint />
             <Handle uid={uid} />
-            <HubCap uid={uid} title={hub.title} subtitle={hub.subtitle} raised={!!onBack} />
-            {onBack && (
+            <HubCap uid={uid} title={hub.title} subtitle={hub.subtitle} raised={depth > 0} />
+            {depth > 0 && (
               <button
                 type="button"
                 className="wheel-back"
                 tabIndex={-1}
-                aria-keyshortcuts="Backspace"
+                aria-keyshortcuts="Escape Backspace"
                 disabled={!interactive}
-                onClick={onBack}
+                onClick={() => back('pointer')}
               >
                 <Icon name="back" size={12} className="flip" />
                 {t('wheel.back')}
@@ -571,7 +752,7 @@ export function Wheel({
         </div>
         <div hidden>
           {subtitle && <span id={`${uid}-subtitle`}>{isolate(subtitle)}</span>}
-          <span id={`${uid}-help`}>{t('wheel.instructions')}</span>
+          <span id={`${uid}-help`}>{t('wheel.instructions', { dir })}</span>
           {items.map((item, i) => {
             const hint = item.hint || (item.disabled ? t('wheel.unavailable') : '');
             return hint ? (

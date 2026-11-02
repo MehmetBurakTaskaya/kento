@@ -106,6 +106,44 @@ const SHOTS = [
     { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'tools', only: 'image' },
     'favorites',
   ],
+  // Slices with choices, each opened from the keyboard (the same ring a rest of the drag opens):
+  // two pictures to one PDF or one each; the video quality and the sound format of a link; the
+  // Compress presets and the Read QR reports of a photo; Copy's recent folders; ZIP's formats.
+  [
+    'surface-wheel-pdf-light-tr',
+    { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'convert', only: 'images' },
+    'choices:5',
+  ],
+  [
+    'surface-wheel-pdf-dark-en',
+    { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'convert', only: 'images' },
+    'choices:5',
+  ],
+  [
+    'surface-wheel-pdf-pseudo-rtl',
+    { lang: 'ar-XB', appearance: 'light', surface: 'wheel', wheel: 'convert', only: 'images' },
+    'choices:5',
+  ],
+  ['surface-wheel-quality-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', drag: 'link' }, 'choices:1'],
+  ['surface-wheel-quality-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', drag: 'link' }, 'choices:1'],
+  [
+    'surface-wheel-quality-pseudo-rtl',
+    { lang: 'ar-XB', appearance: 'dark', surface: 'wheel', drag: 'link' },
+    'choices:1',
+  ],
+  ['surface-wheel-audio-light-en', { lang: 'en', appearance: 'light', surface: 'wheel', drag: 'link' }, 'choices:2'],
+  [
+    'surface-wheel-compress-light-tr',
+    { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'tools', only: 'image' },
+    'choices:3',
+  ],
+  [
+    'surface-wheel-qr-dark-en',
+    { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'tools', only: 'image' },
+    'choices:4',
+  ],
+  ['surface-wheel-copy-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'actions' }, 'choices:3'],
+  ['surface-wheel-zip-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'actions' }, 'choices:8'],
 ];
 
 const SIZES = { wheel: [520, 520], shelf: [300, 480], toast: [400, 200] };
@@ -299,7 +337,15 @@ async function act(page, action) {
   if (action.startsWith('automation:')) return automation(page, action.split(':')[1]);
   // The floating wheel's first slice, Favorites, opens the recipes.
   if (action === 'favorites') {
-    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(900);
+    return;
+  }
+  // The n-th slice of the floating wheel opens its choices.
+  if (action.startsWith('choices:')) {
+    for (let n = Number(action.split(':')[1]); n > 0; n--) await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(200);
     await page.keyboard.press('Enter');
     await page.waitForTimeout(900);
     return;

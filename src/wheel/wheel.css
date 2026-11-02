@@ -209,6 +209,18 @@ svg.wheel-layer {
 .wheel-slice.is-off .wheel-numeral {
   opacity: 0.45;
 }
+.wheel-ring-mark {
+  fill: var(--wheel-num);
+  opacity: 0.75;
+  transition: fill 110ms;
+}
+.wheel-slice.is-hover:not(.is-off) .wheel-ring-mark {
+  fill: var(--index);
+  opacity: 1;
+}
+.wheel-slice.is-selected .wheel-ring-mark {
+  fill: var(--wheel-text-selected);
+}
 .wheel-latch {
   fill: var(--index);
   opacity: 0;

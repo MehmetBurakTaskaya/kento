@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
-// The wheel's keyboard (SPEC 5.3): arrows move between slices, Home and End jump to the first and
-// last, Enter or Space applies, Esc or Tab closes. Left and Right follow the visual direction round
-// the dial (Right turns clockwise), so in right-to-left layouts, where the slices run counterclockwise,
-// they step backwards through the list. Up and Down are previous and next as in any menu.
+// The wheel's keyboard (SPEC 5.3), the keys of a menu with submenus: Down and Up step to the next
+// and previous slice (round the dial in reading order), Home and End jump to the first and last,
+// Enter or Space applies, or opens the choices of a slice that has them. The arrow in the reading
+// direction (Right, or Left in right-to-left layouts) opens a slice's choices; the other one, Esc
+// and Backspace go back a level. Esc closes the wheel at the first level, and Tab always does.
 import type { Direction } from './geometry';
 
 export type KeyAction =
   | { type: 'move'; index: number }
   | { type: 'apply' }
+  | { type: 'open' }
   | { type: 'close' }
   | { type: 'back' }
   | { type: 'page'; delta: 1 | -1 };
@@ -19,25 +21,28 @@ function step(current: number | null, delta: 1 | -1, count: number): number {
   return (current + delta + count) % count;
 }
 
+/** `depth` is how many levels the wheel is in: 0 on its first ring. */
 export function keyAction(
   key: string,
   current: number | null,
   count: number,
   dir: Direction,
-  canGoBack = false,
+  depth = 0,
 ): KeyAction | null {
-  const clockwise = dir === 'rtl' ? -1 : 1;
   const move = (delta: 1 | -1): KeyAction | null =>
     count > 0 ? { type: 'move', index: step(current, delta, count) } : null;
+  const forward = dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+  const backward = dir === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
   switch (key) {
-    case 'ArrowRight':
-      return move(clockwise === 1 ? 1 : -1);
-    case 'ArrowLeft':
-      return move(clockwise === 1 ? -1 : 1);
     case 'ArrowDown':
       return move(1);
     case 'ArrowUp':
       return move(-1);
+    case forward:
+      return current === null ? null : { type: 'open' };
+    case backward:
+    case 'Backspace':
+      return depth > 0 ? { type: 'back' } : null;
     case 'Home':
       return count > 0 ? { type: 'move', index: 0 } : null;
     case 'End':
@@ -46,10 +51,9 @@ export function keyAction(
     case ' ':
       return current === null ? null : { type: 'apply' };
     case 'Escape':
+      return depth > 0 ? { type: 'back' } : { type: 'close' };
     case 'Tab':
       return { type: 'close' };
-    case 'Backspace':
-      return canGoBack ? { type: 'back' } : null;
     case 'PageDown':
       return { type: 'page', delta: 1 };
     case 'PageUp':

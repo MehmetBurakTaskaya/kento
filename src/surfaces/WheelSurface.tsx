@@ -3,17 +3,17 @@
 // core when a wheel key is pressed during a drag. The drag itself tells what it carries when it
 // enters the window: files get the wheel of the key held, and a link or a media card out of a
 // browser gets the download ring whichever key is held (SPEC 5.10). The drop on a slice runs the
-// choice. Without a drag (the selection shortcut, Send To) the files come with the session and
+// choice; resting on a slice with choices opens them, and resting on the hub comes back. Without a drag (the selection shortcut, Send To) the files come with the session and
 // the wheel takes the keyboard; with nothing selected and window layouts on, the selection
 // shortcut opens the Window ring for the window that was in front (SPEC 5.12).
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { downloadRing, NEEDS_SETUP, recipeOf, slicesFor, type Ring } from '../app/slices';
+import { downloadRing, slicesFor, subtitleFor, type Plan, type Ring } from '../app/slices';
 import { windowRing } from '../app/windowRing';
 import { isRtl } from '../i18n';
-import { api, type DragOver, type FileEntry, type LayoutId, type WheelKey, type WheelSession } from '../ipc';
+import { api, type DragOver, type FileEntry, type WheelKey, type WheelSession } from '../ipc';
 import { useApp } from '../state/store';
-import { QUICK_CHOICES, siteName } from '../web/links';
+import { siteName } from '../web/links';
 import { Wheel, type WheelControl } from '../wheel/Wheel';
 import { reducedMotion, useSurface } from './useSurface';
 
@@ -91,7 +91,7 @@ export function WheelSurface() {
     // The Window ring needs nothing loaded; it is drawn as it is below.
     if (!session || session.kind === 'window' || (!files.length && !link)) return;
     let live = true;
-    void (link ? downloadRing() : slicesFor(session.kind, files)).then((next) => {
+    void (link ? downloadRing(link) : slicesFor(session.kind, files)).then((next) => {
       if (!live) return;
       if (next) {
         setRing(next);
@@ -137,24 +137,36 @@ export function WheelSurface() {
     void api.wheelClosed();
   };
 
-  const shown = session?.kind === 'window' ? windowRing(isRtl(i18n.language)) : ring;
-  if (!session || !settings || !shown) return null;
+  // The slices are made once per ring and language: a choice reorders the recent ones, and the
+  // ring on screen must not change under its apply animation.
+  const lang = i18n.language;
+  const windowKind = session?.kind === 'window';
+  const view = useMemo(() => {
+    const shown = windowKind ? windowRing(isRtl(lang)) : ring;
+    return shown?.view(t, (k) => i18n.exists(k), mac, lang) ?? null;
+  }, [windowKind, ring, t, i18n, mac, lang]);
+  if (!session || !settings || !view) return null;
   const run = (promise: Promise<unknown>) =>
     promise.catch((error) => void api.log('warn', `wheel choice failed: ${String(error)}`));
-  const view = shown.view(t, (k) => i18n.exists(k), mac, i18n.language);
   const subtitle = link
     ? siteName(link)
     : session.kind === 'window'
       ? (session.window ?? '')
-      : view.paths.length === 1
-        ? (files.find((f) => f.path === view.paths[0])?.name ?? '')
-        : t('wheel.files', { count: view.paths.length });
+      : subtitleFor(view, files, t);
+  // The main window opens tool windows; the core tells how jobs and reports went in the corner.
+  const carry = (plan: Plan) => {
+    if (plan.kind === 'setup') run(api.openSetup());
+    else if (plan.kind === 'panel') run(api.openTool(plan.tool, plan.paths));
+    else if (plan.kind === 'run') run(plan.start());
+    else if (plan.kind === 'qr-report')
+      run(api.scanQr(plan.paths).then((found) => api.saveQrReport(found, plan.report)));
+  };
 
   return (
     <Wheel
       key={link ? `${session.id}:link` : `${session.id}:${session.kind}`}
       kind={session.kind === 'convert' && !link ? 'convert' : 'tools'}
-      title={t(link ? 'wheel.download' : view.key === 'favorites' ? 'wheel.favorites' : `wheel.${session.kind}`)}
+      title={view.title}
       subtitle={subtitle}
       slices={view.slices}
       overlay
@@ -163,31 +175,8 @@ export function WheelSurface() {
       reducedMotion={reducedMotion()}
       size={settings.wheelSize}
       onTick={mac ? () => void api.haptic() : undefined}
-      onBack={view.back ? () => setRing(view.back!()) : undefined}
       onClose={finish}
-      onApply={(id) => {
-        const next = view.apply(id);
-        // A category opens its ring in place: the wheel turns to the new slices and stays open.
-        if (next) {
-          setRing(next);
-          return;
-        }
-        if (id.startsWith(NEEDS_SETUP)) run(api.openSetup());
-        else if (link && id === 'qr') run(api.qrOpen(link));
-        else if (link) {
-          // A quick slice downloads with the dialog's defaults; More… opens the dialog.
-          const quick = QUICK_CHOICES[id as keyof typeof QUICK_CHOICES];
-          run(quick ? api.webDownload(link, quick, null) : api.webOpen(link));
-        } else if (session.kind === 'window') run(api.layoutsApply(id as LayoutId));
-        else if (session.kind === 'convert') run(api.convert(view.paths, id));
-        else if (session.kind === 'tools') {
-          const recipe = recipeOf(id);
-          if (recipe) run(api.runRecipe(recipe, view.paths));
-          else if (id === 'extract') run(api.extract(view.paths));
-          else if (id === 'mute') run(api.runMediaTool({ tool: 'mute' }, view.paths));
-          else run(api.openTool(id, view.paths));
-        } else run(api.runAction(id, view.paths));
-      }}
+      onApply={(id, trail) => carry(view.choose(id, trail))}
     />
   );
 }

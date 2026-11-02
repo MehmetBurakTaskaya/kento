@@ -16,6 +16,9 @@ export interface FaceSlice {
   flipIcon: boolean;
   disabled: boolean;
   dimmed?: boolean;
+  /** The slice holds a ring of choices: the angle of the small mark near its trailing edge (a submenu
+   *  for screen readers). */
+  ringMark?: number;
   format: boolean;
   block: LabelBlock;
   name: string;
@@ -57,6 +60,12 @@ function Engraving({ slices }: { slices: SliceGeometry[] }) {
       <circle cx={C} cy={C} r={R.FACE - 1.5} className="wheel-face-shade" />
     </g>
   );
+}
+
+/** A small arrowhead pointing outwards just inside the chapter ring: more choices lie beyond. */
+function ringMarkPath(at: number): string {
+  const point = (r: number, a: number) => polar(r, a).map(fx).join(' ');
+  return `M${point(R.CHAPTER - 4.5, at)}L${point(R.CHAPTER - 10.5, at - 1.5)}L${point(R.CHAPTER - 10.5, at + 1.5)}Z`;
 }
 
 function Content({ slice }: { slice: FaceSlice }) {
@@ -140,6 +149,7 @@ export function Face({ uid, slices, hover, selected, generation, label, describe
             tabIndex={-1}
             aria-label={slice.name}
             aria-describedby={slice.describedBy}
+            aria-haspopup={slice.ringMark === undefined ? undefined : 'menu'}
             aria-disabled={slice.disabled || undefined}
             aria-posinset={i + 1}
             aria-setsize={slices.length}
@@ -156,6 +166,7 @@ export function Face({ uid, slices, hover, selected, generation, label, describe
             {slice.disabled && (
               <path d={sectorPath(R.WINDOW, R.FACE, start, end)} className="wheel-hatch" fill={`url(#${uid}-hatch)`} />
             )}
+            {slice.ringMark !== undefined && <path d={ringMarkPath(slice.ringMark)} className="wheel-ring-mark" />}
             <circle cx={fx(nx)} cy={fx(ny)} r={8.6} className="wheel-lock" />
             <circle cx={fx(nx)} cy={fx(ny)} r={8.4} className="wheel-latch" />
             <g key={`n${generation}`} className="wheel-fade">

@@ -209,7 +209,32 @@ export interface SubtitleSample {
 export interface ActionEntry {
   id: string;
   icon: string;
+  /** Copy and Move: the folders last chosen for either, newest first, that still exist. */
+  folders?: string[];
 }
+
+/** A Copy or Move without the folder dialog, or ZIP in another archive format. */
+export interface ActionOptions {
+  folder?: string;
+  format?: '7z' | 'tar-gz';
+}
+
+/** A choice from a Convert slice's ring: the picture quality of JPG, WEBP and AVIF; the resolution
+ *  of pages turned into pictures (96, 150, 300 dpi); the size of a GIF made from a video; the bit
+ *  rate of MP3 and M4A. Without one the usual settings apply. */
+export type ConvertPreset =
+  | 'high'
+  | 'balanced'
+  | 'small'
+  | 'screen'
+  | 'normal'
+  | 'print'
+  | 'gif-small'
+  | 'gif-medium'
+  | 'gif-large'
+  | 'kbps128'
+  | 'kbps192'
+  | 'kbps320';
 
 export type WheelKind = 'convert' | 'tools' | 'actions' | 'window';
 
@@ -278,10 +303,15 @@ export interface WebInfo {
 /** What to download from a link. */
 export type WebChoice =
   | { kind: 'video'; maxHeight: number | null }
+  /** The sound as MP3. */
   | { kind: 'audio' }
+  /** The sound as M4A (AAC), or as the site serves it. */
+  | { kind: 'audioAs'; format: AudioFormat }
   | { kind: 'thumbnail' }
   | { kind: 'images'; indexes: number[] }
   | { kind: 'original' };
+
+export type AudioFormat = 'mp3' | 'm4a' | 'original';
 
 /** Why a link cannot be used: a message key of the locale files and the technical details. */
 export interface WebProblem {
@@ -610,7 +640,7 @@ export interface Api {
   inspect(paths: string[]): Promise<FileEntry[]>;
   targets(paths: string[]): Promise<TargetGroup[]>;
   tools(paths: string[]): Promise<ToolEntry[]>;
-  convert(paths: string[], to: string): Promise<number[]>;
+  convert(paths: string[], to: string, preset?: ConvertPreset): Promise<number[]>;
   pickFiles(): Promise<string[]>;
   pasteFiles(): Promise<string[]>;
   importText(text: string): Promise<FileEntry>;
@@ -644,7 +674,7 @@ export interface Api {
   runOcr(paths: string[], language: string): Promise<number[]>;
   subtitleSample(path: string): Promise<SubtitleSample | null>;
   actions(): Promise<ActionEntry[]>;
-  runAction(action: string, paths: string[]): Promise<number[]>;
+  runAction(action: string, paths: string[], options?: ActionOptions): Promise<number[]>;
   openTool(tool: string, paths: string[]): Promise<void>;
   takePendingTool(): Promise<[string, string[]] | null>;
   onOpenTool(handler: (tool: string, paths: string[]) => void): Promise<UnlistenFn>;
@@ -785,7 +815,7 @@ const tauriApi: Api = {
   inspect: (paths) => invoke('inspect', { paths }),
   targets: (paths) => invoke('targets', { paths }),
   tools: (paths) => invoke('tools', { paths }),
-  convert: (paths, to) => invoke('convert', { paths, to }),
+  convert: (paths, to, preset) => invoke('convert', { paths, to, preset: preset ?? null }),
   pickFiles: () => invoke('pick_files'),
   pasteFiles: () => invoke('paste_files'),
   importText: (text) => invoke('import_text', { text }),
@@ -815,7 +845,8 @@ const tauriApi: Api = {
   runOcr: (paths, language) => invoke('run_ocr', { paths, language }),
   subtitleSample: (path) => invoke('subtitle_sample', { path }),
   actions: () => invoke('actions'),
-  runAction: (action, paths) => invoke('run_action', { action, paths }),
+  runAction: (action, paths, options) =>
+    invoke('run_action', { action, paths, folder: options?.folder ?? null, format: options?.format ?? null }),
   openTool: (tool, paths) => invoke('open_tool', { tool, paths }),
   takePendingTool: () => invoke('take_pending_tool'),
   onOpenTool: (handler) =>
@@ -1045,7 +1076,7 @@ export function browserApi(params: URLSearchParams): Api {
       const ids = [
         ...(only('pdf') && paths.length === 1 ? ['split-pdf', 'edit-pdf'] : []),
         ...(only('pdf') && paths.length > 1 ? ['merge-pdf'] : []),
-        ...(only('image') ? ['images-to-pdf'] : []),
+        ...(only('image') ? ['images-to-pdf', 'compress'] : []),
         ...([...categories].every((c) => c === 'image' || c === 'pdf') ? ['read-qr', 'ocr'] : []),
         ...(only('archive') ? ['extract'] : []),
         ...(paths.length === 2 && categories.has('video') && categories.has('subtitle') ? ['burn-subtitles'] : []),
@@ -1087,8 +1118,13 @@ export function browserApi(params: URLSearchParams): Api {
     },
     runOcr: async (paths) => paths.map((_, index) => index + 1),
     subtitleSample: async () => ({ start: 1.2, end: 3.4, text: 'Kapadokya’da gün doğarken\nbalonlar havalanıyor' }),
+    // Copy and Move remember the folders last chosen for them.
     actions: async () =>
-      ['share', 'shelf', 'copy', 'move', 'copy-path', 'terminal', 'reveal', 'zip'].map((id) => ({ id, icon: id })),
+      ['share', 'shelf', 'copy', 'move', 'copy-path', 'terminal', 'reveal', 'zip'].map((id) => ({
+        id,
+        icon: id,
+        folders: id === 'copy' || id === 'move' ? demoFolders(platform) : [],
+      })),
     runAction: async () => [],
     openTool: async () => {},
     takePendingTool: async () => null,
@@ -1107,8 +1143,15 @@ export function browserApi(params: URLSearchParams): Api {
       if (params.get('drag') === 'link') return { id: 1, kind: 'convert', mode: 'drag', paths: [] };
       const kind = params.get('wheel') as WheelKind | null;
       if (kind === 'window') return { id: 1, kind, mode: 'click', paths: [], window: 'Rapor 2026.docx - Word' };
-      // &only=image keeps the photo alone, so the Tools wheel offers its Favorites.
-      const paths = params.get('only') === 'image' ? DEMO_FILES.slice(0, 1) : DEMO_FILES;
+      // &only=image keeps the photo alone, so the Tools wheel offers its Favorites; &only=images
+      // brings a second picture, so the Convert wheel offers one PDF of both.
+      const only = params.get('only');
+      const paths =
+        only === 'image'
+          ? DEMO_FILES.slice(0, 1)
+          : only === 'images'
+            ? [DEMO_FILES[0]!, 'C:\\Users\\me\\Pictures\\Göreme gün batımı.jpg']
+            : DEMO_FILES;
       return kind ? { id: 1, kind, mode: 'click', paths } : null;
     },
     wheelDropped: async () => {},

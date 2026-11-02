@@ -91,7 +91,6 @@ export default function WheelDemo() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const [open, setOpen] = useState<DemoWheel | null>(null);
-  const [category, setCategory] = useState<string | null>(null);
   const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark');
   const [reduced, setReduced] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
@@ -138,29 +137,24 @@ export default function WheelDemo() {
             { id: 'move', icon: 'move', label: t('action.move') },
           ],
         };
-      case 'mixed': {
-        const current = CATEGORIES.find((c) => c.id === category);
-        if (!current) {
-          return {
-            kind: 'convert',
-            title: t('wheel.convert'),
-            subtitle: t('wheel.files', { count: 3 }),
-            slices: CATEGORIES.map((c) => ({ id: c.id, icon: c.icon, label: t(`category.${c.id}`) })),
-          };
-        }
+      case 'mixed':
         return {
           kind: 'convert',
-          title: t(`category.${current.id}`),
-          subtitle: t('wheel.files', { count: 1 }),
-          slices: current.targets.map(([label, group]) => ({
-            id: label.toLowerCase(),
-            label,
-            disabled: !!group,
-            hint: needs(group),
+          title: t('wheel.convert'),
+          subtitle: t('wheel.files', { count: 3 }),
+          slices: CATEGORIES.map((c) => ({
+            id: c.id,
+            icon: c.icon,
+            label: t(`category.${c.id}`),
+            subtitle: t('wheel.files', { count: 1 }),
+            variants: c.targets.map(([label, group]) => ({
+              id: label.toLowerCase(),
+              label,
+              disabled: !!group,
+              hint: needs(group),
+            })),
           })),
-          onBack: () => setCategory(null),
         };
-      }
     }
   }
 
@@ -248,14 +242,8 @@ export default function WheelDemo() {
           sound={{ enabled: soundOn, volume }}
           reducedMotion={reduced}
           size={size}
-          onApply={(id) => {
-            if (open === 'mixed' && !category) setCategory(id);
-            else setLast(shown.slices.find((slice) => slice.id === id)?.label ?? id);
-          }}
-          onClose={() => {
-            setOpen(null);
-            setCategory(null);
-          }}
+          onApply={(id, trail) => setLast([...trail, id].join(' › '))}
+          onClose={() => setOpen(null)}
         />
       )}
     </div>

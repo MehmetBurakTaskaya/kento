@@ -1,6 +1,18 @@
 // SPDX-License-Identifier: MIT
 import { describe, expect, it } from 'vitest';
-import { C, hitTest, layoutSlices, normalize, polar, R, restAngle, sectorPath, toView, turnTo } from './geometry';
+import {
+  C,
+  hitTest,
+  layoutSlices,
+  normalize,
+  offsetFor,
+  polar,
+  R,
+  restAngle,
+  sectorPath,
+  toView,
+  turnTo,
+} from './geometry';
 
 describe('slice layout', () => {
   it('runs clockwise from twelve o’clock, and counterclockwise right to left', () => {
@@ -9,6 +21,25 @@ describe('slice layout', () => {
     const [first] = layoutSlices(4, 'ltr');
     expect(first).toMatchObject({ index: 0, start: -45, end: 45, step: 90 });
     expect(layoutSlices(0, 'ltr')).toEqual([]);
+  });
+
+  it('turns a ring as a whole so that a chosen slice sits at a given angle', () => {
+    // Slice 3 of five (72° each) at three o’clock: slice 1 sits 144° before it.
+    const offset = offsetFor(90, 2, 5, 'ltr');
+    expect(offset).toBe(-54);
+    const ring = layoutSlices(5, 'ltr', offset);
+    expect(normalize(ring[2]!.mid)).toBe(90);
+    expect(normalize(ring[3]!.mid)).toBe(162);
+    const rtl = layoutSlices(5, 'rtl', offsetFor(90, 2, 5, 'rtl'));
+    expect(normalize(rtl[2]!.mid)).toBe(90);
+    expect(normalize(rtl[3]!.mid)).toBe(18);
+    expect(restAngle(5, 'ltr', offset)).toBe(-54 - 36);
+    for (const slice of ring) {
+      const [x, y] = polar(R.LABEL, slice.mid);
+      expect(hitTest(x, y, 5, 'ltr', offset)).toBe(slice.index);
+    }
+    const [x, y] = polar(R.LABEL, 90);
+    expect(hitTest(x, y, 5, 'rtl', offsetFor(90, 2, 5, 'rtl'))).toBe(2);
   });
 
   it('parks the dial on the boundary before slice 1', () => {

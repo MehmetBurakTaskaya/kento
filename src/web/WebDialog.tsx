@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // The web download dialog (SPEC 5.10), opened by a link pasted or dropped on Home, by the download
 // shortcut and by the floating wheel's More…. It reads what the link holds, then offers what fits:
-// video with a short quality list, the sound as MP3, a YouTube thumbnail on its own, the pictures
+// video with a short quality list, the sound as MP3, M4A or as served, a YouTube thumbnail on its own, the pictures
 // of an Instagram post, or the original; and the folder to save in. What Kento cannot download is
 // said plainly, and the first time ever a short notice asks for content the user may download.
 // Whatever the link holds, a QR code of it is one click away.
@@ -10,9 +10,10 @@ import { useTranslation } from 'react-i18next';
 import { Dialog } from '../components/Dialog';
 import { Icon, type IconName } from '../components/Icon';
 import { formatTime } from '../editors/time';
-import { api, type WebInfo, type WebProblem } from '../ipc';
+import { api, type AudioFormat, type WebInfo, type WebProblem } from '../ipc';
 import { useApp } from '../state/store';
 import {
+  AUDIO_FORMATS,
   choiceFor,
   defaultHeight,
   needsSetup,
@@ -205,10 +206,11 @@ function Choices({ url, info, notice, onClose }: { url: string; info: WebInfo; n
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const started = useApp((state) => state.started);
-  const ids = { options: useId(), quality: useId(), folder: useId() };
+  const ids = { options: useId(), quality: useId(), audio: useId(), folder: useId() };
   const options = optionsFor(info);
   const [option, setOption] = useState<WebOption>(options[0]!);
   const [height, setHeight] = useState<number | null>(() => defaultHeight(info.heights));
+  const [audio, setAudio] = useState<AudioFormat>('mp3');
   // Every picture is picked at first.
   const [picked, setPicked] = useState<number[]>(() => info.images.map((image) => image.index));
   const [folder, setFolder] = useState<string | null>(null);
@@ -224,7 +226,7 @@ function Choices({ url, info, notice, onClose }: { url: string; info: WebInfo; n
     };
   }, []);
 
-  const choice = choiceFor(option, height, picked);
+  const choice = choiceFor(option, height, picked, audio);
   const site = SITE_NAMES[info.site] ?? siteName(url);
   const facts = [
     site,
@@ -312,6 +314,19 @@ function Choices({ url, info, notice, onClose }: { url: string; info: WebInfo; n
             {info.heights.map((value) => (
               <option key={value} value={value}>
                 {t(qualityKey(value), { height: value })}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {option === 'audio' && (
+        <div className="web-row">
+          <label htmlFor={ids.audio}>{t('web.audio.title')}</label>
+          <select id={ids.audio} value={audio} onChange={(event) => setAudio(event.target.value as AudioFormat)}>
+            {AUDIO_FORMATS.map((format) => (
+              <option key={format} value={format}>
+                {t(`web.audio.${format}`)}
               </option>
             ))}
           </select>

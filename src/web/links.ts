@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // What the download dialog and the floating wheel offer for a link (SPEC 5.10). The core checks
 // every link and choice again; these rules only decide what the page shows.
-import type { WebChoice, WebInfo, WebProblem } from '../ipc';
+import type { AudioFormat, WebChoice, WebInfo, WebProblem } from '../ipc';
 
 /** One http or https address and nothing else, the same test as the core's. */
 export function isLink(text: string): boolean {
@@ -46,14 +46,24 @@ export function qualityKey(height: number): string {
   return height === 2160 || height === 1080 || height === 720 ? `web.quality.${height}` : 'web.quality';
 }
 
+/** The sound's formats, MP3 first: it plays everywhere. */
+export const AUDIO_FORMATS: AudioFormat[] = ['mp3', 'm4a', 'original'];
+
 /** What to ask the core for; null while a photo post has no picture picked. Pictures go in the
  *  post's order whatever order they were picked in. */
-export function choiceFor(option: WebOption, height: number | null, picked: number[]): WebChoice | null {
+export function choiceFor(
+  option: WebOption,
+  height: number | null,
+  picked: number[],
+  audio: AudioFormat = 'mp3',
+): WebChoice | null {
   switch (option) {
     case 'video':
       return { kind: 'video', maxHeight: height };
     case 'images':
       return picked.length ? { kind: 'images', indexes: [...picked].sort((a, b) => a - b) } : null;
+    case 'audio':
+      return audio === 'mp3' ? { kind: 'audio' } : { kind: 'audioAs', format: audio };
     default:
       return { kind: option };
   }

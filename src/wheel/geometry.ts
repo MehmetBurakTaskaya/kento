@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // The wheel's geometry in its 400 x 400 drawing space (design/DESIGN.md, section 5). Angles are
 // degrees from twelve o'clock, growing clockwise. Slices run clockwise from twelve; in right-to-left
-// languages they run counterclockwise, so only the slice angles change, never the drawing.
+// languages they run counterclockwise, so only the slice angles change, never the drawing. A sub-ring
+// turns as a whole (`offset`) so that it unfolds from the slice that opened it.
 
 export const VIEW = 400;
 export const C = VIEW / 2;
@@ -51,20 +52,27 @@ export function normalize(deg: number): number {
   return a < 0 ? a + 360 : a + 0;
 }
 
-export function layoutSlices(count: number, dir: Direction): SliceGeometry[] {
+/** `offset` is where slice 1 sits; 0 is twelve o'clock. */
+export function layoutSlices(count: number, dir: Direction, offset = 0): SliceGeometry[] {
   if (count <= 0) return [];
   const step = 360 / count;
   const sign = dir === 'rtl' ? -1 : 1;
   return Array.from({ length: count }, (_, index) => {
-    const mid = sign * index * step;
+    const mid = offset + sign * index * step;
     return { index, mid, start: mid - step / 2, end: mid + step / 2, step };
   });
 }
 
 /** At rest the dial parks on the boundary before slice 1, so its index never seems to choose a slice. */
-export function restAngle(count: number, dir: Direction): number {
-  if (count <= 0) return 0;
-  return ((dir === 'rtl' ? 1 : -1) * 180) / count;
+export function restAngle(count: number, dir: Direction, offset = 0): number {
+  if (count <= 0) return offset;
+  return offset + ((dir === 'rtl' ? 1 : -1) * 180) / count;
+}
+
+/** The offset that puts slice `index` of a ring of `count` at the angle `at`. */
+export function offsetFor(at: number, index: number, count: number, dir: Direction): number {
+  if (count <= 0) return at;
+  return at - (dir === 'rtl' ? -1 : 1) * index * (360 / count);
 }
 
 /** The dial angle after turning the shortest way from `current` to `target`; it keeps counting past
@@ -75,13 +83,13 @@ export function turnTo(current: number, target: number): number {
 
 /** The slice under a point of the 400-unit space, by angle and radius: anywhere from the slice window
  * to the fixed ring's edge counts; the hub and the space outside the ring do not. */
-export function hitTest(x: number, y: number, count: number, dir: Direction): number | null {
+export function hitTest(x: number, y: number, count: number, dir: Direction, offset = 0): number | null {
   if (count <= 0) return null;
   const dx = x - C;
   const dy = y - C;
   const r = Math.hypot(dx, dy);
   if (r < R.WINDOW || r > R.OUT) return null;
-  const angle = (Math.atan2(dx, -dy) * 180) / Math.PI;
+  const angle = (Math.atan2(dx, -dy) * 180) / Math.PI - offset;
   const step = 360 / count;
   const a = dir === 'rtl' ? -angle : angle;
   return Math.floor(normalize(a + step / 2) / step) % count;

@@ -6,7 +6,7 @@
 // right-to-left languages too.
 import type { TFunction } from 'i18next';
 import type { IconName } from '../components/Icon';
-import type { LayoutId } from '../ipc';
+import { api, type LayoutId } from '../ipc';
 import type { WheelSlice } from '../wheel/Wheel';
 import type { Ring } from './slices';
 
@@ -37,15 +37,15 @@ export function windowSlices(t: TFunction, rtl: boolean): WheelSlice[] {
   }));
 }
 
-/** The Window ring; the wheel's host places the window the core remembered with the chosen
- *  layout (`api.layoutsApply`). */
+/** The Window ring: a choice places the window the core remembered with that layout. */
 export function windowRing(rtl: boolean): Ring {
   return {
     view: (t) => ({
       key: 'window',
+      title: t('wheel.window'),
       slices: windowSlices(t, rtl),
       paths: [],
-      apply: () => null,
+      choose: (id) => ({ kind: 'run', start: () => api.layoutsApply(id as LayoutId) }),
     }),
   };
 }

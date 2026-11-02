@@ -41,7 +41,7 @@ describe('download dialog', () => {
     expect(screen.getByText('YouTube · Video · 12:34')).toBeTruthy();
     expect(radios()).toEqual([
       'VideoMP4 with sound',
-      'Audio onlyMP3',
+      'Audio onlyMP3, M4A or as the site serves it',
       'ThumbnailThe video’s cover picture, as JPG',
       'OriginalAs the site serves it, unconverted',
     ]);
@@ -67,9 +67,27 @@ describe('download dialog', () => {
     open(DEMO_LINKS.youtube);
     fireEvent.click(await screen.findByRole('radio', { name: /^Audio only/ }));
     expect(screen.queryByLabelText('Quality')).toBeNull();
+    const format = screen.getByLabelText('Format') as HTMLSelectElement;
+    expect([...format.options].map((option) => option.text)).toEqual([
+      'MP3',
+      'M4A (AAC)',
+      'Original, as the site serves it',
+    ]);
+    expect(format.value).toBe('mp3');
     fireEvent.click(downloadButton());
     await waitFor(() => expect(download).toHaveBeenCalledWith(DEMO_LINKS.youtube, { kind: 'audio' }, null));
     cleanup();
+    // M4A, or the sound as the site serves it.
+    for (const value of ['m4a', 'original'] as const) {
+      open(DEMO_LINKS.youtube);
+      fireEvent.click(await screen.findByRole('radio', { name: /^Audio only/ }));
+      fireEvent.change(screen.getByLabelText('Format'), { target: { value } });
+      fireEvent.click(downloadButton());
+      await waitFor(() =>
+        expect(download).toHaveBeenLastCalledWith(DEMO_LINKS.youtube, { kind: 'audioAs', format: value }, null),
+      );
+      cleanup();
+    }
     open(DEMO_LINKS.youtube);
     fireEvent.click(await screen.findByRole('radio', { name: /^Thumbnail/ }));
     fireEvent.click(downloadButton());
@@ -79,7 +97,7 @@ describe('download dialog', () => {
   it('offers only the video and its sound for an Instagram reel', async () => {
     open(DEMO_LINKS.reel);
     expect(await screen.findByText('Peri bacaları 30 saniyede')).toBeTruthy();
-    expect(radios()).toEqual(['VideoMP4 with sound', 'Audio onlyMP3']);
+    expect(radios()).toEqual(['VideoMP4 with sound', 'Audio onlyMP3, M4A or as the site serves it']);
   });
 
   it('picks every picture of a photo post and saves them in the post’s order', async () => {
