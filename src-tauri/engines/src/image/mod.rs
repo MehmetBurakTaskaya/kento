@@ -2,6 +2,7 @@
 //! Image conversions (SPEC 5.4): every image input to every image output, and image → PDF.
 
 mod avif;
+pub(crate) mod compress;
 mod decode;
 mod encode;
 #[cfg(target_os = "macos")]
@@ -11,6 +12,7 @@ mod heif_windows;
 mod svg;
 #[cfg(test)]
 mod tests;
+pub mod tools;
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;

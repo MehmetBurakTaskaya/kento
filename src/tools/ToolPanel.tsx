@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 // The panels of the tools that need choices before they run (SPEC 5.5): Merge PDFs, Split PDF,
-// Edit PDF, PDF from images and Read QR codes. Each one starts a job and closes, except QR, which
-// shows what it found and saves a report on request.
+// Edit PDF, PDF from images, Read QR codes, Compress and Metadata. Each one starts a job and
+// closes, except QR, which shows what it found and saves a report on request. The media and image
+// editors have their own windows-in-a-window.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '../components/Dialog';
-import { isMediaPanel, MediaEditor } from '../editors';
+import { ImageEditor, isImagePanel, isMediaPanel, MediaEditor } from '../editors';
 import { Icon } from '../components/Icon';
 import { api, type FileEntry, type PageSize, type QrFound, type QrReport } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
+import { CompressPanel } from './Compress';
+import { MetadataPanel } from './Metadata';
 import { move, OrderList } from './OrderList';
 import { parseRanges } from './ranges';
 
@@ -34,6 +37,16 @@ export function ToolPanel() {
       />
     );
   }
+  if (panel && isImagePanel(panel.tool)) {
+    return (
+      <ImageEditor
+        tool={panel.tool}
+        paths={panel.paths}
+        onClose={closePanel}
+        onStarted={(ids) => useApp.getState().started(ids)}
+      />
+    );
+  }
   if (!panel || !entries.length) return null;
   const props = { entries, onClose: closePanel };
   const panels: Partial<Record<PanelTool, ReactNode>> = {
@@ -42,6 +55,8 @@ export function ToolPanel() {
     'edit-pdf': <EditPdf {...props} />,
     'images-to-pdf': <ImagesToPdf {...props} />,
     'read-qr': <ReadQr {...props} />,
+    compress: <CompressPanel {...props} />,
+    metadata: <MetadataPanel {...props} />,
   };
   return panels[panel.tool];
 }

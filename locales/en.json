@@ -445,5 +445,15 @@
   "settings.tools.remove": "Remove download",
   "settings.tools.note": "Kento uses a tool it finds on this computer before its own download. A program you choose must be FFmpeg 6 or newer.",
   "toolchain.failed.busy": "Wait for the download to finish, or cancel it, and try again.",
-  "toolchain.failed.remove": "The tools are in use. Try again when the running jobs have finished."
+  "toolchain.failed.remove": "The tools are in use. Try again when the running jobs have finished.",
+  "suffix.edit-image": "edited",
+  "suffix.crop-image": "cropped",
+  "suffix.markup": "marked up",
+  "suffix.frame": "framed",
+  "suffix.collage": "collage",
+  "suffix.redact-image": "redacted",
+  "suffix.compress": "compressed",
+  "suffix.metadata": "metadata",
+  "error.codec.exiftool": "This needs ExifTool from the Extras tools. Open Home and choose Complete setup.",
+  "error.not-smaller": "Kento could not make this file smaller, or not under the size you chose."
 }

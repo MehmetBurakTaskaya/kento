@@ -319,6 +319,7 @@ impl Toolchain {
         kento_engines::Tools {
             ffmpeg: path("ffmpeg"),
             ffprobe: path("ffprobe"),
+            exiftool: path("exiftool"),
         }
     }
 
@@ -792,6 +793,7 @@ mod tests {
             kento_engines::Tools {
                 ffmpeg: Some(custom.clone()),
                 ffprobe: Some(system_ffprobe),
+                exiftool: None,
             }
         );
 

@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
-//! Kento's local engines: every conversion and tool that needs no downloaded tool.
+//! Kento's engines: every conversion and tool. Most need nothing outside Kento; media runs FFmpeg
+//! and image metadata ExifTool, both downloaded on request or found on the computer.
 //!
 //! The crate knows nothing about windows, settings or the job queue. The app hands it paths that
 //! it has already claimed (see the app's `jobs::naming`), options and a progress handle, and runs
 //! it on a blocking thread. Format ids are the catalog's ids (`jpg`, `tar-gz`, …).
 
 pub mod archive;
+pub mod compress;
 mod error;
 pub mod image;
 pub mod media;
+pub mod metadata;
 pub mod pdf;
 pub mod qr;
 pub mod sheet;
@@ -19,6 +22,16 @@ pub mod thumb;
 use std::path::{Path, PathBuf};
 
 pub use error::{Codec, Error, Result};
+
+/// The kinds of file the tools that take several kinds tell apart (Compress, Metadata).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FileKind {
+    Image,
+    Video,
+    Audio,
+    Pdf,
+}
 
 /// What a conversion writes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,6 +113,7 @@ pub struct Options {
 pub struct Tools {
     pub ffmpeg: Option<PathBuf>,
     pub ffprobe: Option<PathBuf>,
+    pub exiftool: Option<PathBuf>,
 }
 
 impl Tools {
@@ -113,6 +127,12 @@ impl Tools {
         self.ffprobe
             .as_deref()
             .ok_or(Error::MissingCodec(Codec::Ffmpeg))
+    }
+
+    pub fn exiftool(&self) -> Result<&Path> {
+        self.exiftool
+            .as_deref()
+            .ok_or(Error::MissingCodec(Codec::ExifTool))
     }
 }
 

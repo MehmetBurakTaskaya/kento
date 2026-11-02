@@ -445,5 +445,15 @@
   "settings.tools.remove": "İndirileni kaldır",
   "settings.tools.note": "Kento, kendi indirdiğinden önce bu bilgisayarda bulduğu aracı kullanır. Seçtiğiniz program FFmpeg 6 ya da daha yeni olmalıdır.",
   "toolchain.failed.busy": "İndirmenin bitmesini bekleyin ya da iptal edip yeniden deneyin.",
-  "toolchain.failed.remove": "Araçlar kullanımda. Çalışan işler bitince yeniden deneyin."
+  "toolchain.failed.remove": "Araçlar kullanımda. Çalışan işler bitince yeniden deneyin.",
+  "suffix.edit-image": "düzenlenmiş",
+  "suffix.crop-image": "kırpılmış",
+  "suffix.markup": "işaretli",
+  "suffix.frame": "çerçeveli",
+  "suffix.collage": "kolaj",
+  "suffix.redact-image": "gizlenmiş",
+  "suffix.compress": "sıkıştırılmış",
+  "suffix.metadata": "meta veri",
+  "error.codec.exiftool": "Bunun için Ekstra araçlardaki ExifTool gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
+  "error.not-smaller": "Kento bu dosyayı küçültemedi ya da seçtiğiniz boyutun altına indiremedi."
 }

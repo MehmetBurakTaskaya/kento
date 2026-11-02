@@ -5,13 +5,16 @@
 pub mod actions;
 pub mod catalog;
 pub mod commands;
+pub mod compress;
 pub mod error;
 pub mod files;
 pub mod i18n;
+pub mod images;
 pub mod jobs;
 pub mod library;
 pub mod logging;
 pub mod media;
+pub mod metadata;
 pub mod overlay;
 pub mod paths;
 pub mod platform;
@@ -298,6 +301,12 @@ pub fn run() {
             media::media_peaks,
             media::media_frame,
             media::run_media_tool,
+            images::image_info,
+            images::image_preview,
+            images::run_image_tool,
+            compress::run_compress,
+            metadata::metadata_read,
+            metadata::run_metadata,
             toolchain::tools_status,
             toolchain::tools_install,
             toolchain::tools_cancel,

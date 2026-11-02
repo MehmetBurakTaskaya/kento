@@ -3,7 +3,7 @@
 // files on Home, the Library, the open wheel or tool panel and the cards in the corner.
 // Settings are saved through the core, which applies their side effects (tray, sign-in item…).
 import { create } from 'zustand';
-import type { MediaPanel } from '../editors';
+import type { ImagePanel, MediaPanel } from '../editors';
 import { changeLanguage } from '../i18n';
 import {
   api,
@@ -18,7 +18,16 @@ import {
 export type WheelKind = 'convert' | 'tools' | 'actions';
 
 /** A tool that needs choices before it runs. */
-export type PanelTool = 'merge-pdf' | 'split-pdf' | 'edit-pdf' | 'images-to-pdf' | 'read-qr' | MediaPanel;
+export type PanelTool =
+  | 'merge-pdf'
+  | 'split-pdf'
+  | 'edit-pdf'
+  | 'images-to-pdf'
+  | 'read-qr'
+  | 'compress'
+  | 'metadata'
+  | MediaPanel
+  | ImagePanel;
 
 export type Toast =
   | { id: number; kind: 'done'; jobId: number; title: string; outputs: string[] }

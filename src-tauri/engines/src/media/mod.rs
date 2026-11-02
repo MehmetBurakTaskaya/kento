@@ -4,6 +4,7 @@
 //! FFmpeg's `-progress pipe:1`; cancelling kills the process.
 
 mod codec;
+pub(crate) mod compress;
 mod convert;
 mod preview;
 mod probe;

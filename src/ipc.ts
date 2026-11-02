@@ -252,6 +252,110 @@ export type MediaTool =
       visual: { kind: 'waveform' } | { kind: 'spectrum' } | { kind: 'bars' } | { kind: 'image'; path: string };
     };
 
+/** A picture's upright size in pixels (after its EXIF orientation). */
+export interface ImageInfo {
+  width: number;
+  height: number;
+}
+
+/** Red, green, blue and alpha, 0 to 255. */
+export type Rgba = [number, number, number, number];
+export type Rgb = [number, number, number];
+export type Point = [number, number];
+
+/** Edit image: turn, flip, resize, then the colour adjustments (-100 to 100, 0 = unchanged). */
+export interface Adjust {
+  turn: 'none' | 'right' | 'half' | 'left';
+  flipHorizontal: boolean;
+  flipVertical: boolean;
+  /** Width and height after turning; null keeps the size. */
+  resize: [number, number] | null;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+}
+
+/** One mark of Mark up; points, widths and sizes in source pixels. */
+export type Mark =
+  | { kind: 'pen'; points: Point[]; color: Rgba; width: number }
+  | { kind: 'highlighter'; points: Point[]; color: Rgba; width: number }
+  | { kind: 'rectangle'; area: Area; color: Rgba; width: number; filled: boolean }
+  | { kind: 'ellipse'; area: Area; color: Rgba; width: number; filled: boolean }
+  | { kind: 'line'; from: Point; to: Point; color: Rgba; width: number }
+  | { kind: 'arrow'; from: Point; to: Point; color: Rgba; width: number }
+  | { kind: 'text'; at: Point; text: string; color: Rgba; size: number };
+
+export type FrameBackground =
+  | { kind: 'color'; rgb: Rgb }
+  /** angle in degrees: 0 runs left to right, 90 top to bottom. */
+  | { kind: 'gradient'; from: Rgb; to: Rgb; angle: number }
+  | { kind: 'blurred' };
+
+export interface FrameStyle {
+  /** Space around the picture, in source pixels. */
+  padding: number;
+  background: FrameBackground;
+  radius: number;
+  shadow: boolean;
+}
+
+export interface CollageStyle {
+  layout: { kind: 'grid'; columns: number } | { kind: 'row' } | { kind: 'column' };
+  /** Between the cells and around the edge, in pixels of the result. */
+  spacing: number;
+  background: Rgb;
+  /** The result's width in pixels. */
+  width: number;
+  /** true: each picture fills its cell (cropped); false: it fits whole. */
+  fill: boolean;
+}
+
+/** The six image editors and their choices (SPEC 5.5); areas in source pixels. */
+export type ImageTool =
+  | { tool: 'edit-image'; adjust: Adjust }
+  | { tool: 'crop-image'; area: Area }
+  | { tool: 'markup'; marks: Mark[] }
+  | { tool: 'frame'; frame: FrameStyle }
+  | { tool: 'collage'; collage: CollageStyle }
+  | { tool: 'redact-image'; areas: Area[]; hide: Hide };
+
+/** Compress: a quality level (1–100), a share of the original size (5–95 %), or a size limit. */
+export type Compression =
+  { mode: 'quality'; level: number } | { mode: 'ratio'; percent: number } | { mode: 'size'; bytes: number };
+
+export interface MetadataField {
+  /** What MetadataChange.set names. */
+  key: string;
+  /** The family it belongs to (EXIF, XMP, PDF, Format…), shown as a heading. */
+  group: string;
+  /** The tag's own name, shown as it is. */
+  name: string;
+  value: string;
+  editable: boolean;
+}
+
+export interface Chapter {
+  start: number;
+  end: number;
+  title: string;
+}
+
+export interface MetadataInfo {
+  fields: MetadataField[];
+  /** Video and audio only. */
+  chapters: Chapter[];
+  hasLocation: boolean;
+}
+
+export interface MetadataChange {
+  /** Editable keys and new values; an empty value removes the field. */
+  set: Record<string, string>;
+  removeAll: boolean;
+  removeLocation: boolean;
+  /** Video and audio: the new chapters; null keeps them. */
+  chapters: Chapter[] | null;
+}
+
 /** An optional tool group (SPEC 4.2) and where it stands on this computer. */
 export interface ToolGroupStatus {
   id: 'media' | 'office' | 'extras';
@@ -351,6 +455,13 @@ export interface Api {
   mediaPeaks(path: string, buckets: number): Promise<number[]>;
   mediaFrame(path: string, at: number, size: number): Promise<Blob | null>;
   runMediaTool(tool: MediaTool, paths: string[]): Promise<number[]>;
+  imageInfo(path: string): Promise<ImageInfo>;
+  /** A PNG of the tool applied (or of the picture itself), at most `size` px on its longer side. */
+  imagePreview(paths: string[], tool: ImageTool | null, size: number): Promise<Blob | null>;
+  runImageTool(tool: ImageTool, paths: string[]): Promise<number[]>;
+  runCompress(compression: Compression, paths: string[]): Promise<number[]>;
+  metadataRead(path: string): Promise<MetadataInfo>;
+  runMetadata(path: string, change: MetadataChange): Promise<number[]>;
   toolsStatus(): Promise<ToolGroupStatus[]>;
   toolsInstall(group: string): Promise<void>;
   toolsCancel(group: string): Promise<void>;
@@ -457,6 +568,12 @@ const tauriApi: Api = {
   mediaPeaks: (path, buckets) => invoke('media_peaks', { path, buckets }),
   mediaFrame: (path, at, size) => blob(invoke<ArrayBuffer>('media_frame', { path, at, size })),
   runMediaTool: (tool, paths) => invoke('run_media_tool', { tool, paths }),
+  imageInfo: (path) => invoke('image_info', { path }),
+  imagePreview: (paths, tool, size) => blob(invoke<ArrayBuffer>('image_preview', { paths, tool, size })),
+  runImageTool: (tool, paths) => invoke('run_image_tool', { tool, paths }),
+  runCompress: (compression, paths) => invoke('run_compress', { compression, paths }),
+  metadataRead: (path) => invoke('metadata_read', { path }),
+  runMetadata: (path, change) => invoke('run_metadata', { path, change }),
   toolsStatus: () => invoke('tools_status'),
   toolsInstall: (group) => invoke('tools_install', { group }),
   toolsCancel: (group) => invoke('tools_cancel', { group }),
@@ -683,6 +800,12 @@ export function browserApi(params: URLSearchParams): Api {
       Array.from({ length: buckets }, (_, i) => Math.abs(Math.sin(i / 9)) * (0.4 + 0.6 * Math.abs(Math.cos(i / 41)))),
     mediaFrame: async () => null,
     runMediaTool: async () => [1],
+    imageInfo: async () => ({ width: 4032, height: 3024 }),
+    imagePreview: async () => null,
+    runImageTool: async () => [1],
+    runCompress: async (_compression, paths) => paths.map((_, i) => i + 1),
+    metadataRead: async () => ({ fields: [], chapters: [], hasLocation: false }),
+    runMetadata: async () => [1],
     toolsStatus: async () => demoTools(params.get('tools') === 'ready'),
     toolsInstall: async () => {},
     toolsCancel: async () => {},

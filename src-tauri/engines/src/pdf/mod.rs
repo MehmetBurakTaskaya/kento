@@ -3,6 +3,7 @@
 //!
 //! PDFium renders pages and reads text; `lopdf` writes every PDF (merge, split, edit, images).
 
+pub(crate) mod compress;
 #[cfg(test)]
 mod fixtures;
 mod jpeg;

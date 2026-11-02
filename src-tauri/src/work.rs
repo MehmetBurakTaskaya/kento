@@ -127,7 +127,8 @@ fn missing(state: &AppState, group: ToolGroup) -> Option<ToolGroup> {
     let ready = match group {
         ToolGroup::Core => true,
         ToolGroup::Media => tools.ffmpeg.is_some() && tools.ffprobe.is_some(),
-        ToolGroup::Office | ToolGroup::Extras => false,
+        ToolGroup::Extras => tools.exiftool.is_some(),
+        ToolGroup::Office => false,
     };
     (!ready).then_some(group)
 }
@@ -184,6 +185,11 @@ pub fn tools(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<ToolEntry> 
             "normalize" | "trim-audio" | "channels" | "redact-audio" | "audio-to-video" => {
                 count == 1 && all(&[Category::Audio])
             }
+            "edit-image" | "crop-image" | "markup" | "frame" | "redact-image" => {
+                count == 1 && all(&[Category::Image])
+            }
+            "collage" => count >= 2 && all(&[Category::Image]),
+            "metadata" => count == 1 && all(tool.categories),
             _ => all(tool.categories),
         })
         .map(|tool| ToolEntry {
@@ -191,9 +197,28 @@ pub fn tools(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<ToolEntry> 
             icon: tool.icon.to_string(),
             group: tool.group,
             enhancement: tool.enhancement,
-            needs: missing(&state, tool.group),
+            needs: needs(&state, tool, &categories),
         })
         .collect()
+}
+
+/// What a tool still needs for these files. Compress and Metadata take several kinds of file, and
+/// each kind has its own engine: video and audio need the Media tools, image metadata ExifTool.
+fn needs(
+    state: &AppState,
+    tool: &catalog::Tool,
+    categories: &[Option<Category>],
+) -> Option<ToolGroup> {
+    let has = |wanted: Category| categories.contains(&Some(wanted));
+    let media = has(Category::Video) || has(Category::Audio);
+    match tool.id {
+        "compress" if media => missing(state, ToolGroup::Media),
+        "compress" => None,
+        "metadata" if media => missing(state, ToolGroup::Media),
+        "metadata" if has(Category::Image) => missing(state, ToolGroup::Extras),
+        "metadata" => None,
+        _ => missing(state, tool.group),
+    }
 }
 
 /// Converts every file to `to`, one job per file (batch conversion, SPEC 5.3), and returns the
@@ -391,6 +416,8 @@ pub(crate) fn explainer(lang: &str) -> Explain {
             EngineError::MissingCodec(Codec::Heif) => "error.codec.heif.windows",
             EngineError::MissingCodec(Codec::Pdfium) => "error.codec.pdfium",
             EngineError::MissingCodec(Codec::Ffmpeg) => "error.codec.ffmpeg",
+            EngineError::MissingCodec(Codec::ExifTool) => "error.codec.exiftool",
+            EngineError::NotSmaller => "error.not-smaller",
             EngineError::Limit(_) => "error.limit",
             EngineError::Io(_) => "error.io",
             EngineError::Cancelled | EngineError::Other(_) => "error.other",

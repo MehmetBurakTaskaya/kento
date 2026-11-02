@@ -38,6 +38,14 @@ export const TOOL_ICONS: Record<string, IconName> = {
   channels: 'music',
   'redact-audio': 'redact',
   'audio-to-video': 'video',
+  compress: 'compress',
+  metadata: 'tag',
+  'edit-image': 'sliders',
+  markup: 'pen',
+  frame: 'frame',
+  'crop-image': 'crop',
+  collage: 'grid',
+  'redact-image': 'redact',
 };
 
 const ACTION_ICONS: Record<string, IconName> = {
@@ -52,7 +60,7 @@ const ACTION_ICONS: Record<string, IconName> = {
 };
 
 /** Tools that ask for choices in a panel of the main window before they run. */
-export const PANEL_TOOLS = ['merge-pdf', 'split-pdf', 'edit-pdf', 'images-to-pdf', 'read-qr'];
+export const PANEL_TOOLS = ['merge-pdf', 'split-pdf', 'edit-pdf', 'images-to-pdf', 'read-qr', 'compress', 'metadata'];
 
 /** Media tools with an editor; Remove audio runs at once. */
 export { MEDIA_PANELS } from '../editors';

@@ -20,6 +20,9 @@ pub enum Error {
     /// An archive or document over a safety limit (entry count, total size, page count).
     #[error("over the safety limit: {0}")]
     Limit(String),
+    /// Compress found nothing smaller than the original, or nothing under the target size.
+    #[error("no smaller result")]
+    NotSmaller,
     #[error("cancelled")]
     Cancelled,
     #[error(transparent)]
@@ -36,6 +39,8 @@ pub enum Codec {
     Pdfium,
     /// FFmpeg and ffprobe, the media tools downloaded on request.
     Ffmpeg,
+    /// ExifTool, one of the Extras tools downloaded on request.
+    ExifTool,
 }
 
 impl fmt::Display for Codec {
@@ -44,6 +49,7 @@ impl fmt::Display for Codec {
             Codec::Heif => "HEIF support",
             Codec::Pdfium => "PDFium",
             Codec::Ffmpeg => "the media tools (FFmpeg)",
+            Codec::ExifTool => "ExifTool",
         })
     }
 }
