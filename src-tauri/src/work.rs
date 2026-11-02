@@ -400,7 +400,9 @@ pub(crate) struct Context {
 }
 
 impl Context {
+    /// Refused while an update waits to install.
     pub(crate) fn new(app: &AppHandle, state: &AppState) -> Result<Self> {
+        crate::updates::admit(app, state)?;
         let settings = state.settings();
         let output = match (settings.output.location, settings.output.folder) {
             (OutputLocation::Folder, Some(folder)) => OutputDir::Folder(folder),

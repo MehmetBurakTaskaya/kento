@@ -49,6 +49,10 @@ tauri-plugin-dialog = "2.6"
 tauri-plugin-global-shortcut = "2.4.1"
 tauri-plugin-opener = "2.5"
 tauri-plugin-single-instance = "2.5.5"
+# Updates (SPEC 5.16), used from Rust only: the page has no updater permission. Updates arrive as
+# the installer itself, the app archive or Kento's own portable ZIP, so the plugin needs no archive
+# support of its own.
+tauri-plugin-updater = { version = "2.14.1", default-features = false, features = ["rustls-tls", "system-proxy"] }
 drag = "2.1.1"
 # Folder automation (SPEC 5.11): the system's own change notifications (ReadDirectoryChangesW on
 # Windows, FSEvents on macOS).

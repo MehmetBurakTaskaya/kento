@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 //! The tray icon (the menu bar icon on macOS) and its menu: Home, Shelf, pause or resume jobs,
-//! Settings and Quit. The menu follows the interface language.
+//! Settings, Check for updates and Quit. The menu follows the interface language.
 
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
@@ -68,6 +68,7 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
                 None::<&str>,
             )?,
             &MenuItem::with_id(app, "settings", t("nav.settings"), true, None::<&str>)?,
+            &MenuItem::with_id(app, "updates", t("tray.updates"), true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "quit", t("tray.quit"), true, None::<&str>)?,
         ],
@@ -78,6 +79,11 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
     let result = match event.id().as_ref() {
         "home" => window::show_main(app, Some("home")),
         "settings" => window::show_main(app, Some("settings")),
+        // Looks at once, with Settings › Updates open to show what it finds.
+        "updates" => {
+            crate::updates::check_now(app);
+            window::show_main(app, Some("updates"))
+        }
         "pause" => set_paused(app, !app.state::<AppState>().queue.is_paused()),
         "quit" => {
             app.exit(0);
@@ -93,6 +99,8 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
 /// Pauses or resumes the job queue and tells the menu and the page.
 pub fn set_paused(app: &AppHandle, paused: bool) -> Result<()> {
     app.state::<AppState>().queue.set_paused(paused);
+    // An update waiting for the jobs says whether they are paused.
+    crate::updates::changed(app);
     app.emit("jobs-paused", paused)?;
     refresh(app)
 }

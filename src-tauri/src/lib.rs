@@ -32,6 +32,7 @@ mod smoke;
 pub mod toolchain;
 pub mod tools;
 mod tray;
+pub mod updates;
 pub mod web;
 mod window;
 pub mod work;
@@ -158,6 +159,7 @@ fn setup(
         let _ = handle.emit("job", info);
         overlay::toast::on_job(&handle, info);
         automation::on_job(&handle, info);
+        updates::on_job(&handle, info);
     });
     let library = Library::load(paths.data.join("library.json"));
     let toolchain = toolchain::Toolchain::new(&paths.data);
@@ -170,6 +172,7 @@ fn setup(
     let lang = i18n::resolve(&settings.language, i18n::system_locale().as_deref());
     app.manage(recipes::Recipes::open(paths.recipes_file(), &lang));
     app.manage(automation::Automation::open(paths.automation_file()));
+    app.manage(updates::Updates::new(paths.data.clone()));
     app.manage(AppState {
         paths,
         settings: Mutex::new(settings),
@@ -215,6 +218,7 @@ fn setup(
         overlay::wheel::sync_watcher(app);
         shortcut::sync(app);
         automation::start(app);
+        updates::start(app, launch.is_none() && !autostarted);
     }
     if let Some(paths) = launch {
         overlay::wheel::open_for(app, paths, overlay::wheel::Kind::Convert);
@@ -291,6 +295,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(shortcut::plugin())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| setup(app.handle(), smoke_test, autostarted))
         .invoke_handler(tauri::generate_handler![
             commands::bootstrap,
@@ -399,6 +404,11 @@ pub fn run() {
             automation::automation_set_enabled,
             automation::automation_set_paused,
             automation::automation_clear_activity,
+            updates::updates_view,
+            updates::updates_check,
+            updates::updates_install,
+            updates::updates_editing,
+            updates::updates_news,
         ])
         .build(tauri::generate_context!())
         .expect("Kento could not start")

@@ -109,6 +109,13 @@ pub fn show_main(app: &AppHandle, section: Option<&'static str>) -> Result<()> {
         let window = builder.build()?;
         // Files and links dropped on Home.
         crate::drops::watch(&window);
+        // Its dialogs close with it, so an update that waited for them may install.
+        let closing = app.clone();
+        window.on_window_event(move |event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                crate::updates::window_closed(&closing);
+            }
+        });
         if !hidden {
             // The page shows the window once it has painted (ui_ready); this is the safety net.
             let app = app.clone();

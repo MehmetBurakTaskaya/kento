@@ -15,6 +15,8 @@ use crate::{logging, tray, window, AppState};
 
 pub const WEBSITE: &str = "https://mehmetburaktaskaya.com";
 pub const REPOSITORY: &str = "https://github.com/MehmetBurakTaskaya/kento";
+/// Where a copy that never installs updates (a development build) finds new versions.
+pub const RELEASES: &str = "https://github.com/MehmetBurakTaskaya/kento/releases/latest";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -148,13 +150,14 @@ pub fn ui_ready(window: WebviewWindow) -> Result<()> {
     window::reveal(&window)
 }
 
-/// Opens Kento's own website or repository; the page cannot open any other address.
+/// Opens Kento's own website, repository or release page; the page cannot open any other address.
 #[tauri::command]
 pub fn open_link(app: AppHandle, which: String) -> Result<()> {
     use tauri_plugin_opener::OpenerExt;
     let url = match which.as_str() {
         "website" => WEBSITE,
         "repository" => REPOSITORY,
+        "releases" => RELEASES,
         other => return Err(Error::Invalid(format!("unknown link {other}"))),
     };
     app.opener()

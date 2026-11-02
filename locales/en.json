@@ -65,6 +65,7 @@
   "tray.shelf": "Shelf",
   "tray.pause": "Pause jobs",
   "tray.resume": "Resume jobs",
+  "tray.updates": "Check for updates",
   "tray.quit": "Quit Kento",
   "group.core": "Core",
   "group.core.detail": "Image, PDF, archive, QR, text",
@@ -1048,5 +1049,10 @@
   "cli.formats.written": "(written only)",
   "cli.routes.to": "{format} converts to:",
   "cli.routes.from": "These convert to {format}:",
-  "cli.routes.none": "nothing in this version"
+  "cli.routes.none": "nothing in this version",
+  "updates.refused": "Kento is about to restart to install an update. New jobs can start again after the restart.",
+  "updates.notice.waiting": "Kento {version} is ready. Kento restarts to install it once the work under way is done.",
+  "updates.notice.restarting": "Kento restarts in a few seconds to install version {version}.",
+  "updates.notice.confirm": "Kento {version} is ready to install. Choose Update and restart in Settings › Updates.",
+  "updates.notice.updated": "Kento is updated to version {version}. Open Kento to see what changed."
 }

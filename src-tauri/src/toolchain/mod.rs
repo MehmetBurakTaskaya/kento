@@ -650,6 +650,11 @@ impl Toolchain {
         lock(&self.inner.running).contains_key(group)
     }
 
+    /// Whether any group is being installed, updated or removed; an update waits for it.
+    pub fn is_busy(&self) -> bool {
+        !lock(&self.inner.running).is_empty()
+    }
+
     /// Runs an install from `begin` and looks for the tools again. The group is free for another
     /// install once this returns.
     pub async fn run(
@@ -828,6 +833,10 @@ pub fn tools_install(
     state: State<'_, AppState>,
     group: String,
 ) -> crate::error::Result<()> {
+    // An update waits to install: tools can be added after the restart.
+    if let Some(message) = state.queue.refusal() {
+        return Err(crate::error::Error::Invalid(message));
+    }
     let toolchain = state.toolchain.clone();
     let job = match toolchain.begin(&group) {
         Ok(Some(job)) => job,
@@ -869,6 +878,7 @@ pub fn tools_install(
             }
         };
         emit(last);
+        crate::updates::changed(&app);
     });
     Ok(())
 }
@@ -919,7 +929,9 @@ pub struct YtDlpUpdate {
 #[tauri::command]
 pub async fn tools_update_ytdlp(app: AppHandle) -> crate::error::Result<YtDlpUpdate> {
     let toolchain = app.state::<AppState>().toolchain.clone();
-    let (outcome, version) = match toolchain.update_ytdlp(&ytdlp::Releases::github()).await {
+    let updated = toolchain.update_ytdlp(&ytdlp::Releases::github()).await;
+    crate::updates::changed(&app);
+    let (outcome, version) = match updated {
         Ok(ytdlp::Outcome::Updated(version)) => {
             tracing::info!("yt-dlp is updated to {version}");
             ("updated", version)
