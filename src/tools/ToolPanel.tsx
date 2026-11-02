@@ -5,10 +5,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '../components/Dialog';
-import { MediaEditor, type MediaPanel } from '../editors';
+import { isMediaPanel, MediaEditor } from '../editors';
 import { Icon } from '../components/Icon';
 import { api, type FileEntry, type PageSize, type QrFound, type QrReport } from '../ipc';
-import { MEDIA_PANELS } from '../app/slices';
 import { useApp, type PanelTool } from '../state/store';
 import { move, OrderList } from './OrderList';
 import { parseRanges } from './ranges';
@@ -24,18 +23,19 @@ export function ToolPanel() {
         : [],
     [panel, files],
   );
-  if (!panel || !entries.length) return null;
-  const props = { entries, onClose: closePanel };
-  if (MEDIA_PANELS.includes(panel.tool)) {
+  // Media editors take the paths as they are; they read the files themselves.
+  if (panel && isMediaPanel(panel.tool)) {
     return (
       <MediaEditor
-        tool={panel.tool as MediaPanel}
+        tool={panel.tool}
         paths={panel.paths}
         onClose={closePanel}
         onStarted={(ids) => useApp.getState().started(ids)}
       />
     );
   }
+  if (!panel || !entries.length) return null;
+  const props = { entries, onClose: closePanel };
   const panels: Partial<Record<PanelTool, ReactNode>> = {
     'merge-pdf': <MergePdf {...props} />,
     'split-pdf': <SplitPdf {...props} />,

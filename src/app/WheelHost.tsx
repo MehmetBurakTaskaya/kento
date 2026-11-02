@@ -6,17 +6,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, type ActionEntry, type Category, type TargetGroup, type ToolEntry } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
+import { isMediaPanel } from '../editors';
 import { Wheel } from '../wheel/Wheel';
-import {
-  actionSlices,
-  categorySlices,
-  MEDIA_PANELS,
-  NEEDS_SETUP,
-  PANEL_TOOLS,
-  remember,
-  targetSlices,
-  toolSlices,
-} from './slices';
+import { actionSlices, categorySlices, NEEDS_SETUP, PANEL_TOOLS, remember, targetSlices, toolSlices } from './slices';
 
 type Opened = NonNullable<ReturnType<typeof useApp.getState>['wheel']>;
 
@@ -154,7 +146,7 @@ export function WheelHost() {
         onApply={(id) => {
           if (id.startsWith(NEEDS_SETUP)) return openSetup();
           remember('tools', id);
-          if (PANEL_TOOLS.includes(id) || MEDIA_PANELS.includes(id)) openPanel(id as PanelTool, paths);
+          if (PANEL_TOOLS.includes(id) || isMediaPanel(id)) openPanel(id as PanelTool, paths);
           else if (id === 'extract') api.extract(paths).then(started).catch(failed);
           else if (id === 'mute') api.runMediaTool({ tool: 'mute' }, paths).then(started).catch(failed);
         }}

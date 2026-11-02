@@ -72,6 +72,13 @@ const PATHS = {
   plus: 'M12 5v14M5 12h14',
   dial: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 3v3M3 12h2M19 12h2M12 18v3',
   grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01',
+  // Media editors.
+  'mark-in': 'M10 4H6v16h4M13 12h7M17 9l3 3-3 3',
+  'mark-out': 'M14 4h4v16h-4M4 12h7M8 9l3 3-3 3',
+  'play-span': 'M4 5v14M20 5v14M9 8.5l6.5 3.5L9 15.5z',
+  marker: 'M12 3v18M12 4.5h6l-1.8 3 1.8 3h-6',
+  keyboard:
+    'M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M8 14h8',
 } as const;
 
 export type IconName = keyof typeof PATHS;

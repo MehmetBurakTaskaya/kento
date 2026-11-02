@@ -55,20 +55,7 @@ const ACTION_ICONS: Record<string, IconName> = {
 export const PANEL_TOOLS = ['merge-pdf', 'split-pdf', 'edit-pdf', 'images-to-pdf', 'read-qr'];
 
 /** Media tools with an editor; Remove audio runs at once. */
-export const MEDIA_PANELS = [
-  'trim-video',
-  'crop-video',
-  'speed',
-  'merge-video',
-  'frames',
-  'split-video',
-  'redact-video',
-  'normalize',
-  'trim-audio',
-  'channels',
-  'redact-audio',
-  'audio-to-video',
-];
+export { MEDIA_PANELS } from '../editors';
 
 /** The id of a slice whose tool group is not installed: choosing it opens the setup. */
 export const NEEDS_SETUP = '\u0001setup';
