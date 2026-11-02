@@ -54,7 +54,9 @@ jobs:
         run: npm run pdfium
 
       # One test per group (installs_the_pinned_*), one after another so their logs stay apart. The
-      # Media test installs and runs all four of its tools: FFmpeg, ffprobe, yt-dlp and Deno.
+      # Media test installs and runs all four of its tools: FFmpeg, ffprobe, yt-dlp and Deno; the
+      # Extras test installs ExifTool, ONNX Runtime and the background-removal model, then removes
+      # the background of a test picture with them.
       - name: Install the pinned tools
         run: >-
           cargo test --manifest-path src-tauri/Cargo.toml --lib --

@@ -100,8 +100,49 @@ jobs:
             /Applications/LibreOffice.app/Contents/MacOS/soffice --version
           fi
 
+      # Background removal: ONNX Runtime and the model (about 300 MB) come from Kento's own installer
+      # once, which also removes a test background with them, and are kept in the Actions cache
+      # until the lockfile changes; the tests below then find them through KENTO_ONNXRUNTIME and
+      # KENTO_BG_MODEL.
+      - name: Background removal tools (cached)
+        id: bgremove-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/kento-tools
+          key: bgremove-${{ runner.os }}-${{ hashFiles('src-tauri/toolchain.lock.json') }}
+
+      - name: Background removal tools
+        if: steps.bgremove-cache.outputs.cache-hit != 'true'
+        env:
+          KENTO_TOOLCHAIN_ROOT: ${{ runner.temp }}/kento-tools
+        run: >-
+          cargo test --manifest-path src-tauri/Cargo.toml --lib --
+          --ignored installs_the_pinned_extras --nocapture
+
+      - name: Keep the background removal tools
+        if: steps.bgremove-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/kento-tools
+          key: ${{ steps.bgremove-cache.outputs.cache-primary-key }}
+
+      - name: Point the tests at the background removal tools
+        run: |
+          root="${{ runner.temp }}/kento-tools/extras"
+          if [ "$RUNNER_OS" = "Windows" ]; then root=$(cygpath -u "$root"); fi
+          runtime=$(find "$root/onnxruntime" -type f \( -name onnxruntime.dll -o -name 'libonnxruntime.*.dylib' \) | head -1)
+          model=$(find "$root/bg-model" -type f -name BEN2_Base.onnx | head -1)
+          test -n "$runtime" && test -n "$model"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            runtime=$(cygpath -w "$runtime")
+            model=$(cygpath -w "$model")
+          fi
+          echo "KENTO_ONNXRUNTIME=$runtime" >> "$GITHUB_ENV"
+          echo "KENTO_BG_MODEL=$model" >> "$GITHUB_ENV"
+
       - name: Rust tests
         env:
+          KENTO_REQUIRE_BGREMOVE: '1'
           KENTO_REQUIRE_PDFIUM: '1'
           KENTO_REQUIRE_FFMPEG: '1'
           KENTO_REQUIRE_EXIFTOOL: '1'
