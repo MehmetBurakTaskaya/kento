@@ -45,6 +45,8 @@ fn find_tools() -> Option<Tools> {
             ffprobe: Some(ffprobe),
             exiftool: None,
             soffice: None,
+            ytdlp: None,
+            deno: None,
         }),
         _ => {
             let required = env::var("KENTO_REQUIRE_FFMPEG").is_ok_and(|v| v == "1");
@@ -335,6 +337,8 @@ fn missing_tools_are_reported() {
         ffprobe: Some(PathBuf::from("/nowhere/ffprobe-kento-test")),
         exiftool: None,
         soffice: None,
+        ytdlp: None,
+        deno: None,
     };
     let dir = tempfile::tempdir().unwrap();
     let file = dir.path().join("a.mp4");

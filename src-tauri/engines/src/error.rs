@@ -23,6 +23,9 @@ pub enum Error {
     /// Compress found nothing smaller than the original, or nothing under the target size.
     #[error("no smaller result")]
     NotSmaller,
+    /// A web download Kento does not or cannot do (SPEC 5.10).
+    #[error("web download: {0}")]
+    Web(WebProblem),
     #[error("cancelled")]
     Cancelled,
     #[error(transparent)]
@@ -43,6 +46,44 @@ pub enum Codec {
     ExifTool,
     /// LibreOffice, the Office tools downloaded on request or found on the computer.
     LibreOffice,
+    /// yt-dlp with Deno, the web download part of the Media tools.
+    YtDlp,
+}
+
+/// Why a link cannot be downloaded, each said plainly in the interface (SPEC 5.10).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WebProblem {
+    /// Protected by DRM.
+    Drm,
+    /// A live stream.
+    Live,
+    /// Only for signed-in viewers; Kento imports no cookies.
+    Login,
+    /// A profile, channel or playlist rather than one post or video.
+    Collection,
+    /// Removed, private, unavailable in this country, or no page at that address.
+    Unavailable,
+    /// The page shows no media yt-dlp can take (a poster or a blob address): copy the share link.
+    NoMedia,
+    /// The site could not be reached.
+    Network,
+    /// Not a web address Kento downloads from (only http and https).
+    NotALink,
+}
+
+impl fmt::Display for WebProblem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            WebProblem::Drm => "protected by DRM",
+            WebProblem::Live => "a live stream",
+            WebProblem::Login => "needs a signed-in account",
+            WebProblem::Collection => "a profile, channel or playlist",
+            WebProblem::Unavailable => "not available",
+            WebProblem::NoMedia => "no media on the page",
+            WebProblem::Network => "the site could not be reached",
+            WebProblem::NotALink => "not a web address",
+        })
+    }
 }
 
 impl fmt::Display for Codec {
@@ -53,6 +94,7 @@ impl fmt::Display for Codec {
             Codec::Ffmpeg => "the media tools (FFmpeg)",
             Codec::ExifTool => "ExifTool",
             Codec::LibreOffice => "the Office tools (LibreOffice)",
+            Codec::YtDlp => "the web download tools (yt-dlp)",
         })
     }
 }

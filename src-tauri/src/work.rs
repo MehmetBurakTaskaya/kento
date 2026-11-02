@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use kento_engines::{self as engines, Codec, Error as EngineError, Options};
+use kento_engines::{self as engines, Codec, Error as EngineError, Options, WebProblem};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -463,6 +463,17 @@ pub(crate) fn explainer(lang: &str) -> Explain {
             EngineError::MissingCodec(Codec::Ffmpeg) => "error.codec.ffmpeg",
             EngineError::MissingCodec(Codec::ExifTool) => "error.codec.exiftool",
             EngineError::MissingCodec(Codec::LibreOffice) => "error.codec.libreoffice",
+            EngineError::MissingCodec(Codec::YtDlp) => "error.codec.ytdlp",
+            EngineError::Web(problem) => match problem {
+                WebProblem::Drm => "error.web.drm",
+                WebProblem::Live => "error.web.live",
+                WebProblem::Login => "error.web.login",
+                WebProblem::Collection => "error.web.collection",
+                WebProblem::Unavailable => "error.web.unavailable",
+                WebProblem::NoMedia => "error.web.no-media",
+                WebProblem::Network => "error.web.network",
+                WebProblem::NotALink => "error.web.not-a-link",
+            },
             EngineError::NotSmaller => "error.not-smaller",
             EngineError::Limit(_) => "error.limit",
             EngineError::Io(_) => "error.io",

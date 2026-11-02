@@ -351,6 +351,8 @@ impl Toolchain {
             ffprobe: path("ffprobe"),
             exiftool: path("exiftool"),
             soffice: path("soffice"),
+            ytdlp: path("yt-dlp"),
+            deno: path("deno"),
         }
     }
 
@@ -892,6 +894,8 @@ mod tests {
                 ffprobe: Some(system_ffprobe),
                 exiftool: None,
                 soffice: None,
+                ytdlp: None,
+                deno: None,
             }
         );
 

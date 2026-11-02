@@ -21,10 +21,11 @@ pub mod sheet;
 pub mod subtitle;
 pub mod text;
 pub mod thumb;
+pub mod web;
 
 use std::path::{Path, PathBuf};
 
-pub use error::{Codec, Error, Result};
+pub use error::{Codec, Error, Result, WebProblem};
 
 /// The kinds of file the tools that take several kinds tell apart (Compress, Metadata).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -122,6 +123,10 @@ pub struct Tools {
     pub exiftool: Option<PathBuf>,
     /// LibreOffice's `soffice` program (`soffice.exe` on Windows).
     pub soffice: Option<PathBuf>,
+    /// yt-dlp, for web downloads (`yt-dlp.exe` on Windows, `yt-dlp_macos` installed as `yt-dlp`).
+    pub ytdlp: Option<PathBuf>,
+    /// Deno, the JavaScript runtime yt-dlp needs for YouTube.
+    pub deno: Option<PathBuf>,
 }
 
 impl Tools {
@@ -141,6 +146,18 @@ impl Tools {
         self.exiftool
             .as_deref()
             .ok_or(Error::MissingCodec(Codec::ExifTool))
+    }
+
+    pub fn ytdlp(&self) -> Result<&Path> {
+        self.ytdlp
+            .as_deref()
+            .ok_or(Error::MissingCodec(Codec::YtDlp))
+    }
+
+    pub fn deno(&self) -> Result<&Path> {
+        self.deno
+            .as_deref()
+            .ok_or(Error::MissingCodec(Codec::YtDlp))
     }
 
     pub fn soffice(&self) -> Result<&Path> {
