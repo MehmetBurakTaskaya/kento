@@ -22,6 +22,7 @@ pub mod ocr;
 pub mod overlay;
 pub mod paths;
 pub mod platform;
+pub mod recipes;
 pub mod settings;
 pub mod shelf;
 mod shortcut;
@@ -158,6 +159,9 @@ fn setup(
     load_pdfium(app);
     let launch_at_login = settings.launch_at_login;
     let tray_icon = settings.tray_icon;
+    // The example recipe is named in the interface language when the recipes file is first made.
+    let lang = i18n::resolve(&settings.language, i18n::system_locale().as_deref());
+    app.manage(recipes::Recipes::open(paths.recipes_file(), &lang));
     app.manage(AppState {
         paths,
         settings: Mutex::new(settings),
@@ -373,6 +377,12 @@ pub fn run() {
             layouts::layouts_apply,
             layouts::layouts_ask_permission,
             layouts::layouts_open_permission_settings,
+            recipes::recipes_list,
+            recipes::recipes_save,
+            recipes::recipes_delete,
+            recipes::recipes_reorder,
+            recipes::recipes_for,
+            recipes::run_recipe,
         ])
         .build(tauri::generate_context!())
         .expect("Kento could not start")

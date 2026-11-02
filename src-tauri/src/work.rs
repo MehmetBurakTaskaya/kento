@@ -140,7 +140,7 @@ pub(crate) fn engine_tools(state: &AppState) -> engines::Tools {
 }
 
 /// The tool group a route or tool still needs, or None when it is ready to run.
-fn missing(state: &AppState, group: ToolGroup) -> Option<ToolGroup> {
+pub(crate) fn missing(state: &AppState, group: ToolGroup) -> Option<ToolGroup> {
     let tools = engine_tools(state);
     let ready = match group {
         ToolGroup::Core => true,
@@ -152,7 +152,7 @@ fn missing(state: &AppState, group: ToolGroup) -> Option<ToolGroup> {
 }
 
 /// A route this version can run: in the catalog, not planned, and supported by an engine here.
-fn usable(from: &str, to: &str) -> bool {
+pub(crate) fn usable(from: &str, to: &str) -> bool {
     let routed = catalog::routes()
         .iter()
         .any(|r| r.from == from && r.to == to && r.status != Status::Planned);
@@ -326,6 +326,15 @@ impl Context {
         self.tools.clone()
     }
 
+    /// The engines' options for this request: the tools found and LibreOffice's profile.
+    pub(crate) fn options(&self) -> Options {
+        Options {
+            tools: self.tools.clone(),
+            office_profile: Some(self.office_profile.clone()),
+            ..Options::default()
+        }
+    }
+
     pub(crate) fn text(&self, key: &str) -> String {
         i18n::text(&self.lang, key)
     }
@@ -335,7 +344,12 @@ impl Context {
         output_dir(source, &self.output, &self.fallback)
     }
 
-    fn submit_conversion(&self, path: PathBuf, from: &'static Format, to: &'static Format) -> u64 {
+    pub(crate) fn submit_conversion(
+        &self,
+        path: PathBuf,
+        from: &'static Format,
+        to: &'static Format,
+    ) -> u64 {
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
@@ -426,7 +440,7 @@ impl Context {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn enqueue(
+    pub(crate) fn enqueue(
         &self,
         lane: Lane,
         title: String,
@@ -485,6 +499,10 @@ pub(crate) fn error_key(error: &EngineError) -> &'static str {
     match error {
         // Compress keeps the format, and some formats cannot get smaller in themselves.
         EngineError::Unsupported { to, .. } if to == "compress" => "error.compress.unsupported",
+        // A recipe's crop or resize met a file that is not a picture by then.
+        EngineError::Unsupported { to, .. } if to == "crop" || to == "resize" => {
+            "error.recipe.unfit"
+        }
         EngineError::Unsupported { .. } => "error.unsupported",
         EngineError::Unreadable(_) => "error.unreadable",
         EngineError::Encrypted => "error.encrypted",
