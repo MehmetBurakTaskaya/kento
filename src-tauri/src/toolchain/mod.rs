@@ -1869,7 +1869,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "downloads the pinned ExifTool, ONNX Runtime and model (about 300 MB); run with --ignored"]
     async fn installs_the_pinned_extras_for_this_computer() {
-        let tools = install_pinned("extras").await;
+        let (tools, _installed) = install_pinned("extras").await;
         if tools.onnxruntime.is_some() {
             remove_a_background(tools);
         }
@@ -1923,9 +1923,10 @@ mod tests {
     }
 
     /// Installs a group's pinned downloads for this computer and returns the tools as the engines
-    /// get them. `KENTO_TOOLCHAIN_ROOT` may name a folder to install into and keep (CI caches the
-    /// Extras tools so); otherwise a temporary one is used.
-    async fn install_pinned(group: &str) -> kento_engines::Tools {
+    /// get them, with the temporary folder they are in: the tools last as long as it is kept.
+    /// `KENTO_TOOLCHAIN_ROOT` may name a folder to install into and keep (CI caches the Extras
+    /// tools so); otherwise the temporary one is used.
+    async fn install_pinned(group: &str) -> (kento_engines::Tools, tempfile::TempDir) {
         let base = tempfile::tempdir().unwrap();
         // ExifTool's Windows launcher finds its Perl through the system code page, so it cannot
         // start from a folder whose name has letters outside it (an emoji always is).
@@ -1940,7 +1941,7 @@ mod tests {
         let chain = Toolchain::with(root.clone(), Lock::embedded(), platform, places, true);
         let Some(job) = chain.begin(group).ok().flatten() else {
             eprintln!("nothing pinned for this computer; skipped");
-            return kento_engines::Tools::default();
+            return (kento_engines::Tools::default(), base);
         };
         if let Some(cached) = std::env::var_os("KENTO_TOOLCHAIN_DOWNLOADS") {
             for unit in &job.units {
@@ -1980,7 +1981,7 @@ mod tests {
                 tool.path.as_ref().unwrap().display()
             );
         }
-        chain.engine_tools()
+        (chain.engine_tools(), base)
     }
 
     #[test]
