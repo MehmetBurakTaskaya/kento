@@ -209,8 +209,14 @@ fn run(session: &mut Session, input: &[f32], progress: &Progress) -> Result<Mask
         });
         let outputs = session.run_with_options(ort::inputs![tensor], &options);
         let result = outputs.map_err(failed).and_then(|outputs| {
-            let (shape, values) = outputs[0].try_extract_tensor::<f32>().map_err(failed)?;
-            steps::mask(shape, values)
+            let output = &outputs[0];
+            // The published model answers in half precision; a float one would answer in f32.
+            if let Ok((shape, values)) = output.try_extract_tensor::<f32>() {
+                return steps::mask(shape, values);
+            }
+            let (shape, values) = output.try_extract_tensor::<half::f16>().map_err(failed)?;
+            let values: Vec<f32> = values.iter().map(|value| value.to_f32()).collect();
+            steps::mask(shape, &values)
         });
         finished.store(true, Ordering::Release);
         result
