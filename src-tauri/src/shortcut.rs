@@ -52,14 +52,26 @@ fn open_for_selection(app: &AppHandle) {
             wheel::open_for(app, paths, kind)
         }
         Ok(_) if layouts::open_ring(app, front) => {}
-        Ok(_) => toast::note(app, i18n::text(&lang, "shortcut.nothing")),
+        Ok(_) => toast::note(app, i18n::text(&lang, on_this_system("shortcut.nothing"))),
         Err(PlatformError::Permission(_)) => {
             toast::note(app, i18n::text(&lang, "shortcut.permission"))
         }
         Err(err) => {
             tracing::warn!("the selection could not be read: {err}");
-            toast::note(app, i18n::text(&lang, "shortcut.unreadable"));
+            toast::note(
+                app,
+                i18n::text(&lang, on_this_system("shortcut.unreadable")),
+            );
         }
+    }
+}
+
+/// The text that names this system's file manager: Explorer, or Finder on a Mac.
+fn on_this_system(key: &'static str) -> &'static str {
+    match key {
+        "shortcut.nothing" if cfg!(target_os = "macos") => "shortcut.nothing.mac",
+        "shortcut.unreadable" if cfg!(target_os = "macos") => "shortcut.unreadable.mac",
+        _ => key,
     }
 }
 
