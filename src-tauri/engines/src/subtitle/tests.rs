@@ -198,3 +198,51 @@ fn round_trip_keeps_timing_and_text() {
         ["<i>Merhaba</i> dünya & <b>ğüşıöç</b> 🧪", "İkinci satır"]
     );
 }
+
+#[test]
+fn hands_ffmpeg_a_utf8_srt_and_the_page_a_sample() {
+    let dir = tempfile::tempdir().unwrap();
+    // Windows-1254 SRT, as Turkish subtitles often come.
+    let legacy = dir.path().join("eski ğ.srt");
+    let (cp1254, _, _) =
+        WINDOWS_1254.encode("1\r\n00:00:01,500 --> 00:00:03,000\r\nŞimdi ağaç\r\n");
+    std::fs::write(&legacy, cp1254).unwrap();
+    assert_eq!(
+        to_srt(&legacy, false).unwrap(),
+        "1\n00:00:01,500 --> 00:00:03,000\nŞimdi ağaç\n\n"
+    );
+    // At the top: each cue moves, except one that places itself.
+    let placed = dir.path().join("yer.srt");
+    std::fs::write(
+        &placed,
+        "1\n00:00:01,000 --> 00:00:02,000\nüst\n\n2\n00:00:03,000 --> 00:00:04,000\n{\\an1}sol alt\n",
+    )
+    .unwrap();
+    assert_eq!(
+        to_srt(&placed, true).unwrap(),
+        "1\n00:00:01,000 --> 00:00:02,000\n{\\an8}üst\n\n2\n00:00:03,000 --> 00:00:04,000\n{\\an1}sol alt\n\n"
+    );
+    // VTT tags become SRT's, entities become letters; an empty first cue is skipped.
+    let vtt = dir.path().join("web 🧪.vtt");
+    std::fs::write(
+        &vtt,
+        "WEBVTT\n\n00:00.000 --> 00:00.500\n\n\n00:02.000 --> 00:04.000 line:0\n<c.red>Kırmızı</c> &amp; <b>kalın</b>\nikinci\n",
+    )
+    .unwrap();
+    let srt = to_srt(&vtt, false).unwrap();
+    assert!(
+        srt.contains("00:00:02,000 --> 00:00:04,000\nKırmızı & <b>kalın</b>\nikinci\n"),
+        "{srt:?}"
+    );
+    assert_eq!(
+        sample(&vtt).unwrap(),
+        Some(Sample {
+            start: 2.0,
+            end: 4.0,
+            text: "Kırmızı & kalın\nikinci".into()
+        })
+    );
+    let empty = dir.path().join("boş.srt");
+    std::fs::write(&empty, "\u{feff}\n").unwrap();
+    assert!(matches!(to_srt(&empty, false), Err(Error::Unreadable(_))));
+}

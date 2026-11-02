@@ -16,6 +16,8 @@ use super::run::{self, secs, Cmd, Watch};
 use super::{Area, Channels, Hide, Loudness, Redaction, Span, SplitAt, Tool, ToolRun, Visual};
 use crate::{Error, Result};
 
+mod burn;
+
 /// Silence quieter than this counts as silence when trimming it away.
 const SILENCE: &str = "-50dB";
 /// The shortest part Split video writes, and how close a cut may come to either end.
@@ -55,6 +57,13 @@ pub(super) fn run(run: &ToolRun) -> Result<Vec<PathBuf>> {
         Tool::Channels { channels } => job.channels(input, *channels),
         Tool::RedactAudio { spans, beep } => job.redact_audio(input, spans, *beep),
         Tool::AudioToVideo { visual } => job.audio_to_video(input, visual),
+        Tool::BurnSubtitles { size, position } => {
+            let subtitles = run
+                .inputs
+                .get(1)
+                .ok_or_else(|| Error::Other("no subtitle file".into()))?;
+            job.burn_subtitles(input, subtitles, *size, *position)
+        }
     }
 }
 

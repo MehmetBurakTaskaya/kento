@@ -21,6 +21,9 @@ mod tests;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+/// A title made into a file name; QR codes are named with it too.
+pub(crate) use names::sanitize;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Options, Progress, Result, Tools, WebProblem};

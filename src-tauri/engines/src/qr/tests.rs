@@ -213,3 +213,147 @@ fn json_report() {
     write_report(&[], Report::Json, &dest).unwrap();
     assert_eq!(fs::read_to_string(&dest).unwrap(), "[]\n");
 }
+
+const NAME: &str = "Kento ğüşıöç 🧪";
+
+/// Reads back what `make` wrote: a PNG as it is, an SVG drawn by resvg at its own size.
+fn read_back(dest: &Path, picture: Picture) -> Vec<String> {
+    let image = match picture {
+        Picture::Png => image::open(dest).unwrap(),
+        Picture::Svg => {
+            let svg = fs::read_to_string(dest).unwrap();
+            let tree = resvg::usvg::Tree::from_str(&svg, &resvg::usvg::Options::default()).unwrap();
+            let size = tree.size().to_int_size();
+            let mut pixmap = resvg::tiny_skia::Pixmap::new(size.width(), size.height()).unwrap();
+            resvg::render(
+                &tree,
+                resvg::tiny_skia::Transform::default(),
+                &mut pixmap.as_mut(),
+            );
+            let rgba =
+                RgbaImage::from_raw(size.width(), size.height(), pixmap.data().to_vec()).unwrap();
+            DynamicImage::ImageRgba8(rgba)
+        }
+    };
+    scan(&image)
+}
+
+#[test]
+fn makes_codes_that_read_back_at_every_level() {
+    let dir = tempfile::tempdir().unwrap();
+    for correction in [
+        Correction::Low,
+        Correction::Medium,
+        Correction::Quartile,
+        Correction::High,
+    ] {
+        for picture in [Picture::Png, Picture::Svg] {
+            let style = Style {
+                correction,
+                size: 512,
+                ..Style::default()
+            };
+            let dest = dir
+                .path()
+                .join(format!("{NAME} {correction:?}.{}", picture.extension()));
+            make(TEXT, &style, picture, &dest).unwrap();
+            assert_eq!(
+                read_back(&dest, picture),
+                [TEXT],
+                "{correction:?} {picture:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn makes_coloured_codes_and_checks_their_contrast() {
+    let dir = tempfile::tempdir().unwrap();
+    let style = Style {
+        correction: Correction::Quartile,
+        size: 640,
+        dark: [0x1d, 0x3a, 0x8a],
+        light: [0xff, 0xf4, 0xd6],
+    };
+    assert!(contrast(style.dark, style.light) > 7.0);
+    assert!(!inverted(&style));
+    for picture in [Picture::Png, Picture::Svg] {
+        let dest = dir.path().join(format!("renkli.{}", picture.extension()));
+        make("https://example.test/menü", &style, picture, &dest).unwrap();
+        assert_eq!(read_back(&dest, picture), ["https://example.test/menü"]);
+    }
+
+    assert!((contrast([0, 0, 0], [255, 255, 255]) - 21.0).abs() < 1e-9);
+    assert!((contrast([90, 90, 90], [90, 90, 90]) - 1.0).abs() < 1e-9);
+    let pale = Style {
+        dark: [0xbb, 0xbb, 0xbb],
+        ..Style::default()
+    };
+    assert_eq!(check("soluk", &pale), Err(Problem::LowContrast));
+    assert!(make("soluk", &pale, Picture::Png, &dir.path().join("soluk.png")).is_err());
+    let swapped = Style {
+        dark: [255, 255, 255],
+        light: [0, 0, 0],
+        ..Style::default()
+    };
+    assert!(inverted(&swapped) && check("ters", &swapped).is_ok());
+}
+
+#[test]
+fn refuses_what_a_code_cannot_hold() {
+    assert_eq!(encode("", Correction::Low), Err(Problem::Empty));
+    // Version 40 holds 2953 bytes at level L and 1273 at level H.
+    let long = "ğ".repeat(1400);
+    assert!(encode(&long, Correction::Low).is_ok());
+    assert_eq!(encode(&long, Correction::High), Err(Problem::TooLong));
+    assert_eq!(
+        encode(&"x".repeat(3000), Correction::Low),
+        Err(Problem::TooLong)
+    );
+}
+
+#[test]
+fn names_a_code_after_its_site_or_its_first_words() {
+    assert_eq!(
+        name_for("https://www.example.test/menü?q=1"),
+        "example.test"
+    );
+    assert_eq!(
+        name_for("  Merhaba: dünya\nikinci satır"),
+        "Merhaba - dünya"
+    );
+    assert_eq!(
+        name_for("WIFI:S:Ev ağı;T:WPA;P:gizli parola 123;H:false;;"),
+        "WIFI-S-Ev ağı;T-WPA;P-gizli parola"
+    );
+    assert_eq!(name_for("???"), "QR");
+    assert_eq!(name_for("\n"), "QR");
+}
+
+#[test]
+fn pixels_fill_the_chosen_size_with_whole_modules() {
+    let modules = encode("https://example.test", Correction::Medium).unwrap();
+    // Version 2 at level M: 25 modules and the quiet zone.
+    assert_eq!(modules.side, 25 + 2 * QUIET_ZONE);
+    assert!(!modules.is_dark(0, 0) && modules.is_dark(QUIET_ZONE, QUIET_ZONE));
+    let style = Style {
+        size: 300,
+        ..Style::default()
+    };
+    let image = pixels(&modules, &style);
+    assert_eq!(image.dimensions(), (300, 300));
+    assert_eq!(image.get_pixel(0, 0).0, [255, 255, 255]);
+    // Every pixel is one of the two colours: no smoothing at module edges.
+    assert!(image
+        .pixels()
+        .all(|p| p.0 == [0, 0, 0] || p.0 == [255, 255, 255]));
+    // Too small for its modules: two pixels each, at least.
+    let tiny = Style {
+        size: MIN_SIZE,
+        ..Style::default()
+    };
+    let big = encode(&"k".repeat(500), Correction::Low).unwrap();
+    assert_eq!(pixels(&big, &tiny).width(), big.side * 2);
+    let drawing = svg(&modules, &style);
+    assert!(drawing.contains("viewBox=\"0 0 33 33\"") && drawing.contains("width=\"300\""));
+}

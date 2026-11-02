@@ -68,6 +68,8 @@ pub(crate) struct Cmd {
     info: bool,
     /// Stderr lines with this text are all kept, not only the last ones.
     keep: Option<&'static str>,
+    /// The folder FFmpeg runs in, so that filters can name files there by plain relative names.
+    dir: Option<PathBuf>,
 }
 
 impl Cmd {
@@ -110,6 +112,12 @@ impl Cmd {
         self.arg("-f").arg(muxer).arg("pipe:1")
     }
 
+    /// Runs FFmpeg in `dir`.
+    pub fn in_dir(&mut self, dir: &Path) -> &mut Self {
+        self.dir = Some(dir.to_path_buf());
+        self
+    }
+
     /// Logs at the info level and keeps every stderr line containing `keep`.
     pub fn verbose(&mut self, keep: Option<&'static str>) -> &mut Self {
         self.info = true;
@@ -119,6 +127,9 @@ impl Cmd {
 
     fn command(&self, ffmpeg: &Path, progress: bool) -> Command {
         let mut command = command(ffmpeg);
+        if let Some(dir) = &self.dir {
+            command.current_dir(dir);
+        }
         // -y: every output is a path Kento reserved for this job (or its scratch folder).
         command
             .args(["-hide_banner", "-nostdin", "-y", "-loglevel"])
@@ -180,23 +191,53 @@ fn swap_encoders(args: &[OsString], available: &HashSet<String>) -> Vec<OsString
 /// The encoders a build has, asked once per program. Empty when the list cannot be read, and then
 /// the arguments are left as they are.
 fn encoders(ffmpeg: &Path) -> Arc<HashSet<String>> {
-    static KNOWN: OnceLock<Mutex<HashMap<PathBuf, Arc<HashSet<String>>>>> = OnceLock::new();
+    listing(ffmpeg, "-encoders", encoder_names)
+}
+
+/// Whether the build has the filter `name`, asked once per program. A list that cannot be read
+/// counts as having it, and FFmpeg then says itself what is wrong.
+pub(crate) fn has_filter(ffmpeg: &Path, name: &str) -> bool {
+    let filters = listing(ffmpeg, "-filters", filter_names);
+    filters.is_empty() || filters.contains(name)
+}
+
+/// What `ffmpeg -hide_banner <flag>` lists, read by `names` and kept per program and flag.
+fn listing(
+    ffmpeg: &Path,
+    flag: &'static str,
+    names: fn(&str) -> HashSet<String>,
+) -> Arc<HashSet<String>> {
+    type Known = HashMap<(PathBuf, &'static str), Arc<HashSet<String>>>;
+    static KNOWN: OnceLock<Mutex<Known>> = OnceLock::new();
     let known = KNOWN.get_or_init(Mutex::default);
-    if let Some(list) = known.lock().ok().and_then(|map| map.get(ffmpeg).cloned()) {
+    let key = (ffmpeg.to_path_buf(), flag);
+    if let Some(list) = known.lock().ok().and_then(|map| map.get(&key).cloned()) {
         return list;
     }
     let list = Arc::new(
         command(ffmpeg)
-            .args(["-hide_banner", "-encoders"])
+            .args(["-hide_banner", flag])
             .stderr(Stdio::null())
             .output()
-            .map(|output| encoder_names(&String::from_utf8_lossy(&output.stdout)))
+            .map(|output| names(&String::from_utf8_lossy(&output.stdout)))
             .unwrap_or_default(),
     );
     if let Ok(mut map) = known.lock() {
-        map.insert(ffmpeg.to_path_buf(), list.clone());
+        map.insert(key, list.clone());
     }
     list
+}
+
+/// The names in `-filters` output: " TS name  V->V  description". Older builds print the legend
+/// without a rule under it, so a line counts by its "in->out" column instead.
+fn filter_names(text: &str) -> HashSet<String> {
+    text.lines()
+        .filter_map(|line| {
+            let mut parts = line.split_whitespace();
+            let (_flags, name, pads) = (parts.next()?, parts.next()?, parts.next()?);
+            pads.contains("->").then(|| name.to_owned())
+        })
+        .collect()
 }
 
 /// The names in `-encoders` output: after the legend, each line is " A....D name  description".
@@ -476,6 +517,22 @@ mod tests {
                 "out.opus"
             ])
         );
+    }
+
+    #[test]
+    fn reads_the_filter_list_of_old_and_new_builds() {
+        let new = "Filters:\n  T.. = Timeline support\n  | = Source or sink filter\n  ------\n \
+                   TS aap               AA->A      Apply Affine Projection.\n \
+                   .. subtitles         V->V       Render text subtitles.\n";
+        let old = "Filters:\n  T.. = Timeline support\n  A = Audio input/output\n \
+                   ... abench            A->A       Benchmark part of a filtergraph.\n \
+                   T.C scale             V->V       Scale the input video.\n";
+        let found = filter_names(new);
+        assert!(found.contains("subtitles") && found.contains("aap"));
+        assert!(!found.contains("=") && !found.contains("------"));
+        let found = filter_names(old);
+        assert!(found.contains("scale") && !found.contains("subtitles"));
+        assert_eq!(found.len(), 2);
     }
 
     #[test]

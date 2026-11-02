@@ -57,7 +57,7 @@ pub(super) fn decode(path: &Path) -> Result<Decoded> {
 
 /// Loading every system font takes a moment, so it happens once per run. Mark up draws its text
 /// with these too.
-pub(super) fn fonts() -> Arc<fontdb::Database> {
+pub(crate) fn fonts() -> Arc<fontdb::Database> {
     static FONTS: OnceLock<Arc<fontdb::Database>> = OnceLock::new();
     FONTS
         .get_or_init(|| {

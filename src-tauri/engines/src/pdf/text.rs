@@ -64,7 +64,7 @@ pub(super) fn markdown_page(glyphs: &[Glyph]) -> String {
         .join("\n\n")
 }
 
-pub(super) fn join_plain(pages: &[String]) -> String {
+pub(crate) fn join_plain(pages: &[String]) -> String {
     let mut text = pages.join(TXT_PAGE_BREAK);
     text.push('\n');
     text

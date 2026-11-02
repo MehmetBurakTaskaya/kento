@@ -489,6 +489,11 @@ pub(crate) fn error_key(error: &EngineError) -> &'static str {
         EngineError::MissingCodec(Codec::LibreOffice) => "error.codec.libreoffice",
         EngineError::MissingCodec(Codec::YtDlp) => "error.codec.ytdlp",
         EngineError::MissingCodec(Codec::BackgroundRemoval) => "error.codec.background",
+        EngineError::MissingCodec(Codec::OcrLanguage) if cfg!(target_os = "macos") => {
+            "error.ocr.language.mac"
+        }
+        EngineError::MissingCodec(Codec::OcrLanguage) => "error.ocr.language.windows",
+        EngineError::MissingCodec(Codec::Libass) => "error.codec.libass",
         EngineError::Web(problem) => match problem {
             WebProblem::Drm => "error.web.drm",
             WebProblem::Live => "error.web.live",
@@ -500,6 +505,7 @@ pub(crate) fn error_key(error: &EngineError) -> &'static str {
             WebProblem::NotALink => "error.web.not-a-link",
         },
         EngineError::NotSmaller => "error.not-smaller",
+        EngineError::NoText => "error.ocr.no-text",
         EngineError::Limit(_) => "error.limit",
         EngineError::Io(_) => "error.io",
         EngineError::Cancelled | EngineError::Other(_) => "error.other",

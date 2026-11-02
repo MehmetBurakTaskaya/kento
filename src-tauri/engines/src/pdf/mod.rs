@@ -20,6 +20,9 @@ use crate::{Conversion, Error, Output, Progress, Result};
 pub use tools::{edit, merge, split, PageEdit, Split};
 pub use write::from_images;
 
+/// Pages of text joined as the PDF → TXT conversion joins them (text recognition uses it too).
+pub(crate) use text::join_plain as join_text_pages;
+
 /// Documents with more pages than this are refused with `Error::Limit`, and so are outputs that
 /// would have more.
 pub const MAX_PAGES: usize = 10_000;

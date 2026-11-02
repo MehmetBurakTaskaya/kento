@@ -9,7 +9,9 @@
 mod tests;
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use serde::Serialize;
 
 use crate::text::{self, Newline};
 use crate::{Conversion, Error, Result};
@@ -51,6 +53,69 @@ pub fn convert(job: &Conversion) -> Result<Vec<PathBuf>> {
     fs::write(job.dest, newline.apply(&out))?;
     job.progress.report(1.0);
     Ok(vec![job.dest.to_path_buf()])
+}
+
+/// Reads a subtitle file as the conversions do: any text encoding, SRT or VTT (by its extension
+/// or its `WEBVTT` header). A file without a single cue is `Error::Unreadable`.
+fn load(input: &Path) -> Result<(Vec<Cue>, Source)> {
+    let bytes = text::read_capped(input, MAX_SUBTITLE_BYTES)?;
+    let content = text::normalize_newlines(&text::decode(&bytes));
+    let vtt = input
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("vtt"));
+    let source = if vtt || content.starts_with("WEBVTT") {
+        Source::Vtt
+    } else {
+        Source::Srt
+    };
+    let cues = parse(&content, source);
+    if cues.is_empty() {
+        return Err(Error::Unreadable("no subtitles found in the file".into()));
+    }
+    Ok((cues, source))
+}
+
+/// The subtitles as a UTF-8 SRT with `\n` line breaks, for FFmpeg's subtitle drawing, which then
+/// never has to guess an encoding: VTT's tags and entities become SRT's. With `top`, every cue
+/// without a position of its own starts with `{\an8}` (top centre), the override SRT files borrow
+/// from ASS; it means the same in every libass version, unlike a forced style's alignment.
+pub(crate) fn to_srt(input: &Path, top: bool) -> Result<String> {
+    let (mut cues, source) = load(input)?;
+    if top {
+        for cue in &mut cues {
+            let placed = cue.lines.iter().any(|line| line.contains("{\\a"));
+            if let Some(first) = cue.lines.iter_mut().find(|line| !line.trim().is_empty()) {
+                if !placed {
+                    first.insert_str(0, "{\\an8}");
+                }
+            }
+        }
+    }
+    Ok(write_srt(&cues, source))
+}
+
+/// The first cue with words, for a preview.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Sample {
+    /// Seconds.
+    pub start: f64,
+    pub end: f64,
+    /// Its lines without tags, joined by `\n`.
+    pub text: String,
+}
+
+/// The first cue that shows any text.
+pub fn sample(input: &Path) -> Result<Option<Sample>> {
+    let (cues, source) = load(input)?;
+    Ok(cues.iter().find_map(|cue| {
+        let text = write_txt(std::slice::from_ref(cue), source);
+        let text = text.trim_end();
+        (!text.is_empty()).then(|| Sample {
+            start: cue.start as f64 / 1000.0,
+            end: cue.end as f64 / 1000.0,
+            text: text.to_owned(),
+        })
+    }))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

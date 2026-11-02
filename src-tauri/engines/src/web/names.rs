@@ -27,7 +27,7 @@ pub(super) struct Finished {
 /// A title as a file name without extension: no character Windows or macOS refuses or hides
 /// with, no direction marks that could disguise the extension, no name Windows reserves. Empty
 /// when nothing is left.
-pub(super) fn sanitize(title: &str) -> String {
+pub(crate) fn sanitize(title: &str) -> String {
     let mut name = String::with_capacity(title.len());
     let mut chars = title.chars().peekable();
     while let Some(c) = chars.next() {

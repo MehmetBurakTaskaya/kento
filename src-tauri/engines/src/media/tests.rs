@@ -837,6 +837,110 @@ fn redacts_video() {
     }
 }
 
+/// How many pixels of the frame at `at` seconds, in rows `rows`, are near white.
+fn bright_pixels(lab: &Lab, video: &Path, at: f64, rows: std::ops::Range<u32>) -> usize {
+    let png = frame(&lab.tools, video, at, 0).unwrap();
+    let image = image::load_from_memory(&png).unwrap().to_rgb8();
+    rows.flat_map(|y| (0..image.width()).map(move |x| (x, y)))
+        .filter(|&(x, y)| image.get_pixel(x, y).0.iter().all(|&c| c > 200))
+        .count()
+}
+
+#[test]
+fn burns_in_subtitles() {
+    let Some(lab) = Lab::new() else { return };
+    // A dark picture, so white subtitles stand out wherever they are drawn.
+    let mp4 = lab.ffmpeg(
+        &[
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=0x203040:s=320x180:r=25:d=3",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=f=440:r=48000:d=3",
+            "-ac",
+            "2",
+            "-c:a",
+            "aac",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-pix_fmt",
+            "yuv420p",
+        ],
+        &lab.path(&format!("{NAME}.mp4")),
+    );
+    // A name with a quote, a colon-free drive path, brackets and Turkish letters: none of it may
+    // reach the filter string.
+    let srt = lab.path("Altyazı 'ğüşıöç' [1] 🧪.srt");
+    fs::write(
+        &srt,
+        "1\r\n00:00:00,500 --> 00:00:02,500\r\nĞÜŞİÖÇ KENTO\r\n",
+    )
+    .unwrap();
+    let vtt = lab.path("Web; altyazı 🧪.vtt");
+    fs::write(&vtt, "WEBVTT\n\n00:00.500 --> 00:02.500\nÜSTTE KENTO\n").unwrap();
+
+    let burn = |subtitles: &Path, position: Position, name: &str| {
+        let out = lab.out(name);
+        let result = lab.tool(
+            Tool::BurnSubtitles {
+                size: 200.0,
+                position,
+            },
+            &[mp4.clone(), subtitles.to_path_buf()],
+            &out,
+        );
+        result.map(|_| out)
+    };
+    if !run::has_filter(lab.tools.ffmpeg.as_ref().unwrap(), "subtitles") {
+        // Homebrew's FFmpeg is built without libass.
+        assert!(matches!(
+            burn(&srt, Position::Bottom, "none.mp4"),
+            Err(Error::MissingCodec(Codec::Libass))
+        ));
+        eprintln!("skipped the subtitle burn-in checks: this FFmpeg has no libass");
+        return;
+    }
+
+    let bottom = burn(&srt, Position::Bottom, "bottom.mp4").unwrap();
+    let probe = lab.probe(&bottom);
+    assert_eq!(
+        (video_of(&probe).width, video_of(&probe).height),
+        (320, 180)
+    );
+    assert_eq!(audio_of(&probe).codec, "aac", "the sound is kept");
+    near(probe.info.duration, 3.0, 0.1);
+    assert_eq!(bright_pixels(&lab, &mp4, 1.5, 0..180), 0);
+    let low = bright_pixels(&lab, &bottom, 1.5, 120..180);
+    assert!(
+        low > 100,
+        "the text is drawn at the bottom: {low} bright pixels"
+    );
+    assert_eq!(bright_pixels(&lab, &bottom, 1.5, 0..90), 0);
+    // After its cue the subtitle is gone.
+    assert_eq!(bright_pixels(&lab, &bottom, 2.8, 0..180), 0);
+
+    let top = burn(&vtt, Position::Top, "top.mp4").unwrap();
+    let high = bright_pixels(&lab, &top, 1.5, 0..60);
+    assert!(
+        high > 100,
+        "the text is drawn at the top: {high} bright pixels"
+    );
+    assert_eq!(bright_pixels(&lab, &top, 1.5, 90..180), 0);
+
+    // A file without subtitles is refused before FFmpeg runs.
+    let empty = lab.path("boş.srt");
+    fs::write(&empty, "\n").unwrap();
+    assert!(matches!(
+        burn(&empty, Position::Bottom, "empty.mp4"),
+        Err(Error::Unreadable(_))
+    ));
+}
+
 #[test]
 fn normalizes_loudness() {
     let Some(lab) = Lab::new() else { return };

@@ -23,6 +23,9 @@ pub enum Error {
     /// Compress found nothing smaller than the original, or nothing under the target size.
     #[error("no smaller result")]
     NotSmaller,
+    /// Text recognition found no text at all.
+    #[error("no text found")]
+    NoText,
     /// A web download Kento does not or cannot do (SPEC 5.10).
     #[error("web download: {0}")]
     Web(WebProblem),
@@ -50,6 +53,11 @@ pub enum Codec {
     YtDlp,
     /// ONNX Runtime with the background-removal model, part of the Extras tools.
     BackgroundRemoval,
+    /// The system's text recognition for the chosen language: a Windows language pack, or a
+    /// language Apple's Vision reads on this version of macOS.
+    OcrLanguage,
+    /// FFmpeg's `subtitles` filter, which builds without libass (Homebrew's) lack.
+    Libass,
 }
 
 /// Why a link cannot be downloaded, each said plainly in the interface (SPEC 5.10).
@@ -98,6 +106,8 @@ impl fmt::Display for Codec {
             Codec::LibreOffice => "the Office tools (LibreOffice)",
             Codec::YtDlp => "the web download tools (yt-dlp)",
             Codec::BackgroundRemoval => "background removal (ONNX Runtime and its model)",
+            Codec::OcrLanguage => "text recognition for this language",
+            Codec::Libass => "FFmpeg's subtitle drawing (libass)",
         })
     }
 }

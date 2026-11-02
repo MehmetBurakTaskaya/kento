@@ -14,6 +14,7 @@ mod error;
 pub mod image;
 pub mod media;
 pub mod metadata;
+pub mod ocr;
 pub mod office;
 pub mod pdf;
 mod process;

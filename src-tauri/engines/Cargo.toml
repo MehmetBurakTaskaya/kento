@@ -49,6 +49,8 @@ unrar_sys = "0.5.8"
 
 # Text, subtitles, spreadsheets and QR codes
 rxing = { version = "0.9.3", default-features = false, features = ["qrcode", "decoders", "multi_barcode_readers", "encoding_rs"] }
+# Making QR codes: only the encoder; Kento draws the PNG and SVG itself.
+qrcode = { version = "0.14.1", default-features = false }
 calamine = "0.37.0"
 rust_xlsxwriter = "0.102.0"
 csv = "1.4"
@@ -70,8 +72,13 @@ ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "
 
 # Images: HEIC through the system codecs (WIC on Windows; ImageIO on macOS needs no crate).
 # Media: FFmpeg runs in a job object, so cancelling ends what it started.
+# OCR: Windows.Media.Ocr reads a SoftwareBitmap filled from a buffer, in a Globalization language.
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = [
+    "Globalization",
+    "Graphics_Imaging",
+    "Media_Ocr",
+    "Storage_Streams",
     "Win32_Foundation",
     "Win32_Graphics_Imaging",
     "Win32_Security",
@@ -84,6 +91,11 @@ windows = { version = "0.62.2", features = [
     "Win32_UI_Shell",
 ] }
 
+# OCR: Apple's Vision (VNRecognizeTextRequest) reading a PNG handed over as NSData.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.5"
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSData", "NSDictionary", "NSError", "NSObject", "NSString"] }
+objc2-vision = { version = "0.3.2", default-features = false, features = ["std", "VNObservation", "VNRecognizeTextRequest", "VNRequest", "VNRequestHandler"] }
+
 [dev-dependencies]
 tempfile = "3.27.0"
-qrcode = { version = "0.14.1", default-features = false }

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
-//! Reading QR codes from images and PDF pages (SPEC 5.5, "Read QR codes").
+//! Reading QR codes from images and PDF pages (SPEC 5.5, "Read QR codes"), and making them
+//! (`make`).
+
+mod make;
 
 use std::collections::HashSet;
 use std::fs;
@@ -11,6 +14,11 @@ use rxing::{BarcodeFormat, DecodeHints};
 use serde::Serialize;
 
 use crate::{Error, Options, Progress, Result};
+
+pub use make::{
+    check, contrast, encode, inverted, make, name_for, pixels, svg, Correction, Modules, Picture,
+    Problem, Style, MAX_SIZE, MIN_CONTRAST, MIN_SIZE, QUIET_ZONE,
+};
 
 /// Enough for a code a couple of centimetres wide on a printed page, without making a whole
 /// page slow to scan.

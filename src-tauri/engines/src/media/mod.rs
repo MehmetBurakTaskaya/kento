@@ -186,7 +186,15 @@ impl Default for Loudness {
     }
 }
 
-/// The 13 media tools of SPEC 5.5, with their choices.
+/// Where burned-in subtitles sit on the picture.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Position {
+    Bottom,
+    Top,
+}
+
+/// The 13 media tools of SPEC 5.5, with their choices, and Burn in subtitles [+].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "tool", rename_all = "kebab-case")]
 pub enum Tool {
@@ -235,6 +243,13 @@ pub enum Tool {
     AudioToVideo {
         visual: Visual,
     },
+    /// The second input, an SRT or VTT file, drawn into the picture of the first. `size` is a
+    /// percentage of the usual subtitle size (a line about 5.5 % of the picture's height),
+    /// from 50 to 250.
+    BurnSubtitles {
+        size: f64,
+        position: Position,
+    },
 }
 
 impl Tool {
@@ -254,6 +269,7 @@ impl Tool {
             Tool::Channels { .. } => "channels",
             Tool::RedactAudio { .. } => "redact-audio",
             Tool::AudioToVideo { .. } => "audio-to-video",
+            Tool::BurnSubtitles { .. } => "burn-subtitles",
         }
     }
 
@@ -278,7 +294,8 @@ impl Tool {
 
 /// One run of a media tool.
 pub struct ToolRun<'a> {
-    /// One file, or several for Merge videos (in order).
+    /// One file, several for Merge videos (in order), or the video and then its subtitles for
+    /// Burn in subtitles.
     pub inputs: &'a [PathBuf],
     pub tool: &'a Tool,
     /// The file to create, or an empty folder for `Tool::output() == Output::Folder`.

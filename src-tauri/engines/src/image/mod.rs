@@ -20,6 +20,9 @@ use std::sync::OnceLock;
 use crate::pdf::{self, PageImage, PageLayout};
 use crate::{Conversion, Error, Options, Output, Result};
 
+/// The system's fonts, loaded once; burned-in subtitles take theirs from here too.
+pub(crate) use svg::fonts as system_fonts;
+
 const INPUTS: &[&str] = &[
     "avif", "bmp", "gif", "heic", "jpg", "png", "svg", "tiff", "webp",
 ];
