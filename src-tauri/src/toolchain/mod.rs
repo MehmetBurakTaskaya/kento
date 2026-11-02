@@ -321,6 +321,7 @@ impl Toolchain {
             ffmpeg: path("ffmpeg"),
             ffprobe: path("ffprobe"),
             exiftool: path("exiftool"),
+            soffice: path("soffice"),
         }
     }
 
@@ -824,6 +825,7 @@ mod tests {
                 ffmpeg: Some(custom.clone()),
                 ffprobe: Some(system_ffprobe),
                 exiftool: None,
+                soffice: None,
             }
         );
 

@@ -455,6 +455,7 @@
   "suffix.compress": "compressed",
   "suffix.metadata": "metadata",
   "error.codec.exiftool": "This needs ExifTool from the Extras tools. Open Home and choose Complete setup.",
+  "error.codec.libreoffice": "This needs LibreOffice from the Office tools. Open Home and choose Complete setup.",
   "error.not-smaller": "Kento could not make this file smaller, or not under the size you chose.",
   "image.reading": "Reading the picture…",
   "image.noPreview": "No preview here; the result is still made from the original picture.",

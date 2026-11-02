@@ -29,6 +29,11 @@ impl AppPaths {
         self.data.join("settings.json")
     }
 
+    /// LibreOffice's profile for Kento's jobs, apart from the user's own (SPEC 7).
+    pub fn office_profile(&self) -> PathBuf {
+        self.data.join("office-profile")
+    }
+
     pub fn create(&self) -> std::io::Result<()> {
         for dir in [&self.data, &self.logs, &self.temp] {
             fs::create_dir_all(dir)?;

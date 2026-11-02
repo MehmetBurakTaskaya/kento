@@ -39,6 +39,8 @@ pub type Done = Box<dyn FnOnce(&[PathBuf]) + Send>;
 
 pub struct EngineJob {
     pub title: String,
+    /// Heavy for LibreOffice, which runs one job at a time.
+    pub lane: Lane,
     pub target: Target,
     /// The app's temp folder; each job works in its own folder inside.
     pub temp_root: PathBuf,
@@ -53,7 +55,7 @@ impl Job for EngineJob {
     }
 
     fn lane(&self) -> Lane {
-        Lane::Light
+        self.lane
     }
 
     fn run(self: Box<Self>, ctx: JobContext) -> BoxFuture<Result<Vec<PathBuf>, JobError>> {
@@ -197,6 +199,7 @@ mod tests {
         let (seen_tx, seen_rx) = mpsc::channel();
         queue.submit(Box::new(EngineJob {
             title: "Kento ğüşıöç 🧪.txt → MD".into(),
+            lane: Lane::Light,
             target: Target::File {
                 dir: dir.path().to_path_buf(),
                 stem: "Kento ğüşıöç 🧪".into(),
@@ -229,6 +232,7 @@ mod tests {
         let (queue, rx) = queue();
         queue.submit(Box::new(EngineJob {
             title: "archive.zip".into(),
+            lane: Lane::Heavy,
             target: Target::Folder {
                 dir: dir.path().to_path_buf(),
                 name: "archive".into(),

@@ -14,6 +14,7 @@ use crate::catalog::{self, Category, Format, Status, ToolGroup};
 use crate::error::{Error, Result};
 use crate::jobs::engine::{EngineJob, Explain, Target, Work};
 use crate::jobs::naming::{output_dir, OutputDir};
+use crate::jobs::Lane;
 use crate::library::Origin;
 use crate::settings::OutputLocation;
 use crate::{i18n, AppState};
@@ -128,7 +129,7 @@ fn missing(state: &AppState, group: ToolGroup) -> Option<ToolGroup> {
         ToolGroup::Core => true,
         ToolGroup::Media => tools.ffmpeg.is_some() && tools.ffprobe.is_some(),
         ToolGroup::Extras => tools.exiftool.is_some(),
-        ToolGroup::Office => false,
+        ToolGroup::Office => tools.soffice.is_some(),
     };
     (!ready).then_some(group)
 }
@@ -266,6 +267,7 @@ pub(crate) struct Context {
     fallback: PathBuf,
     temp: PathBuf,
     tools: engines::Tools,
+    office_profile: PathBuf,
 }
 
 impl Context {
@@ -284,6 +286,7 @@ impl Context {
             fallback,
             temp: state.paths.temp.clone(),
             tools: engine_tools(state),
+            office_profile: state.paths.office_profile(),
         })
     }
 
@@ -317,10 +320,12 @@ impl Context {
         };
         let (from_id, to_id) = (from.id, to.id);
         let tools = self.tools.clone();
+        let office_profile = self.office_profile.clone();
         let input = path.clone();
         let work: Work = Box::new(move |dest, temp, progress| {
             let options = Options {
                 tools,
+                office_profile: Some(office_profile),
                 ..Options::default()
             };
             engines::convert(&engines::Conversion {
@@ -334,12 +339,19 @@ impl Context {
             })
             .map(|_| ())
         });
-        self.submit(
+        let lane = if engines::heavy(from_id, to_id) {
+            Lane::Heavy
+        } else {
+            Lane::Light
+        };
+        self.enqueue(
+            lane,
             format!("{name} → {}", to.label),
             target,
             work,
             Origin::Convert,
             Some(path),
+            None,
         )
     }
 
@@ -365,10 +377,25 @@ impl Context {
         source: Option<PathBuf>,
         after: Option<Box<dyn FnOnce() + Send>>,
     ) -> u64 {
+        self.enqueue(Lane::Light, title, target, work, origin, source, after)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn enqueue(
+        &self,
+        lane: Lane,
+        title: String,
+        target: Target,
+        work: Work,
+        origin: Origin,
+        source: Option<PathBuf>,
+        after: Option<Box<dyn FnOnce() + Send>>,
+    ) -> u64 {
         let app = self.app.clone();
         let state = self.app.state::<AppState>();
         state.queue.submit(Box::new(EngineJob {
             title,
+            lane,
             target,
             temp_root: self.temp.clone(),
             work,
@@ -419,6 +446,7 @@ pub(crate) fn explainer(lang: &str) -> Explain {
             EngineError::MissingCodec(Codec::Pdfium) => "error.codec.pdfium",
             EngineError::MissingCodec(Codec::Ffmpeg) => "error.codec.ffmpeg",
             EngineError::MissingCodec(Codec::ExifTool) => "error.codec.exiftool",
+            EngineError::MissingCodec(Codec::LibreOffice) => "error.codec.libreoffice",
             EngineError::NotSmaller => "error.not-smaller",
             EngineError::Limit(_) => "error.limit",
             EngineError::Io(_) => "error.io",

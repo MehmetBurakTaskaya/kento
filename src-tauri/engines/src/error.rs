@@ -41,6 +41,8 @@ pub enum Codec {
     Ffmpeg,
     /// ExifTool, one of the Extras tools downloaded on request.
     ExifTool,
+    /// LibreOffice, the Office tools downloaded on request or found on the computer.
+    LibreOffice,
 }
 
 impl fmt::Display for Codec {
@@ -50,6 +52,7 @@ impl fmt::Display for Codec {
             Codec::Pdfium => "PDFium",
             Codec::Ffmpeg => "the media tools (FFmpeg)",
             Codec::ExifTool => "ExifTool",
+            Codec::LibreOffice => "the Office tools (LibreOffice)",
         })
     }
 }

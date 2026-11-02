@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-//! Kento's engines: every conversion and tool. Most need nothing outside Kento; media runs FFmpeg
-//! and image metadata ExifTool, both downloaded on request or found on the computer.
+//! Kento's engines: every conversion and tool. Most need nothing outside Kento; media runs FFmpeg,
+//! image metadata ExifTool and office documents LibreOffice, each downloaded on request or found
+//! on the computer.
 //!
 //! The crate knows nothing about windows, settings or the job queue. The app hands it paths that
 //! it has already claimed (see the app's `jobs::naming`), options and a progress handle, and runs
@@ -12,6 +13,7 @@ mod error;
 pub mod image;
 pub mod media;
 pub mod metadata;
+pub mod office;
 pub mod pdf;
 pub mod qr;
 pub mod sheet;
@@ -105,6 +107,9 @@ pub struct Options {
     pub archive_limits: archive::Limits,
     /// The external tools found or installed on this computer.
     pub tools: Tools,
+    /// LibreOffice's user profile, kept between jobs so only the first start is slow. Office jobs
+    /// run one at a time, so they can share it; without one each job makes its own in `temp`.
+    pub office_profile: Option<PathBuf>,
 }
 
 /// Where the external tools are (SPEC 4.2): downloaded on request or found on the system. Engines
@@ -114,6 +119,8 @@ pub struct Tools {
     pub ffmpeg: Option<PathBuf>,
     pub ffprobe: Option<PathBuf>,
     pub exiftool: Option<PathBuf>,
+    /// LibreOffice's `soffice` program (`soffice.exe` on Windows).
+    pub soffice: Option<PathBuf>,
 }
 
 impl Tools {
@@ -134,6 +141,12 @@ impl Tools {
             .as_deref()
             .ok_or(Error::MissingCodec(Codec::ExifTool))
     }
+
+    pub fn soffice(&self) -> Result<&Path> {
+        self.soffice
+            .as_deref()
+            .ok_or(Error::MissingCodec(Codec::LibreOffice))
+    }
 }
 
 impl Default for Options {
@@ -148,6 +161,7 @@ impl Default for Options {
             ico_sizes: vec![16, 24, 32, 48, 64, 128, 256],
             archive_limits: archive::Limits::default(),
             tools: Tools::default(),
+            office_profile: None,
         }
     }
 }
@@ -182,7 +196,13 @@ pub fn output(from: &str, to: &str) -> Option<Output> {
         Engine::Subtitle => Output::File,
         Engine::Sheet => Output::File,
         Engine::Media => media::output(from, to),
+        Engine::Office => office::output(from, to),
     })
+}
+
+/// Whether the route runs LibreOffice, which the job queue runs one job at a time (SPEC 5.13).
+pub fn heavy(from: &str, to: &str) -> bool {
+    engine_for(from, to) == Some(Engine::Office)
 }
 
 /// Runs a conversion and returns the files it wrote: the destination file, or the files inside
@@ -200,6 +220,7 @@ pub fn convert(job: &Conversion) -> Result<Vec<PathBuf>> {
         Engine::Subtitle => subtitle::convert(job),
         Engine::Sheet => sheet::convert(job),
         Engine::Media => media::convert(job),
+        Engine::Office => office::convert(job),
     }
 }
 
@@ -212,10 +233,12 @@ enum Engine {
     Subtitle,
     Sheet,
     Media,
+    Office,
 }
 
 fn engine_for(from: &str, to: &str) -> Option<Engine> {
     // PDF input goes to the PDF engine; image input (including image → PDF) to the image engine.
+    // LibreOffice comes last: it takes only what no engine inside Kento does.
     [
         (Engine::Pdf, pdf::supports(from, to)),
         (Engine::Image, image::supports(from, to)),
@@ -224,6 +247,7 @@ fn engine_for(from: &str, to: &str) -> Option<Engine> {
         (Engine::Subtitle, subtitle::supports(from, to)),
         (Engine::Sheet, sheet::supports(from, to)),
         (Engine::Media, media::supports(from, to)),
+        (Engine::Office, office::supports(from, to)),
     ]
     .into_iter()
     .find_map(|(engine, yes)| yes.then_some(engine))

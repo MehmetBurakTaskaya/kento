@@ -589,6 +589,7 @@ mod tests {
                 ffmpeg: Some(ffmpeg),
                 ffprobe: Some(ffprobe),
                 exiftool: None,
+                soffice: None,
             }),
             _ => {
                 let required = std::env::var("KENTO_REQUIRE_FFMPEG").is_ok_and(|v| v == "1");
