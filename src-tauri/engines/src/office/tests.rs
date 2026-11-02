@@ -759,12 +759,12 @@ fn office_unreadable_documents_say_so() {
     }
     noise[..4].copy_from_slice(b"\0\x01\0\x02");
     let bad = lab.write(&format!("{NAME}.xlsx"), &noise);
+    // LibreOffice would open the noise as text; Kento sees it is no package first.
     let result = lab.try_convert(&bad, "xlsx", "ods", &Progress::none());
-    match result {
-        Err(Error::Unreadable(message)) => has(&message, "LibreOffice"),
-        Err(Error::Other(message)) => has(&message, "LibreOffice"),
-        other => panic!("LibreOffice cannot read noise: {other:?}"),
-    }
+    assert!(
+        matches!(result, Err(Error::Unreadable(_))),
+        "noise is no workbook: {result:?}"
+    );
     // A password-protected Word file is recognised before LibreOffice starts.
     let locked = lab.write(
         &format!("{NAME} şifreli.docx"),

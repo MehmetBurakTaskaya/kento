@@ -8,6 +8,10 @@
 //! - An encrypted OpenDocument file names `encryption-data` in `META-INF/manifest.xml`.
 //!
 //! Other formats (DOC and XLS with a password, iWork) fail in LibreOffice as unreadable.
+//!
+//! Packages are checked for their container too: LibreOffice opens what it cannot recognise as
+//! plain text, so a damaged XLSX would otherwise turn into a sheet of noise. DOC, XLS and PPT
+//! stay with LibreOffice, since files saved as HTML or RTF under those names are common.
 
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -29,6 +33,18 @@ pub(super) fn check(path: &Path, from: &str) -> Result<()> {
     let mut file = File::open(path)?;
     let read = file.read(&mut head)?;
     let head = &head[..read];
+    let container = match from {
+        // An encrypted (or old, renamed) Office file is a compound file.
+        "docx" | "xlsx" | "pptx" => head.starts_with(&ZIP) || head == COMPOUND_FILE,
+        "odt" | "ods" | "odp" | "pages" | "numbers" | "key" => head.starts_with(&ZIP),
+        _ => true,
+    };
+    if !container {
+        return Err(Error::Unreadable(format!(
+            "this is not a {} document: it does not start as one",
+            from.to_uppercase()
+        )));
+    }
     let encrypted = if head == COMPOUND_FILE {
         matches!(from, "docx" | "xlsx" | "pptx" | "doc" | "xls" | "ppt")
             && has_stream(file, &["EncryptedPackage", "EncryptedSummary"])?
@@ -170,9 +186,45 @@ pub(super) mod tests {
             )),
         );
         assert!(matches!(check(&sealed, "odt"), Err(Error::Encrypted)));
-        // Other kinds and short files pass through to LibreOffice.
+        // Other kinds pass through to LibreOffice.
         check(&sealed, "docx").unwrap();
-        check(&path("kısa.docx", b"PK"), "docx").unwrap();
-        check(&path("boş.xlsx", b""), "xlsx").unwrap();
+    }
+
+    #[test]
+    fn office_packages_that_are_no_package_are_unreadable() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = |name: &str, bytes: &[u8]| {
+            let path = dir.path().join(name);
+            fs::write(&path, bytes).unwrap();
+            path
+        };
+        let noise = path("gürültü 🧪.xlsx", b"\0\x01\0\x02 not a workbook");
+        for from in [
+            "xlsx", "docx", "pptx", "ods", "odt", "odp", "pages", "numbers", "key",
+        ] {
+            assert!(
+                matches!(check(&noise, from), Err(Error::Unreadable(_))),
+                "{from}"
+            );
+        }
+        assert!(matches!(
+            check(&path("kısa.docx", b"PK"), "docx"),
+            Err(Error::Unreadable(_))
+        ));
+        assert!(matches!(
+            check(&path("boş.xlsx", b""), "xlsx"),
+            Err(Error::Unreadable(_))
+        ));
+        // A Word 97 file renamed .docx is still a document LibreOffice reads.
+        let renamed = path("eski.docx", &compound_file(&["WordDocument", "1Table"]));
+        check(&renamed, "docx").unwrap();
+        // Legacy names often hold HTML or RTF, and text formats are anything.
+        let html = path(
+            "tablo.xls",
+            b"<html><table><tr><td>1</td></tr></table></html>",
+        );
+        check(&html, "xls").unwrap();
+        check(&noise, "doc").unwrap();
+        check(&noise, "csv").unwrap();
     }
 }
