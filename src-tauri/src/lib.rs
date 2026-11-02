@@ -6,6 +6,7 @@ pub mod actions;
 pub mod automation;
 pub mod bgremove;
 pub mod catalog;
+pub mod cli;
 pub mod commands;
 pub mod compress;
 mod drops;

@@ -2921,9 +2921,11 @@ dependencies = [
 name = "kento"
 version = "0.1.0"
 dependencies = [
+ "dirs 6.0.0",
  "drag",
  "flate2",
  "kento-engines",
+ "libc",
  "notify",
  "objc2",
  "objc2-app-kit",
