@@ -46,6 +46,34 @@ pub(super) fn load(path: &Path, from: &str, options: &Options) -> Result<Decoded
     .unwrap_or_else(|_| Err(Error::Unreadable("the decoder stopped on this file".into())))
 }
 
+/// The upright size. Raster formats are read only as far as their header; the others are decoded.
+pub(super) fn size(path: &Path, from: &str, options: &Options) -> Result<[u32; 2]> {
+    let Kind::Raster(format) = sniff(path, from)? else {
+        let image = load(path, from, options)?.image;
+        return Ok([image.width(), image.height()]);
+    };
+    panic::catch_unwind(AssertUnwindSafe(|| {
+        let mut reader = ImageReader::with_format(BufReader::new(File::open(path)?), format);
+        reader.limits(limits());
+        let mut decoder = reader.into_decoder().map_err(read_error)?;
+        let (width, height) = decoder.dimensions();
+        check_size(width, height)?;
+        let turned = matches!(
+            decoder.orientation().unwrap_or(Orientation::NoTransforms),
+            Orientation::Rotate90
+                | Orientation::Rotate270
+                | Orientation::Rotate90FlipH
+                | Orientation::Rotate270FlipH
+        );
+        Ok(if turned {
+            [height, width]
+        } else {
+            [width, height]
+        })
+    }))
+    .unwrap_or_else(|_| Err(Error::Unreadable("the decoder stopped on this file".into())))
+}
+
 /// The content decides, not the extension: phones and websites often save one format under
 /// another's name.
 fn sniff(path: &Path, from: &str) -> Result<Kind> {

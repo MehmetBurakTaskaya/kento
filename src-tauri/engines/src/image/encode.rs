@@ -30,16 +30,35 @@ pub(super) fn write(decoded: Decoded, to: &str, options: &Options, dest: &Path) 
         image, icc, lossy, ..
     } = decoded;
     match to {
-        "jpg" => jpeg(&image, icc, options, dest),
+        "jpg" | "webp" | "avif" | "heic" => {
+            fs::write(dest, bytes(&image, icc, lossy, to, options)?)?;
+            Ok(())
+        }
         "png" => png(image, icc, dest),
-        "webp" => webp(&image, icc, lossy, options, dest),
-        "avif" => avif(&image, options, dest),
         "bmp" => bmp(&image, options, dest),
         "tiff" => tiff(image, icc, dest),
         "gif" => gif(&image, dest),
         "ico" => ico(&image, &options.ico_sizes, dest),
-        "heic" => heic(&image, icc, options, dest),
         other => Err(Error::Other(format!("no image writer for {other}"))),
+    }
+}
+
+/// The formats with a quality setting, encoded in memory: Compress searches the quality on these.
+pub(super) fn bytes(
+    image: &DynamicImage,
+    icc: Option<Vec<u8>>,
+    lossy: bool,
+    to: &str,
+    options: &Options,
+) -> Result<Vec<u8>> {
+    match to {
+        "jpg" => jpeg(image, icc, options),
+        "webp" => webp(image, icc, lossy, options),
+        "avif" => avif(image, options),
+        "heic" => heic(image, icc, options),
+        other => Err(Error::Other(format!(
+            "no in-memory image writer for {other}"
+        ))),
     }
 }
 
@@ -60,7 +79,7 @@ fn finish(out: BufWriter<File>) -> Result<()> {
     Ok(())
 }
 
-fn is_gray(image: &DynamicImage) -> bool {
+pub(super) fn is_gray(image: &DynamicImage) -> bool {
     matches!(
         image.color(),
         ColorType::L8 | ColorType::L16 | ColorType::La8 | ColorType::La16
@@ -79,7 +98,7 @@ fn is_opaque(image: &DynamicImage) -> bool {
 }
 
 /// An alpha channel in which every pixel is opaque only costs space.
-fn without_opaque_alpha(image: DynamicImage) -> DynamicImage {
+pub(super) fn without_opaque_alpha(image: DynamicImage) -> DynamicImage {
     if !image.has_alpha() || !is_opaque(&image) {
         return image;
     }
@@ -117,15 +136,15 @@ fn flatten(image: &DynamicImage, background: [u8; 3]) -> DynamicImage {
 
 /// A profile is kept only when it describes the channels written (RGB or gray); a CMYK JPEG's
 /// profile, for one, no longer fits its RGB pixels.
-fn profile(icc: Option<Vec<u8>>, gray: bool) -> Option<Vec<u8>> {
+pub(super) fn profile(icc: Option<Vec<u8>>, gray: bool) -> Option<Vec<u8>> {
     let icc = icc?;
     let wanted: &[u8] = if gray { b"GRAY" } else { b"RGB " };
     (icc.len() >= 128 && icc.get(16..20) == Some(wanted)).then_some(icc)
 }
 
-fn jpeg(image: &DynamicImage, icc: Option<Vec<u8>>, options: &Options, dest: &Path) -> Result<()> {
+fn jpeg(image: &DynamicImage, icc: Option<Vec<u8>>, options: &Options) -> Result<Vec<u8>> {
     let flat = flatten(image, options.background);
-    let mut out = create(dest)?;
+    let mut out = Vec::new();
     let mut encoder = JpegEncoder::new_with_quality(&mut out, options.jpeg_quality.clamp(1, 100));
     if let Some(icc) = profile(icc, is_gray(&flat)) {
         // Encoders that cannot embed a profile still write the pixels.
@@ -135,7 +154,7 @@ fn jpeg(image: &DynamicImage, icc: Option<Vec<u8>>, options: &Options, dest: &Pa
     encoder
         .write_image(flat.as_bytes(), width, height, flat.color().into())
         .map_err(encode_error)?;
-    finish(out)
+    Ok(out)
 }
 
 fn png(image: DynamicImage, icc: Option<Vec<u8>>, dest: &Path) -> Result<()> {
@@ -162,8 +181,7 @@ fn webp(
     icc: Option<Vec<u8>>,
     lossy: bool,
     options: &Options,
-    dest: &Path,
-) -> Result<()> {
+) -> Result<Vec<u8>> {
     let (width, height) = image.dimensions();
     if width > WEBP_MAX_SIDE || height > WEBP_MAX_SIDE {
         return Err(Error::Limit(format!(
@@ -185,12 +203,10 @@ fn webp(
     let encoded = webp::Encoder::new(&pixels, layout, width, height)
         .encode_advanced(&config)
         .map_err(|error| Error::Other(format!("WEBP encoding failed: {error:?}")))?;
-    let data = match profile(icc, false) {
+    Ok(match profile(icc, false) {
         Some(icc) => with_icc_profile(&encoded, &icc, width, height, alpha),
         None => encoded.to_vec(),
-    };
-    fs::write(dest, data)?;
-    Ok(())
+    })
 }
 
 /// libwebp's simple API writes no colour profile, so the file is rebuilt as an extended WEBP:
@@ -233,7 +249,7 @@ fn push_chunk(out: &mut Vec<u8>, kind: &[u8], payload: &[u8]) {
     }
 }
 
-fn avif(image: &DynamicImage, options: &Options, dest: &Path) -> Result<()> {
+fn avif(image: &DynamicImage, options: &Options) -> Result<Vec<u8>> {
     let (width, height) = (image.width() as usize, image.height() as usize);
     let quality = f32::from(options.avif_quality.clamp(1, 100));
     let encoder = ravif::Encoder::new()
@@ -256,8 +272,7 @@ fn avif(image: &DynamicImage, options: &Options, dest: &Path) -> Result<()> {
         encoder.encode_rgb(ravif::Img::new(&pixels[..], width, height))
     }
     .map_err(|error| Error::Other(format!("AVIF encoding failed: {error}")))?;
-    fs::write(dest, encoded.avif_file)?;
-    Ok(())
+    Ok(encoded.avif_file)
 }
 
 fn bmp(image: &DynamicImage, options: &Options, dest: &Path) -> Result<()> {
@@ -366,13 +381,11 @@ fn square_icon(image: &DynamicImage, size: u32) -> RgbaImage {
 }
 
 /// HEIC is written without alpha: the system encoders differ in how they treat it.
-fn heic(image: &DynamicImage, icc: Option<Vec<u8>>, options: &Options, dest: &Path) -> Result<()> {
+fn heic(image: &DynamicImage, icc: Option<Vec<u8>>, options: &Options) -> Result<Vec<u8>> {
     let flat = flatten(image, options.background).to_rgb8();
     let icc = profile(icc, false);
     let quality = f32::from(options.jpeg_quality.clamp(1, 100)) / 100.0;
-    let data = heic_bytes(&flat, icc.as_deref(), quality)?;
-    fs::write(dest, data)?;
-    Ok(())
+    heic_bytes(&flat, icc.as_deref(), quality)
 }
 
 #[cfg(windows)]

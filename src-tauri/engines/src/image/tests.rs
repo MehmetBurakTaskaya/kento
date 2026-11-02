@@ -267,7 +267,7 @@ fn alpha_is_flattened_onto_white() {
 }
 
 /// A JPEG whose EXIF says "rotate 90° clockwise to display" (orientation 6).
-fn rotated_jpeg() -> Vec<u8> {
+pub(super) fn rotated_jpeg() -> Vec<u8> {
     // Stored 40×20: red on the left, blue on the right.
     let stored = RgbImage::from_fn(40, 20, |x, _| Rgb(if x < 20 { RED } else { BLUE }));
     let mut plain = Vec::new();
@@ -373,7 +373,7 @@ fn webp_is_lossy_only_from_photos() {
 }
 
 /// A stand-in RGB display profile: only the header fields the writers look at are real.
-fn fake_profile() -> Vec<u8> {
+pub(super) fn fake_profile() -> Vec<u8> {
     let mut icc = vec![0u8; 256];
     icc[0..4].copy_from_slice(&256u32.to_be_bytes());
     icc[12..16].copy_from_slice(b"mntr");
