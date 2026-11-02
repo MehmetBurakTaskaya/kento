@@ -25,6 +25,7 @@ impl Rect {
     }
 
     /// From the edges, as Win32's RECT gives them.
+    #[cfg_attr(not(windows), allow(dead_code))]
     pub fn from_edges(left: i32, top: i32, right: i32, bottom: i32) -> Self {
         Self::new(left, top, (right - left).max(0), (bottom - top).max(0))
     }
@@ -60,6 +61,7 @@ impl Rect {
 /// bounds give the visible part), so a window placed by its outer rectangle would leave a gap of
 /// several pixels beside its neighbour.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(not(windows), allow(dead_code))]
 pub struct Margins {
     pub left: i32,
     pub top: i32,
@@ -67,6 +69,7 @@ pub struct Margins {
     pub bottom: i32,
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 impl Margins {
     /// The margins between a window's outer rectangle and its visible frame inside it.
     pub fn between(outer: Rect, visible: Rect) -> Self {
