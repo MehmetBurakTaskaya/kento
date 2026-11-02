@@ -67,13 +67,21 @@ jobs:
       - name: Clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets -- -D warnings
 
-      # FFmpeg and ExifTool for the media and metadata tests; the app downloads its own pinned builds
-      # on request.
-      - name: FFmpeg and ExifTool
+      # FFmpeg and ExifTool for the media and metadata tests, yt-dlp and Deno for finding the web
+      # download tools; the app downloads its own pinned builds on request.
+      - name: FFmpeg, ExifTool, yt-dlp and Deno
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then choco install ffmpeg exiftool -y --no-progress; else brew install ffmpeg exiftool; fi
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            choco install ffmpeg exiftool -y --no-progress
+            choco install yt-dlp deno -y --no-progress
+          else
+            brew install ffmpeg exiftool
+            brew install yt-dlp deno
+          fi
           ffmpeg -hide_banner -version | head -1
           exiftool -ver
+          echo "yt-dlp $(yt-dlp --version)"
+          DENO_NO_UPDATE_CHECK=1 deno --version
 
       # LibreOffice for the office tests and for finding an installed copy. On Windows soffice.exe
       # prints nothing, so its console twin soffice.com answers.
@@ -94,6 +102,9 @@ jobs:
           KENTO_REQUIRE_EXIFTOOL: '1'
           KENTO_REQUIRE_SOFFICE: '1'
           KENTO_SOFFICE: ${{ runner.os == 'Windows' && 'C:\Program Files\LibreOffice\program\soffice.exe' || '/Applications/LibreOffice.app/Contents/MacOS/soffice' }}
+          # yt-dlp and Deno are on PATH (Chocolatey's shims, Homebrew's bin), so no KENTO_YTDLP or
+          # KENTO_DENO is needed.
+          KENTO_REQUIRE_YTDLP: '1'
         run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
 
       - name: Catalog docs are current
