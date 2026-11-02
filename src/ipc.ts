@@ -365,13 +365,21 @@ export interface ToolGroupStatus {
   ready: boolean;
   /** Where each tool was found, when it was. */
   tools: { id: string; path: string | null; version: string | null; source: 'system' | 'kento' | 'custom' | null }[];
-  /** Bytes to download for this computer; 0 when nothing is offered yet. */
+  /** Bytes to download for this computer, only for the tools missing or outdated; 0 when nothing
+   *  is offered or needed. */
   download: number;
   available: boolean;
   /** A tool in use comes from an earlier Kento download than the one this version pins. */
   outdated: boolean;
   /** Kento's own downloads of this group are on disk. */
   downloaded: boolean;
+}
+
+/** What "Update yt-dlp" did: a newer release is in place, or the copy in use is the newest. */
+export interface YtDlpUpdate {
+  outcome: 'updated' | 'current';
+  version: string;
+  status: ToolGroupStatus[];
 }
 
 export type InstallProgress =
@@ -475,6 +483,9 @@ export interface Api {
   toolsChoose(tool: string): Promise<ToolGroupStatus[] | null>;
   /** Forgets a chosen program and finds the tool by itself again. */
   toolsClearPath(tool: string): Promise<ToolGroupStatus[]>;
+  /** Asks GitHub for the newest yt-dlp and puts it beside Kento's own copy, checked against its
+   *  published SHA-256. */
+  toolsUpdateYtdlp(): Promise<YtDlpUpdate>;
   onToolsProgress(handler: (progress: InstallProgress) => void): Promise<UnlistenFn>;
 }
 
@@ -583,6 +594,7 @@ const tauriApi: Api = {
   toolsRemove: (group) => invoke('tools_remove', { group }),
   toolsChoose: (tool) => invoke('tools_choose', { tool }),
   toolsClearPath: (tool) => invoke('tools_clear_path', { tool }),
+  toolsUpdateYtdlp: () => invoke('tools_update_ytdlp'),
   onToolsProgress: (handler) => listen<InstallProgress>('tools-progress', (event) => handler(event.payload)),
 };
 
@@ -815,6 +827,11 @@ export function browserApi(params: URLSearchParams): Api {
     toolsRemove: async () => demoTools(false),
     toolsChoose: async () => null,
     toolsClearPath: async () => demoTools(params.get('tools') === 'ready'),
+    toolsUpdateYtdlp: async () => ({
+      outcome: 'current',
+      version: '2026.10.26',
+      status: demoTools(params.get('tools') === 'ready'),
+    }),
     onToolsProgress: async () => () => {},
   };
 }
@@ -846,18 +863,25 @@ const DEMO_TARGETS: Partial<Record<Category, string[]>> = {
 };
 
 function demoTools(ready: boolean): ToolGroupStatus[] {
-  const found = (id: string) => ({
+  // FFmpeg under the group's version; yt-dlp and Deno each in a folder of their own version.
+  const found = (id: string, folder: string, version: string) => ({
     id,
-    path: ready ? `C:\\Users\\me\\AppData\\Local\\Kento\\tools\\media\\9.0.2\\${id}.exe` : null,
-    version: ready ? '9.0.2-essentials_build-www.gyan.dev' : null,
+    path: ready ? `C:\\Users\\me\\AppData\\Local\\Kento\\tools\\media\\${folder}\\${id}.exe` : null,
+    version: ready ? version : null,
     source: ready ? ('kento' as const) : null,
   });
   return [
     {
       id: 'media',
       ready,
-      tools: [found('ffmpeg'), found('ffprobe')],
-      download: 92_000_000,
+      tools: [
+        found('ffmpeg', '9.0.2', '9.0.2'),
+        found('ffprobe', '9.0.2', '9.0.2'),
+        found('yt-dlp', 'yt-dlp\\2026.10.26', '2026.10.26'),
+        found('deno', 'deno\\2.9.8', '2.9.8'),
+      ],
+      // The pinned Windows downloads: FFmpeg's 7z, yt-dlp.exe and Deno's zip; nothing once ready.
+      download: ready ? 0 : 35_430_500 + 23_575_744 + 42_917_472,
       available: true,
       outdated: false,
       downloaded: ready,
@@ -876,7 +900,7 @@ function demoTools(ready: boolean): ToolGroupStatus[] {
         },
       ],
       // The pinned Windows installer.
-      download: 375_934_976,
+      download: ready ? 0 : 375_934_976,
       available: true,
       outdated: false,
       downloaded: ready,
@@ -892,7 +916,7 @@ function demoTools(ready: boolean): ToolGroupStatus[] {
           source: ready ? ('kento' as const) : null,
         },
       ],
-      download: 11_198_064,
+      download: ready ? 0 : 11_198_064,
       available: true,
       outdated: false,
       downloaded: ready,

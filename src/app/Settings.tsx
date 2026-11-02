@@ -86,25 +86,52 @@ function Switch({ label, checked, onChange }: { label: string; checked: boolean;
 const TOOL_NAMES: Record<string, string> = {
   ffmpeg: 'FFmpeg',
   ffprobe: 'ffprobe',
+  'yt-dlp': 'yt-dlp',
+  deno: 'Deno',
   soffice: 'LibreOffice',
   exiftool: 'ExifTool',
 };
 
 /** Each optional tool's state, version and path; choosing a program, checking again, updating and
- *  removing Kento's own download (SPEC 4.2, 5.17). */
+ *  removing Kento's own download, and updating Kento's yt-dlp on its own (SPEC 4.2, 5.17). */
 function ToolSettings() {
   const { t } = useTranslation();
   const { openSetup, language } = useApp();
   const [groups, setGroups] = useToolStatus();
   const [busy, setBusy] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const act = (work: () => Promise<ToolGroupStatus[] | null>) => {
     setBusy(true);
     setError(null);
+    setNotice(null);
     work()
       .then((next) => next && setGroups(next))
       .catch((err: unknown) => setError(String(err)))
       .finally(() => setBusy(false));
+  };
+  // The only time Kento asks the network about yt-dlp: when this is clicked.
+  const updateYtdlp = () => {
+    setBusy(true);
+    setUpdating(true);
+    setError(null);
+    setNotice(null);
+    api
+      .toolsUpdateYtdlp()
+      .then((result) => {
+        setGroups(result.status);
+        setNotice(
+          t(result.outcome === 'updated' ? 'settings.tools.ytdlpUpdated' : 'settings.tools.ytdlpCurrent', {
+            version: result.version,
+          }),
+        );
+      })
+      .catch((err: unknown) => setError(String(err)))
+      .finally(() => {
+        setBusy(false);
+        setUpdating(false);
+      });
   };
 
   return (
@@ -127,6 +154,9 @@ function ToolSettings() {
                   <>
                     <span>
                       {tool.version} · {t(`settings.tools.source.${tool.source ?? 'system'}`)}
+                      {tool.id === 'yt-dlp' && tool.source !== 'kento' && (
+                        <span className="muted"> · {t('settings.tools.ytdlpElsewhere')}</span>
+                      )}
                     </span>
                     <bdi className="folder-path muted" title={tool.path}>
                       {tool.path}
@@ -137,6 +167,11 @@ function ToolSettings() {
                 )}
               </span>
               <span className="tool-buttons">
+                {tool.id === 'yt-dlp' && tool.source === 'kento' && (
+                  <button type="button" className="button small" disabled={busy} onClick={updateYtdlp}>
+                    {t(updating ? 'settings.tools.ytdlpChecking' : 'settings.tools.updateYtdlp')}
+                  </button>
+                )}
                 {tool.source === 'custom' && (
                   <button
                     type="button"
@@ -193,6 +228,11 @@ function ToolSettings() {
         </div>
       ))}
       {error && <p className="error-text">{error}</p>}
+      {notice && (
+        <p className="muted note" role="status">
+          {notice}
+        </p>
+      )}
       <p className="muted note">{t('settings.tools.note')}</p>
     </Group>
   );
