@@ -67,16 +67,19 @@ jobs:
       - name: Clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets -- -D warnings
 
-      # FFmpeg for the media engine's tests; the app downloads its own pinned build on request.
-      - name: FFmpeg
+      # FFmpeg and ExifTool for the media and metadata tests; the app downloads its own pinned builds
+      # on request.
+      - name: FFmpeg and ExifTool
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then choco install ffmpeg -y --no-progress; else brew install ffmpeg; fi
+          if [ "$RUNNER_OS" = "Windows" ]; then choco install ffmpeg exiftool -y --no-progress; else brew install ffmpeg exiftool; fi
           ffmpeg -hide_banner -version | head -1
+          exiftool -ver
 
       - name: Rust tests
         env:
           KENTO_REQUIRE_PDFIUM: '1'
           KENTO_REQUIRE_FFMPEG: '1'
+          KENTO_REQUIRE_EXIFTOOL: '1'
         run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
 
       - name: Catalog docs are current
