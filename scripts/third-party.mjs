@@ -21,7 +21,8 @@ const byPackage = (a, b) => byText(a.name, b.name) || byText(a.version, b.versio
 
 // ---------------------------------------------------------------------------------------------
 // Rust: the crates the Windows and macOS builds link (normal dependencies only: build scripts,
-// tests and dev tools do not ship), as Cargo.lock pins them.
+// procedural macros, tests and dev tools do not ship), as Cargo.lock pins them. Procedural macros
+// would also bring the dependencies of the computer running the script, whatever the target.
 
 const TARGETS = {
   'x86_64-pc-windows-msvc': 'Windows',
@@ -49,7 +50,7 @@ for (const [target, platform] of Object.entries(TARGETS)) {
     '--locked',
     '--workspace',
     '--edges',
-    'normal',
+    'normal,no-proc-macro',
     '--target',
     target,
     '--prefix',

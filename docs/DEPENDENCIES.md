@@ -6,7 +6,7 @@ texts are in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
 
 |  | Count |
 | --- | ---: |
-| Rust crates | 520 |
+| Rust crates | 438 |
 | npm packages | 16 |
 | Bundled library (PDFium) | 1 |
 | Tools downloaded on request | 7 |
@@ -32,7 +32,6 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [alloc-stdlib](https://crates.io/crates/alloc-stdlib/0.3.0) | 0.3.0 | BSD-3-Clause | Windows, macOS | `0b5c1865780388bfa186411ab5f247819487fc4864c6e9c3106611fa347586e1` |
 | [anyhow](https://crates.io/crates/anyhow/1.0.104) | 1.0.104 | MIT OR Apache-2.0 | Windows, macOS | `330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470` |
 | [arboard](https://crates.io/crates/arboard/3.7.0) | 3.7.0 | MIT OR Apache-2.0 | Windows, macOS | `aeb9553e62312c8756a5979254fc6d7da8bbeb5986a1e17037fab932f7037917` |
-| [arg_enum_proc_macro](https://crates.io/crates/arg_enum_proc_macro/0.3.4) | 0.3.4 | MIT | Windows, macOS | `0ae92a5119aa49cdbcf6b9f893fe4e1d98b04ccbf82ee0584ad948a44a734dea` |
 | [arrayref](https://crates.io/crates/arrayref/0.3.9) | 0.3.9 | BSD-2-Clause | Windows, macOS | `76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb` |
 | [arrayvec](https://crates.io/crates/arrayvec/0.7.8) | 0.7.8 | MIT OR Apache-2.0 | Windows, macOS | `d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56` |
 | [as-slice](https://crates.io/crates/as-slice/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows, macOS | `516b6b4f0e40d50dcda9365d53964ec74560ad4284da2e7fc97122cd83174516` |
@@ -40,19 +39,15 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [atoi_simd](https://crates.io/crates/atoi_simd/0.18.1) | 0.18.1 | MIT OR Apache-2.0 | Windows, macOS | `f3cdb3708a128e559a30fb830e8a77a5022ee6902806925c216658652b452a44` |
 | [atomic-waker](https://crates.io/crates/atomic-waker/1.1.2) | 1.1.2 | Apache-2.0 OR MIT | Windows, macOS | `1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0` |
 | [atomig](https://crates.io/crates/atomig/0.4.3) | 0.4.3 | MIT/Apache-2.0 | Windows, macOS | `cd0f41f4bb89f5c6450325e283fb78c4a3d042181b54f3855ee2f872919f9863` |
-| [atomig-macro](https://crates.io/crates/atomig-macro/0.4.0) | 0.4.0 | MIT/Apache-2.0 | Windows, macOS | `49c98dba06b920588de7d63f6acc23f1e6a9fade5fd6198e564506334fb5a4f5` |
 | [auto-launch](https://crates.io/crates/auto-launch/0.6.0) | 0.6.0 | MIT | Windows, macOS | `17918dba7ecf78b9a14507ec9f984e7977d13fad87dc86d61038980a45d128cf` |
 | [av-scenechange](https://crates.io/crates/av-scenechange/0.14.1) | 0.14.1 | MIT | Windows, macOS | `0f321d77c20e19b92c39e7471cf986812cbb46659d2af674adc4331ef3f18394` |
 | [av1-grain](https://crates.io/crates/av1-grain/0.2.5) | 0.2.5 | BSD-2-Clause | Windows, macOS | `8cfddb07216410377231960af4fcab838eaa12e013417781b78bd95ee22077f8` |
 | [avif-parse](https://crates.io/crates/avif-parse/2.1.0) | 2.1.0 | MPL-2.0 | Windows, macOS | `048e72663e14be27bfd8a9e01e8a0bf27610511ffd5f74c7955f4e4847ce2530` |
 | [avif-serialize](https://crates.io/crates/avif-serialize/0.8.9) | 0.8.9 | BSD-3-Clause | Windows, macOS | `e7178fe5f7d460b13895ebb9dcb28a3a6216d2df2574a0806cb51b555d297f38` |
 | [base64](https://crates.io/crates/base64/0.23.1) | 0.23.1 | MIT OR Apache-2.0 | Windows, macOS | `ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5` |
-| [bit-set](https://crates.io/crates/bit-set/0.8.0) | 0.8.0 | Apache-2.0 OR MIT | Windows, macOS | `08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3` |
-| [bit-vec](https://crates.io/crates/bit-vec/0.8.0) | 0.8.0 | Apache-2.0 OR MIT | Windows, macOS | `5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7` |
 | [bitflags](https://crates.io/crates/bitflags/2.13.2) | 2.13.2 | MIT OR Apache-2.0 | Windows, macOS | `3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06` |
 | [bitreader](https://crates.io/crates/bitreader/0.3.11) | 0.3.11 | MIT OR Apache-2.0 | Windows, macOS | `886559b1e163d56c765bc3a985febb4eee8009f625244511d8ee3c432e08c066` |
 | [bitstream-io](https://crates.io/crates/bitstream-io/4.10.0) | 4.10.0 | MIT/Apache-2.0 | Windows, macOS | `7eff00be299a18769011411c9def0d827e8f2d7bf0c3dbf53633147a8867fd1f` |
-| [block-buffer](https://crates.io/crates/block-buffer/0.10.4) | 0.10.4 | MIT OR Apache-2.0 | Windows, macOS | `3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71` |
 | [block-buffer](https://crates.io/crates/block-buffer/0.12.1) | 0.12.1 | MIT OR Apache-2.0 | Windows, macOS | `d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa` |
 | [block-padding](https://crates.io/crates/block-padding/0.4.2) | 0.4.2 | MIT OR Apache-2.0 | Windows, macOS | `710f1dd022ef4e93f8a438b4ba958de7f64308434fa6a87104481645cc30068b` |
 | [block2](https://crates.io/crates/block2/0.6.2) | 0.6.2 | MIT | macOS | `cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5` |
@@ -61,15 +56,11 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [brotli-decompressor](https://crates.io/crates/brotli-decompressor/6.2.0) | 6.2.0 | BSD-3-Clause/MIT | Windows, macOS | `34c6783f42c21c952ad7112b354f0ba2f10760e9decea5b1b60523d6e270faaf` |
 | [bumpalo](https://crates.io/crates/bumpalo/3.20.3) | 3.20.3 | MIT OR Apache-2.0 | Windows, macOS | `72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649` |
 | [bytemuck](https://crates.io/crates/bytemuck/1.25.2) | 1.25.2 | Zlib OR Apache-2.0 OR MIT | Windows, macOS | `95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797` |
-| [bytemuck_derive](https://crates.io/crates/bytemuck_derive/1.12.1) | 1.12.1 | Zlib OR Apache-2.0 OR MIT | Windows, macOS | `6a1f896587b6f2c069c73d2f0913e2d590c3990285cd2f0b6aa02b786b4c679c` |
 | [byteorder](https://crates.io/crates/byteorder/1.5.0) | 1.5.0 | Unlicense OR MIT | Windows, macOS | `1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b` |
 | [byteorder-lite](https://crates.io/crates/byteorder-lite/0.1.0) | 0.1.0 | Unlicense OR MIT | Windows, macOS | `8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495` |
 | [bytes](https://crates.io/crates/bytes/1.12.1) | 1.12.1 | MIT | Windows, macOS | `fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04` |
 | [bzip2](https://crates.io/crates/bzip2/0.6.1) | 0.6.1 | MIT OR Apache-2.0 | Windows, macOS | `f3a53fac24f34a81bc9954b5d6cfce0c21e18ec6959f44f56e8e90e4bb7c346c` |
 | [calamine](https://crates.io/crates/calamine/0.37.0) | 0.37.0 | MIT | Windows, macOS | `c9ca341b94bc4b29e08970b1a03914fad2dfe177e2ecb67fcd6de9046004aafb` |
-| [camino](https://crates.io/crates/camino/1.2.6) | 1.2.6 | MIT OR Apache-2.0 | Windows, macOS | `bbbad30e4b4c14a39e3cc8aed085a12a327257c316619c93581e017bc52be591` |
-| [cargo-platform](https://crates.io/crates/cargo-platform/0.1.9) | 0.1.9 | MIT OR Apache-2.0 | Windows, macOS | `e35af189006b9c0f00a064685c727031e3ed2d8020f7ba284d78cc2671bd36ea` |
-| [cargo_metadata](https://crates.io/crates/cargo_metadata/0.19.2) | 0.19.2 | MIT | Windows, macOS | `dd5eb614ed4c27c5d706420e4320fbe3216ab31fa1c33cd8246ac36dae4479ba` |
 | [cbc](https://crates.io/crates/cbc/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows, macOS | `ce2dc9ee5f88d11e0beb842c88b33c8a5cf0d1329c4b19494af42b07dbfe8896` |
 | [cfb](https://crates.io/crates/cfb/0.14.0) | 0.14.0 | MIT | Windows, macOS | `a347dcabdae9c31b0825fd6a8bed285ec9c2acb89c47827126d52fa4f59cece3` |
 | [cfg-if](https://crates.io/crates/cfg-if/1.0.5) | 1.0.5 | MIT OR Apache-2.0 | Windows, macOS | `4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600` |
@@ -90,49 +81,33 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [core-graphics-types](https://crates.io/crates/core-graphics-types/0.2.0) | 0.2.0 | MIT OR Apache-2.0 | macOS | `3d44a101f213f6c4cdc1853d4b78aef6db6bdfa3468798cc1d9912f4735013eb` |
 | [core_detect](https://crates.io/crates/core_detect/1.0.0) | 1.0.0 | MIT/Apache-2.0 | Windows, macOS | `7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48` |
 | [cpubits](https://crates.io/crates/cpubits/0.1.1) | 0.1.1 | MIT OR Apache-2.0 | Windows, macOS | `15b85f9c39137c3a891689859392b1bd49812121d0d61c9caf00d46ed5ce06ae` |
-| [cpufeatures](https://crates.io/crates/cpufeatures/0.2.17) | 0.2.17 | MIT OR Apache-2.0 | Windows, macOS | `59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280` |
 | [cpufeatures](https://crates.io/crates/cpufeatures/0.3.1) | 0.3.1 | MIT OR Apache-2.0 | Windows, macOS | `5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566` |
 | [crc32fast](https://crates.io/crates/crc32fast/1.5.3) | 1.5.3 | MIT OR Apache-2.0 | Windows, macOS | `0ba106e844045ddc02c20768ac4b0b7cb45f2cc2ecbd833ac9f5dacb183c2055` |
 | [crossbeam-channel](https://crates.io/crates/crossbeam-channel/0.5.17) | 0.5.17 | MIT OR Apache-2.0 | Windows, macOS | `98b0cc327b5bc766e7fda9c9260cc0fa81b43a8e240440422dff70788e3f9ef1` |
 | [crossbeam-deque](https://crates.io/crates/crossbeam-deque/0.8.8) | 0.8.8 | MIT OR Apache-2.0 | Windows, macOS | `622f3fc73690be383c7214310406f28a90e6edeadc3cea882f9d71e495b9711a` |
 | [crossbeam-epoch](https://crates.io/crates/crossbeam-epoch/0.9.21) | 0.9.21 | MIT OR Apache-2.0 | Windows, macOS | `dc74980687109a3b14c72fd458107bf0baa1da1a1a805e178d15501ba9b86d9d` |
 | [crossbeam-utils](https://crates.io/crates/crossbeam-utils/0.8.23) | 0.8.23 | MIT OR Apache-2.0 | Windows, macOS | `a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6` |
-| [crypto-common](https://crates.io/crates/crypto-common/0.1.7) | 0.1.7 | MIT OR Apache-2.0 | Windows, macOS | `78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a` |
 | [crypto-common](https://crates.io/crates/crypto-common/0.2.2) | 0.2.2 | MIT OR Apache-2.0 | Windows, macOS | `ce6e4c961d6cd6c9a86db418387425e8bdeaf05b3c8bc1411e6dca4c252f1453` |
-| [cssparser](https://crates.io/crates/cssparser/0.37.0) | 0.37.0 | MPL-2.0 | Windows, macOS | `8c9cdaae01d5ed7882b04d795e7f752f46ff52d2fa3b50a20d28c464510bba98` |
-| [cssparser-macros](https://crates.io/crates/cssparser-macros/0.7.1) | 0.7.1 | MPL-2.0 | Windows, macOS | `d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a` |
 | [csv](https://crates.io/crates/csv/1.4.0) | 1.4.0 | Unlicense/MIT | Windows, macOS | `52cd9d68cf7efc6ddfaaee42e7288d3a99d613d4b50f76ce9827ae0c6e14f938` |
 | [csv-core](https://crates.io/crates/csv-core/0.1.13) | 0.1.13 | Unlicense/MIT | Windows, macOS | `704a3c26996a80471189265814dbc2c257598b96b8a7feae2d31ace646bb9782` |
 | [ctor](https://crates.io/crates/ctor/1.0.13) | 1.0.13 | Apache-2.0 OR MIT | Windows, macOS | `914a755b7c2d4af2bdcff7ce1739e2db9a1b81a9b07123d8015786ae03c0980d` |
-| [darling](https://crates.io/crates/darling/0.24.1) | 0.24.1 | MIT | Windows, macOS | `ed17f5901b6630b993ca003def43f2f8ef4014fc13b047b57aad617ff32bc2ec` |
-| [darling_core](https://crates.io/crates/darling_core/0.24.1) | 0.24.1 | MIT | Windows, macOS | `6837e2cf7485aaae18f86181d2f0e9a7ed297a025e220aeabf63fdebd3a2ddff` |
-| [darling_macro](https://crates.io/crates/darling_macro/0.24.1) | 0.24.1 | MIT | Windows, macOS | `2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785` |
 | [data-url](https://crates.io/crates/data-url/0.3.2) | 0.3.2 | MIT OR Apache-2.0 | Windows, macOS | `be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376` |
 | [debug_unsafe](https://crates.io/crates/debug_unsafe/0.1.4) | 0.1.4 | MIT OR Apache-2.0 | Windows, macOS | `7eed2c4702fa172d1ce21078faa7c5203e69f5394d48cc436d25928394a867a2` |
 | [deflate64](https://crates.io/crates/deflate64/0.1.12) | 0.1.12 | MIT | Windows, macOS | `ac6b926516df9c60bfa16e107b21086399f8285a44ca9711344b9e553c5146e2` |
 | [deranged](https://crates.io/crates/deranged/0.5.9) | 0.5.9 | MIT OR Apache-2.0 | Windows, macOS | `9e9de72ce2ad1f90dc62fa25f0f430ef85eb4b0d8fa0be4f30373bc40a21d28e` |
-| [derive_more](https://crates.io/crates/derive_more/2.1.1) | 2.1.1 | MIT | Windows, macOS | `d751e9e49156b02b44f9c1815bcb94b984cdcc4396ecc32521c739452808b134` |
-| [derive_more-impl](https://crates.io/crates/derive_more-impl/2.1.1) | 2.1.1 | MIT | Windows, macOS | `799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb` |
-| [digest](https://crates.io/crates/digest/0.10.7) | 0.10.7 | MIT OR Apache-2.0 | Windows, macOS | `9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292` |
 | [digest](https://crates.io/crates/digest/0.11.3) | 0.11.3 | MIT OR Apache-2.0 | Windows, macOS | `f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2` |
 | [dirs](https://crates.io/crates/dirs/6.0.0) | 6.0.0 | MIT OR Apache-2.0 | Windows, macOS | `c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e` |
 | [dirs](https://crates.io/crates/dirs/7.0.0) | 7.0.0 | MIT OR Apache-2.0 | Windows, macOS | `8d57d423b3c82e89b9a24ca3091fee61f456a26edbd28d26c65906f4bc1dcd8f` |
 | [dirs-sys](https://crates.io/crates/dirs-sys/0.5.0) | 0.5.0 | MIT OR Apache-2.0 | Windows, macOS | `e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab` |
 | [dispatch2](https://crates.io/crates/dispatch2/0.3.1) | 0.3.1 | Zlib OR Apache-2.0 OR MIT | macOS | `1e0e367e4e7da84520dedcac1901e4da967309406d1e51017ae1abfb97adbd38` |
-| [displaydoc](https://crates.io/crates/displaydoc/0.2.7) | 0.2.7 | MIT OR Apache-2.0 | Windows, macOS | `c6232dd377dcc64799954cbd3a9bb882e9cdc1308ccd87b1c098f1fb2eaf82a8` |
-| [dom_query](https://crates.io/crates/dom_query/0.28.0) | 0.28.0 | MIT | Windows, macOS | `fac5fca71e65e94cc718a6e2af65d6e0f9c6027751c2aa562fbb5087fda639bc` |
 | [dpi](https://crates.io/crates/dpi/0.1.2) | 0.1.2 | Apache-2.0 AND MIT | Windows, macOS | `d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76` |
 | [drag](https://crates.io/crates/drag/2.1.1) | 2.1.1 | Apache-2.0 OR MIT | Windows, macOS | `7e90b4a25ace5ce0561534b073943594cbcd21af936e64d09aec444568411f8c` |
-| [dtoa](https://crates.io/crates/dtoa/1.0.11) | 1.0.11 | MIT OR Apache-2.0 | Windows, macOS | `4c3cf4824e2d5f025c7b531afcb2325364084a16806f6d47fbc1f5fbd9960590` |
-| [dtoa-short](https://crates.io/crates/dtoa-short/0.3.5) | 0.3.5 | MPL-2.0 | Windows, macOS | `cd1511a7b6a56299bd043a9c167a6d2bfb37bf84a6dfceaba651168adfb43c87` |
 | [dunce](https://crates.io/crates/dunce/1.0.5) | 1.0.5 | CC0-1.0 OR MIT-0 OR Apache-2.0 | Windows, macOS | `92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813` |
-| [dyn-clone](https://crates.io/crates/dyn-clone/1.0.20) | 1.0.20 | MIT OR Apache-2.0 | Windows, macOS | `d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555` |
 | [ecb](https://crates.io/crates/ecb/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows, macOS | `26f2a8b3e564eba0877223dc343703ad0385794e882e6d13f3a4dd5c6b1f41ac` |
 | [either](https://crates.io/crates/either/1.19.0) | 1.19.0 | MIT OR Apache-2.0 | Windows, macOS | `0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be` |
 | [embed_plist](https://crates.io/crates/embed_plist/1.2.2) | 1.2.2 | MIT OR Apache-2.0 | macOS | `4ef6b89e5b37196644d8796de5268852ff179b44e96276cf4290264843743bb7` |
 | [encoding_rs](https://crates.io/crates/encoding_rs/0.8.44) | 0.8.44 | (Apache-2.0 OR MIT) AND BSD-3-Clause | Windows, macOS | `89253175e704ab869b04f9db224d38630e0211a53841a79181deae0889e169f5` |
 | [equator](https://crates.io/crates/equator/0.4.2) | 0.4.2 | MIT | Windows, macOS | `4711b213838dfee0117e3be6ac926007d7f433d7bbe33595975d4190cb07e6fc` |
-| [equator-macro](https://crates.io/crates/equator-macro/0.4.2) | 0.4.2 | MIT | Windows, macOS | `44f23cf4b44bfce11a86ace86f8a73ffdec849c9fd00a386a53d278bd9e81fb3` |
 | [equivalent](https://crates.io/crates/equivalent/1.0.3) | 1.0.3 | Apache-2.0 OR MIT | Windows, macOS | `00d174d5400e5e8fd687ad1049e2f578285fa914201b1af7e8b112a4546bd826` |
 | [erased-serde](https://crates.io/crates/erased-serde/0.4.11) | 0.4.11 | MIT OR Apache-2.0 | Windows, macOS | `1e59b668157f32d3459d4bd634861a06ffa2503a461ca5f0916b9f0252605e66` |
 | [errno](https://crates.io/crates/errno/0.3.14) | 0.3.14 | MIT OR Apache-2.0 | macOS | `39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb` |
@@ -146,20 +121,16 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [flate2](https://crates.io/crates/flate2/1.1.10) | 1.1.10 | MIT OR Apache-2.0 | Windows, macOS | `6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb` |
 | [float-cmp](https://crates.io/crates/float-cmp/0.9.0) | 0.9.0 | MIT | Windows, macOS | `98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4` |
 | [fnv](https://crates.io/crates/fnv/1.0.7) | 1.0.7 | Apache-2.0 / MIT | Windows, macOS | `3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1` |
-| [foldhash](https://crates.io/crates/foldhash/0.2.0) | 0.2.0 | Zlib | Windows, macOS | `77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb` |
 | [font-types](https://crates.io/crates/font-types/0.12.7) | 0.12.7 | MIT OR Apache-2.0 | Windows, macOS | `835ae9d781464a79026cde387f9cbc650c9a4909d7cf7e658b127e3c35d2f35d` |
 | [fontdb](https://crates.io/crates/fontdb/0.24.0) | 0.24.0 | MIT | Windows, macOS | `2660c5e9157bf76d2db1294e4a9feba604ef610819a3b591088d0d8392a3290f` |
 | [foreign-types](https://crates.io/crates/foreign-types/0.5.0) | 0.5.0 | MIT/Apache-2.0 | macOS | `d737d9aa519fb7b749cbc3b962edcf310a8dd1f4b67c91c4f83975dbdd17d965` |
-| [foreign-types-macros](https://crates.io/crates/foreign-types-macros/0.2.4) | 0.2.4 | MIT/Apache-2.0 | macOS | `ea5190182e6915eb873ddbc16e23b711b6eb1f9c00a0d0a3a91b5f6228475225` |
 | [foreign-types-shared](https://crates.io/crates/foreign-types-shared/0.3.1) | 0.3.1 | MIT/Apache-2.0 | macOS | `aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b` |
 | [form_urlencoded](https://crates.io/crates/form_urlencoded/1.2.2) | 1.2.2 | MIT OR Apache-2.0 | Windows, macOS | `cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf` |
 | [futures-channel](https://crates.io/crates/futures-channel/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `b1f9e3d69d39e4862ffed03ed071a76f9a13ba1d9109d355b0f0aa6b15e393c4` |
 | [futures-core](https://crates.io/crates/futures-core/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `92d699e522242e69e3003b94ecc1f960f3a5e015aa7c5d7486e65ad01dd94f5e` |
-| [futures-macro](https://crates.io/crates/futures-macro/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44` |
 | [futures-sink](https://crates.io/crates/futures-sink/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `1944426bf7d03f1d14f708785e4b33efd750b36d48a157b836b3efc15ede8e1d` |
 | [futures-task](https://crates.io/crates/futures-task/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `cd417de3d1d015fc3bfd2b1ea46dfc7bab72ef86f1cc7cc9c78e728b34a6d1fd` |
 | [futures-util](https://crates.io/crates/futures-util/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `0d50a92467f8ba5dd6e3ee5d4bd04d73ab2e4e1c44474a0674821dfce14b79bc` |
-| [generic-array](https://crates.io/crates/generic-array/0.14.7) | 0.14.7 | MIT | Windows, macOS | `85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a` |
 | [getrandom](https://crates.io/crates/getrandom/0.2.17) | 0.2.17 | MIT OR Apache-2.0 | Windows, macOS | `ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0` |
 | [getrandom](https://crates.io/crates/getrandom/0.3.4) | 0.3.4 | MIT OR Apache-2.0 | Windows, macOS | `899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd` |
 | [getrandom](https://crates.io/crates/getrandom/0.4.3) | 0.4.3 | MIT OR Apache-2.0 | Windows, macOS | `300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099` |
@@ -168,13 +139,11 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [global-hotkey](https://crates.io/crates/global-hotkey/0.8.0) | 0.8.0 | Apache-2.0 OR MIT | Windows, macOS | `8c386b0a4a70cb2d39fffd74480f985b6f0bfbcb934b6a6b6b7e630e448f242e` |
 | [half](https://crates.io/crates/half/2.7.1) | 2.7.1 | MIT OR Apache-2.0 | Windows, macOS | `6ea2d84b969582b4b1864a92dc5d27cd2b77b622a8d79306834f1be5ba20d84b` |
 | [harfrust](https://crates.io/crates/harfrust/0.12.0) | 0.12.0 | MIT | Windows, macOS | `c03d949a14aa089bbb282f7dd76a498a7f684428e4257202efc119ec010376f9` |
-| [hashbrown](https://crates.io/crates/hashbrown/0.12.3) | 0.12.3 | MIT OR Apache-2.0 | Windows, macOS | `8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888` |
 | [hashbrown](https://crates.io/crates/hashbrown/0.17.1) | 0.17.1 | MIT OR Apache-2.0 | Windows, macOS | `ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a` |
 | [heck](https://crates.io/crates/heck/0.5.0) | 0.5.0 | MIT OR Apache-2.0 | Windows, macOS | `2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea` |
 | [htmd](https://crates.io/crates/htmd/0.5.6) | 0.5.6 | Apache-2.0 | Windows, macOS | `efd66117e0b1eac329399e316f30b9530afcb7cfbd0df59a007023b6673a6c37` |
 | [html2text](https://crates.io/crates/html2text/0.17.4) | 0.17.4 | MIT | Windows, macOS | `31e981cc9b710410461bf2e474b54da9ccb2fa3212936295bc5c02cb09f3d3f2` |
 | [html5ever](https://crates.io/crates/html5ever/0.38.0) | 0.38.0 | MIT OR Apache-2.0 | Windows, macOS | `1054432bae2f14e0061e33d23402fbaa67a921d319d56adc6bcf887ddad1cbc2` |
-| [html5ever](https://crates.io/crates/html5ever/0.39.0) | 0.39.0 | MIT OR Apache-2.0 | Windows, macOS | `46a1761807faccc9a19e86944bbf40610014066306f96edcdedc2fb714bcb7b8` |
 | [html5ever](https://crates.io/crates/html5ever/0.40.1) | 0.40.1 | MIT OR Apache-2.0 | Windows, macOS | `456a1a377e608e555d22ddab27ac0114bc7a7b4199078108e34c2aeae6c9b130` |
 | [http](https://crates.io/crates/http/1.5.0) | 1.5.0 | MIT OR Apache-2.0 | Windows, macOS | `918d3568bebf352712bc2ef3d46a8bcf1a75b373be6539de198e9105cbbf9ce0` |
 | [http-body](https://crates.io/crates/http-body/1.1.0) | 1.1.0 | MIT | Windows, macOS | `ca2a8f2913ee65f60facd6a5905613afaa448497a0230cc41ce022d93290bc2c` |
@@ -186,7 +155,6 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [hyper-rustls](https://crates.io/crates/hyper-rustls/0.27.10) | 0.27.10 | Apache-2.0 OR ISC OR MIT | Windows, macOS | `dfa8e654703247911e29c23fbeaa261834bd9bb74efba2f9acddc37bfb127f53` |
 | [hyper-util](https://crates.io/crates/hyper-util/0.1.21) | 0.1.21 | MIT | Windows, macOS | `ddc03d96684f9226b8a787cdb71488417b53ab5ea8fdb1dac946cb9431cc8bff` |
 | [iana-time-zone](https://crates.io/crates/iana-time-zone/0.1.65) | 0.1.65 | MIT OR Apache-2.0 | macOS | `e31bc9ad994ba00e440a8aa5c9ef0ec67d5cb5e5cb0cc7f8b744a35b389cc470` |
-| [ico](https://crates.io/crates/ico/0.6.0) | 0.6.0 | MIT | Windows, macOS | `d75e94d66081e4d8dcd098bd8dc5254800fea14a26389b298410158d834de167` |
 | [icu_collections](https://crates.io/crates/icu_collections/2.4.0) | 2.4.0 | Unicode-3.0 | Windows, macOS | `fe090a42a0d3140fed8c63263ed1fecc02422cb2f4bfe55cd8de2de1b8e105dd` |
 | [icu_locale_core](https://crates.io/crates/icu_locale_core/2.4.0) | 2.4.0 | Unicode-3.0 | Windows, macOS | `25d29b57c17c6528d0dc4c2141cfa2d08200465acb537a3909c8b9b8a4a984c0` |
 | [icu_normalizer](https://crates.io/crates/icu_normalizer/2.4.0) | 2.4.0 | Unicode-3.0 | Windows, macOS | `404a3b8c486f205c87fe7f23ab6894d84a4ad76d6e4671ae1981ba7def87c599` |
@@ -194,14 +162,12 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [icu_properties](https://crates.io/crates/icu_properties/2.4.0) | 2.4.0 | Unicode-3.0 | Windows, macOS | `2ea83d991c56158f7cf898bf86436c1dfe7c07ee82fe88951f2695c9f37a379f` |
 | [icu_properties_data](https://crates.io/crates/icu_properties_data/2.4.0) | 2.4.0 | Unicode-3.0 | Windows, macOS | `b98f29af82d02b163fe50161388350e743bb3107cc8e8c2f7314cb505faddfcf` |
 | [icu_provider](https://crates.io/crates/icu_provider/2.4.0) | 2.4.0 | Unicode-3.0 | Windows, macOS | `413099315636c588ee8f011190b329b971a09a8fae9d157e01dcae8379468514` |
-| [ident_case](https://crates.io/crates/ident_case/1.0.1) | 1.0.1 | MIT/Apache-2.0 | Windows, macOS | `b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39` |
 | [idna](https://crates.io/crates/idna/1.1.0) | 1.1.0 | MIT OR Apache-2.0 | Windows, macOS | `3b0875f23caa03898994f6ddc501886a45c7d3d62d04d2d90788d47be1b1e4de` |
 | [idna_adapter](https://crates.io/crates/idna_adapter/1.2.2) | 1.2.2 | Apache-2.0 OR MIT | Windows, macOS | `cb68373c0d6620ef8105e855e7745e18b0d00d3bdb07fb532e434244cdb9a714` |
 | [image](https://crates.io/crates/image/0.25.10) | 0.25.10 | MIT OR Apache-2.0 | Windows, macOS | `85ab80394333c02fe689eaf900ab500fbd0c2213da414687ebf995a65d5a6104` |
 | [image-webp](https://crates.io/crates/image-webp/0.2.4) | 0.2.4 | MIT OR Apache-2.0 | Windows, macOS | `525e9ff3e1a4be2fbea1fdf0e98686a6d98b4d8f937e1bf7402245af1909e8c3` |
 | [imagesize](https://crates.io/crates/imagesize/0.15.0) | 0.15.0 | MIT | Windows, macOS | `65b27460c2c92b037f3f94c538ed9a3342f3fdf923606781629ccb35f82d042a` |
 | [imgref](https://crates.io/crates/imgref/1.12.3) | 1.12.3 | CC0-1.0 OR Apache-2.0 | Windows, macOS | `6e44b0a4eaa4c82f441d50a963f2d5f05a787240aeee097597033e72accfd22f` |
-| [indexmap](https://crates.io/crates/indexmap/1.9.3) | 1.9.3 | Apache-2.0 OR MIT | Windows, macOS | `bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99` |
 | [indexmap](https://crates.io/crates/indexmap/2.14.2) | 2.14.2 | Apache-2.0 OR MIT | Windows, macOS | `cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855` |
 | [infer](https://crates.io/crates/infer/0.22.0) | 0.22.0 | MIT | Windows, macOS | `f4200d433cbd5178df7797c9c2e75b348b728e39631cf14520d1e2fc424201f4` |
 | [inout](https://crates.io/crates/inout/0.2.5) | 0.2.5 | MIT OR Apache-2.0 | Windows, macOS | `3b5cf4372d022092674a83b8febf5865f7a573cc0c5baec5e49c879b6a20978f` |
@@ -227,7 +193,6 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [lopdf](https://crates.io/crates/lopdf/0.46.0) | 0.46.0 | MIT | Windows, macOS | `d43f64cb8c0d673ff84245a6de9e0172c0cc05dc5dd9d263660b5b4a02b6c4ae` |
 | [lzma-rust2](https://crates.io/crates/lzma-rust2/0.23.0) | 0.23.0 | Apache-2.0 | Windows, macOS | `f1c46f3fcd2e888afdb01a07efc071cb21300e07c68d32c3e8b01b5c8cb1fcaa` |
 | [markup5ever](https://crates.io/crates/markup5ever/0.38.0) | 0.38.0 | MIT OR Apache-2.0 | Windows, macOS | `8983d30f2915feeaaab2d6babdd6bc7e9ed1a00b66b5e6d74df19aa9c0e91862` |
-| [markup5ever](https://crates.io/crates/markup5ever/0.39.0) | 0.39.0 | MIT OR Apache-2.0 | Windows, macOS | `7122d987ec5f704ee56f6e5b41a7d93722e9aae27ae07cafa4036c4d3f9757de` |
 | [markup5ever](https://crates.io/crates/markup5ever/0.40.0) | 0.40.0 | MIT OR Apache-2.0 | Windows, macOS | `0ab3dc68ac4a0f5719e560136778c1ee716e296030d75dbd4484e37e39e3a842` |
 | [markup5ever_rcdom](https://crates.io/crates/markup5ever_rcdom/0.38.0+unofficial) | 0.38.0+unofficial | MIT OR Apache-2.0 | Windows, macOS | `333171ccdf66e915257740d44e38ea5b1b19ce7b45d33cc35cb6f118fbd981ff` |
 | [maybe-owned](https://crates.io/crates/maybe-owned/0.3.4) | 0.3.4 | MIT OR Apache-2.0 | Windows, macOS | `4facc753ae494aeb6e3c22f839b158aebd4f9270f55cd3c79906c45476c47ab4` |
@@ -242,19 +207,16 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [mio](https://crates.io/crates/mio/1.2.4) | 1.2.4 | MIT | Windows, macOS | `1788edb87fdc09c7e26304471e2f5be8cdefb1b6930d6e3985fc02ff53bf86ee` |
 | [moxcms](https://crates.io/crates/moxcms/0.8.1) | 0.8.1 | BSD-3-Clause OR Apache-2.0 | Windows, macOS | `bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b` |
 | [muda](https://crates.io/crates/muda/0.20.0) | 0.20.0 | Apache-2.0 OR MIT | Windows, macOS | `cca139e57da4383727f189e43e66e84fa372347027fc996f9f1a007ec0a37996` |
-| [multiversion_no_op](https://crates.io/crates/multiversion_no_op/1.0.0) | 1.0.0 | Apache-2.0 OR MIT | Windows, macOS | `743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d` |
 | [new_debug_unreachable](https://crates.io/crates/new_debug_unreachable/1.0.6) | 1.0.6 | MIT | Windows, macOS | `650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086` |
 | [nix](https://crates.io/crates/nix/0.31.3) | 0.31.3 | MIT | macOS | `cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d` |
 | [no_std_io2](https://crates.io/crates/no_std_io2/0.9.4) | 0.9.4 | Apache-2.0 OR MIT | Windows, macOS | `418abd1b6d34fbf6cae440dc874771b0525a604428704c76e48b29a5e67b8003` |
 | [nom](https://crates.io/crates/nom/8.0.0) | 8.0.0 | MIT | Windows, macOS | `df9761775871bdef83bee530e60050f7e54b1105350d6884eb0fb4f46c2f9405` |
-| [noop_proc_macro](https://crates.io/crates/noop_proc_macro/0.3.0) | 0.3.0 | MIT | Windows, macOS | `0676bb32a98c1a483ce53e500a81ad9c3d5b3f7c920c28c24e9cb0980d0b5bc8` |
 | [notify](https://crates.io/crates/notify/8.2.1) | 8.2.1 | CC0-1.0 | Windows, macOS | `82f812702fbc75d35416d3f884e04925be7e9498f4eceea2e24ba34559284674` |
 | [notify-types](https://crates.io/crates/notify-types/2.2.0) | 2.2.0 | MIT OR Apache-2.0 | Windows, macOS | `0a437a9308232ce794b1e7fdf540d38ea37efc3c73492640c13b4c8568b8f108` |
 | [num](https://crates.io/crates/num/0.4.3) | 0.4.3 | MIT OR Apache-2.0 | Windows, macOS | `35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23` |
 | [num-bigint](https://crates.io/crates/num-bigint/0.4.8) | 0.4.8 | MIT OR Apache-2.0 | Windows, macOS | `c89e69e7e0f03bea5ef08013795c25018e101932225a656383bd384495ecc367` |
 | [num-complex](https://crates.io/crates/num-complex/0.4.6) | 0.4.6 | MIT OR Apache-2.0 | Windows, macOS | `73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495` |
 | [num-conv](https://crates.io/crates/num-conv/0.2.2) | 0.2.2 | MIT OR Apache-2.0 | Windows, macOS | `521739c6d2bac4aa25192232afe6841231376b2b26d4d9fae5ecf8ca5772e441` |
-| [num-derive](https://crates.io/crates/num-derive/0.4.2) | 0.4.2 | MIT OR Apache-2.0 | Windows, macOS | `ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202` |
 | [num-integer](https://crates.io/crates/num-integer/0.1.47) | 0.1.47 | MIT OR Apache-2.0 | Windows, macOS | `7ce2d95d4b3734dc35aa2f45e1aa22cd416814592a4f9d9205e11affd5b8e10b` |
 | [num-iter](https://crates.io/crates/num-iter/0.1.46) | 0.1.46 | MIT OR Apache-2.0 | Windows, macOS | `c92800bd69a1eac91786bcfe9da64a897eb72911b8dc3095decbd07429e8048b` |
 | [num-rational](https://crates.io/crates/num-rational/0.4.2) | 0.4.2 | MIT OR Apache-2.0 | Windows, macOS | `f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824` |
@@ -288,14 +250,10 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [osakit](https://crates.io/crates/osakit/0.3.1) | 0.3.1 | MIT OR Apache-2.0 | macOS | `732c71caeaa72c065bb69d7ea08717bd3f4863a4f451402fc9513e29dbd5261b` |
 | [parking_lot](https://crates.io/crates/parking_lot/0.12.5) | 0.12.5 | MIT OR Apache-2.0 | Windows, macOS | `93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a` |
 | [parking_lot_core](https://crates.io/crates/parking_lot_core/0.9.12) | 0.9.12 | MIT OR Apache-2.0 | Windows, macOS | `2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1` |
-| [paste](https://crates.io/crates/paste/1.0.15) | 1.0.15 | MIT OR Apache-2.0 | Windows, macOS | `57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a` |
-| [pastey](https://crates.io/crates/pastey/0.1.1) | 0.1.1 | MIT OR Apache-2.0 | Windows, macOS | `35fb2e5f958ec131621fdd531e9fc186ed768cbe395337403ae56c17a74c68ec` |
 | [pdfium-render](https://crates.io/crates/pdfium-render/0.9.5) | 0.9.5 | MIT OR Apache-2.0 | Windows, macOS | `296b1146652b486ea6eea0d316e85ab6837ff69e8d2b1568e6fa7bc38bd4c00e` |
 | [percent-encoding](https://crates.io/crates/percent-encoding/2.3.2) | 2.3.2 | MIT OR Apache-2.0 | Windows, macOS | `9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220` |
 | [phf](https://crates.io/crates/phf/0.13.1) | 0.13.1 | MIT | Windows, macOS | `c1562dc717473dbaa4c1f85a36410e03c047b2e7df7f45ee938fbef64ae7fadf` |
 | [phf](https://crates.io/crates/phf/0.14.0) | 0.14.0 | MIT | Windows, macOS | `010378780309880b08997fae13be7834dba947d36393bd372f2b1556deb2a2f6` |
-| [phf_generator](https://crates.io/crates/phf_generator/0.13.1) | 0.13.1 | MIT | Windows, macOS | `135ace3a761e564ec88c03a77317a7c6b80bb7f7135ef2544dbe054243b89737` |
-| [phf_macros](https://crates.io/crates/phf_macros/0.13.1) | 0.13.1 | MIT | Windows, macOS | `812f032b54b1e759ccd5f8b6677695d5268c588701effba24601f6932f8269ef` |
 | [phf_shared](https://crates.io/crates/phf_shared/0.13.1) | 0.13.1 | MIT | Windows, macOS | `e57fef6bc5981e38c2ce2d63bfa546861309f875b8a75f092d1d54ae2d64f266` |
 | [phf_shared](https://crates.io/crates/phf_shared/0.14.0) | 0.14.0 | MIT | Windows, macOS | `c6fd9027e2d9319be6349febd1db4e8d02aa544921200c9b777720ac34a3aa89` |
 | [pico-args](https://crates.io/crates/pico-args/0.5.0) | 0.5.0 | MIT | Windows, macOS | `5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315` |
@@ -308,16 +266,13 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [powerfmt](https://crates.io/crates/powerfmt/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows, macOS | `4a6394b9e965e73d0a289ee54f589087e2c676aedf60885baf52c76b771e4958` |
 | [ppmd-rust](https://crates.io/crates/ppmd-rust/1.5.2) | 1.5.2 | CC0-1.0 OR MIT-0 | Windows, macOS | `cd4acc8d264ea385db64ccfdcdfd5909ee9eda0975666723d59f3bfec80b3611` |
 | [precomputed-hash](https://crates.io/crates/precomputed-hash/0.1.1) | 0.1.1 | MIT | Windows, macOS | `925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c` |
-| [proc-macro2](https://crates.io/crates/proc-macro2/1.0.107) | 1.0.107 | MIT OR Apache-2.0 | Windows, macOS | `985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9` |
 | [profiling](https://crates.io/crates/profiling/1.0.18) | 1.0.18 | MIT OR Apache-2.0 | Windows, macOS | `3d595e54a326bc53c1c197b32d295e14b169e3cfeaa8dc82b529f947fba6bcf5` |
-| [profiling-procmacros](https://crates.io/crates/profiling-procmacros/1.0.18) | 1.0.18 | MIT OR Apache-2.0 | Windows, macOS | `4488a4a36b9a4ba6b9334a32a39971f77c1436ec82c38707bce707699cc3bbcb` |
 | [pulldown-cmark](https://crates.io/crates/pulldown-cmark/0.13.6) | 0.13.6 | MIT | Windows, macOS | `3db2be46835f013dd3f4fa7f5f7402c537787b54ebb6fe2b94bbdd7e2669bb7b` |
 | [pulldown-cmark-escape](https://crates.io/crates/pulldown-cmark-escape/0.11.0) | 0.11.0 | MIT | Windows, macOS | `007d8adb5ddab6f8e3f491ac63566a7d5002cc7ed73901f72057943fa71ae1ae` |
 | [pxfm](https://crates.io/crates/pxfm/0.1.30) | 0.1.30 | BSD-3-Clause OR Apache-2.0 | Windows, macOS | `d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea` |
 | [qrcode](https://crates.io/crates/qrcode/0.14.1) | 0.14.1 | MIT OR Apache-2.0 | Windows, macOS | `d68782463e408eb1e668cf6152704bd856c78c5b6417adaee3203d8f4c1fc9ec` |
 | [quick-error](https://crates.io/crates/quick-error/2.0.1) | 2.0.1 | MIT/Apache-2.0 | Windows, macOS | `a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3` |
 | [quick-xml](https://crates.io/crates/quick-xml/0.42.0) | 0.42.0 | MIT | Windows, macOS | `41b1177fdf999d2321d3fb46ff47159d9c1fb9ad66a4879f8c50a0b504615e9b` |
-| [quote](https://crates.io/crates/quote/1.0.47) | 1.0.47 | MIT OR Apache-2.0 | Windows, macOS | `1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001` |
 | [rand](https://crates.io/crates/rand/0.10.3) | 0.10.3 | MIT OR Apache-2.0 | Windows, macOS | `65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af` |
 | [rand_core](https://crates.io/crates/rand_core/0.10.1) | 0.10.1 | MIT OR Apache-2.0 | Windows, macOS | `63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69` |
 | [rangemap](https://crates.io/crates/rangemap/1.8.0) | 1.8.0 | MIT/Apache-2.0 | Windows, macOS | `a611d15b50743feb4c76b7d03edcb0e64f399c26961e4efe6975bc398be6aa3d` |
@@ -339,42 +294,29 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [ring](https://crates.io/crates/ring/0.17.14) | 0.17.14 | Apache-2.0 AND ISC | Windows, macOS | `a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7` |
 | [roxmltree](https://crates.io/crates/roxmltree/0.21.2) | 0.21.2 | MIT OR Apache-2.0 | Windows, macOS | `9da7f59328b09405b181fee1018925fad50f157afb43c0c0f5c522c256dd5907` |
 | [rust_xlsxwriter](https://crates.io/crates/rust_xlsxwriter/0.102.0) | 0.102.0 | MIT OR Apache-2.0 | Windows, macOS | `6ca3d0e879a578c1313c2800ab0c6c029d38eed18098675e50341a30d32372ed` |
-| [rustc-hash](https://crates.io/crates/rustc-hash/2.1.3) | 2.1.3 | Apache-2.0 OR MIT | Windows, macOS | `6b1e7f9a428571be2dc5bc0505c13fb6bf936822b894ec87abf8a08a4e51742d` |
 | [rustix](https://crates.io/crates/rustix/1.1.6) | 1.1.6 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | macOS | `e5e76742e5294153d4dde1207dbec5bdd81eef6fabdc0d2118babadabfd858aa` |
 | [rustls](https://crates.io/crates/rustls/0.23.46) | 0.23.46 | Apache-2.0 OR ISC OR MIT | Windows, macOS | `48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf` |
 | [rustls-pki-types](https://crates.io/crates/rustls-pki-types/1.15.1) | 1.15.1 | MIT OR Apache-2.0 | Windows, macOS | `2f4925028c7eb5d1fcdaf196971378ed9d2c1c4efc7dc5d011256f76c99c0a96` |
 | [rustls-platform-verifier](https://crates.io/crates/rustls-platform-verifier/0.7.1) | 0.7.1 | MIT OR Apache-2.0 | Windows, macOS | `1167586491e2b18b8bfbb293e8180ec17c201c4f076d7cb3070ca964e7598f98` |
 | [rustls-webpki](https://crates.io/crates/rustls-webpki/0.103.16) | 0.103.16 | ISC | Windows, macOS | `4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281` |
-| [rustversion](https://crates.io/crates/rustversion/1.0.23) | 1.0.23 | MIT OR Apache-2.0 | Windows, macOS | `cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f` |
 | [rxing](https://crates.io/crates/rxing/0.9.3) | 0.9.3 | Apache-2.0 | Windows, macOS | `842b2a567172af73f7d18ee076f7bbb4ed8545c933b11f43868f0b1bba203157` |
 | [ryu](https://crates.io/crates/ryu/1.0.23) | 1.0.23 | Apache-2.0 OR BSL-1.0 | Windows, macOS | `9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f` |
 | [same-file](https://crates.io/crates/same-file/1.0.6) | 1.0.6 | Unlicense/MIT | Windows, macOS | `93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502` |
-| [schemars](https://crates.io/crates/schemars/0.8.22) | 0.8.22 | MIT | Windows, macOS | `3fbf2ae1b8bc8e02df939598064d22402220cd5bbcca1c76f7d6a310974d5615` |
-| [schemars_derive](https://crates.io/crates/schemars_derive/0.8.22) | 0.8.22 | MIT | Windows, macOS | `32e265784ad618884abaea0600a9adf15393368d840e0222d101a072f3f7534d` |
 | [scopeguard](https://crates.io/crates/scopeguard/1.2.0) | 1.2.0 | MIT OR Apache-2.0 | Windows, macOS | `94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49` |
 | [security-framework](https://crates.io/crates/security-framework/3.7.0) | 3.7.0 | MIT OR Apache-2.0 | macOS | `b7f4bc775c73d9a02cde8bf7b2ec4c9d12743edf609006c7facc23998404cd1d` |
 | [security-framework-sys](https://crates.io/crates/security-framework-sys/2.17.0) | 2.17.0 | MIT OR Apache-2.0 | macOS | `6ce2691df843ecc5d231c0b14ece2acc3efb62c0a398c7e1d875f3983ce020e3` |
-| [selectors](https://crates.io/crates/selectors/0.38.0) | 0.38.0 | MPL-2.0 | Windows, macOS | `8adfa1c298912827b8a28b223b3b874357397ae706e6190acd9bf28cee99114d` |
 | [semver](https://crates.io/crates/semver/1.0.28) | 1.0.28 | MIT OR Apache-2.0 | Windows, macOS | `8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd` |
 | [serde](https://crates.io/crates/serde/1.0.229) | 1.0.229 | MIT OR Apache-2.0 | Windows, macOS | `4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba` |
 | [serde-untagged](https://crates.io/crates/serde-untagged/0.1.9) | 0.1.9 | MIT OR Apache-2.0 | Windows, macOS | `f9faf48a4a2d2693be24c6289dbe26552776eb7737074e6722891fadbe6c5058` |
 | [serde_core](https://crates.io/crates/serde_core/1.0.229) | 1.0.229 | MIT OR Apache-2.0 | Windows, macOS | `67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48` |
-| [serde_derive](https://crates.io/crates/serde_derive/1.0.229) | 1.0.229 | MIT OR Apache-2.0 | Windows, macOS | `e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348` |
-| [serde_derive_internals](https://crates.io/crates/serde_derive_internals/0.29.1) | 0.29.1 | MIT OR Apache-2.0 | Windows, macOS | `18d26a20a969b9e3fdf2fc2d9f21eda6c40e2de84c9408bb5d3b05d499aae711` |
 | [serde_json](https://crates.io/crates/serde_json/1.0.154) | 1.0.154 | MIT OR Apache-2.0 | Windows, macOS | `e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6` |
-| [serde_repr](https://crates.io/crates/serde_repr/0.1.21) | 0.1.21 | MIT OR Apache-2.0 | Windows, macOS | `8d3b1629de253c70a0508c3899572da79ca359fdab27c7920ff00406df418906` |
 | [serde_spanned](https://crates.io/crates/serde_spanned/1.1.2) | 1.1.2 | MIT OR Apache-2.0 | Windows, macOS | `4e7523beb55eece201a2356bee0bbca0d1ab466c14c07703b2e0ee6d42cb0c2c` |
 | [serde_with](https://crates.io/crates/serde_with/3.24.0) | 3.24.0 | MIT OR Apache-2.0 | Windows, macOS | `df9adc193c780ef8f159aee8b61e2d5801aaa555e6eb0947fe45530ec506296f` |
-| [serde_with_macros](https://crates.io/crates/serde_with_macros/3.24.0) | 3.24.0 | MIT OR Apache-2.0 | Windows, macOS | `3e17bbc68e28663bbbb90df47e058aa7eda4fb445b89fe70457bb94fbccf6e49` |
 | [serialize-to-javascript](https://crates.io/crates/serialize-to-javascript/0.1.2) | 0.1.2 | MIT OR Apache-2.0 | Windows, macOS | `04f3666a07a197cdb77cdf306c32be9b7f598d7060d50cfd4d5aa04bfd92f6c5` |
-| [serialize-to-javascript-impl](https://crates.io/crates/serialize-to-javascript-impl/0.1.2) | 0.1.2 | MIT OR Apache-2.0 | Windows, macOS | `772ee033c0916d670af7860b6e1ef7d658a4629a6d0b4c8c3e67f09b3765b75d` |
-| [servo_arc](https://crates.io/crates/servo_arc/0.4.3) | 0.4.3 | MIT OR Apache-2.0 | Windows, macOS | `170fb83ab34de17dc69aa7c67482b22218ddb85da56546f9bd6b929e32a05930` |
 | [sevenz-rust2](https://crates.io/crates/sevenz-rust2/0.24.2) | 0.24.2 | Apache-2.0 | Windows, macOS | `30146010a60b5773ef63f7b0033576c7a0487ecc87a30d97b787ca8e27c85140` |
-| [sha2](https://crates.io/crates/sha2/0.10.9) | 0.10.9 | MIT OR Apache-2.0 | Windows, macOS | `a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283` |
 | [sha2](https://crates.io/crates/sha2/0.11.1) | 0.11.1 | MIT OR Apache-2.0 | Windows, macOS | `47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19` |
 | [sharded-slab](https://crates.io/crates/sharded-slab/0.1.7) | 0.1.7 | MIT | Windows, macOS | `f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6` |
 | [simd-adler32](https://crates.io/crates/simd-adler32/0.3.10) | 0.3.10 | MIT | Windows, macOS | `3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea` |
-| [simd_helpers](https://crates.io/crates/simd_helpers/0.1.0) | 0.1.0 | MIT | Windows, macOS | `95890f873bec569a0362c235787f3aca6e1e887302ba4840839bcc6459c42da6` |
 | [simdutf8](https://crates.io/crates/simdutf8/0.1.5) | 0.1.5 | MIT OR Apache-2.0 | Windows, macOS | `e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e` |
 | [simplecss](https://crates.io/crates/simplecss/0.2.2) | 0.2.2 | Apache-2.0 OR MIT | Windows, macOS | `7a9c6883ca9c3c7c90e888de77b7a5c849c779d25d74a1269b0218b14e8b136c` |
 | [siphasher](https://crates.io/crates/siphasher/1.0.4) | 1.0.4 | MIT OR Apache-2.0 | Windows, macOS | `33f4fe9184a62d842c9ef383018f3306d8ba224fd9d836f56d7288308847c256` |
@@ -390,24 +332,17 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [string_cache](https://crates.io/crates/string_cache/0.11.0) | 0.11.0 | MIT OR Apache-2.0 | Windows, macOS | `ffa8a5dbe8b3f0bbe29d4c3225daafaeead63afdc1b65fc4c01a1384166038e6` |
 | [string_cache](https://crates.io/crates/string_cache/0.9.0) | 0.9.0 | MIT OR Apache-2.0 | Windows, macOS | `a18596f8c785a729f2819c0f6a7eae6ebeebdfffbfe4214ae6b087f690e31901` |
 | [stringprep](https://crates.io/crates/stringprep/0.1.5) | 0.1.5 | MIT/Apache-2.0 | Windows, macOS | `7b4df3d392d81bd458a8a621b8bffbd2302a12ffe288a9d931670948749463b1` |
-| [strsim](https://crates.io/crates/strsim/0.11.1) | 0.11.1 | MIT | Windows, macOS | `7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f` |
 | [strum](https://crates.io/crates/strum/0.26.3) | 0.26.3 | MIT | Windows, macOS | `8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06` |
-| [strum_macros](https://crates.io/crates/strum_macros/0.26.4) | 0.26.4 | MIT | Windows, macOS | `4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be` |
 | [subtle](https://crates.io/crates/subtle/2.6.1) | 2.6.1 | BSD-3-Clause | Windows, macOS | `13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292` |
 | [svgtypes](https://crates.io/crates/svgtypes/0.16.1) | 0.16.1 | Apache-2.0 OR MIT | Windows, macOS | `695b5790b3131dafa99b3bbfd25a216edb3d216dad9ca208d4657bfb8f2abc3d` |
 | [symlink](https://crates.io/crates/symlink/0.1.0) | 0.1.0 | MIT/Apache-2.0 | Windows, macOS | `a7973cce6668464ea31f176d85b13c7ab3bba2cb3b77a2ed26abd7801688010a` |
-| [syn](https://crates.io/crates/syn/2.0.119) | 2.0.119 | MIT OR Apache-2.0 | Windows, macOS | `872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297` |
-| [syn](https://crates.io/crates/syn/3.0.9) | 3.0.9 | MIT OR Apache-2.0 | Windows, macOS | `d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b` |
 | [sync_wrapper](https://crates.io/crates/sync_wrapper/1.0.2) | 1.0.2 | Apache-2.0 | Windows, macOS | `0bf256ce5efdfa370213c1dabab5935a12e49f2c58d15e9eac2870d3b4f27263` |
-| [synstructure](https://crates.io/crates/synstructure/0.14.0) | 0.14.0 | MIT | Windows, macOS | `901704edd0dfe137f1987838ee4f259e4e063c31371bdb423f7ae38ec6f77f02` |
 | [sys-locale](https://crates.io/crates/sys-locale/0.3.2) | 0.3.2 | MIT OR Apache-2.0 | Windows, macOS | `8eab9a99a024a169fe8a903cf9d4a3b3601109bcc13bd9e3c6fff259138626c4` |
 | [system-configuration](https://crates.io/crates/system-configuration/0.7.0) | 0.7.0 | MIT OR Apache-2.0 | macOS | `a13f3d0daba03132c0aa9767f98351b3488edc2c100cda2d2ec2b04f3d8d3c8b` |
 | [system-configuration-sys](https://crates.io/crates/system-configuration-sys/0.6.0) | 0.6.0 | MIT OR Apache-2.0 | macOS | `8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4` |
 | [tao](https://crates.io/crates/tao/0.37.2) | 0.37.2 | Apache-2.0 | Windows, macOS | `d5777b06fe6435126ae8d816eba269e050e1e10d302cf5461e9c49eccabc3548` |
 | [tar](https://crates.io/crates/tar/0.4.46) | 0.4.46 | MIT OR Apache-2.0 | Windows, macOS | `3f6221d9a6003c78398e3b239969f352578258df48c8eb051caadae0015bc840` |
 | [tauri](https://crates.io/crates/tauri/2.12.5) | 2.12.5 | Apache-2.0 OR MIT | Windows, macOS | `5fb0244332cfb9cee7e2a568bf5da29a36ed8fdbd717f6f47a66b6b7b358c072` |
-| [tauri-codegen](https://crates.io/crates/tauri-codegen/2.7.4) | 2.7.4 | Apache-2.0 OR MIT | Windows, macOS | `fb37631cf71dab5e8ab55e1bdd701e18a52653d90b78e71d0e5598b1e0a61316` |
-| [tauri-macros](https://crates.io/crates/tauri-macros/2.7.4) | 2.7.4 | Apache-2.0 OR MIT | Windows, macOS | `0cc38db58854c10fb5f91a887ed8bf82d3239bb92b5d8db86eda09e96d9963d1` |
 | [tauri-plugin-autostart](https://crates.io/crates/tauri-plugin-autostart/2.7.0) | 2.7.0 | Apache-2.0 OR MIT | Windows, macOS | `bce56ceb0a99b8ab5eebc977ba9ffc62391b862648cb9ab76fc8bc7231b8f7e2` |
 | [tauri-plugin-clipboard-manager](https://crates.io/crates/tauri-plugin-clipboard-manager/2.5.0) | 2.5.0 | Apache-2.0 OR MIT | Windows, macOS | `9be5ed8d94c33afe8377e885119069f6508780659271d0a25cfc54d441f2bc81` |
 | [tauri-plugin-dialog](https://crates.io/crates/tauri-plugin-dialog/2.8.4) | 2.8.4 | Apache-2.0 OR MIT | Windows, macOS | `ce0fb9c2b6d34a9720627ed930ebc8af26f61e648695aecaeb03d5c33c5896f5` |
@@ -422,19 +357,16 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [tempfile](https://crates.io/crates/tempfile/3.27.0) | 3.27.0 | MIT OR Apache-2.0 | Windows, macOS | `32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd` |
 | [tendril](https://crates.io/crates/tendril/0.5.1) | 0.5.1 | MIT OR Apache-2.0 | Windows, macOS | `5fed54709c5b3a53d09bb1c113ea4f5ceafd1e772ddcb0030a82e1d56c087b08` |
 | [thiserror](https://crates.io/crates/thiserror/2.0.21) | 2.0.21 | MIT OR Apache-2.0 | Windows, macOS | `09e52cb86a36cede5cb101bf8908837b3e4c6e5e59fe7fd85c23fb56200d189e` |
-| [thiserror-impl](https://crates.io/crates/thiserror-impl/2.0.21) | 2.0.21 | MIT OR Apache-2.0 | Windows, macOS | `fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524` |
 | [thread_local](https://crates.io/crates/thread_local/1.1.10) | 1.1.10 | MIT OR Apache-2.0 | Windows, macOS | `1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070` |
 | [tiff](https://crates.io/crates/tiff/0.11.3) | 0.11.3 | MIT | Windows, macOS | `b63feaf3343d35b6ca4d50483f94843803b0f51634937cc2ec519fc32232bc52` |
 | [time](https://crates.io/crates/time/0.3.55) | 0.3.55 | MIT OR Apache-2.0 | Windows, macOS | `cdb87b95ec50ddfa440816d227a17b2ccbdda963a316a727fda0fc4334f7d134` |
 | [time-core](https://crates.io/crates/time-core/0.1.9) | 0.1.9 | MIT OR Apache-2.0 | Windows, macOS | `9e1c906769ad99c88eaa54e728060edef082f8e358ff32030cb7c7d315e81109` |
-| [time-macros](https://crates.io/crates/time-macros/0.2.32) | 0.2.32 | MIT OR Apache-2.0 | Windows, macOS | `7e689342a48d2ea927c87ea50cabf8594854bf940e9310208848d680d668ed85` |
 | [tiny-skia](https://crates.io/crates/tiny-skia/0.12.0) | 0.12.0 | BSD-3-Clause | Windows, macOS | `47ffee5eaaf5527f630fb0e356b90ebdec84d5d18d937c5e440350f88c5a91ea` |
 | [tiny-skia-path](https://crates.io/crates/tiny-skia-path/0.12.0) | 0.12.0 | BSD-3-Clause | Windows, macOS | `edca365c3faccca67d06593c5980fa6c57687de727a03131735bb85f01fdeeb9` |
 | [tinystr](https://crates.io/crates/tinystr/0.8.5) | 0.8.5 | Unicode-3.0 | Windows, macOS | `abc840c238154d58f9e86b2792261edfde565a17696e1cda1a449de27979801a` |
 | [tinyvec](https://crates.io/crates/tinyvec/1.13.3) | 1.13.3 | Zlib OR Apache-2.0 OR MIT | Windows, macOS | `fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee` |
 | [to_method](https://crates.io/crates/to_method/1.1.0) | 1.1.0 | CC0-1.0 | Windows, macOS | `c7c4ceeeca15c8384bbc3e011dbd8fccb7f068a440b752b7d9b32ceb0ca0e2e8` |
 | [tokio](https://crates.io/crates/tokio/1.54.1) | 1.54.1 | MIT | Windows, macOS | `b52fd3255258d26fac7264ab5a76b53c13367136dc011d3d6ad4f8ed070396a3` |
-| [tokio-macros](https://crates.io/crates/tokio-macros/2.7.2) | 2.7.2 | MIT | Windows, macOS | `78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e` |
 | [tokio-rustls](https://crates.io/crates/tokio-rustls/0.26.6) | 0.26.6 | MIT OR Apache-2.0 | Windows, macOS | `c9cc2678c2cdd569ef8215e2afd7954ada2ae20b4fdd2c5fe6139a3b02d105db` |
 | [tokio-util](https://crates.io/crates/tokio-util/0.7.20) | 0.7.20 | MIT | Windows, macOS | `e464cf451ba96ebfc6f9b6542f17ee8b8956e33f1e40d9690624e59d7a7f8a4b` |
 | [toml](https://crates.io/crates/toml/1.1.8+spec-1.1.0) | 1.1.8+spec-1.1.0 | MIT OR Apache-2.0 | Windows, macOS | `20489e00e4d8741d6be680764cc12e270655e375a20d1011e844a9c3379e678d` |
@@ -447,7 +379,6 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [tower-service](https://crates.io/crates/tower-service/0.3.3) | 0.3.3 | MIT | Windows, macOS | `8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3` |
 | [tracing](https://crates.io/crates/tracing/0.1.44) | 0.1.44 | MIT | Windows, macOS | `63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100` |
 | [tracing-appender](https://crates.io/crates/tracing-appender/0.2.5) | 0.2.5 | MIT | Windows, macOS | `050686193eb999b4bb3bc2acfa891a13da00f79734704c4b8b4ef1a10b368a3c` |
-| [tracing-attributes](https://crates.io/crates/tracing-attributes/0.1.31) | 0.1.31 | MIT | Windows, macOS | `7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da` |
 | [tracing-core](https://crates.io/crates/tracing-core/0.1.36) | 0.1.36 | MIT | Windows, macOS | `db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a` |
 | [tracing-subscriber](https://crates.io/crates/tracing-subscriber/0.3.23) | 0.3.23 | MIT | Windows, macOS | `cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319` |
 | [tray-icon](https://crates.io/crates/tray-icon/0.25.1) | 0.25.1 | MIT OR Apache-2.0 | Windows, macOS | `b2b9c52859a94554803ccd4a24b98f74148ebc73b90676d783f3490b1bff9d72` |
@@ -457,7 +388,6 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [typenum](https://crates.io/crates/typenum/1.20.1) | 1.20.1 | MIT OR Apache-2.0 | Windows, macOS | `b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20` |
 | [unicase](https://crates.io/crates/unicase/2.10.0) | 2.10.0 | MIT OR Apache-2.0 | Windows, macOS | `357cc3acc6a036009fd6c973ed009037c732d60d0b4f6c673e9041497482a28f` |
 | [unicode-bidi](https://crates.io/crates/unicode-bidi/0.3.18) | 0.3.18 | MIT OR Apache-2.0 | Windows, macOS | `5c1cb5db39152898a79168971543b1cb5020dff7fe43c8dc468b0885f5e29df5` |
-| [unicode-ident](https://crates.io/crates/unicode-ident/1.0.27) | 1.0.27 | (MIT OR Apache-2.0) AND Unicode-3.0 | Windows, macOS | `a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563` |
 | [unicode-normalization](https://crates.io/crates/unicode-normalization/0.1.26) | 0.1.26 | (MIT OR Apache-2.0) AND Unicode-3.0 | Windows, macOS | `75cd3fb03d5288b3ba9a1ee103ac7e9cbb59f0b03d64f8ddfcc04dd42758a85d` |
 | [unicode-properties](https://crates.io/crates/unicode-properties/0.1.5) | 0.1.5 | (MIT OR Apache-2.0) AND Unicode-3.0 | Windows, macOS | `993ad287eb20e8ba755312801cfe1413e0f25d604075863acaddca10b04c1833` |
 | [unicode-script](https://crates.io/crates/unicode-script/0.5.8) | 0.5.8 | MIT OR Apache-2.0 | Windows, macOS | `383ad40bb927465ec0ce7720e033cb4ca06912855fc35db31b5755d0de75b1ee` |
@@ -482,12 +412,11 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [web_atoms](https://crates.io/crates/web_atoms/0.3.0) | 0.3.0 | MIT OR Apache-2.0 | Windows, macOS | `7572660c8890448ba236b7376f27e389c6a7e1c70195622faced601f855c0ada` |
 | [webp](https://crates.io/crates/webp/0.3.1) | 0.3.1 | MIT OR Apache-2.0 | Windows, macOS | `c071456adef4aca59bf6a583c46b90ff5eb0b4f758fc347cea81290288f37ce1` |
 | [webview2-com](https://crates.io/crates/webview2-com/0.39.1) | 0.39.1 | MIT | Windows | `3f89fca7a704cee10dcb3654c1dbb8941d1783132f1917358af75bec37a7d7e6` |
-| [webview2-com-macros](https://crates.io/crates/webview2-com-macros/0.8.1) | 0.8.1 | MIT | Windows | `67a921c1b6914c367b2b823cd4cde6f96beec77d30a939c8199bb377cf9b9b54` |
 | [webview2-com-sys](https://crates.io/crates/webview2-com-sys/0.39.1) | 0.39.1 | MIT | Windows | `b3a07132775117d6065853d9d1178157b8c90e228de47129d6bce2c7edebedfb` |
 | [weezl](https://crates.io/crates/weezl/0.1.12) | 0.1.12 | MIT OR Apache-2.0 | Windows, macOS | `a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88` |
 | [weezl](https://crates.io/crates/weezl/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows, macOS | `d4ca08e5ef825b65b056d9efbd95c8750683f0a6d0466d02e96dc2e4e360f3d2` |
 | [winapi](https://crates.io/crates/winapi/0.3.9) | 0.3.9 | MIT/Apache-2.0 | Windows | `5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419` |
-| [winapi-util](https://crates.io/crates/winapi-util/0.1.11) | 0.1.11 | Unlicense OR MIT | Windows, macOS | `c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22` |
+| [winapi-util](https://crates.io/crates/winapi-util/0.1.11) | 0.1.11 | Unlicense OR MIT | Windows | `c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22` |
 | [window-vibrancy](https://crates.io/crates/window-vibrancy/0.8.1) | 0.8.1 | Apache-2.0 OR MIT | Windows, macOS | `111e51caca442cafd9bab396628ac4d814880eaea4e63dfd76a12e9f342b5580` |
 | [windows](https://crates.io/crates/windows/0.52.0) | 0.52.0 | MIT OR Apache-2.0 | Windows | `e48a53791691ab099e5e2ad123536d0fff50652600abaf43bbf952894110d0be` |
 | [windows](https://crates.io/crates/windows/0.62.2) | 0.62.2 | MIT OR Apache-2.0 | Windows | `527fadee13e0c05939a6a05d5bd6eec6cd2e3dbd648b9f8e447c6518133d8580` |
@@ -496,13 +425,7 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [windows-core](https://crates.io/crates/windows-core/0.58.0) | 0.58.0 | MIT OR Apache-2.0 | Windows | `6ba6d44ec8c2591c134257ce647b7ea6b20335bf6379a27dac5f1641fcf59f99` |
 | [windows-core](https://crates.io/crates/windows-core/0.62.2) | 0.62.2 | MIT OR Apache-2.0 | Windows | `b8e83a14d34d0623b51dce9581199302a221863196a1dde71a7663a4c2be9deb` |
 | [windows-future](https://crates.io/crates/windows-future/0.3.2) | 0.3.2 | MIT OR Apache-2.0 | Windows | `e1d6f90251fe18a279739e78025bd6ddc52a7e22f921070ccdc67dde84c605cb` |
-| [windows-implement](https://crates.io/crates/windows-implement/0.52.0) | 0.52.0 | MIT OR Apache-2.0 | Windows | `12168c33176773b86799be25e2a2ba07c7aab9968b37541f1094dbd7a60c8946` |
-| [windows-implement](https://crates.io/crates/windows-implement/0.58.0) | 0.58.0 | MIT OR Apache-2.0 | Windows | `2bbd5b46c938e506ecbce286b6628a02171d56153ba733b6c741fc627ec9579b` |
-| [windows-implement](https://crates.io/crates/windows-implement/0.60.2) | 0.60.2 | MIT OR Apache-2.0 | Windows | `053e2e040ab57b9dc951b72c264860db7eb3b0200ba345b4e4c3b14f67855ddf` |
-| [windows-interface](https://crates.io/crates/windows-interface/0.52.0) | 0.52.0 | MIT OR Apache-2.0 | Windows | `9d8dc32e0095a7eeccebd0e3f09e9509365ecb3fc6ac4d6f5f14a3f6392942d1` |
-| [windows-interface](https://crates.io/crates/windows-interface/0.58.0) | 0.58.0 | MIT OR Apache-2.0 | Windows | `053c4c462dc91d3b1504c6fe5a726dd15e216ba718e84a0e46a88fbe5ded3515` |
-| [windows-interface](https://crates.io/crates/windows-interface/0.59.3) | 0.59.3 | MIT OR Apache-2.0 | Windows | `3f316c4a2570ba26bbec722032c4099d8c8bc095efccdc15688708623367e358` |
-| [windows-link](https://crates.io/crates/windows-link/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows, macOS | `f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5` |
+| [windows-link](https://crates.io/crates/windows-link/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows | `f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5` |
 | [windows-numerics](https://crates.io/crates/windows-numerics/0.3.1) | 0.3.1 | MIT OR Apache-2.0 | Windows | `6e2e40844ac143cdb44aead537bbf727de9b044e107a0f1220392177d15b0f26` |
 | [windows-registry](https://crates.io/crates/windows-registry/0.6.1) | 0.6.1 | MIT OR Apache-2.0 | Windows | `02752bf7fbdcce7f2a27a742f798510f3e5ad88dbe84871e5168e2120c3d5720` |
 | [windows-result](https://crates.io/crates/windows-result/0.2.0) | 0.2.0 | MIT OR Apache-2.0 | Windows | `1d1043d8214f791817bab27572aaa8af63732e11bf84aa21a45a78d6c317ae0e` |
@@ -510,7 +433,7 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [windows-strings](https://crates.io/crates/windows-strings/0.1.0) | 0.1.0 | MIT OR Apache-2.0 | Windows | `4cd9b125c486025df0eabcb585e62173c6c9eddcec5d117d3b6e8c30e2ee4d10` |
 | [windows-strings](https://crates.io/crates/windows-strings/0.5.1) | 0.5.1 | MIT OR Apache-2.0 | Windows | `7837d08f69c77cf6b07689544538e017c1bfcf57e34b4c0ff58e6c2cd3b37091` |
 | [windows-sys](https://crates.io/crates/windows-sys/0.59.0) | 0.59.0 | MIT OR Apache-2.0 | Windows | `1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b` |
-| [windows-sys](https://crates.io/crates/windows-sys/0.61.2) | 0.61.2 | MIT OR Apache-2.0 | Windows, macOS | `ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc` |
+| [windows-sys](https://crates.io/crates/windows-sys/0.61.2) | 0.61.2 | MIT OR Apache-2.0 | Windows | `ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc` |
 | [windows-targets](https://crates.io/crates/windows-targets/0.52.6) | 0.52.6 | MIT OR Apache-2.0 | Windows | `9b724f72796e036ab90c1021d4780d4d3d648aca59e491e6b98e725b84e99973` |
 | [windows-threading](https://crates.io/crates/windows-threading/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows | `3949bd5b99cafdf1c7ca86b43ca564028dfe27d66958f2470940f73d86d75b37` |
 | [windows-version](https://crates.io/crates/windows-version/0.1.7) | 0.1.7 | MIT OR Apache-2.0 | Windows | `e4060a1da109b9d0326b7262c8e12c84df67cc0dbc9e33cf49e01ccc2eb63631` |
@@ -523,18 +446,13 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [xmlwriter](https://crates.io/crates/xmlwriter/0.1.0) | 0.1.0 | MIT | Windows, macOS | `ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9` |
 | [y4m](https://crates.io/crates/y4m/0.8.0) | 0.8.0 | MIT | Windows, macOS | `7a5a4b21e1a62b67a2970e6831bc091d7b87e119e7f9791aef9702e3bef04448` |
 | [yoke](https://crates.io/crates/yoke/0.8.4) | 0.8.4 | Unicode-3.0 | Windows, macOS | `417ef3fcf6c300b7dbd25c85531a746931c02ad536f3cf4786ed1e88223340b3` |
-| [yoke-derive](https://crates.io/crates/yoke-derive/0.8.4) | 0.8.4 | Unicode-3.0 | Windows, macOS | `ec8ebde2db3681e8c9980cc27822030e68752690ddfa9473e739aeb4dbde6d71` |
 | [yuv](https://crates.io/crates/yuv/0.8.20) | 0.8.20 | BSD-3-Clause OR Apache-2.0 | Windows, macOS | `3d109d1eacc7b034329873d2d848039b365c65ab7d751b19ee84e4921c62c607` |
 | [zerocopy](https://crates.io/crates/zerocopy/0.7.35) | 0.7.35 | BSD-2-Clause OR Apache-2.0 OR MIT | Windows, macOS | `1b9b4fd18abc82b8136838da5d50bae7bdea537c574d8dc1a34ed098d6c166f0` |
 | [zerocopy](https://crates.io/crates/zerocopy/0.8.63) | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT | Windows, macOS | `e5fe1f8f1b06191a00962174c61aa5005e0bb391a6d80d07e24d115c01a92ed8` |
-| [zerocopy-derive](https://crates.io/crates/zerocopy-derive/0.7.35) | 0.7.35 | BSD-2-Clause OR Apache-2.0 OR MIT | Windows, macOS | `fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e` |
-| [zerocopy-derive](https://crates.io/crates/zerocopy-derive/0.8.63) | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT | Windows, macOS | `863ad3ac83293fb4d740aedbfdc9240dd8d1a50c1099acd76ce80ce7c7230c7f` |
 | [zerofrom](https://crates.io/crates/zerofrom/0.1.8) | 0.1.8 | Unicode-3.0 | Windows, macOS | `0ec05a11813ea801ff6d75110ad09cd0824ddba17dfe17128ea0d5f68e6c5272` |
-| [zerofrom-derive](https://crates.io/crates/zerofrom-derive/0.1.8) | 0.1.8 | Unicode-3.0 | Windows, macOS | `f75b4683f6c7f45248d4d64056a24298c6281e0993356d7d1b4a1a962ef10d4a` |
 | [zeroize](https://crates.io/crates/zeroize/1.9.1) | 1.9.1 | Apache-2.0 OR MIT | Windows, macOS | `e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879` |
 | [zerotrie](https://crates.io/crates/zerotrie/0.2.5) | 0.2.5 | Unicode-3.0 | Windows, macOS | `4ea269c3bd32f0a32c321907a2ae912ba6f4649bb0fc764a15627e99a7095a3f` |
 | [zerovec](https://crates.io/crates/zerovec/0.11.9) | 0.11.9 | Unicode-3.0 | Windows, macOS | `f58a2799cfe9a1670c7ea8edbd52ef8edb93cb37a7f83bf31ba9e35d9dae6a40` |
-| [zerovec-derive](https://crates.io/crates/zerovec-derive/0.11.7) | 0.11.7 | Unicode-3.0 | Windows, macOS | `c3743ddbf47738d929cd1ae2e199d40d0162979dfe31aef8ae646d2bf00bf97a` |
 | [zip](https://crates.io/crates/zip/9.2.1) | 9.2.1 | MIT | Windows, macOS | `848dad21639597378c3be94c59fd4de683f0f6d8a5387575896e1245737d4f37` |
 | [zlib-rs](https://crates.io/crates/zlib-rs/0.6.8) | 0.6.8 | Zlib | Windows, macOS | `b268e58e7c693d7c271f93ffc4ba3b380412554231c85bf61ca7af91042a4112` |
 | [zmij](https://crates.io/crates/zmij/1.0.23) | 1.0.23 | MIT | Windows, macOS | `29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b` |
