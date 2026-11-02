@@ -1,0 +1,60 @@
+name: Toolchain
+
+# Installs every pinned tool build for real, as the app does on request: the download, its SHA-256,
+# the unpacking (msiexec /a for LibreOffice on Windows, hdiutil and ditto on macOS) and a first run
+# from Kento's folder. It downloads several hundred megabytes, so it runs by hand and when the
+# lockfile or the install code changes on main.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - src-tauri/toolchain.lock.json
+      - src-tauri/src/toolchain/**
+      - .github/workflows/toolchain.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: toolchain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install:
+    name: Pinned tools (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Rust toolchain
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri
+
+      # Every build of the app crate needs the bundled PDFium in place.
+      - name: PDFium
+        run: npm run pdfium
+
+      # One test per group (installs_the_pinned_*), one after another so their logs stay apart.
+      - name: Install the pinned tools
+        run: >-
+          cargo test --manifest-path src-tauri/Cargo.toml --lib --
+          --ignored installs_the_pinned --test-threads=1 --nocapture
