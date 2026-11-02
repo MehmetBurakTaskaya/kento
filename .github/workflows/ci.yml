@@ -74,6 +74,11 @@ jobs:
           if [ "$RUNNER_OS" = "Windows" ]; then
             choco install ffmpeg exiftool -y --no-progress
             choco install yt-dlp deno -y --no-progress
+            # Chocolatey's Deno package puts its folder on the PATH of new shells only; this step
+            # and the later ones get it here.
+            deno_dir=$(dirname "$(find /c/ProgramData/chocolatey/lib/deno -name deno.exe | head -1)")
+            cygpath -w "$deno_dir" >> "$GITHUB_PATH"
+            export PATH="$deno_dir:$PATH"
           else
             brew install ffmpeg exiftool
             brew install yt-dlp deno
@@ -102,8 +107,8 @@ jobs:
           KENTO_REQUIRE_EXIFTOOL: '1'
           KENTO_REQUIRE_SOFFICE: '1'
           KENTO_SOFFICE: ${{ runner.os == 'Windows' && 'C:\Program Files\LibreOffice\program\soffice.exe' || '/Applications/LibreOffice.app/Contents/MacOS/soffice' }}
-          # yt-dlp and Deno are on PATH (Chocolatey's shims, Homebrew's bin), so no KENTO_YTDLP or
-          # KENTO_DENO is needed.
+          # yt-dlp and Deno are on PATH (Chocolatey's shim and Deno's folder added above, Homebrew's
+          # bin), so no KENTO_YTDLP or KENTO_DENO is needed.
           KENTO_REQUIRE_YTDLP: '1'
         run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
 
