@@ -213,7 +213,7 @@
   "error.unsupported": "Kento bu dönüştürmeyi yapamıyor.",
   "error.unreadable": "Kento bu dosyayı okuyamadı. Dosya bozuk olabilir ya da adının söylediği türde olmayabilir.",
   "error.encrypted": "Bu dosya parolayla korunuyor.",
-  "error.codec.heif.windows": "Bu bilgisayar HEIC fotoğrafları henüz açamıyor. Microsoft Store üzerinden ücretsiz HEIF Görüntü Uzantıları paketini yükleyip yeniden deneyin.",
+  "error.codec.heif.windows": "Bu bilgisayar HEIC fotoğrafları henüz açamıyor. Microsoft Store üzerinden ücretsiz HEIF Görüntü Uzantıları paketini ya da Ana Sayfa’daki Kurulumu tamamla ile medya araçlarını yükleyip yeniden deneyin.",
   "error.codec.heif.mac": "Bu Mac HEIC fotoğrafı açamadı ya da yazamadı.",
   "error.codec.pdfium": "Kento içindeki PDF bileşeni eksik. Kento’yu yeniden kurun.",
   "error.limit": "Dosya güvenle açılamayacak kadar büyük ya da çok fazla öğe içeriyor.",

@@ -86,6 +86,12 @@ pub fn peaks(tools: &Tools, input: &Path, buckets: usize, progress: &Progress) -
     preview::peaks(tools, input, buckets, progress)
 }
 
+/// A still picture (an HEIC photo, say) as PNG bytes at full size, upright. The image engine uses
+/// it where the system cannot read the format.
+pub fn still(tools: &Tools, input: &Path) -> Result<Vec<u8>> {
+    preview::still(tools, input)
+}
+
 /// One frame at `at` seconds as PNG bytes, no larger than `max_px` on its longer side (0 keeps
 /// the full size). Past the end it gives one of the last frames.
 pub fn frame(tools: &Tools, input: &Path, at: f64, max_px: u32) -> Result<Vec<u8>> {

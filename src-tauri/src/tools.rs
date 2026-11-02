@@ -186,8 +186,12 @@ pub fn images_to_pdf(
         extension: "pdf".into(),
     };
     let title = title(&ctx, "images-to-pdf", &paths);
+    let options = Options {
+        tools: ctx.tools(),
+        ..Options::default()
+    };
     let work: Work = Box::new(move |dest, _, progress| {
-        pdf::from_images(&inputs, &layout, dest, &Options::default(), progress)
+        pdf::from_images(&inputs, &layout, dest, &options, progress)
     });
     Ok(ctx.submit(title, target, work, Origin::Tool, Some(first)))
 }
@@ -247,13 +251,17 @@ pub struct FoundCode {
 
 /// Reads QR codes in images and PDF pages; the panel shows them before any report is saved.
 #[tauri::command]
-pub async fn scan_qr(paths: Vec<PathBuf>) -> Result<Vec<FoundCode>> {
+pub async fn scan_qr(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Result<Vec<FoundCode>> {
+    let tools = crate::work::engine_tools(&state);
     let inputs: Vec<(PathBuf, String)> = checked(&paths, &[Category::Image, Category::Pdf])?
         .into_iter()
         .map(|(path, format)| (path, format.id.to_string()))
         .collect();
     let found = blocking(move || {
-        let options = Options::default();
+        let options = Options {
+            tools,
+            ..Options::default()
+        };
         qr::read(&inputs, &options, &kento_engines::Progress::none())
     })
     .await?;

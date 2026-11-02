@@ -213,7 +213,7 @@
   "error.unsupported": "Kento cannot make this conversion.",
   "error.unreadable": "Kento could not read this file. It may be damaged, or not the type its name says.",
   "error.encrypted": "This file is password protected.",
-  "error.codec.heif.windows": "This computer cannot open HEIC photos yet. Install the free HEIF Image Extensions from the Microsoft Store and try again.",
+  "error.codec.heif.windows": "This computer cannot open HEIC photos yet. Install the free HEIF Image Extensions from the Microsoft Store, or the media tools from Home (Complete setup), and try again.",
   "error.codec.heif.mac": "This Mac could not open or write the HEIC photo.",
   "error.codec.pdfium": "The PDF component of Kento is missing. Install Kento again.",
   "error.limit": "The file is too large, or holds too many items, to open safely.",

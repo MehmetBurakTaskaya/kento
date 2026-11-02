@@ -3,11 +3,12 @@
 //! when it does not, waveform peaks and single frames.
 
 use std::path::Path;
+use std::process::Stdio;
 
 use super::probe;
 use super::run::{self, secs, Cmd, Watch};
 use super::MediaInfo;
-use crate::{Error, Progress, Result, Tools};
+use crate::{Codec, Error, Progress, Result, Tools};
 
 /// Whether WebView2 (Chromium) and WebKit both play the file directly: H.264 (8-bit 4:2:0), VP8,
 /// VP9 or AV1 with AAC, MP3, Opus or Vorbis in MP4, MOV or WebM, and MP3, WAV (PCM), AAC, FLAC,
@@ -208,6 +209,57 @@ pub(super) fn grab(ffmpeg: &Path, input: &Path, at: f64, max_px: Option<u32>) ->
     Ok(png)
 }
 
+/// The largest picture in the file: for a photo stored as tiles, that is FFmpeg's own picture of
+/// the tiles put together, which a `-map` of one stream would miss.
+pub(super) fn still(tools: &Tools, input: &Path) -> Result<Vec<u8>> {
+    let ffmpeg = tools.ffmpeg()?;
+    std::fs::metadata(input)?;
+    if !joins_tiles(ffmpeg)? {
+        return Err(Error::MissingCodec(Codec::Heif));
+    }
+    let mut cmd = Cmd::new();
+    cmd.input(input)
+        .args(["-frames:v", "1", "-c:v", "png"])
+        .piped("image2pipe");
+    let mut png = Vec::new();
+    run::pipe(ffmpeg, &cmd, &Progress::none(), |chunk| {
+        if png.len() + chunk.len() > STILL_LIMIT {
+            return Err(Error::Limit("a picture too large to read".into()));
+        }
+        png.extend_from_slice(chunk);
+        Ok(())
+    })?;
+    if png.is_empty() {
+        return Err(Error::Unreadable("no picture in the file".into()));
+    }
+    Ok(png)
+}
+
+/// A 16-bit RGBA picture of 2^28 pixels, the image engine's own limit, fits with room to spare.
+const STILL_LIMIT: usize = 3 << 30;
+
+/// FFmpeg 7.1 (libavformat 61.7) is the first to put tiles back together. An older build would
+/// give one tile of a phone photo as if it were the photo, so it is not used for stills.
+fn joins_tiles(ffmpeg: &Path) -> Result<bool> {
+    let output = run::command(ffmpeg)
+        .args(["-hide_banner", "-version"])
+        .stderr(Stdio::null())
+        .output()
+        .map_err(run::spawn_error)?;
+    Ok(libavformat(&String::from_utf8_lossy(&output.stdout)).is_some_and(|v| v >= (61, 7)))
+}
+
+/// The major and minor version from `-version`'s "libavformat    61.  7.100 / …" line, which
+/// snapshot builds print too.
+fn libavformat(version: &str) -> Option<(u32, u32)> {
+    let line = version
+        .lines()
+        .find_map(|line| line.trim_start().strip_prefix("libavformat"))?;
+    let digits: String = line.split('/').next()?.split_whitespace().collect();
+    let mut parts = digits.split('.').map(str::parse::<u32>);
+    Some((parts.next()?.ok()?, parts.next()?.ok()?))
+}
+
 fn grab_once(ffmpeg: &Path, input: &Path, seek: &[&str], max_px: Option<u32>) -> Result<Vec<u8>> {
     let mut cmd = Cmd::new();
     // 0:V is video that is not cover art.
@@ -232,6 +284,21 @@ fn grab_once(ffmpeg: &Path, input: &Path, seek: &[&str], max_px: Option<u32>) ->
 mod tests {
     use super::super::{AudioInfo, VideoInfo};
     use super::*;
+
+    #[test]
+    fn reads_the_libavformat_version() {
+        let release = "ffmpeg version 7.1 Copyright (c) 2000-2024 the FFmpeg developers\n\
+                       libavutil      59. 39.100 / 59. 39.100\n\
+                       libavformat    61.  7.100 / 61.  7.100\n";
+        assert_eq!(libavformat(release), Some((61, 7)));
+        let snapshot = "ffmpeg version N-118000-g1234abcd\nlibavformat    62.  3.100 / 62.  3.100";
+        assert_eq!(libavformat(snapshot), Some((62, 3)));
+        assert_eq!(
+            libavformat("libavformat    61.  1.100 / 61.  1.100"),
+            Some((61, 1))
+        );
+        assert_eq!(libavformat("ffmpeg version 7.1"), None);
+    }
 
     fn video(codec: &str, pixel_format: &str, audio: Option<&str>) -> MediaInfo {
         MediaInfo {

@@ -38,7 +38,7 @@ pub fn markdown(en: &Dictionary) -> String {
     let mut out = String::new();
     out.push_str("# Formats, tools and file actions\n\n");
     out.push_str("Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export`; do not edit by hand.\n\n");
-    out.push_str("**Status:** *ready* works today; *preview* depends on the computer (HEIC needs the system's HEIF support); *planned* arrives in a later phase. **[+]** marks an enhancement beyond the core feature set. Core needs no download; Media, Office and Extras are optional tool groups (SPEC 4.2).\n\n");
+    out.push_str("**Status:** *ready* works today; *preview* depends on the computer (HEIC needs the system's HEIF support or the media tools); *planned* arrives in a later phase. **[+]** marks an enhancement beyond the core feature set. Core needs no download; Media, Office and Extras are optional tool groups (SPEC 4.2).\n\n");
     out.push_str("| | Count |\n| --- | ---: |\n");
     out.push_str(&format!("| Formats | {} |\n| Core input formats | {} |\n| Conversion routes | {} |\n| Tools | {} |\n| File actions | {} |\n\n", s.formats, s.core_inputs, s.routes, s.tools, s.actions));
 

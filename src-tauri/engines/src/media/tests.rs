@@ -1149,3 +1149,38 @@ fn keeps_hevc_when_trimming() {
     near(probe.info.duration, 1.0, 0.08);
     assert!(contains(&out, b"hvc1"));
 }
+
+#[test]
+fn reads_still_pictures() {
+    use ::image::GenericImageView;
+    let Some(lab) = Lab::new() else { return };
+    let png = lab.ffmpeg(
+        &["-f", "lavfi", "-i", "testsrc2=s=96x64", "-frames:v", "1"],
+        &lab.path(&format!("{NAME}.png")),
+    );
+    let picture = ::image::load_from_memory(&still(&lab.tools, &png).unwrap()).unwrap();
+    assert_eq!(picture.dimensions(), (96, 64));
+    assert!(matches!(
+        still(&Tools::default(), &png),
+        Err(Error::MissingCodec(Codec::Ffmpeg))
+    ));
+
+    // An HEIC photo the way the image engine reads it without the system's decoder.
+    if !crate::image::heic_write_available() {
+        eprintln!("note: no HEIC encoder here, so no HEIC still");
+        return;
+    }
+    let heic = lab.path(&format!("{NAME}.heic"));
+    crate::convert(&Conversion {
+        input: &png,
+        from: "png",
+        to: "heic",
+        dest: &heic,
+        temp: &lab.root,
+        options: &Options::default(),
+        progress: &Progress::none(),
+    })
+    .unwrap();
+    let picture = ::image::load_from_memory(&still(&lab.tools, &heic).unwrap()).unwrap();
+    assert_eq!(picture.dimensions(), (96, 64));
+}

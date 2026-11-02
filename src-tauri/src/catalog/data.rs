@@ -207,7 +207,7 @@ pub fn routes() -> &'static [Route] {
                 E::Heif,
                 G::Core,
                 false,
-                Some("read with the system's HEIF support"),
+                Some("read with the system's HEIF support or the media tools"),
             )
             .add(
                 IMAGE_IN,

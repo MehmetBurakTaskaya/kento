@@ -2,7 +2,7 @@
 //! Reading every image input into upright pixels.
 
 use std::fs::File;
-use std::io::{self, BufReader, Read, Seek, SeekFrom};
+use std::io::{self, BufRead, BufReader, Cursor, Read, Seek, SeekFrom};
 use std::panic::{self, AssertUnwindSafe};
 use std::path::Path;
 
@@ -12,7 +12,7 @@ use ::image::{
 };
 
 use super::{avif, check_size, svg, MAX_ALLOC, MAX_SIDE};
-use crate::{Error, Options, Result};
+use crate::{Codec, Error, Options, Result};
 
 pub(super) struct Decoded {
     pub image: DynamicImage,
@@ -32,7 +32,7 @@ enum Kind {
     Heic,
 }
 
-pub(super) fn load(path: &Path, from: &str, _options: &Options) -> Result<Decoded> {
+pub(super) fn load(path: &Path, from: &str, options: &Options) -> Result<Decoded> {
     let kind = sniff(path, from)?;
     tracing::debug!(from, ?kind, "decoding an image");
     // Damaged files should come back as errors, but some parsers assert instead (avif-parse does
@@ -41,7 +41,7 @@ pub(super) fn load(path: &Path, from: &str, _options: &Options) -> Result<Decode
         Kind::Raster(format) => raster(path, format),
         Kind::Svg => svg::decode(path),
         Kind::Avif => avif::decode(path),
-        Kind::Heic => heic(path),
+        Kind::Heic => heic(path, options),
     }))
     .unwrap_or_else(|_| Err(Error::Unreadable("the decoder stopped on this file".into())))
 }
@@ -114,7 +114,11 @@ fn raster(path: &Path, format: ImageFormat) -> Result<Decoded> {
         ImageFormat::WebP => webp_is_lossy(path)?,
         _ => false,
     };
-    let mut reader = ImageReader::with_format(BufReader::new(File::open(path)?), format);
+    pixels(BufReader::new(File::open(path)?), format, lossy)
+}
+
+fn pixels(source: impl BufRead + Seek, format: ImageFormat, lossy: bool) -> Result<Decoded> {
+    let mut reader = ImageReader::with_format(source, format);
     reader.limits(limits());
     let mut decoder = reader.into_decoder().map_err(read_error)?;
     let (width, height) = decoder.dimensions();
@@ -186,17 +190,29 @@ fn webp_is_lossy(path: &Path) -> Result<bool> {
     Ok(false)
 }
 
+/// The system's HEIF decoder first. Where it is missing (Windows without the HEIF Image
+/// Extensions), FFmpeg reads the photo when the media tools are there.
+fn heic(path: &Path, options: &Options) -> Result<Decoded> {
+    match system_heic(path) {
+        Err(Error::MissingCodec(Codec::Heif)) if options.tools.ffmpeg.is_some() => {
+            let png = crate::media::still(&options.tools, path)?;
+            pixels(Cursor::new(png), ImageFormat::Png, true)
+        }
+        other => other,
+    }
+}
+
 #[cfg(windows)]
-fn heic(path: &Path) -> Result<Decoded> {
+fn system_heic(path: &Path) -> Result<Decoded> {
     super::heif_windows::decode(path)
 }
 
 #[cfg(target_os = "macos")]
-fn heic(path: &Path) -> Result<Decoded> {
+fn system_heic(path: &Path) -> Result<Decoded> {
     super::heif_macos::decode(path)
 }
 
 #[cfg(not(any(windows, target_os = "macos")))]
-fn heic(_path: &Path) -> Result<Decoded> {
-    Err(Error::MissingCodec(crate::Codec::Heif))
+fn system_heic(_path: &Path) -> Result<Decoded> {
+    Err(Error::MissingCodec(Codec::Heif))
 }
