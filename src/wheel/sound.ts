@@ -3,7 +3,7 @@
 // downloaded. Browsers only start audio after a user gesture, so the AudioContext is created on the
 // first one, and a sound asked for before it is skipped. Sound never carries meaning on its own.
 
-export type WheelSound = 'open' | 'tick' | 'apply';
+export type WheelSound = 'open' | 'tick' | 'enter' | 'leave' | 'apply';
 
 export interface SoundSettings {
   enabled: boolean;
@@ -108,6 +108,24 @@ const VOICES: Record<WheelSound, (s: Synth, t: number) => void> = {
     s.burst(t, { type: 'highpass', f: 9000, q: 0.7, dur: 0.003, gain: 0.045 });
     s.tone(t, { type: 'triangle', f: 2800, f2: 2400, dur: 0.016, gain: 0.018, a: 0.001 });
     s.tone(t, { f: 320, f2: 230, dur: 0.02, gain: 0.03, a: 0.001 });
+  },
+  // Into a ring of choices: a deeper detent than a slice click, the dial dropping into a stop. A
+  // lower, longer click with a heavier body and a short ring of steel, then the spring settling
+  // (about 50 ms).
+  enter(s, t) {
+    s.burst(t, { type: 'bandpass', f: 2500, q: 4.5, dur: 0.013, gain: 0.2 });
+    s.burst(t, { type: 'highpass', f: 7000, q: 0.7, dur: 0.004, gain: 0.03 });
+    s.tone(t, { f: 180, f2: 112, dur: 0.055, gain: 0.075, a: 0.002 });
+    s.tone(t + 0.002, { type: 'triangle', f: 1640, f2: 1460, dur: 0.04, gain: 0.016, a: 0.001 });
+    s.burst(t + 0.034, { type: 'bandpass', f: 3300, q: 6, dur: 0.006, gain: 0.07 });
+  },
+  // Back out of a ring: a lighter detent, the dial lifting out of the stop. A faint release, then a
+  // higher, quieter click with a small body (about 45 ms).
+  leave(s, t) {
+    s.burst(t, { type: 'bandpass', f: 5000, q: 7, dur: 0.004, gain: 0.05 });
+    s.burst(t + 0.018, { type: 'bandpass', f: 3600, q: 6, dur: 0.008, gain: 0.15 });
+    s.tone(t + 0.018, { f: 300, f2: 220, dur: 0.022, gain: 0.03, a: 0.001 });
+    s.tone(t + 0.018, { type: 'triangle', f: 2500, f2: 2200, dur: 0.018, gain: 0.012, a: 0.001 });
   },
   // The handle ratchet (five ticks), the bolt throw (a low thud with a ring of steel) and the latch
   // click, in time with the apply effect (about 450 ms).
