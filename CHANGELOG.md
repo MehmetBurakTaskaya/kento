@@ -4,7 +4,7 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-11-03
 
 The first release. Everything happens on your computer: there is no account, analytics or
 telemetry, and Kento goes online only to update itself, to download the tools you install and to
