@@ -1,0 +1,373 @@
+/* SPDX-License-Identifier: MIT */
+/* The image editors and the Compress panel. They share the media editors' panel, side column and
+   rectangles (editors.css); the picture stays left to right in every language (it carries
+   dir="ltr"), so its logical properties resolve to physical sides. */
+
+/* A steady height, so the panel does not move while the controls beside the picture change. */
+.dialog.wide:has(> .dialog-body > .image-editor) {
+  block-size: min(94vh, 780px);
+}
+
+/* ---------------------------------------------------------------- picture */
+.image-view {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-inline-size: 0;
+}
+.image-stage {
+  position: relative;
+  display: flex;
+  block-size: clamp(240px, 52vh, 560px);
+  /* Room for the grips of an area as large as the picture. */
+  padding: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius);
+  background: var(--slot);
+  user-select: none;
+}
+/* Auto margins centre a picture smaller than the stage and let a larger one scroll from its edge. */
+.image-canvas {
+  position: relative;
+  flex: none;
+  margin: auto;
+  background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px;
+}
+.image-picture {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+/* The engine fits its preview into the size asked for, so it is shown whole whatever its size. */
+.image-result {
+  align-items: center;
+  justify-content: center;
+}
+.image-result img {
+  flex: none;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  max-block-size: 100%;
+  background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px;
+}
+.image-stage > .stage-placeholder {
+  border-color: transparent;
+}
+
+/* A small turning ring while the engine draws the next preview. */
+.image-busy {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-end: 10px;
+  inline-size: 16px;
+  block-size: 16px;
+  border: 2px solid color-mix(in srgb, var(--steel-hi) 35%, transparent);
+  border-block-start-color: var(--steel-hi);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: image-busy 800ms linear infinite;
+}
+@keyframes image-busy {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.image-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.image-history,
+.image-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.image-zoom {
+  margin-inline-start: auto;
+}
+.image-zoom-level {
+  min-inline-size: 4.5em;
+  color: var(--text-muted);
+  font: var(--type-caption);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.image-bar .icon-button:hover:not(:disabled),
+.image-tool:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* The crop area's size, at its corner. */
+.crop-size {
+  position: absolute;
+  z-index: 1;
+  margin-block-start: 6px;
+  margin-inline-start: 6px;
+  padding-inline: 6px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--slot) 72%, transparent);
+  color: var(--steel-hi);
+  font: var(--type-caption);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- mark up */
+.mark-layer {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  cursor: crosshair;
+  touch-action: none;
+}
+.mark-layer[data-tool='select'] {
+  cursor: default;
+}
+.mark-layer[data-tool='select'] .mark-hit {
+  cursor: move;
+}
+.mark-layer[data-tool='text'] {
+  cursor: text;
+}
+.mark-layer:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.mark-selection {
+  fill: none;
+  stroke: var(--focus);
+  stroke-width: 1.5px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 1.5px var(--slot));
+}
+/* The text being typed, at the size and place it will have on the picture. */
+.mark-field {
+  position: absolute;
+  z-index: 2;
+  min-inline-size: 4ch;
+  margin: 0;
+  padding-block: 0;
+  padding-inline: 2px;
+  overflow: hidden;
+  border: 1px dashed var(--focus);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--surface) 30%, transparent);
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 600;
+  white-space: pre;
+  resize: none;
+  field-sizing: content;
+}
+.mark-field:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.image-tools {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.image-tool {
+  display: grid;
+  place-items: center;
+  block-size: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.image-tool[aria-checked='true'] {
+  background: var(--surface);
+  box-shadow:
+    0 1px 3px var(--shadow),
+    inset 0 0 0 1px var(--accent);
+  color: var(--text);
+}
+.image-mark-name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- side controls */
+.image-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.image-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.image-swatch {
+  inline-size: 26px;
+  block-size: 26px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.image-swatch[aria-checked='true'],
+.image-custom[data-on] input[type='color'] {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+.image-swatch:focus-visible {
+  outline-offset: 5px;
+}
+.image-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font: var(--type-caption);
+  cursor: pointer;
+}
+.image-custom input[type='color'] {
+  inline-size: 34px;
+  block-size: 26px;
+  padding: 1px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.image-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.image-actions .button {
+  justify-content: flex-start;
+  text-align: start;
+}
+.image-actions .button[aria-pressed='true'],
+.image-keep[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--text);
+}
+.image-size-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 6px;
+}
+.image-size-fields input[type='number'] {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+.image-size-fields .editor-input .muted {
+  white-space: nowrap;
+}
+.image-keep {
+  block-size: 32px;
+  border: 1px solid transparent;
+}
+.image-gradient {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.image-gradient-sample {
+  flex: 1 1 60px;
+  block-size: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.image-reset {
+  justify-self: start;
+}
+.image-editor .editor-side .order-list {
+  max-block-size: 260px;
+  overflow-y: auto;
+}
+
+/* Undo and redo point the other way in right-to-left languages. */
+.image-editor .icon.flip:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+/* ---------------------------------------------------------------- compress */
+.compress-summary {
+  font-weight: 600;
+}
+.compress-files {
+  display: grid;
+  max-block-size: 172px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  list-style: none;
+}
+.compress-file {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding-block: 4px;
+  padding-inline: 8px;
+}
+.compress-file + .compress-file {
+  border-block-start: 1px solid var(--border);
+}
+.compress-file .muted {
+  font: var(--type-caption);
+  font-variant-numeric: tabular-nums;
+}
+.compress-mode .segmented {
+  max-inline-size: 100%;
+}
+.compress-choice {
+  display: grid;
+  gap: 6px;
+}
+.compress-target {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.compress-target input[type='text'] {
+  inline-size: 8em;
+}
+.compress-note {
+  font: var(--type-caption);
+}
+
+/* Windows High Contrast: outlines instead of tints. */
+@media (forced-colors: active) {
+  .image-swatch {
+    border: 2px solid ButtonText;
+    forced-color-adjust: none;
+  }
+  .image-swatch[aria-checked='true'],
+  .image-tool[aria-checked='true'] {
+    border: 2px solid Highlight;
+  }
+  .mark-selection {
+    stroke: Highlight;
+  }
+}

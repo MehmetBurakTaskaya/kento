@@ -35,13 +35,116 @@ const SHOTS = [
   ['surface-wheel-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'actions' }],
   ['surface-shelf-light-tr', { lang: 'tr', appearance: 'light', surface: 'shelf' }],
   ['surface-toast-dark-en', { lang: 'en', appearance: 'dark', surface: 'toast' }],
+  // The image editors on a sample photo the demo paints, and Compress with a mixed selection.
+  ['image-edit-light-en', { lang: 'en', appearance: 'light' }, 'image:edit-image'],
+  ['image-crop-dark-tr', { lang: 'tr', appearance: 'dark' }, 'image:crop-image'],
+  ['image-markup-light-en', { lang: 'en', appearance: 'light' }, 'image:markup'],
+  ['image-markup-dark-tr', { lang: 'tr', appearance: 'dark' }, 'image:markup'],
+  ['image-markup-pseudo-rtl', { lang: 'ar-XB', appearance: 'light' }, 'image:markup'],
+  ['image-frame-light-tr', { lang: 'tr', appearance: 'light' }, 'image:frame'],
+  ['image-collage-dark-en', { lang: 'en', appearance: 'dark' }, 'image:collage'],
+  ['image-redact-light-tr', { lang: 'tr', appearance: 'light' }, 'image:redact-image'],
+  ['image-edit-pseudo-long', { lang: 'en-XA', appearance: 'dark' }, 'image:edit-image'],
+  ['compress-light-en', { lang: 'en', appearance: 'light' }, 'compress'],
+  ['compress-size-dark-tr', { lang: 'tr', appearance: 'dark' }, 'compress:size'],
+  ['compress-pseudo-rtl', { lang: 'ar-XB', appearance: 'light' }, 'compress:ratio'],
 ];
 
 const SIZES = { wheel: [520, 520], shelf: [300, 480], toast: [400, 200] };
 
+/** A point on the picture of an image editor, from fractions of its size. */
+async function onPicture(page, [x, y]) {
+  const box = await page.locator('.image-canvas').boundingBox();
+  return [box.x + x * box.width, box.y + y * box.height];
+}
+
+/** Drags across the picture of an image editor. */
+async function drag(page, from, to) {
+  await page.mouse.move(...(await onPicture(page, from)));
+  await page.mouse.down();
+  await page.mouse.move(...(await onPicture(page, to)), { steps: 10 });
+  await page.mouse.up();
+}
+
+/** Opens an image editor on the demo photo and uses it a little, as a person would. */
+async function imageEditor(page, tool) {
+  await page.evaluate(
+    (id) => import('/src/editors/image/demo.tsx').then((demo) => demo.mountImageEditorDemo(id)),
+    tool,
+  );
+  await page.waitForSelector('.image-stage img');
+  const tools = page.locator('.image-tool');
+  const segment = (index) => page.locator('.editor-side .editor-segmented button').nth(index).click();
+  if (tool === 'edit-image') {
+    const sliders = page.locator('.editor-side input[type=range]');
+    await sliders.nth(0).fill('18');
+    await sliders.nth(1).fill('12');
+    await sliders.nth(2).fill('30');
+  } else if (tool === 'crop-image') {
+    await segment(2);
+  } else if (tool === 'markup') {
+    await tools.nth(3).click();
+    await drag(page, [0.05, 0.07], [0.22, 0.36]);
+    await tools.nth(6).click();
+    await drag(page, [0.42, 0.42], [0.25, 0.25]);
+    await tools.nth(2).click();
+    await drag(page, [0.52, 0.86], [0.86, 0.86]);
+    await tools.nth(7).click();
+    await page.mouse.click(...(await onPicture(page, [0.44, 0.36])));
+    await page.keyboard.type('Göreme 2026');
+    await page.keyboard.press('Enter');
+    await tools.nth(0).click();
+    await page.mouse.click(...(await onPicture(page, [0.335, 0.335])));
+  } else if (tool === 'frame') {
+    await segment(1);
+  } else if (tool === 'redact-image') {
+    await drag(page, [0.08, 0.08], [0.25, 0.38]);
+    await drag(page, [0.6, 0.62], [0.82, 0.78]);
+    await segment(2);
+  }
+  // The demo paints previews after the editors' pause; let the last one land.
+  await page.waitForTimeout(700);
+}
+
+/** Opens Compress for a mixed selection, through the store as the Tools wheel would. */
+async function compress(page, mode) {
+  await page.evaluate(async () => {
+    const { useApp } = await import('/src/state/store.ts');
+    const file = (path, category, size) => ({
+      path,
+      name: path.split('\\').pop(),
+      folder: false,
+      format: path.split('.').pop(),
+      category,
+      size,
+    });
+    const files = [
+      file('C:\\Users\\me\\Pictures\\Kapadokya 🎈.jpg', 'image', 6_420_000),
+      file('C:\\Users\\me\\Pictures\\Göreme gün batımı.heic', 'image', 3_150_000),
+      file('C:\\Users\\me\\Videos\\Balon turu.mp4', 'video', 182_400_000),
+      file('C:\\Users\\me\\Music\\Röportaj 2026.mp3', 'audio', 24_800_000),
+      file('C:\\Users\\me\\Documents\\Rapor 2026.pdf', 'pdf', 12_600_000),
+    ];
+    useApp.setState({ files });
+    useApp.getState().openPanel(
+      'compress',
+      files.map((entry) => entry.path),
+    );
+  });
+  await page.waitForSelector('[role=dialog] .compress-files');
+  if (mode)
+    await page
+      .locator('.compress-mode button')
+      .nth(mode === 'ratio' ? 1 : 2)
+      .click();
+  await page.waitForTimeout(300);
+}
+
 /** Opens a wheel or a panel the way a person would with the keyboard. */
 async function act(page, action) {
   if (!action) return;
+  if (action.startsWith('image:')) return imageEditor(page, action.slice('image:'.length));
+  if (action.startsWith('compress')) return compress(page, action.split(':')[1]);
   await page.click('.file-row');
   if (action === 'tools') await page.keyboard.press('Control+Space');
   else await page.keyboard.press('Control+a').then(() => page.keyboard.press('Enter'));
