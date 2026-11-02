@@ -2,14 +2,16 @@
 //! The selection of the foreground File Explorer window through `ShellWindows` (the collection
 //! `Shell.Application.Windows()` returns) and each window's top-level browser.
 //!
-//! Windows 11's tabbed Explorer lists every tab as its own entry with the same top-level window.
-//! Only the active tab's browser window (its `ShellTabWindowClass` child) and shell view are
-//! visible, so that is how the active tab is told apart.
+//! Windows 11's tabbed Explorer lists every tab as its own entry with the same top-level window,
+//! and every tab's windows count as visible. The tab on screen is the one whose browser window
+//! (a `ShellTabWindowClass` child) is the topmost of them, which is what a search of the
+//! window's children finds first.
 
 use std::ffi::c_void;
 use std::mem::ManuallyDrop;
 use std::path::PathBuf;
 
+use windows::core::w;
 use windows::core::Interface;
 use windows::Win32::Foundation::HWND;
 use windows::Win32::System::Com::{CoCreateInstance, IServiceProvider, CLSCTX_LOCAL_SERVER};
@@ -22,9 +24,7 @@ use windows::Win32::UI::Shell::{
     IShellWindows, IWebBrowserApp, SHGetKnownFolderIDList, SID_STopLevelBrowser, ShellWindows,
     SIGDN_FILESYSPATH, SVGIO_SELECTION, SWC_DESKTOP, SWFO_NEEDDISPATCH,
 };
-use windows::Win32::UI::WindowsAndMessaging::{
-    GetClassNameW, GetForegroundWindow, IsWindowVisible,
-};
+use windows::Win32::UI::WindowsAndMessaging::{FindWindowExW, GetClassNameW, GetForegroundWindow};
 
 use super::{failed, take_co_string, Com};
 use crate::platform::Result;
@@ -86,14 +86,18 @@ fn top_level_browser(window: &impl Interface) -> windows::core::Result<IShellBro
 fn explorer_selection(window: HWND) -> Result<Vec<PathBuf>> {
     let windows = shell_windows()?;
     let tabs = tabs_of(&windows, window);
-    let active = if tabs.len() == 1 {
-        tabs.into_iter().next().map(|(view, _)| view)
-    } else {
-        tabs.into_iter()
-            .find(|(_, shown)| *shown)
-            .map(|(view, _)| view)
-    };
-    match active {
+    // SAFETY: a plain search of the window's children.
+    let on_screen = unsafe {
+        FindWindowExW(
+            Some(window),
+            None,
+            w!("ShellTabWindowClass"),
+            windows::core::PCWSTR::null(),
+        )
+    }
+    .ok()
+    .map(|tab| tab.0 as isize);
+    match active_tab(tabs, on_screen) {
         Some(view) => selected_paths(&view),
         None => {
             tracing::debug!("no active Explorer tab found in the front window");
@@ -102,8 +106,20 @@ fn explorer_selection(window: HWND) -> Result<Vec<PathBuf>> {
     }
 }
 
-/// The shell view of each tab of `window`, and whether it is the tab on screen.
-fn tabs_of(windows: &IShellWindows, window: HWND) -> Vec<(IShellView, bool)> {
+/// The tab on screen among the tabs of one window: the one whose browser window is `on_screen`,
+/// or the only tab. Without a match nothing is read, rather than another tab's selection.
+fn active_tab<T>(tabs: Vec<(T, Option<isize>)>, on_screen: Option<isize>) -> Option<T> {
+    if tabs.len() == 1 {
+        return tabs.into_iter().next().map(|(view, _)| view);
+    }
+    let on_screen = on_screen?;
+    tabs.into_iter()
+        .find(|(_, tab)| *tab == Some(on_screen))
+        .map(|(view, _)| view)
+}
+
+/// The shell view of each tab of `window`, with the tab's browser window.
+fn tabs_of(windows: &IShellWindows, window: HWND) -> Vec<(IShellView, Option<isize>)> {
     // SAFETY: COM calls on live interfaces; a failing entry is skipped.
     let count = unsafe { windows.Count() }.unwrap_or(0);
     (0..count)
@@ -117,13 +133,8 @@ fn tabs_of(windows: &IShellWindows, window: HWND) -> Vec<(IShellView, bool)> {
                 }
                 let browser = top_level_browser(&entry).ok()?;
                 let view = browser.QueryActiveShellView().ok()?;
-                let shown = match (browser.GetWindow(), view.GetWindow()) {
-                    (Ok(tab), Ok(pane)) => {
-                        IsWindowVisible(tab).as_bool() && IsWindowVisible(pane).as_bool()
-                    }
-                    _ => false,
-                };
-                Some((view, shown))
+                let tab = browser.GetWindow().ok().map(|tab| tab.0 as isize);
+                Some((view, tab))
             }
         })
         .collect()
@@ -258,5 +269,22 @@ mod tests {
         let _com = Com::apartment().expect("COM");
         assert!(desktop_view().is_ok());
         assert!(desktop_selection().is_ok());
+    }
+
+    #[test]
+    fn the_tab_on_screen_is_the_one_read() {
+        // One window, two tabs: the second is on screen.
+        let tabs = vec![("first", Some(10)), ("second", Some(20))];
+        assert_eq!(active_tab(tabs.clone(), Some(20)), Some("second"));
+        assert_eq!(active_tab(tabs.clone(), Some(10)), Some("first"));
+        // Without a tab window to go by, no tab's selection is guessed.
+        assert_eq!(active_tab(tabs.clone(), None), None);
+        assert_eq!(active_tab(tabs, Some(30)), None);
+        // A window with one tab is read as it is.
+        assert_eq!(active_tab(vec![("only", None)], None), Some("only"));
+        assert_eq!(
+            active_tab(Vec::<(&str, Option<isize>)>::new(), Some(1)),
+            None
+        );
     }
 }
