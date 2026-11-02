@@ -6,6 +6,16 @@ import i18next from 'i18next';
 import ICU from 'i18next-icu';
 import { initReactI18next } from 'react-i18next';
 import en from '../../locales/en.json';
+import ar from '../../locales/ar.json';
+import de from '../../locales/de.json';
+import es from '../../locales/es.json';
+import fr from '../../locales/fr.json';
+import it from '../../locales/it.json';
+import ja from '../../locales/ja.json';
+import ko from '../../locales/ko.json';
+import ptBR from '../../locales/pt-BR.json';
+import ru from '../../locales/ru.json';
+import zhHans from '../../locales/zh-Hans.json';
 import tr from '../../locales/tr.json';
 import { PSEUDO_LANGUAGES, pseudoDictionary, pseudoLong, pseudoMirror } from './pseudo';
 
@@ -29,6 +39,16 @@ export const intlLocale = (code: string) => (isPseudo(code) ? 'en' : code);
 const resources = {
   en: { translation: SOURCE },
   tr: { translation: strings(tr) },
+  es: { translation: strings(es) },
+  'zh-Hans': { translation: strings(zhHans) },
+  ja: { translation: strings(ja) },
+  de: { translation: strings(de) },
+  fr: { translation: strings(fr) },
+  'pt-BR': { translation: strings(ptBR) },
+  ar: { translation: strings(ar) },
+  ko: { translation: strings(ko) },
+  it: { translation: strings(it) },
+  ru: { translation: strings(ru) },
   'en-XA': { translation: pseudoDictionary(SOURCE, pseudoLong) },
   'ar-XB': { translation: pseudoDictionary(SOURCE, pseudoMirror) },
 };

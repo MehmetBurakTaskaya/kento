@@ -74,7 +74,7 @@ pub fn is_pseudo(code: &str) -> bool {
     cfg!(debug_assertions) && PSEUDO.contains(&code)
 }
 
-/// The languages with a file in /locales today; the other ten arrive in Phase 10.
+/// The languages with a file in /locales.
 pub fn available() -> Vec<Language> {
     PLANNED
         .iter()
@@ -86,8 +86,18 @@ pub fn available() -> Vec<Language> {
 fn dictionaries() -> &'static HashMap<&'static str, HashMap<String, String>> {
     static DICTS: OnceLock<HashMap<&'static str, HashMap<String, String>>> = OnceLock::new();
     DICTS.get_or_init(|| {
-        let files: [(&str, &str); 2] = [
+        let files: [(&str, &str); 12] = [
             ("en", include_str!("../../locales/en.json")),
+            ("es", include_str!("../../locales/es.json")),
+            ("zh-Hans", include_str!("../../locales/zh-Hans.json")),
+            ("ja", include_str!("../../locales/ja.json")),
+            ("de", include_str!("../../locales/de.json")),
+            ("fr", include_str!("../../locales/fr.json")),
+            ("pt-BR", include_str!("../../locales/pt-BR.json")),
+            ("ar", include_str!("../../locales/ar.json")),
+            ("ko", include_str!("../../locales/ko.json")),
+            ("it", include_str!("../../locales/it.json")),
+            ("ru", include_str!("../../locales/ru.json")),
             ("tr", include_str!("../../locales/tr.json")),
         ];
         files
@@ -197,8 +207,9 @@ mod tests {
     fn resolves_the_setting_then_the_system_then_english() {
         assert_eq!(resolve("tr", Some("de-DE")), "tr");
         assert_eq!(resolve("system", Some("tr-TR")), "tr");
-        // German has no file yet, so English.
-        assert_eq!(resolve("system", Some("de-DE")), "en");
+        assert_eq!(resolve("system", Some("de-DE")), "de");
+        // A system language Kento does not speak falls back to English.
+        assert_eq!(resolve("system", Some("nl-NL")), "en");
         assert_eq!(resolve("system", None), "en");
         assert_eq!(resolve("xx", Some("tr-TR")), "tr");
     }
@@ -218,6 +229,7 @@ mod tests {
                 lang.code
             );
         }
+        assert_eq!(available().len(), 12);
         assert_eq!(text("tr", "nav.home"), "Ana Sayfa");
         assert_eq!(text("tr", "no.such.key"), "no.such.key");
     }

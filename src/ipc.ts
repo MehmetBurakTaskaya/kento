@@ -6,6 +6,16 @@ import { convertFileSrc, invoke, isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import en from '../locales/en.json';
+import es from '../locales/es.json';
+import zhHans from '../locales/zh-Hans.json';
+import ja from '../locales/ja.json';
+import de from '../locales/de.json';
+import fr from '../locales/fr.json';
+import ptBR from '../locales/pt-BR.json';
+import ar from '../locales/ar.json';
+import ko from '../locales/ko.json';
+import it from '../locales/it.json';
+import ru from '../locales/ru.json';
 import tr from '../locales/tr.json';
 
 export type Appearance = 'system' | 'light' | 'dark';
@@ -1033,6 +1043,16 @@ export const DEFAULT_SETTINGS: Settings = {
 export function browserApi(params: URLSearchParams): Api {
   const languages: Language[] = [
     { code: 'en', name: 'English' },
+    { code: 'es', name: 'Español' },
+    { code: 'zh-Hans', name: '简体中文' },
+    { code: 'ja', name: '日本語' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'fr', name: 'Français' },
+    { code: 'pt-BR', name: 'Português (Brasil)' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'ko', name: '한국어' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'ru', name: 'Русский' },
     { code: 'tr', name: 'Türkçe' },
   ];
   const known = (code: string | null) =>
@@ -1408,7 +1428,21 @@ const DEMO_NEWS: UpdateNews = {
 
 /** A text the core would give in the interface language. */
 function coreText(lang: string | null, key: string): string {
-  const dictionary: Record<string, string> = lang === 'tr' ? tr : en;
+  const dictionaries: Record<string, Record<string, string>> = {
+    en,
+    es,
+    'zh-Hans': zhHans,
+    ja,
+    de,
+    fr,
+    'pt-BR': ptBR,
+    ar,
+    ko,
+    it,
+    ru,
+    tr,
+  };
+  const dictionary: Record<string, string> = dictionaries[lang ?? 'en'] ?? en;
   return dictionary[key] ?? key;
 }
 

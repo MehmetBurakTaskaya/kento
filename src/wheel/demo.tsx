@@ -84,7 +84,20 @@ const CATEGORIES: { id: string; icon: IconName; targets: [string, string?][] }[]
   { id: 'pdf', icon: 'doc', targets: [['DOCX', 'office'], ['PNG'], ['JPG'], ['TXT']] },
 ];
 
-const NAMES: Record<string, string> = { en: 'English', tr: 'Türkçe' };
+const NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Español',
+  'zh-Hans': '简体中文',
+  ja: '日本語',
+  de: 'Deutsch',
+  fr: 'Français',
+  'pt-BR': 'Português (Brasil)',
+  ar: 'العربية',
+  ko: '한국어',
+  it: 'Italiano',
+  ru: 'Русский',
+  tr: 'Türkçe',
+};
 const LONG_NAME = 'a-very-long-holiday-photo-name-from-the-camera.heic';
 
 export default function WheelDemo() {
