@@ -76,8 +76,8 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 8: automation and enhancements
 
-- [ ] Folder automation, recipes, window layouts
-- [ ] Background removal, OCR, QR generation, subtitle burn-in, CLI
+- [x] Folder automation with loop protection, recipes [+] (the wheel's Favorites, automation and the command line), window layouts (off by default)
+- [x] Background removal [+] (ONNX Runtime with BEN2 Base), OCR [+] (the system's recognisers), QR generation [+], subtitle burn-in [+], CLI [+]
 
 ## Phase 9: release readiness (v1.0)
 

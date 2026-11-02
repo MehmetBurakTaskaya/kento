@@ -114,7 +114,7 @@ Downloaded on request at first setup, never bundled.
 | --- | --- |
 | Media | FFmpeg + ffprobe (Windows: the gyan.dev "essentials" release build; macOS: the evermeet.cx static release builds for Intel, which Apple silicon runs through Rosetta 2 until a pinned arm64 build is added), yt-dlp (`yt-dlp.exe` / `yt-dlp_macos`), Deno (yt-dlp now needs a JavaScript runtime for YouTube) |
 | Office | LibreOffice. On Windows the official MSI is unpacked with `msiexec /a` (administrative install) into the app data folder and used portably; on macOS it is taken from the DMG. An existing system install is used when present. |
-| Extras | ExifTool (Windows: the official 64-bit package; macOS: the Perl distribution run by the system's Perl), a background-removal model + ONNX Runtime |
+| Extras | ExifTool (Windows: the official 64-bit package; macOS: the Perl distribution run by the system's Perl), ONNX Runtime (Microsoft's release builds, MIT) and the BEN2 Base background-removal model (MIT, published by its authors); each is installed only when it is missing |
 
 Rules:
 
@@ -223,7 +223,7 @@ kento convert photo.heic --to jpg
 kento tool compress video.mp4 --target-size 25MB
 ```
 
-The CLI is also used for testing and automation.
+The CLI is also used for testing and automation. It is a console program of its own beside the app (`kento.com` next to `kento.exe` on Windows, so typing `kento` in a terminal finds it first; inside the app bundle on macOS) and never opens a window. Commands: `convert`, `tool` (the tools that need no choices, plus Compress with `--quality`, `--ratio` or `--target-size`), `recipe list` and `recipe run`, `formats` and `routes`; `--out`, `--json`, `--quiet`. Results go next to each file (or `--out`) under the app's naming rules. Exit codes: 0 done, 1 a job failed, 2 wrong usage, 3 not possible, 4 a tool is missing, 130 cancelled.
 
 **7. Touch screens (Phase 10)**
 
@@ -465,7 +465,17 @@ The active window is placed in one of 8 layouts with a global shortcut or the wh
 - center
 - full screen
 
-The feature is off by default and can be switched on in Settings. It must not clash with the built-in Windows Snap.
+The feature is off by default and can be switched on in Settings. It must not clash with the built-in Windows Snap: no shortcut uses the Windows key, and Kento never snaps a window.
+
+| Layout | Windows | macOS |
+| --- | --- | --- |
+| Left / right half | Ctrl+Alt+← / → | ⌃⌥⌘← / → |
+| Full screen | Ctrl+Alt+↑ | ⌃⌥⌘↑ |
+| Center | Ctrl+Alt+↓ | ⌃⌥⌘↓ |
+| Top left / top right | Ctrl+Alt+Home / Page Up | ⌃⌥⌘U / I |
+| Bottom left / bottom right | Ctrl+Alt+End / Page Down | ⌃⌥⌘J / K |
+
+With the feature on, Ctrl+Shift+Space with nothing selected opens the Window ring, whose slices sit where their layouts go on the screen. A window that cannot be resized is centred in its layout's place. On macOS the feature needs the Accessibility permission, asked for only when the feature is switched on.
 
 ### 5.13 Job queue, progress and notifications
 
