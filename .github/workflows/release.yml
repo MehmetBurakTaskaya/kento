@@ -1,0 +1,365 @@
+name: Release
+
+# Pushing a tag such as v1.0.0 builds the Windows installer and the portable ZIP, tries both and
+# puts them on a draft release; the universal macOS .dmg and its update archive join them, and a
+# last job adds latest.json and SHA256SUMS.txt (ARCHITECTURE 46, docs/RELEASING.md). Publishing the
+# draft is a manual step.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Windows installer and portable ZIP
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      signature: ${{ steps.draft.outputs.signature }}
+      portable_signature: ${{ steps.draft.outputs.portable_signature }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          check-latest: true
+          cache: npm
+
+      - name: Rust toolchain
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Version, notes, notices and signing key
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          npm_version=$(node -p "require('./package.json').version")
+          conf_version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          cargo_version=$(sed -n 's/^version = "\(.*\)"$/\1/p' src-tauri/Cargo.toml | head -n 1)
+          echo "tag $tag · package.json $npm_version · tauri.conf.json $conf_version · Cargo.toml $cargo_version"
+          if [ "$tag" != "$npm_version" ] || [ "$tag" != "$conf_version" ] || [ "$tag" != "$cargo_version" ]; then
+            echo "::error::The tag and the three version fields must match (docs/RELEASING.md)"
+            exit 1
+          fi
+          node scripts/release-notes.mjs "$tag" > /dev/null
+          npm run check:third-party
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::error::The TAURI_SIGNING_PRIVATE_KEY secret is missing (docs/SIGNING.md)"
+            exit 1
+          fi
+
+      # The pinned PDFium library that ships inside Kento.
+      - name: PDFium
+        run: npm run pdfium
+
+      # The key has no password (docs/SIGNING.md).
+      - name: Build and sign the installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        run: npm run tauri build
+
+      # The portable copy holds what the installer puts in the install folder: the program, the
+      # command line under the name a terminal finds first, PDFium and the licence texts.
+      - name: Portable folder
+        run: |
+          mkdir -p portable
+          cp src-tauri/target/release/kento.exe portable/Kento.exe
+          cp src-tauri/target/release/kento-cli.exe portable/kento.com
+          cp -r src-tauri/resources/pdfium portable/pdfium
+          cp LICENSE portable/LICENSE.txt
+          cp THIRD-PARTY-NOTICES.md portable/THIRD-PARTY-NOTICES.md
+
+      # The portable copy as users start it, before anything is uploaded. KENTO_REQUIRE_RELEASE
+      # makes the command line and the licence texts beside it part of the test.
+      - name: Smoke test
+        timeout-minutes: 3
+        env:
+          KENTO_REQUIRE_RELEASE: '1'
+        run: |
+          status=0
+          ./portable/Kento.exe --smoke-test || status=$?
+          report="$LOCALAPPDATA/Kento/smoke-test.json"
+          cat "$report"
+          [ "$status" = 0 ] && grep -q '"passed": true' "$report"
+
+      - name: Command line
+        timeout-minutes: 2
+        run: |
+          cli=./portable/kento.com
+          "$cli" --version | tee "$RUNNER_TEMP/version.txt"
+          grep -qx "kento ${GITHUB_REF_NAME#v}" "$RUNNER_TEMP/version.txt"
+          dir="$RUNNER_TEMP/Komut satırı ğüş 🧪"
+          mkdir -p "$dir"
+          cp src-tauri/icons/128x128.png "$dir/Fotoğraf İı 🧪.png"
+          "$cli" convert "$dir/Fotoğraf İı 🧪.png" --to pdf --json | tee "$RUNNER_TEMP/convert.json"
+          grep -q '"ok": true' "$RUNNER_TEMP/convert.json"
+          "$cli" convert "$dir/Fotoğraf İı 🧪.pdf" --to png --json | tee "$RUNNER_TEMP/pages.json"
+          grep -q '"ok": true' "$RUNNER_TEMP/pages.json"
+
+      # The installer as people and updates run it, on this throwaway machine: a silent install, an
+      # update over it, then the uninstaller. The install folder must hold kento.com and be on the
+      # user's Path once; the installed copy must pass its smoke test; the uninstaller must take
+      # the program, the Path entry and what Kento registered for this copy, and keep the data.
+      - name: Install, update and uninstall
+        shell: pwsh
+        timeout-minutes: 6
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Get-Item src-tauri/target/release/bundle/nsis/*-setup.exe).FullName
+          $dir = Join-Path $env:LOCALAPPDATA 'Kento'
+          $user = [Microsoft.Win32.Registry]::CurrentUser
+          function Get-UserPath { $user.OpenSubKey('Environment').GetValue('Path', '', 'DoNotExpandEnvironmentNames') }
+          function Get-Entries([string] $path) { @($path -split ';' | Where-Object { $_ }) }
+          function Invoke-Program([string] $file, [string[]] $arguments) {
+            $process = Start-Process $file -ArgumentList $arguments -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw "$file $arguments ended with $($process.ExitCode)" }
+          }
+          $before = Get-UserPath
+
+          Invoke-Program $setup '/S'
+          foreach ($file in 'kento.exe', 'kento.com', 'uninstall.exe', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.md', 'pdfium\pdfium.dll') {
+            if (-not (Test-Path -LiteralPath (Join-Path $dir $file))) { throw "$file was not installed" }
+          }
+          foreach ($file in 'kento-cli.exe', 'catalog-export.exe') {
+            if (Test-Path -LiteralPath (Join-Path $dir $file)) { throw "$file should not be installed" }
+          }
+          if (@(Get-Entries (Get-UserPath) | Where-Object { $_ -eq $dir }).Count -ne 1) { throw "the Path does not hold $dir once" }
+          & (Join-Path $dir 'kento.com') --version
+          if ($LASTEXITCODE -ne 0) { throw 'kento.com did not answer' }
+          $smoke = Start-Process (Join-Path $dir 'kento.exe') -ArgumentList '--smoke-test' -Wait -PassThru
+          Get-Content (Join-Path $dir 'smoke-test.json')
+          if ($smoke.ExitCode -ne 0) { throw 'the installed copy failed its smoke test' }
+
+          Invoke-Program $setup '/S', '/UPDATE'
+          if (@(Get-Entries (Get-UserPath) | Where-Object { $_ -eq $dir }).Count -ne 1) { throw 'the update changed the Path' }
+          if (-not (Test-Path -LiteralPath (Join-Path $dir 'kento.com'))) { throw 'kento.com is gone after the update' }
+
+          # Entries as Kento writes them for this copy, and a context menu entry of another copy.
+          $exe = Join-Path $dir 'kento.exe'
+          $run = 'Software\Microsoft\Windows\CurrentVersion\Run'
+          $user.CreateSubKey('Software\Classes\*\shell\Kento\command').SetValue('', "`"$exe`" --wheel `"%1`"")
+          $user.CreateSubKey('Software\Classes\Directory\shell\Kento\command').SetValue('', '"C:\Elsewhere\kento.exe" --wheel "%1"')
+          $user.CreateSubKey($run).SetValue('Kento', "`"$exe`" --autostart")
+          $sendTo = Join-Path ([Environment]::GetFolderPath('SendTo')) 'Kento.lnk'
+          $link = (New-Object -ComObject WScript.Shell).CreateShortcut($sendTo)
+          $link.TargetPath = $exe
+          $link.Arguments = '--send-to'
+          $link.Save()
+
+          # Told where it lives (_?=), the uninstaller runs in place instead of returning at once
+          # from a copy of itself, and leaves itself behind.
+          Invoke-Program (Join-Path $dir 'uninstall.exe') '/S', "_?=$dir"
+          foreach ($file in 'kento.exe', 'kento.com', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.md', 'pdfium') {
+            if (Test-Path -LiteralPath (Join-Path $dir $file)) { throw "$file is still there" }
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $dir 'smoke-test.json'))) { throw 'the data went too' }
+          if (((Get-Entries (Get-UserPath)) -join ';') -ne ((Get-Entries $before) -join ';')) { throw "the Path changed: $(Get-UserPath)" }
+          if ($user.OpenSubKey('Software\Classes\*\shell\Kento')) { throw 'the context menu entry is still there' }
+          if (-not $user.OpenSubKey('Software\Classes\Directory\shell\Kento')) { throw "another copy's entry went too" }
+          if ($null -ne $user.OpenSubKey($run).GetValue('Kento')) { throw 'the sign-in entry is still there' }
+          if (Test-Path -LiteralPath $sendTo) { throw 'the Send To shortcut is still there' }
+          $user.DeleteSubKeyTree('Software\Classes\Directory\shell\Kento')
+          Remove-Item -LiteralPath (Join-Path $dir 'uninstall.exe')
+
+      # Fixed names, so releases/latest/download/<file> links keep working. Updates fetch the same
+      # installer as Kento-Windows-x64-Update.exe, so the download counts tell people's downloads
+      # from updates; the portable copy updates from its ZIP, signed here for this version. The
+      # update signatures go into latest.json, not onto the release page.
+      - name: Draft release with the installer and the portable ZIP
+        id: draft
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          setup="src-tauri/target/release/bundle/nsis/Kento_${version}_x64-setup.exe"
+          mkdir -p out
+          cp "$setup" out/Kento-Windows-x64-Setup.exe
+          cp "$setup" out/Kento-Windows-x64-Update.exe
+          (cd portable && 7z a -tzip -mx=9 ../out/Kento-Windows-x64-Portable.zip \
+            Kento.exe kento.com pdfium LICENSE.txt THIRD-PARTY-NOTICES.md > /dev/null)
+          npx tauri signer sign --app-version "$version" out/Kento-Windows-x64-Portable.zip < /dev/null > /dev/null
+          files="out/Kento-Windows-x64-Setup.exe out/Kento-Windows-x64-Update.exe out/Kento-Windows-x64-Portable.zip"
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" --clobber $files
+          else
+            node scripts/release-notes.mjs "$version" --release > release-notes.md
+            gh release create "$GITHUB_REF_NAME" --verify-tag --draft --title "Kento $version" \
+              --notes-file release-notes.md $files
+          fi
+          echo "signature=$(tr -d '\r\n' < "$setup.sig")" >> "$GITHUB_OUTPUT"
+          echo "portable_signature=$(tr -d '\r\n' < out/Kento-Windows-x64-Portable.zip.sig)" >> "$GITHUB_OUTPUT"
+
+  macos:
+    name: macOS universal .dmg
+    needs: windows
+    runs-on: macos-latest
+    # A failed Mac build leaves the Windows release intact; latest.json then offers Windows only.
+    continue-on-error: true
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      signature: ${{ steps.upload.outputs.signature }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          check-latest: true
+          cache: npm
+
+      - name: Rust toolchain for both Mac architectures
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # The universal PDFium library, for Apple silicon and Intel.
+      - name: PDFium
+        run: npm run pdfium
+
+      # Every Mac build is signed with the project's own certificate, so macOS keeps the
+      # permissions given to Kento across updates (docs/SIGNING.md).
+      - name: Signing certificate
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_CERTIFICATE" ] || [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
+            echo "::error::The MACOS_CERTIFICATE or MACOS_CERTIFICATE_PASSWORD secret is missing (docs/SIGNING.md)"
+            exit 1
+          fi
+          printf '%s' "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          bash scripts/mac-signing.sh import "$RUNNER_TEMP/signing.p12"
+          rm "$RUNNER_TEMP/signing.p12"
+
+      # The command line goes into the bundle beside the app (scripts/universal-cli.mjs).
+      - name: Build and sign the app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        run: npm run tauri build -- --target universal-apple-darwin
+
+      # Signed with any other certificate, the release would cost every Mac user the permissions
+      # they gave Kento. Every program in the bundle must also run on both architectures and on
+      # the oldest macOS the bundle claims.
+      - name: Check the app
+        run: |
+          app=src-tauri/target/universal-apple-darwin/release/bundle/macos/Kento.app
+          requirement=$(codesign -d -r- "$app" 2>&1 | sed -n 's/^#* *designated => //p')
+          echo "$requirement"
+          if [ "$requirement" != "$(cat src-tauri/macos-requirement.txt)" ]; then
+            echo "::error::The app's designated requirement differs from src-tauri/macos-requirement.txt (docs/SIGNING.md)"
+            exit 1
+          fi
+          codesign --verify --verbose=2 "$app"
+          minimum=$(node -p "require('./src-tauri/tauri.macos.conf.json').bundle.macOS.minimumSystemVersion")
+          for file in "$app"/Contents/MacOS/* "$app"/Contents/Resources/pdfium/*.dylib; do
+            archs=$(lipo -archs "$file")
+            needs=$(otool -arch all -l "$file" | awk '$1 == "minos" { print $2 }' | sort -t. -k1,1n -k2,2n | tail -n 1)
+            echo "$(basename "$file"): $archs, macOS ${needs:-?}"
+            if [[ " $archs " != *" arm64 "* || " $archs " != *" x86_64 "* ]]; then
+              echo "::error::$(basename "$file") is not universal"
+              exit 1
+            fi
+            # Exits 1 when the first version is above the second.
+            if [ -n "$needs" ] && ! awk -v a="$needs" -v b="$minimum" 'BEGIN { split(a, x, "."); split(b, y, ".")
+                for (i = 1; i <= 3; i++) if (x[i] + 0 != y[i] + 0) exit (x[i] + 0 > y[i] + 0) }'; then
+              echo "::error::$(basename "$file") needs macOS $needs, the bundle claims $minimum"
+              exit 1
+            fi
+          done
+          test -x "$app/Contents/MacOS/kento-cli"
+          test -s "$app/Contents/Resources/LICENSE.txt"
+          test -s "$app/Contents/Resources/THIRD-PARTY-NOTICES.md"
+
+      # The signed app as users start it, its command line included, before anything is uploaded.
+      - name: Smoke test
+        timeout-minutes: 3
+        run: |
+          app=src-tauri/target/universal-apple-darwin/release/bundle/macos/Kento.app
+          main=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
+          status=0
+          "$app/Contents/MacOS/$main" --smoke-test || status=$?
+          report="$HOME/Library/Application Support/Kento/smoke-test.json"
+          cat "$report"
+          [ "$status" = 0 ] && grep -q '"passed": true' "$report"
+
+      # The .dmg to download and the archive that updates install, under names that never change.
+      # The update signature goes into latest.json, not onto the release page.
+      - name: Add the .dmg and the update archive to the draft
+        id: upload
+        run: |
+          bundle=src-tauri/target/universal-apple-darwin/release/bundle
+          cp "$(ls "$bundle"/dmg/*.dmg | head -n 1)" Kento-macOS-Universal.dmg
+          cp "$bundle/macos/Kento.app.tar.gz" Kento-macOS-Universal.app.tar.gz
+          gh release upload "$GITHUB_REF_NAME" --clobber Kento-macOS-Universal.dmg Kento-macOS-Universal.app.tar.gz
+          echo "signature=$(tr -d '\r\n' < "$bundle/macos/Kento.app.tar.gz.sig")" >> "$GITHUB_OUTPUT"
+
+  finish:
+    name: latest.json, checksums and notes
+    needs: [windows, macos]
+    if: ${{ always() && needs.windows.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      WINDOWS_SIGNATURE: ${{ needs.windows.outputs.signature }}
+      PORTABLE_SIGNATURE: ${{ needs.windows.outputs.portable_signature }}
+      MAC_SIGNATURE: ${{ needs.macos.outputs.signature }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          check-latest: true
+
+      # latest.json carries the signatures and the CHANGELOG section the app shows after an
+      # update; the release notes name the Mac files only when the Mac job delivered them.
+      - name: latest.json, SHA256SUMS.txt and the release notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p out
+          gh release download "$GITHUB_REF_NAME" --dir out --skip-existing
+          rm -f out/latest.json out/SHA256SUMS.txt
+          printf '%s' "$WINDOWS_SIGNATURE" > out/Kento-Windows-x64-Update.exe.sig
+          printf '%s' "$PORTABLE_SIGNATURE" > out/Kento-Windows-x64-Portable.zip.sig
+          mac=
+          if [ -n "$MAC_SIGNATURE" ] && [ -f out/Kento-macOS-Universal.app.tar.gz ] && [ -f out/Kento-macOS-Universal.dmg ]; then
+            printf '%s' "$MAC_SIGNATURE" > out/Kento-macOS-Universal.app.tar.gz.sig
+            mac=--mac
+          fi
+          node scripts/release-notes.mjs "$version" > notes.md
+          node scripts/latest-json.mjs "$version" notes.md out > out/latest.json
+          cat out/latest.json
+          (cd out && sha256sum $(ls | grep -v -E '^SHA256SUMS\.txt$|\.sig$') > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          gh release upload "$GITHUB_REF_NAME" --clobber out/latest.json out/SHA256SUMS.txt
+          node scripts/release-notes.mjs "$version" --release $mac > release-notes.md
+          gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md
