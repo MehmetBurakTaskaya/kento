@@ -5,6 +5,8 @@
 import { convertFileSrc, invoke, isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
+import en from '../locales/en.json';
+import tr from '../locales/tr.json';
 
 export type Appearance = 'system' | 'light' | 'dark';
 export type Motion = 'system' | 'on' | 'off';
@@ -95,7 +97,7 @@ export interface Saved {
   language: string;
 }
 
-export type Section = 'home' | 'library' | 'settings';
+export type Section = 'home' | 'library' | 'automation' | 'settings';
 
 export type Category =
   'image' | 'video' | 'audio' | 'document' | 'spreadsheet' | 'presentation' | 'subtitle' | 'pdf' | 'archive';
@@ -496,6 +498,100 @@ export interface ShelfView {
   history: ShelfItem[];
 }
 
+/** One step of a recipe (SPEC 5.11): each takes the file the step before it gave. */
+export type RecipeStep =
+  | { kind: 'convert'; to: string }
+  /** An aspect ratio, cropped from the middle. */
+  | { kind: 'crop'; width: number; height: number }
+  /** The longer side in pixels; never enlarges. */
+  | { kind: 'resize'; longSide: number }
+  | { kind: 'compress'; compression: Compression };
+
+export interface Recipe {
+  /** Empty for a recipe not saved yet. */
+  id: string;
+  name: string;
+  steps: RecipeStep[];
+}
+
+/** A recipe on the wheel's Favorites ring, with the tool group it still needs. */
+export interface RecipeEntry extends Recipe {
+  needs: ToolGroup | null;
+}
+
+/** Which new files a folder rule takes. Sizes in bytes. */
+export interface RuleFilter {
+  extensions: string[];
+  pattern: string;
+  minSize: number | null;
+  maxSize: number | null;
+}
+
+export type RuleAction =
+  | { kind: 'convert'; to: string }
+  | { kind: 'tool'; tool: string }
+  | { kind: 'recipe'; recipe: string }
+  | { kind: 'move' };
+
+/** A folder automation rule (SPEC 5.11). */
+export interface Rule {
+  /** Empty for a rule not saved yet. */
+  id: string;
+  name: string;
+  enabled: boolean;
+  folder: string;
+  subfolders: boolean;
+  filter: RuleFilter;
+  action: RuleAction;
+  output: string;
+}
+
+export interface RuleView extends Rule {
+  /** The output folder is inside the watched one. */
+  outputInside: boolean;
+  /** A message key: a folder or the recipe is gone, or the folder cannot be watched. */
+  problem: string | null;
+}
+
+export type Outcome = 'queued' | 'done' | 'failed' | 'skipped' | 'cancelled';
+
+/** One file a rule handled; never its contents. */
+export interface Activity {
+  id: number;
+  /** Unix time in milliseconds. */
+  at: number;
+  rule: string;
+  ruleName: string;
+  file: string;
+  outcome: Outcome;
+  message: string | null;
+  outputs: string[];
+}
+
+/** A format some file converts to. */
+export interface ConvertFormat {
+  id: string;
+  label: string;
+  category: Category;
+}
+
+export interface AutomationView {
+  paused: boolean;
+  rules: RuleView[];
+  /** Newest first. */
+  activity: Activity[];
+  targets: ConvertFormat[];
+  /** The tools a rule can run (those that need no choices). */
+  tools: string[];
+}
+
+/** A rule's failure, shown in the main window when it has the focus. */
+export interface AutomationFailure {
+  title: string;
+  message: string;
+  details: string | null;
+}
+
 export interface Api {
   bootstrap(): Promise<Bootstrap>;
   saveSettings(settings: Settings): Promise<Saved>;
@@ -633,6 +729,25 @@ export interface Api {
   /** macOS: the system's prompt for the Accessibility permission, once Kento has said why. */
   layoutsAskPermission(): Promise<LayoutStatus>;
   layoutsOpenPermissionSettings(): Promise<void>;
+  recipesList(): Promise<Recipe[]>;
+  /** Adds a recipe (empty id) or replaces the one with its id; returns the list. */
+  recipesSave(recipe: Recipe): Promise<Recipe[]>;
+  recipesDelete(id: string): Promise<Recipe[]>;
+  recipesReorder(ids: string[]): Promise<Recipe[]>;
+  /** The recipes that fit every one of the files, for the wheel's Favorites ring. */
+  recipesFor(paths: string[]): Promise<RecipeEntry[]>;
+  runRecipe(id: string, paths: string[]): Promise<number[]>;
+  onRecipes(handler: () => void): Promise<UnlistenFn>;
+  automationView(): Promise<AutomationView>;
+  /** The system's folder dialog; a rule can only be saved with folders chosen here. */
+  automationChooseFolder(): Promise<string | null>;
+  automationSaveRule(rule: Rule): Promise<AutomationView>;
+  automationDeleteRule(id: string): Promise<AutomationView>;
+  automationSetEnabled(id: string, enabled: boolean): Promise<AutomationView>;
+  automationSetPaused(paused: boolean): Promise<AutomationView>;
+  automationClearActivity(): Promise<AutomationView>;
+  onAutomation(handler: () => void): Promise<UnlistenFn>;
+  onAutomationFailed(handler: (failure: AutomationFailure) => void): Promise<UnlistenFn>;
 }
 
 /** Kento's drag event as the core sends it: physical pixels. */
@@ -788,6 +903,22 @@ const tauriApi: Api = {
   layoutsApply: (layout) => invoke('layouts_apply', { layout }),
   layoutsAskPermission: () => invoke('layouts_ask_permission'),
   layoutsOpenPermissionSettings: () => invoke('layouts_open_permission_settings'),
+  recipesList: () => invoke('recipes_list'),
+  recipesSave: (recipe) => invoke('recipes_save', { recipe }),
+  recipesDelete: (id) => invoke('recipes_delete', { id }),
+  recipesReorder: (ids) => invoke('recipes_reorder', { ids }),
+  recipesFor: (paths) => invoke('recipes_for', { paths }),
+  runRecipe: (id, paths) => invoke('run_recipe', { id, paths }),
+  onRecipes: (handler) => listen('recipes', () => handler()),
+  automationView: () => invoke('automation_view'),
+  automationChooseFolder: () => invoke('automation_choose_folder'),
+  automationSaveRule: (rule) => invoke('automation_save_rule', { rule }),
+  automationDeleteRule: (id) => invoke('automation_delete_rule', { id }),
+  automationSetEnabled: (id, enabled) => invoke('automation_set_enabled', { id, enabled }),
+  automationSetPaused: (paused) => invoke('automation_set_paused', { paused }),
+  automationClearActivity: () => invoke('automation_clear_activity'),
+  onAutomation: (handler) => listen('automation', () => handler()),
+  onAutomationFailed: (handler) => listen<AutomationFailure>('automation-failed', (event) => handler(event.payload)),
 };
 
 /** PNG bytes from a command as an image Blob; a file without a preview gives null. */
@@ -836,6 +967,15 @@ export function browserApi(params: URLSearchParams): Api {
   let paused = false;
   const pausedHandlers = new Set<(paused: boolean) => void>();
   const platform = (params.get('platform') as Platform | null) ?? 'windows';
+  // Recipes start with the example, as on a first start; ?automation=demo fills the rules and
+  // the activity log.
+  let recipes: Recipe[] = [demoRecipe(params.get('lang'))];
+  let automation: AutomationView =
+    params.get('automation') === 'demo'
+      ? demoAutomation(platform, params.get('lang'))
+      : { paused: false, rules: [], activity: [], targets: DEMO_CONVERT, tools: ['extract', 'mute'] };
+  let picks = 0;
+  const setAutomation = async (next: Partial<AutomationView>) => (automation = { ...automation, ...next });
   return {
     bootstrap: async () => ({
       settings,
@@ -967,7 +1107,9 @@ export function browserApi(params: URLSearchParams): Api {
       if (params.get('drag') === 'link') return { id: 1, kind: 'convert', mode: 'drag', paths: [] };
       const kind = params.get('wheel') as WheelKind | null;
       if (kind === 'window') return { id: 1, kind, mode: 'click', paths: [], window: 'Rapor 2026.docx - Word' };
-      return kind ? { id: 1, kind, mode: 'click', paths: DEMO_FILES } : null;
+      // &only=image keeps the photo alone, so the Tools wheel offers its Favorites.
+      const paths = params.get('only') === 'image' ? DEMO_FILES.slice(0, 1) : DEMO_FILES;
+      return kind ? { id: 1, kind, mode: 'click', paths } : null;
     },
     wheelDropped: async () => {},
     wheelSwitch: async () => {},
@@ -1082,6 +1224,171 @@ export function browserApi(params: URLSearchParams): Api {
     layoutsApply: async () => {},
     layoutsAskPermission: async () => demoLayouts(platform, params.get('layouts')),
     layoutsOpenPermissionSettings: async () => {},
+    recipesList: async () => recipes,
+    recipesSave: async (recipe) => {
+      const saved = { ...recipe, id: recipe.id || `r${recipes.length + 1}` };
+      const known = recipes.some((item) => item.id === saved.id);
+      recipes = known ? recipes.map((item) => (item.id === saved.id ? saved : item)) : [...recipes, saved];
+      return recipes;
+    },
+    recipesDelete: async (id) => (recipes = recipes.filter((recipe) => recipe.id !== id)),
+    recipesReorder: async (ids) => {
+      const rank = (id: string) => (ids.includes(id) ? ids.indexOf(id) : ids.length);
+      return (recipes = [...recipes].sort((a, b) => rank(a.id) - rank(b.id)));
+    },
+    // Every recipe of the stand-in works on pictures.
+    recipesFor: async (paths) =>
+      paths.length && paths.every((path) => demoEntry(path).category === 'image')
+        ? recipes.map((recipe) => ({ ...recipe, needs: null }))
+        : [],
+    runRecipe: async (_id, paths) => paths.map((_, index) => index + 1),
+    onRecipes: async () => () => {},
+    automationView: async () => automation,
+    // The folder to watch, then the output folder.
+    automationChooseFolder: async () => {
+      const [watched, output] = demoFolders(platform);
+      return picks++ % 2 === 0 ? watched : output;
+    },
+    automationSaveRule: async (rule) => {
+      const view = {
+        ...rule,
+        id: rule.id || `rule-${automation.rules.length + 1}`,
+        outputInside: false,
+        problem: null,
+      };
+      const known = automation.rules.some((item) => item.id === view.id);
+      return setAutomation({
+        rules: known
+          ? automation.rules.map((item) => (item.id === view.id ? view : item))
+          : [...automation.rules, view],
+      });
+    },
+    automationDeleteRule: async (id) => setAutomation({ rules: automation.rules.filter((rule) => rule.id !== id) }),
+    automationSetEnabled: async (id, enabled) =>
+      setAutomation({ rules: automation.rules.map((rule) => (rule.id === id ? { ...rule, enabled } : rule)) }),
+    automationSetPaused: async (next) => setAutomation({ paused: next }),
+    automationClearActivity: async () => setAutomation({ activity: [] }),
+    onAutomation: async () => () => {},
+    onAutomationFailed: async () => () => {},
+  };
+}
+
+/** A text the core would give in the interface language. */
+function coreText(lang: string | null, key: string): string {
+  const dictionary: Record<string, string> = lang === 'tr' ? tr : en;
+  return dictionary[key] ?? key;
+}
+
+/** The example recipe as the core writes it on a first start, named in the interface language. */
+function demoRecipe(lang: string | null): Recipe {
+  return {
+    id: 'ready-for-instagram',
+    name: coreText(lang, 'recipes.example.instagram'),
+    steps: [
+      { kind: 'crop', width: 4, height: 5 },
+      { kind: 'resize', longSide: 1080 },
+      { kind: 'compress', compression: { mode: 'size', bytes: 2_000_000 } },
+    ],
+  };
+}
+
+const DEMO_CONVERT: ConvertFormat[] = [
+  ...['jpg', 'png', 'webp', 'avif', 'heic', 'tiff', 'gif', 'bmp', 'ico'].map((id) => ({
+    id,
+    label: id.toUpperCase(),
+    category: 'image' as const,
+  })),
+  { id: 'pdf', label: 'PDF', category: 'pdf' },
+  ...['mp4', 'webm', 'mov'].map((id) => ({ id, label: id.toUpperCase(), category: 'video' as const })),
+  ...['mp3', 'm4a', 'flac', 'wav'].map((id) => ({ id, label: id.toUpperCase(), category: 'audio' as const })),
+  ...['txt', 'md', 'docx'].map((id) => ({ id, label: id.toUpperCase(), category: 'document' as const })),
+];
+
+/** A folder to watch and an output folder, in the platform's own form. */
+function demoFolders(platform: Platform): [string, string] {
+  return platform === 'macos'
+    ? ['/Users/me/Pictures/Screenshots', '/Users/me/Pictures/Optimized']
+    : ['C:\\Users\\me\\Pictures\\Screenshots', 'C:\\Users\\me\\Pictures\\Optimized'];
+}
+
+function demoAutomation(platform: Platform, lang: string | null): AutomationView {
+  const mac = platform === 'macos';
+  const at = (...parts: string[]) => (mac ? ['/Users/me', ...parts].join('/') : ['C:\\Users\\me', ...parts].join('\\'));
+  const filter = (extensions: string[], minSize: number | null = null): RuleFilter => ({
+    extensions,
+    pattern: '',
+    minSize,
+    maxSize: null,
+  });
+  const now = Date.now();
+  const entry = (id: number, ago: number, rule: string, ruleName: string, file: string, outcome: Outcome) => ({
+    id,
+    at: now - ago,
+    rule,
+    ruleName,
+    file,
+    outcome,
+    message: null,
+    outputs: [],
+  });
+  return {
+    paused: false,
+    targets: DEMO_CONVERT,
+    tools: ['extract', 'mute'],
+    rules: [
+      {
+        id: 'shots',
+        name: 'Ekran görüntüleri → WEBP',
+        enabled: true,
+        folder: at('Pictures', 'Screenshots'),
+        subfolders: false,
+        filter: filter(['png']),
+        action: { kind: 'convert', to: 'webp' },
+        output: at('Pictures', 'Optimized'),
+        outputInside: false,
+        problem: null,
+      },
+      {
+        id: 'instagram',
+        name: '',
+        enabled: true,
+        folder: at('Desktop', 'Instagram 📷'),
+        subfolders: true,
+        filter: filter(['jpg', 'heic'], 100_000),
+        action: { kind: 'recipe', recipe: 'ready-for-instagram' },
+        output: at('Desktop', 'Instagram 📷', 'Hazır'),
+        outputInside: true,
+        problem: null,
+      },
+      {
+        id: 'archives',
+        name: 'Arşivler',
+        enabled: false,
+        folder: at('Downloads'),
+        subfolders: false,
+        filter: { ...filter(['zip', '7z']), pattern: 'rapor*' },
+        action: { kind: 'tool', tool: 'extract' },
+        output: at('Documents', 'Açılanlar'),
+        outputInside: false,
+        problem: 'automation.problem.output',
+      },
+    ],
+    activity: [
+      entry(6, 4_000, 'shots', 'Ekran görüntüleri → WEBP', 'Ekran görüntüsü 2026-11-02 104512.png', 'queued'),
+      {
+        ...entry(5, 95_000, 'shots', 'Ekran görüntüleri → WEBP', 'Ekran görüntüsü 2026-11-02 103001.png', 'done'),
+        outputs: [at('Pictures', 'Optimized', 'Ekran görüntüsü 2026-11-02 103001.webp')],
+      },
+      {
+        ...entry(4, 600_000, 'instagram', 'Instagram 📷', 'Kapadokya 🎈.heic', 'failed'),
+        message: coreText(lang, 'error.unreadable'),
+      },
+      {
+        ...entry(3, 3_600_000, 'instagram', 'Instagram 📷', 'gezi.mp4', 'skipped'),
+        message: coreText(lang, 'automation.skipped.recipe'),
+      },
+      entry(2, 86_400_000, 'shots', 'Ekran görüntüleri → WEBP', 'eski.png', 'cancelled'),
+    ],
   };
 }
 

@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 // The wheel's slices for a selection, shared by the main window and the floating wheel: the
 // Convert wheel by category, the Tools wheel and the file actions wheel. Recent choices come
-// first; that learning stays in this window's local storage (SPEC 5.3).
+// first; that learning stays in this window's local storage (SPEC 5.3). Favorites come before
+// everything on the Tools wheel: one slice that opens the recipes fitting the files (SPEC 5.11).
 import type { TFunction } from 'i18next';
+import { describeSteps } from '../automation/describe';
 import { kindIcon } from '../components/FileIcon';
 import type { IconName } from '../components/Icon';
 import {
@@ -10,6 +12,7 @@ import {
   type ActionEntry,
   type Category,
   type FileEntry,
+  type RecipeEntry,
   type TargetGroup,
   type ToolEntry,
   type ToolGroup,
@@ -145,6 +148,44 @@ export function toolSlices(tools: ToolEntry[], t: TFunction): WheelSlice[] {
   }));
 }
 
+/** The id of the Tools wheel's Favorites slice; it opens the recipes ring. */
+export const FAVORITES = '\u0001favorites';
+const RECIPE = 'recipe:';
+
+/** The recipe a slice runs, or null for any other slice. */
+export function recipeOf(id: string): string | null {
+  return id.startsWith(RECIPE) ? id.slice(RECIPE.length) : null;
+}
+
+/** Favorites, first on the Tools wheel when recipes fit the files. */
+export function favoritesSlice(recipes: RecipeEntry[], t: TFunction): WheelSlice {
+  return {
+    id: FAVORITES,
+    label: t('wheel.favorites'),
+    sublabel: t('wheel.recipes', { count: recipes.length }),
+    icon: 'star',
+    hint: t('wheel.favorites.hint', { count: recipes.length }),
+    opens: true,
+  };
+}
+
+/** The recipes in the user's order; the bubble and the screen reader say their steps. A recipe
+ *  that needs a missing tool group is dimmed and opens the setup, like any other slice. */
+export function recipeSlices(recipes: RecipeEntry[], t: TFunction, lang: string): WheelSlice[] {
+  return recipes.map((recipe) => ({
+    id: recipe.needs ? `${NEEDS_SETUP}:${RECIPE}${recipe.id}` : `${RECIPE}${recipe.id}`,
+    label: recipe.name,
+    icon: 'layers',
+    hint: needsHint(t, recipe.needs) ?? describeSteps(recipe.steps, t, lang),
+    dimmed: !!recipe.needs,
+  }));
+}
+
+/** The Tools wheel's slices: Favorites first when recipes fit, then the tools. */
+export function toolWheelSlices(tools: ToolEntry[], recipes: RecipeEntry[], t: TFunction): WheelSlice[] {
+  return [...(recipes.length ? [favoritesSlice(recipes, t)] : []), ...toolSlices(tools, t)];
+}
+
 export function actionSlices(actions: ActionEntry[], t: TFunction, mac: boolean): WheelSlice[] {
   return byRecent(actions, (action) => action.id, 'actions').map((action) => ({
     id: action.id,
@@ -206,7 +247,19 @@ export interface RingView {
 }
 
 export interface Ring {
-  view(t: TFunction, has: (key: string) => boolean, mac: boolean): RingView;
+  view(t: TFunction, has: (key: string) => boolean, mac: boolean, lang: string): RingView;
+}
+
+function favoritesRing(recipes: RecipeEntry[], paths: string[], parent: Ring | null): Ring {
+  return {
+    view: (t, _has, _mac, lang) => ({
+      key: 'favorites',
+      slices: recipeSlices(recipes, t, lang),
+      paths,
+      apply: () => null,
+      back: parent ? () => parent : undefined,
+    }),
+  };
 }
 
 function targetsRing(group: TargetGroup, paths: string[], parent: Ring | null): Ring {
@@ -247,19 +300,22 @@ export async function slicesFor(kind: WheelKind, files: FileEntry[]): Promise<Ri
     return categories;
   }
   if (kind === 'tools') {
-    const tools = await api.tools(paths);
-    if (!tools.length) return null;
-    return {
+    const [tools, recipes] = await Promise.all([api.tools(paths), api.recipesFor(paths).catch(() => [])]);
+    // Only recipes fit: the wheel opens on them.
+    if (!tools.length) return recipes.length ? favoritesRing(recipes, paths, null) : null;
+    const ring: Ring = {
       view: (t) => ({
         key: 'tools',
-        slices: toolSlices(tools, t),
+        slices: toolWheelSlices(tools, recipes, t),
         paths,
         apply: (id) => {
+          if (id === FAVORITES) return favoritesRing(recipes, paths, ring);
           remember('tools', id);
           return null;
         },
       }),
     };
+    return ring;
   }
   const actions = await api.actions();
   return {

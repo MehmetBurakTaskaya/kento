@@ -76,6 +76,9 @@ const PATHS = {
   alert: 'M12 4l9 15.5H3zM12 10v4.5M12 17.2v.01',
   dial: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 3v3M3 12h2M19 12h2M12 18v3',
   grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01',
+  // Folder automation (a watched folder that acts) and the wheel's Favorites.
+  automation: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM13.5 9.5l-3 4h3.5l-3 4',
+  star: 'M12 3.5l2.6 5.3 5.9.86-4.25 4.14 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.66l5.9-.86z',
   // Media editors.
   'mark-in': 'M10 4H6v16h4M13 12h7M17 9l3 3-3 3',
   'mark-out': 'M14 4h4v16h-4M4 12h7M8 9l3 3-3 3',

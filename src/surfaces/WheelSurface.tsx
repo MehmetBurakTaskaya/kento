@@ -8,7 +8,7 @@
 // shortcut opens the Window ring for the window that was in front (SPEC 5.12).
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { downloadRing, NEEDS_SETUP, slicesFor, type Ring } from '../app/slices';
+import { downloadRing, NEEDS_SETUP, recipeOf, slicesFor, type Ring } from '../app/slices';
 import { windowRing } from '../app/windowRing';
 import { isRtl } from '../i18n';
 import { api, type DragOver, type FileEntry, type LayoutId, type WheelKey, type WheelSession } from '../ipc';
@@ -141,7 +141,7 @@ export function WheelSurface() {
   if (!session || !settings || !shown) return null;
   const run = (promise: Promise<unknown>) =>
     promise.catch((error) => void api.log('warn', `wheel choice failed: ${String(error)}`));
-  const view = shown.view(t, (k) => i18n.exists(k), mac);
+  const view = shown.view(t, (k) => i18n.exists(k), mac, i18n.language);
   const subtitle = link
     ? siteName(link)
     : session.kind === 'window'
@@ -154,7 +154,7 @@ export function WheelSurface() {
     <Wheel
       key={link ? `${session.id}:link` : `${session.id}:${session.kind}`}
       kind={session.kind === 'convert' && !link ? 'convert' : 'tools'}
-      title={t(link ? 'wheel.download' : `wheel.${session.kind}`)}
+      title={t(link ? 'wheel.download' : view.key === 'favorites' ? 'wheel.favorites' : `wheel.${session.kind}`)}
       subtitle={subtitle}
       slices={view.slices}
       overlay
@@ -181,7 +181,9 @@ export function WheelSurface() {
         } else if (session.kind === 'window') run(api.layoutsApply(id as LayoutId));
         else if (session.kind === 'convert') run(api.convert(view.paths, id));
         else if (session.kind === 'tools') {
-          if (id === 'extract') run(api.extract(view.paths));
+          const recipe = recipeOf(id);
+          if (recipe) run(api.runRecipe(recipe, view.paths));
+          else if (id === 'extract') run(api.extract(view.paths));
           else if (id === 'mute') run(api.runMediaTool({ tool: 'mute' }, view.paths));
           else run(api.openTool(id, view.paths));
         } else run(api.runAction(id, view.paths));

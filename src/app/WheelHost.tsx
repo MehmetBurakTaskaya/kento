@@ -1,14 +1,26 @@
 // SPDX-License-Identifier: MIT
 // Opens the wheel in the main window for the chosen files (SPEC 5.3): the Convert wheel shows the
 // targets valid for every file, by category when the selection is mixed; the Tools wheel shows the
-// tools that fit; the file actions wheel works on any files and folders.
+// tools that fit, after a Favorites slice that opens the recipes fitting the files (SPEC 5.11);
+// the file actions wheel works on any files and folders.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, type ActionEntry, type Category, type TargetGroup, type ToolEntry } from '../ipc';
+import { api, type ActionEntry, type Category, type RecipeEntry, type TargetGroup, type ToolEntry } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
 import { isImagePanel, isMediaPanel } from '../editors';
 import { Wheel } from '../wheel/Wheel';
-import { actionSlices, categorySlices, NEEDS_SETUP, PANEL_TOOLS, remember, targetSlices, toolSlices } from './slices';
+import {
+  actionSlices,
+  categorySlices,
+  FAVORITES,
+  NEEDS_SETUP,
+  PANEL_TOOLS,
+  recipeOf,
+  recipeSlices,
+  remember,
+  targetSlices,
+  toolWheelSlices,
+} from './slices';
 
 type Opened = NonNullable<ReturnType<typeof useApp.getState>['wheel']>;
 
@@ -16,6 +28,7 @@ interface Loaded {
   wheel: Opened;
   groups?: TargetGroup[];
   tools?: ToolEntry[];
+  recipes?: RecipeEntry[];
   actions?: ActionEntry[];
 }
 
@@ -25,12 +38,14 @@ export function WheelHost() {
   // Results and choices belong to the wheel they were made for, so a new wheel starts clean.
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [choice, setChoice] = useState<{ wheel: Opened; category: Category | null } | null>(null);
+  const [favoritesFor, setFavoritesFor] = useState<Opened | null>(null);
   const current = loaded?.wheel === wheel ? loaded : null;
   const groups = current?.groups ?? null;
   const category =
     choice?.wheel === wheel ? choice.category : groups?.length === 1 ? (groups[0]?.category ?? null) : null;
   const setCategory = (next: Category | null) => wheel && setChoice({ wheel, category: next });
-  // Choosing a category swaps rings; the closing of the category ring must not end the session.
+  // Choosing a category or Favorites swaps rings; the closing of the first ring must not end the
+  // session.
   const advanced = useRef(false);
 
   useEffect(() => {
@@ -55,11 +70,10 @@ export function WheelHost() {
         })
         .catch(fail);
     } else if (wheel.kind === 'tools') {
-      api
-        .tools(wheel.paths)
-        .then((found) => {
+      Promise.all([api.tools(wheel.paths), api.recipesFor(wheel.paths).catch(() => [])])
+        .then(([tools, recipes]) => {
           if (!live) return;
-          if (found.length) setLoaded({ wheel, tools: found });
+          if (tools.length || recipes.length) setLoaded({ wheel, tools, recipes });
           else empty('run.noTools');
         })
         .catch(fail);
@@ -136,14 +150,43 @@ export function WheelHost() {
   }
 
   if (current.tools) {
+    const tools = current.tools;
+    const recipes = current.recipes ?? [];
+    // Only recipes fit these files: the wheel opens on them.
+    if (favoritesFor === wheel || !tools.length) {
+      return (
+        <Wheel
+          key="favorites"
+          kind="tools"
+          title={t('wheel.favorites')}
+          slices={recipeSlices(recipes, t, i18n.language)}
+          {...common}
+          onBack={tools.length ? () => setFavoritesFor(null) : undefined}
+          onApply={(id) => {
+            if (id.startsWith(NEEDS_SETUP)) return openSetup();
+            const recipe = recipeOf(id);
+            if (recipe) api.runRecipe(recipe, paths).then(started).catch(failed);
+          }}
+        />
+      );
+    }
     return (
       <Wheel
         key="tools"
         kind="tools"
         title={t('wheel.tools')}
-        slices={toolSlices(current.tools, t)}
+        slices={toolWheelSlices(tools, recipes, t)}
         {...common}
+        onClose={() => {
+          if (advanced.current) advanced.current = false;
+          else closeWheel();
+        }}
         onApply={(id) => {
+          if (id === FAVORITES) {
+            advanced.current = true;
+            setFavoritesFor(wheel);
+            return;
+          }
           if (id.startsWith(NEEDS_SETUP)) return openSetup();
           remember('tools', id);
           if (PANEL_TOOLS.includes(id) || isMediaPanel(id) || isImagePanel(id)) openPanel(id as PanelTool, paths);
