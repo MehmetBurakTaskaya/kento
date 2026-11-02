@@ -307,10 +307,10 @@ pub fn routes() -> &'static [Route] {
             .add(
                 &["pdf"],
                 &["xlsx"],
-                E::LibreOffice,
-                G::Office,
+                E::Pdf,
+                G::Core,
                 false,
-                Some("best effort"),
+                Some("tables found in the text, best effort"),
             )
             .add(
                 &["pdf"],
@@ -333,6 +333,11 @@ pub fn routes() -> &'static [Route] {
                     "csv" | "tsv" => "the first sheet",
                     _ => "values only",
                 });
+            }
+            // PDF tables to XLSX arrive with the rest of Phase 6.
+            if route.from == "pdf" && route.to == "xlsx" {
+                route.status = Status::Planned;
+                continue;
             }
             route.status = match route.engine {
                 E::Image | E::Pdf | E::Archive | E::Text | E::Sheet | E::Ffmpeg => Status::Ready,
