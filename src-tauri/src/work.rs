@@ -39,11 +39,14 @@ pub fn inspect(paths: Vec<PathBuf>) -> Vec<FileEntry> {
 
 pub fn entry(path: &Path) -> Option<FileEntry> {
     let meta = fs::metadata(path).ok()?;
-    let format = (!meta.is_dir()).then(|| readable_format(path)).flatten();
+    let package = is_package(path);
+    let format = (!meta.is_dir() || package)
+        .then(|| readable_format(path))
+        .flatten();
     Some(FileEntry {
         path: path.to_path_buf(),
         name: path.file_name()?.to_string_lossy().into_owned(),
-        folder: meta.is_dir(),
+        folder: meta.is_dir() && !package,
         format: format.map(|f| f.id.to_string()),
         category: format.map(|f| f.category),
         size: meta.is_file().then_some(meta.len()),
@@ -53,6 +56,20 @@ pub fn entry(path: &Path) -> Option<FileEntry> {
 /// The format Kento reads this file as; ".tar.gz" reads as GZ.
 fn readable_format(path: &Path) -> Option<&'static Format> {
     catalog::format_for_extension(&path.extension()?.to_string_lossy())
+}
+
+/// Apple's package documents (SPEC 5.4): on macOS a PAGES, NUMBERS, KEY or RTFD document can be
+/// a folder that Finder shows as one file.
+const PACKAGES: [&str; 4] = ["pages", "numbers", "key", "rtfd"];
+
+/// A folder Kento takes as a file of its format; every other folder stays a folder.
+fn is_package(path: &Path) -> bool {
+    path.is_dir() && readable_format(path).is_some_and(|format| PACKAGES.contains(&format.id))
+}
+
+/// A file to convert: a file, or a package document.
+fn is_document(path: &Path) -> bool {
+    path.is_file() || is_package(path)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -82,7 +99,7 @@ pub struct TargetGroup {
 pub fn targets(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<TargetGroup> {
     let mut groups: Vec<(Category, Vec<&'static str>)> = Vec::new();
     for path in &paths {
-        let Some(format) = path.is_file().then(|| readable_format(path)).flatten() else {
+        let Some(format) = is_document(path).then(|| readable_format(path)).flatten() else {
             continue;
         };
         match groups.iter_mut().find(|(c, _)| *c == format.category) {
@@ -237,8 +254,7 @@ pub fn convert(
         .ok_or_else(|| Error::Invalid(format!("unknown target {to}")))?;
     let mut sources = Vec::new();
     for path in paths {
-        let format = path
-            .is_file()
+        let format = is_document(&path)
             .then(|| readable_format(&path))
             .flatten()
             .ok_or_else(|| Error::Invalid("not a file Kento can read".into()))?;
@@ -469,6 +485,38 @@ mod tests {
             "Kento ğüşıöç 🧪.v2"
         );
         assert_eq!(stem_of(Path::new(".hidden")), ".hidden");
+    }
+
+    #[test]
+    fn package_documents_are_files_and_other_folders_stay_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let package = dir.path().join("Sunum ğüşıöç 🧪.key");
+        fs::create_dir_all(package.join("Data")).unwrap();
+        let notes = dir.path().join("Not.rtfd");
+        fs::create_dir(&notes).unwrap();
+        let archive_named = dir.path().join("Yedek.zip");
+        fs::create_dir(&archive_named).unwrap();
+        let plain = dir.path().join("Fotoğraflar");
+        fs::create_dir(&plain).unwrap();
+        let file = dir.path().join("Belge.pages");
+        fs::write(&file, b"PK").unwrap();
+
+        let key = entry(&package).unwrap();
+        assert_eq!(key.format.as_deref(), Some("key"));
+        assert_eq!(key.category, Some(Category::Presentation));
+        assert!(!key.folder, "a package is a document");
+        assert!(is_document(&package) && is_document(&notes) && is_document(&file));
+        assert_eq!(entry(&notes).unwrap().format.as_deref(), Some("rtfd"));
+        for folder in [&archive_named, &plain] {
+            let found = entry(folder).unwrap();
+            assert!(
+                found.folder && found.format.is_none(),
+                "{}",
+                folder.display()
+            );
+            assert!(!is_document(folder));
+        }
+        assert_eq!(entry(&file).unwrap().format.as_deref(), Some("pages"));
     }
 
     /// The catalog and the engines agree: what the catalog calls ready, an engine runs, and an
