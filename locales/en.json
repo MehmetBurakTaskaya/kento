@@ -431,5 +431,19 @@
   "editor.visual.change": "Choose another…",
   "editor.visual.noImage": "Choose an image for the video.",
   "editor.visual.notImage": "None of the chosen files is an image.",
-  "editor.visual.hint": "The preview is a sketch; the video is made from the whole sound."
+  "editor.visual.hint": "The preview is a sketch; the video is made from the whole sound.",
+  "settings.tools.title": "Tools",
+  "settings.tools.missing": "Not installed",
+  "settings.tools.notFound": "Not found",
+  "settings.tools.source.system": "on this computer",
+  "settings.tools.source.kento": "downloaded by Kento",
+  "settings.tools.source.custom": "chosen by you",
+  "settings.tools.choose": "Choose…",
+  "settings.tools.automatic": "Find automatically",
+  "settings.tools.verify": "Verify again",
+  "settings.tools.update": "Update ({size})",
+  "settings.tools.remove": "Remove download",
+  "settings.tools.note": "Kento uses a tool it finds on this computer before its own download. A program you choose must be FFmpeg 6 or newer.",
+  "toolchain.failed.busy": "Wait for the download to finish, or cancel it, and try again.",
+  "toolchain.failed.remove": "The tools are in use. Try again when the running jobs have finished."
 }

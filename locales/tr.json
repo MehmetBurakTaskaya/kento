@@ -431,5 +431,19 @@
   "editor.visual.change": "Başka bir görüntü seç…",
   "editor.visual.noImage": "Video için bir görüntü seçin.",
   "editor.visual.notImage": "Seçilen dosyaların hiçbiri görüntü değil.",
-  "editor.visual.hint": "Önizleme bir taslaktır; video sesin tamamından yapılır."
+  "editor.visual.hint": "Önizleme bir taslaktır; video sesin tamamından yapılır.",
+  "settings.tools.title": "Araçlar",
+  "settings.tools.missing": "Kurulu değil",
+  "settings.tools.notFound": "Bulunamadı",
+  "settings.tools.source.system": "bu bilgisayarda",
+  "settings.tools.source.kento": "Kento indirdi",
+  "settings.tools.source.custom": "sizin seçtiğiniz",
+  "settings.tools.choose": "Seç…",
+  "settings.tools.automatic": "Otomatik bul",
+  "settings.tools.verify": "Yeniden doğrula",
+  "settings.tools.update": "Güncelle ({size})",
+  "settings.tools.remove": "İndirileni kaldır",
+  "settings.tools.note": "Kento, kendi indirdiğinden önce bu bilgisayarda bulduğu aracı kullanır. Seçtiğiniz program FFmpeg 6 ya da daha yeni olmalıdır.",
+  "toolchain.failed.busy": "İndirmenin bitmesini bekleyin ya da iptal edip yeniden deneyin.",
+  "toolchain.failed.remove": "Araçlar kullanımda. Çalışan işler bitince yeniden deneyin."
 }

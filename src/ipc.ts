@@ -204,7 +204,7 @@ export interface ShelfItem {
 /** What ffprobe says about a video or audio file. */
 export interface MediaInfo {
   duration: number;
-  video: { width: number; height: number; fps: number; codec: string } | null;
+  video: { width: number; height: number; fps: number; codec: string; pixelFormat?: string } | null;
   audio: { channels: number; sampleRate: number; codec: string } | null;
 }
 
@@ -262,6 +262,10 @@ export interface ToolGroupStatus {
   /** Bytes to download for this computer; 0 when nothing is offered yet. */
   download: number;
   available: boolean;
+  /** A tool in use comes from an earlier Kento download than the one this version pins. */
+  outdated: boolean;
+  /** Kento's own downloads of this group are on disk. */
+  downloaded: boolean;
 }
 
 export type InstallProgress =
@@ -350,7 +354,14 @@ export interface Api {
   toolsStatus(): Promise<ToolGroupStatus[]>;
   toolsInstall(group: string): Promise<void>;
   toolsCancel(group: string): Promise<void>;
-  toolsSetPath(tool: string, path: string | null): Promise<ToolGroupStatus[]>;
+  /** Looks for every tool again. */
+  toolsRefresh(): Promise<ToolGroupStatus[]>;
+  /** Deletes Kento's own downloads of a group; tools elsewhere stay. */
+  toolsRemove(group: string): Promise<ToolGroupStatus[]>;
+  /** The system's file dialog picks the program; null when it was closed. */
+  toolsChoose(tool: string): Promise<ToolGroupStatus[] | null>;
+  /** Forgets a chosen program and finds the tool by itself again. */
+  toolsClearPath(tool: string): Promise<ToolGroupStatus[]>;
   onToolsProgress(handler: (progress: InstallProgress) => void): Promise<UnlistenFn>;
 }
 
@@ -449,7 +460,10 @@ const tauriApi: Api = {
   toolsStatus: () => invoke('tools_status'),
   toolsInstall: (group) => invoke('tools_install', { group }),
   toolsCancel: (group) => invoke('tools_cancel', { group }),
-  toolsSetPath: (tool, path) => invoke('tools_set_path', { tool, path }),
+  toolsRefresh: () => invoke('tools_refresh'),
+  toolsRemove: (group) => invoke('tools_remove', { group }),
+  toolsChoose: (tool) => invoke('tools_choose', { tool }),
+  toolsClearPath: (tool) => invoke('tools_clear_path', { tool }),
   onToolsProgress: (handler) => listen<InstallProgress>('tools-progress', (event) => handler(event.payload)),
 };
 
@@ -669,23 +683,13 @@ export function browserApi(params: URLSearchParams): Api {
       Array.from({ length: buckets }, (_, i) => Math.abs(Math.sin(i / 9)) * (0.4 + 0.6 * Math.abs(Math.cos(i / 41)))),
     mediaFrame: async () => null,
     runMediaTool: async () => [1],
-    toolsStatus: async () => [
-      {
-        id: 'media',
-        ready: params.get('tools') === 'ready',
-        tools: [
-          { id: 'ffmpeg', path: null, version: null, source: null },
-          { id: 'ffprobe', path: null, version: null, source: null },
-        ],
-        download: 92_000_000,
-        available: true,
-      },
-      { id: 'office', ready: false, tools: [], download: 0, available: false },
-      { id: 'extras', ready: false, tools: [], download: 0, available: false },
-    ],
+    toolsStatus: async () => demoTools(params.get('tools') === 'ready'),
     toolsInstall: async () => {},
     toolsCancel: async () => {},
-    toolsSetPath: async () => [],
+    toolsRefresh: async () => demoTools(params.get('tools') === 'ready'),
+    toolsRemove: async () => demoTools(false),
+    toolsChoose: async () => null,
+    toolsClearPath: async () => demoTools(params.get('tools') === 'ready'),
     onToolsProgress: async () => () => {},
   };
 }
@@ -715,6 +719,28 @@ const DEMO_TARGETS: Partial<Record<Category, string[]>> = {
   spreadsheet: ['csv', 'tsv', 'xlsx', 'html'],
   subtitle: ['srt', 'vtt', 'txt'],
 };
+
+function demoTools(ready: boolean): ToolGroupStatus[] {
+  const found = (id: string) => ({
+    id,
+    path: ready ? `C:\\Users\\me\\AppData\\Local\\Kento\\tools\\media\\9.0.2\\${id}.exe` : null,
+    version: ready ? '9.0.2-essentials_build-www.gyan.dev' : null,
+    source: ready ? ('kento' as const) : null,
+  });
+  return [
+    {
+      id: 'media',
+      ready,
+      tools: [found('ffmpeg'), found('ffprobe')],
+      download: 92_000_000,
+      available: true,
+      outdated: false,
+      downloaded: ready,
+    },
+    { id: 'office', ready: false, tools: [], download: 0, available: false, outdated: false, downloaded: false },
+    { id: 'extras', ready: false, tools: [], download: 0, available: false, outdated: false, downloaded: false },
+  ];
+}
 
 function demoEntry(path: string): FileEntry {
   const name = path.split(/[\\/]/).pop() ?? path;

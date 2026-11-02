@@ -43,6 +43,10 @@ pub struct ToolGroupStatus {
     /// Bytes to download for this computer; 0 when nothing is offered.
     pub download: u64,
     pub available: bool,
+    /// A tool in use comes from an earlier Kento download than the pinned version.
+    pub outdated: bool,
+    /// Kento's own downloads of this group are on disk, so Settings can remove them.
+    pub downloaded: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -100,6 +104,10 @@ pub enum Error {
     NotWorking(String),
     #[error("cancelled")]
     Cancelled,
+    #[error("the {0} group is being installed")]
+    Busy(String),
+    #[error("removing: {0}")]
+    Remove(io::Error),
     #[error("file system: {0}")]
     Io(#[from] io::Error),
     #[error("JSON: {0}")]
@@ -117,6 +125,8 @@ impl Error {
             Error::NotWorking(_) => "toolchain.failed.check",
             Error::Cancelled => "toolchain.failed.cancelled",
             Error::Unavailable(_) => "toolchain.failed.unavailable",
+            Error::Busy(_) => "toolchain.failed.busy",
+            Error::Remove(_) => "toolchain.failed.remove",
             Error::Lock(_) | Error::UnknownGroup(_) | Error::UnknownTool(_) | Error::Json(_) => {
                 "error.other"
             }
@@ -252,12 +262,27 @@ impl Toolchain {
             })
             .collect();
         let platform = group.platform(self.inner.platform);
+        let current = group
+            .version
+            .as_ref()
+            .map(|version| self.inner.root.join(&group.id).join(version));
+        let outdated = platform.is_some()
+            && tools.iter().any(|tool| {
+                tool.source == Some(Source::Kento)
+                    && tool
+                        .path
+                        .as_ref()
+                        .zip(current.as_ref())
+                        .is_some_and(|(path, current)| !path.starts_with(current))
+            });
         ToolGroupStatus {
             id: group.id.clone(),
             ready: !tools.is_empty() && tools.iter().all(|tool| tool.path.is_some()),
             tools,
             download: platform.map_or(0, |p| p.files.iter().map(|file| file.size).sum()),
             available: platform.is_some(),
+            outdated,
+            downloaded: kento.iter().any(|dir| dir.is_dir()),
         }
     }
 
@@ -372,6 +397,41 @@ impl Toolchain {
         if let Some(cancel) = lock(&self.inner.running).get(group) {
             cancel.cancel();
         }
+    }
+
+    /// Deletes Kento's own downloads of a group, every version and any half-finished download,
+    /// then looks for the tools again. Tools found elsewhere on the computer are never touched.
+    pub fn remove(&self, group: &str) -> Result<Vec<ToolGroupStatus>, Error> {
+        let entry = self
+            .inner
+            .lock
+            .group(group)
+            .ok_or_else(|| Error::UnknownGroup(group.to_string()))?;
+        // Held while deleting, so an install cannot start halfway through.
+        let running = lock(&self.inner.running);
+        if running.contains_key(group) {
+            return Err(Error::Busy(group.to_string()));
+        }
+        let gone = |result: io::Result<()>| match result {
+            Err(err) if err.kind() != io::ErrorKind::NotFound => Err(Error::Remove(err)),
+            _ => Ok(()),
+        };
+        let downloads = self.inner.root.join("downloads");
+        let files = entry
+            .platform(self.inner.platform)
+            .map_or(&[][..], |platform| &platform.files[..]);
+        let mut result = gone(fs::remove_dir_all(self.inner.root.join(&entry.id)));
+        for file in files {
+            for name in [
+                file.file_name().to_string(),
+                format!("{}.part", file.file_name()),
+            ] {
+                result = result.and(gone(fs::remove_file(downloads.join(name))));
+            }
+        }
+        drop(running);
+        let status = self.refresh();
+        result.map(|()| status)
     }
 
     pub fn is_installing(&self, group: &str) -> bool {
@@ -497,8 +557,63 @@ pub fn tools_cancel(state: State<'_, AppState>, group: String) {
     state.toolchain.cancel(&group);
 }
 
+/// Settings › Tools › Verify again.
 #[tauri::command]
-pub async fn tools_set_path(
+pub async fn tools_refresh(app: AppHandle) -> crate::error::Result<Vec<ToolGroupStatus>> {
+    let toolchain = app.state::<AppState>().toolchain.clone();
+    Ok(tauri::async_runtime::spawn_blocking(move || toolchain.refresh()).await?)
+}
+
+#[tauri::command]
+pub async fn tools_remove(
+    app: AppHandle,
+    group: String,
+) -> crate::error::Result<Vec<ToolGroupStatus>> {
+    let toolchain = app.state::<AppState>().toolchain.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || toolchain.remove(&group)).await?;
+    result.map_err(|err| explain(&app.state::<AppState>(), &err))
+}
+
+/// Settings › Tools › Choose: the program is picked in the system's file dialog, so the page can
+/// never hand Kento something to run. None when the dialog was closed.
+#[tauri::command]
+pub async fn tools_choose(
+    app: AppHandle,
+    tool: String,
+) -> crate::error::Result<Option<Vec<ToolGroupStatus>>> {
+    use tauri_plugin_dialog::DialogExt;
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let mut dialog = app.dialog().file();
+    if let Some(window) = app.get_webview_window(crate::window::MAIN) {
+        dialog = dialog.set_parent(&window);
+    }
+    if cfg!(windows) {
+        dialog = dialog.add_filter(&tool, &["exe"]);
+    }
+    dialog.pick_file(move |file| {
+        let _ = tx.send(file);
+    });
+    let Some(path) = rx
+        .await
+        .ok()
+        .flatten()
+        .and_then(|file| file.into_path().ok())
+    else {
+        return Ok(None);
+    };
+    set_path(app, tool, Some(path)).await.map(Some)
+}
+
+/// Settings › Tools › Find automatically: forgets the chosen program.
+#[tauri::command]
+pub async fn tools_clear_path(
+    app: AppHandle,
+    tool: String,
+) -> crate::error::Result<Vec<ToolGroupStatus>> {
+    set_path(app, tool, None).await
+}
+
+async fn set_path(
     app: AppHandle,
     tool: String,
     path: Option<PathBuf>,
@@ -585,6 +700,8 @@ mod tests {
             ],
             download: 42,
             available: true,
+            outdated: false,
+            downloaded: true,
         };
         assert_eq!(
             serde_json::to_value(status).unwrap(),
@@ -596,7 +713,9 @@ mod tests {
                     { "id": "ffprobe", "path": null, "version": null, "source": null }
                 ],
                 "download": 42,
-                "available": true
+                "available": true,
+                "outdated": false,
+                "downloaded": true
             })
         );
         for (source, text) in [(Source::System, "system"), (Source::Custom, "custom")] {
@@ -749,9 +868,12 @@ mod tests {
             suffix: places.suffix,
         };
         let chain = Toolchain::with(root.clone(), lock, Some("windows-x64"), empty, false);
+        // An earlier Kento's download works but is not the pinned version.
         let earlier = root.join("media").join("8.0");
-        fs::create_dir_all(&earlier).unwrap();
-        assert!(!chain.status()[0].ready);
+        fake_tool(&earlier, "ffmpeg", "8.0");
+        fake_tool(&earlier, "ffprobe", "8.0");
+        let before = &chain.status()[0];
+        assert!(before.ready && before.outdated && before.downloaded);
 
         let job = chain.begin("media").unwrap().unwrap();
         let states = Mutex::new(Vec::new());
@@ -776,7 +898,20 @@ mod tests {
                 .unwrap()
                 .starts_with(root.join("media").join("9.0.2")));
         }
+        assert!(!media.outdated && media.downloaded);
         assert!(!earlier.exists());
+        assert_eq!(fs::read_dir(root.join("downloads")).unwrap().count(), 0);
+
+        // Removing deletes only Kento's own folder, and not while an install runs.
+        let job = chain.begin("media").unwrap().unwrap();
+        assert!(matches!(chain.remove("media"), Err(Error::Busy(_))));
+        chain.cancel("media");
+        let _ = chain.run(job, &|_| {}).await;
+        fs::write(root.join("downloads").join("tool.zip.part"), b"half").unwrap();
+        let media = &chain.remove("media").unwrap()[0];
+        assert!(!media.ready && !media.downloaded);
+        assert!(!root.join("media").exists());
+        assert!(ffmpeg.is_file());
         assert_eq!(fs::read_dir(root.join("downloads")).unwrap().count(), 0);
     }
 
@@ -831,6 +966,8 @@ mod tests {
             Error::NotWorking("ffmpeg".into()),
             Error::Cancelled,
             Error::Unavailable("office".into()),
+            Error::Busy("media".into()),
+            Error::Remove(io::Error::other("x")),
         ] {
             assert!(err.message_key().starts_with("toolchain.failed."));
         }

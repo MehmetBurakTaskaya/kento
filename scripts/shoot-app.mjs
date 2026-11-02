@@ -21,6 +21,7 @@ const SHOTS = [
   ['home-pseudo-long', { lang: 'en-XA', appearance: 'light', section: 'home' }],
   ['home-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', section: 'home' }],
   ['settings-pseudo-rtl', { lang: 'ar-XB', appearance: 'dark', section: 'settings' }],
+  ['settings-tools-light-tr', { lang: 'tr', appearance: 'light', section: 'settings', tools: 'ready' }],
   // Home with files and the Library filled; the wheel and a tool panel opened from the keyboard.
   ['home-files-light-tr', { lang: 'tr', appearance: 'light', section: 'home', files: 'demo', library: 'demo' }],
   ['library-filled-light-tr', { lang: 'tr', appearance: 'light', section: 'library', library: 'demo' }],

@@ -429,6 +429,37 @@ select {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.tool-group {
+  display: grid;
+  gap: 8px;
+}
+.tool-group + .tool-group {
+  padding-block-start: 12px;
+  border-block-start: 1px solid var(--border);
+}
+.tool-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+.tool-line {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-block-size: 36px;
+}
+.tool-where {
+  display: grid;
+  min-inline-size: 0;
+}
+.tool-buttons,
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .note,
 .prose {
   max-inline-size: 70ch;

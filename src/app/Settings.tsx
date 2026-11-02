@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
-// Settings (SPEC 5.17): the parts that exist in Phase 1. Shortcuts, modifiers, tools, updates and
-// Explorer integration join as their features arrive.
-import { useId, type ReactNode } from 'react';
+// Settings (SPEC 5.17). Updates join with the release work.
+import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import mark from '../../src-tauri/icons/128x128.png';
 import { Icon } from '../components/Icon';
 import { intlLocale, PSEUDO_LANGUAGES } from '../i18n';
-import { api, type Settings as SettingsData, type WheelKey } from '../ipc';
+import { formatBytes } from '../i18n/format';
+import { api, type Settings as SettingsData, type ToolGroupStatus, type WheelKey } from '../ipc';
 import { useApp } from '../state/store';
 import { listThemes } from '../theme/registry';
+import { useToolStatus } from './Setup';
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   const id = useId();
@@ -78,6 +79,117 @@ function Switch({ label, checked, onChange }: { label: string; checked: boolean;
     >
       <span className="switch-knob" />
     </button>
+  );
+}
+
+/** Product names, the same in every language. */
+const TOOL_NAMES: Record<string, string> = { ffmpeg: 'FFmpeg', ffprobe: 'ffprobe' };
+
+/** Each optional tool's state, version and path; choosing a program, checking again, updating and
+ *  removing Kento's own download (SPEC 4.2, 5.17). */
+function ToolSettings() {
+  const { t } = useTranslation();
+  const { openSetup, language } = useApp();
+  const [groups, setGroups] = useToolStatus();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const act = (work: () => Promise<ToolGroupStatus[] | null>) => {
+    setBusy(true);
+    setError(null);
+    work()
+      .then((next) => next && setGroups(next))
+      .catch((err: unknown) => setError(String(err)))
+      .finally(() => setBusy(false));
+  };
+
+  return (
+    <Group title={t('settings.tools.title')}>
+      {(groups ?? []).map((group) => (
+        <div key={group.id} className="tool-group">
+          <div className="tool-group-head">
+            <strong>{t(`group.${group.id}`)}</strong>
+            <span className="muted">
+              {!group.available && !group.ready
+                ? t('setup.later')
+                : t(group.ready ? 'setup.ready' : 'settings.tools.missing')}
+            </span>
+          </div>
+          {group.tools.map((tool) => (
+            <div key={tool.id} className="tool-line">
+              <span className="tool-name">{TOOL_NAMES[tool.id] ?? tool.id}</span>
+              <span className="tool-where">
+                {tool.path ? (
+                  <>
+                    <span>
+                      {tool.version} · {t(`settings.tools.source.${tool.source ?? 'system'}`)}
+                    </span>
+                    <bdi className="folder-path muted" title={tool.path}>
+                      {tool.path}
+                    </bdi>
+                  </>
+                ) : (
+                  <span className="muted">{t('settings.tools.notFound')}</span>
+                )}
+              </span>
+              <span className="tool-buttons">
+                {tool.source === 'custom' && (
+                  <button
+                    type="button"
+                    className="button quiet small"
+                    disabled={busy}
+                    onClick={() => act(() => api.toolsClearPath(tool.id))}
+                  >
+                    {t('settings.tools.automatic')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="button small"
+                  disabled={busy}
+                  onClick={() => act(() => api.toolsChoose(tool.id))}
+                >
+                  {t('settings.tools.choose')}
+                </button>
+              </span>
+            </div>
+          ))}
+          {group.tools.length > 0 && (
+            <div className="tool-actions">
+              <button type="button" className="button small" disabled={busy} onClick={() => act(api.toolsRefresh)}>
+                {t('settings.tools.verify')}
+              </button>
+              {group.available && (!group.ready || group.outdated) && (
+                <button
+                  type="button"
+                  className="button primary small"
+                  disabled={busy}
+                  onClick={() => {
+                    if (group.outdated) void api.toolsInstall(group.id);
+                    openSetup();
+                  }}
+                >
+                  {t(group.outdated ? 'settings.tools.update' : 'setup.install', {
+                    size: formatBytes(group.download, language),
+                  })}
+                </button>
+              )}
+              {group.downloaded && (
+                <button
+                  type="button"
+                  className="button quiet small"
+                  disabled={busy}
+                  onClick={() => act(() => api.toolsRemove(group.id))}
+                >
+                  {t('settings.tools.remove')}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+      {error && <p className="error-text">{error}</p>}
+      <p className="muted note">{t('settings.tools.note')}</p>
+    </Group>
   );
 }
 
@@ -311,6 +423,8 @@ export function Settings() {
         )}
         <p className="muted note">{t('settings.output.note')}</p>
       </Group>
+
+      <ToolSettings />
 
       <Group title={t('settings.performance.title')}>
         <Row label={t('settings.performance.jobs')} htmlFor={ids.jobs}>
