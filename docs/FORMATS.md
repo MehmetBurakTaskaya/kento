@@ -63,46 +63,46 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 
 | From | To | Needs | Status | Notes |
 | --- | --- | --- | --- | --- |
-| DOCX | PDF, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | planned |  |
-| RTF | PDF, DOCX, ODT [+], TXT, MD, HTML, EPUB | Office | planned |  |
-| RTFD | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | planned | best effort |
+| DOCX | PDF, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | ready | MD: text and structure, without pictures |
+| RTF | PDF, DOCX, ODT [+], TXT, MD, HTML, EPUB | Office | ready | MD: text and structure, without pictures |
+| RTFD | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | ready | best effort, without attachments |
 | TXT | MD, HTML | Core | ready |  |
-| TXT | PDF, DOCX, ODT [+], RTF, EPUB | Office | planned |  |
+| TXT | PDF, DOCX, ODT [+], RTF, EPUB | Office | ready |  |
 | MD | TXT, HTML | Core | ready |  |
-| MD | PDF, DOCX, ODT [+], RTF, EPUB | Office | planned |  |
+| MD | PDF, DOCX, ODT [+], RTF, EPUB | Office | ready |  |
 | HTML | TXT, MD | Core | ready |  |
-| HTML | PDF, DOCX, ODT [+], RTF, EPUB | Office | planned |  |
-| EPUB | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML | Office | planned |  |
-| PAGES | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | planned |  |
+| HTML | PDF, DOCX, ODT [+], RTF, EPUB | Office | ready |  |
+| EPUB | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML | Office | ready | PDF, DOCX, ODT, RTF, TXT, HTML: text and pictures, without the book's styles; MD: text and structure, without pictures |
+| PAGES | PDF, DOCX, ODT [+], RTF, TXT, MD, HTML, EPUB | Office | ready | best effort |
 | TEXTCLIPPING | TXT | Core | ready | best effort |
-| TEXTCLIPPING | PDF, DOCX, ODT [+], RTF, MD, HTML, EPUB | Office | planned | best effort |
-| ODT [+] | PDF, DOCX, RTF, TXT, MD, HTML, EPUB | Office | planned |  |
-| DOC [+] | PDF, DOCX, ODT, RTF, TXT, MD, HTML, EPUB | Office | planned |  |
+| TEXTCLIPPING | PDF, DOCX, ODT [+], RTF, MD, HTML, EPUB | Office | ready | PDF, DOCX, ODT, RTF, HTML, EPUB: best effort; MD: text and structure, without pictures |
+| ODT [+] | PDF, DOCX, RTF, TXT, MD, HTML, EPUB | Office | ready | MD: text and structure, without pictures |
+| DOC [+] | PDF, DOCX, ODT, RTF, TXT, MD, HTML, EPUB | Office | ready | MD: text and structure, without pictures |
 
 ## Spreadsheet
 
 | From | To | Needs | Status | Notes |
 | --- | --- | --- | --- | --- |
 | CSV | TSV, XLSX, HTML | Core | ready |  |
-| CSV | ODS, PDF | Office | planned |  |
+| CSV | ODS, PDF | Office | ready |  |
 | TSV | CSV, XLSX, HTML | Core | ready |  |
-| TSV | ODS, PDF | Office | planned |  |
+| TSV | ODS, PDF | Office | ready |  |
 | XLS | CSV, TSV, XLSX, HTML | Core | ready | CSV, TSV: the first sheet; XLSX, HTML: values only |
-| XLS | ODS, PDF | Office | planned |  |
+| XLS | ODS, PDF | Office | ready |  |
 | XLSX | CSV, TSV, HTML | Core | ready | CSV, TSV: the first sheet; HTML: values only |
-| XLSX | ODS, PDF | Office | planned |  |
+| XLSX | ODS, PDF | Office | ready |  |
 | ODS | CSV, TSV, XLSX, HTML | Core | ready | CSV, TSV: the first sheet; XLSX, HTML: values only |
-| ODS | PDF | Office | planned |  |
-| NUMBERS [+] | XLSX, ODS, CSV, TSV, PDF, HTML | Office | planned |  |
+| ODS | PDF | Office | ready |  |
+| NUMBERS [+] | XLSX, ODS, CSV, TSV, PDF, HTML | Office | ready | XLSX, ODS, PDF, HTML: best effort; CSV, TSV: best effort, the first sheet |
 
 ## Presentation
 
 | From | To | Needs | Status | Notes |
 | --- | --- | --- | --- | --- |
-| PPT | PDF, PPTX, ODP [+], PNG, JPG | Office | planned | PNG, JPG: one image per slide |
-| PPTX | PDF, ODP [+], PNG, JPG | Office | planned | PNG, JPG: one image per slide |
-| ODP [+] | PDF, PPTX, PNG, JPG | Office | planned | PNG, JPG: one image per slide |
-| KEY [+] | PDF, PPTX, ODP, PNG, JPG | Office | planned | PNG, JPG: one image per slide |
+| PPT | PDF, PPTX, ODP [+], PNG, JPG | Office | ready | PNG, JPG: one image per slide |
+| PPTX | PDF, ODP [+], PNG, JPG | Office | ready | PNG, JPG: one image per slide |
+| ODP [+] | PDF, PPTX, PNG, JPG | Office | ready | PNG, JPG: one image per slide |
+| KEY [+] | PDF, PPTX, ODP, PNG, JPG | Office | ready | PDF, PPTX, ODP: best effort; PNG, JPG: one image per slide |
 
 ## Subtitles
 
@@ -116,7 +116,7 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 | From | To | Needs | Status | Notes |
 | --- | --- | --- | --- | --- |
 | PDF | JPG, PNG, TXT, MD, XLSX | Core | ready | JPG, PNG: one image per page; TXT, MD: text only; XLSX: tables found in the text, best effort |
-| PDF | PPTX, DOCX, EPUB, HTML | Office | planned | PPTX: with page images |
+| PDF | PPTX, DOCX, EPUB, HTML | Office | ready | PPTX: with page images; DOCX, EPUB, HTML: best effort, as text boxes |
 
 ## Archive
 

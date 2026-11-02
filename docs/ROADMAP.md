@@ -62,9 +62,10 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 6: office
 
-- [ ] Document, spreadsheet and presentation conversions with LibreOffice
-- [ ] PDF to other formats
-- [ ] Apple and macOS-specific input formats
+- [x] Document, spreadsheet and presentation conversions with LibreOffice (the Office group: the pinned MSI or disk image, or an installed LibreOffice 7 or newer)
+- [x] PDF to other formats: Word, EPUB and HTML through LibreOffice, PowerPoint with page pictures, XLSX tables read inside Kento
+- [x] Apple and macOS-specific input formats: PAGES, NUMBERS and KEY through LibreOffice, RTFD and text clippings, package folders taken as files
+- [x] ODT and DOC input, ODT output, NUMBERS, ODP and KEY [+]
 
 ## Phase 7: web download
 

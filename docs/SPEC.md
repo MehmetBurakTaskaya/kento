@@ -119,7 +119,7 @@ Downloaded on request at first setup, never bundled.
 Rules:
 
 - **Pinned versions.** Each tool's version, URL, size and SHA-256 are pinned in `src-tauri/toolchain.lock.json`. A file that fails hash verification is never run.
-- **Existing installs.** Tools already on the system (PATH or standard install locations) are detected and used. A path can also be set by hand in Settings. A found tool counts only when it runs and is recent enough (FFmpeg 6, ExifTool 12 or newer).
+- **Existing installs.** Tools already on the system (PATH or standard install locations) are detected and used. A path can also be set by hand in Settings. A found tool counts only when it runs and is recent enough (FFmpeg 6, ExifTool 12, LibreOffice 7 or newer).
 - **Platform security flags.** On macOS the `com.apple.quarantine` attribute is removed from verified tools, with an ad-hoc signature when needed. On Windows, Mark-of-the-Web and SmartScreen behavior is handled.
 - **Process isolation.** Tools run as separate processes. Arguments are always passed as arrays, never as a shell string. GPL tools are therefore never combined with the app's code, and the app stays MIT.
 - **yt-dlp updates.** yt-dlp has its own "Update yt-dlp" option, independent of app updates, with hash or signature verification.
@@ -288,6 +288,7 @@ Notes:
 - **macOS-specific formats.** RTFD and TEXTCLIPPING are read best-effort on both platforms.
 - **Complex documents.** The interface says honestly that not every feature can be preserved.
 - **Spreadsheets without an office suite.** CSV, TSV, XLS, XLSX and ODS convert to CSV, TSV, XLSX and HTML in the core (values only; to CSV and TSV the first sheet). ODS and PDF outputs use LibreOffice.
+- **PDF to XLSX** reads the tables on each page in the core, one sheet per page, with no office suite: rows and columns come from where the text sits, and printed numbers (thousands separators, a decimal comma, negatives in parentheses) stay numbers. It is a best effort, and a scanned PDF has no text to read.
 - **Encrypted PDFs** are refused, also those with only an owner password, so no document loses its restrictions.
 - **Route count.** The total number of routes is computed in `FORMATS.md`.
 
