@@ -875,7 +875,7 @@
   "automation.activity.list": "Son dosyalar",
   "automation.outcome.queued": "Sürüyor…",
   "automation.outcome.done": "Tamam",
-  "automation.outcome.failed": "Olmadı",
+  "automation.outcome.failed": "Başarısız",
   "automation.outcome.skipped": "Atlandı",
   "automation.outcome.cancelled": "İptal edildi",
   "automation.error.name": "Ad çok uzun.",
