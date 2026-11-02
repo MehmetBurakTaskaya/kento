@@ -544,6 +544,7 @@
   "suffix.metadata": "meta veri",
   "error.codec.exiftool": "Bunun için Ekstra araçlardaki ExifTool gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
   "error.codec.libreoffice": "Bunun için Ofis araçlarındaki LibreOffice gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
+  "error.crashed.libreoffice": "LibreOffice dosyayı açarken iki kez beklenmedik biçimde kapandı. Yeniden deneyin; her dosyada oluyorsa Ayrıntıları kopyala ile ayrıntıları saklayın.",
   "error.codec.ytdlp": "Web’den indirmek için medya araçları (yt-dlp ve Deno) gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
   "error.codec.background": "Arka plan kaldırmak için Ekstra araçlar (ONNX Runtime ve arka plan kaldırma modeli) gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
   "suffix.remove-background": "arka plansız",

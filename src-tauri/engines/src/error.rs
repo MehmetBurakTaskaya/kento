@@ -29,6 +29,9 @@ pub enum Error {
     /// A web download Kento does not or cannot do (SPEC 5.10).
     #[error("web download: {0}")]
     Web(WebProblem),
+    /// An external tool stopped unexpectedly (it crashed), more than once.
+    #[error("{0} stopped unexpectedly")]
+    Crashed(Codec),
     #[error("cancelled")]
     Cancelled,
     #[error(transparent)]

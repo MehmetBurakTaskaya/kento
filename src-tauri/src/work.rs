@@ -661,7 +661,8 @@ pub(crate) fn error_key(error: &EngineError) -> &'static str {
         EngineError::NoText => "error.ocr.no-text",
         EngineError::Limit(_) => "error.limit",
         EngineError::Io(_) => "error.io",
-        EngineError::Cancelled | EngineError::Other(_) => "error.other",
+        EngineError::Crashed(Codec::LibreOffice) => "error.crashed.libreoffice",
+        EngineError::Crashed(_) | EngineError::Cancelled | EngineError::Other(_) => "error.other",
     }
 }
 

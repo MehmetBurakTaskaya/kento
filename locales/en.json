@@ -544,6 +544,7 @@
   "suffix.metadata": "metadata",
   "error.codec.exiftool": "This needs ExifTool from the Extras tools. Open Home and choose Complete setup.",
   "error.codec.libreoffice": "This needs LibreOffice from the Office tools. Open Home and choose Complete setup.",
+  "error.crashed.libreoffice": "LibreOffice stopped unexpectedly while it was opening the file, twice. Try again; if it happens with every file, keep the details with Copy details.",
   "error.codec.ytdlp": "Downloading from the web needs the media tools (yt-dlp and Deno). Open Home and choose Complete setup.",
   "error.codec.background": "Removing backgrounds needs the Extras tools (ONNX Runtime and the background-removal model). Open Home and choose Complete setup.",
   "suffix.remove-background": "no background",

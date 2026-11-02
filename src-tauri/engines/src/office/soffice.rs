@@ -37,6 +37,9 @@ const TIMEOUT: Duration = Duration::from_secs(20 * 60);
 /// How often a run looks at the cancel flag.
 const POLL: Duration = Duration::from_millis(100);
 
+/// How often a run looks for a new crash report.
+const CRASH_LOOK: Duration = Duration::from_secs(1);
+
 /// The wait before a run that wrote nothing is tried again.
 const RETRY_PAUSE: Duration = Duration::from_secs(1);
 
@@ -102,6 +105,7 @@ impl<'a> Office<'a> {
             .map(|stem| stem.to_string_lossy().into_owned())
             .unwrap_or_default();
         let mut log = self.run(&args, outdir)?;
+        let first_crashed = log.crashed;
         if written(outdir, &stem, export.extension).is_none() && !log.input_problem() {
             // A first start may only set a new profile up and end, and a start right after a run
             // that was ended can crash or hand the job to the instance still going away; the
@@ -112,6 +116,10 @@ impl<'a> Office<'a> {
         }
         match written(outdir, &stem, export.extension) {
             Some(path) => Ok(path),
+            None if first_crashed && log.crashed => {
+                tracing::warn!("LibreOffice crashed twice on the same document");
+                Err(Error::Crashed(crate::Codec::LibreOffice))
+            }
             None => {
                 let error = log.failure();
                 tracing::warn!("LibreOffice wrote nothing: {error}");
@@ -134,6 +142,7 @@ impl<'a> Office<'a> {
             .current_dir(cwd)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        let reports = crash_reports(self.profile);
         let mut child = Reap::spawn_group(command).map_err(spawn_error)?;
         let (sender, lines) = mpsc::channel();
         if let Some(stdout) = child.child.stdout.take() {
@@ -144,11 +153,27 @@ impl<'a> Office<'a> {
         }
         let mut log = Log::default();
         let started = Instant::now();
+        let mut looked = Instant::now();
         let status = loop {
             log.take(&lines, POLL);
             if self.progress.is_cancelled() {
                 child.kill();
                 return Err(Error::Cancelled);
+            }
+            // A crash leaves a report in the profile, and LibreOffice may then never end: the
+            // run is over as soon as a new one appears.
+            if looked.elapsed() >= CRASH_LOOK {
+                looked = Instant::now();
+                if crash_reports(self.profile)
+                    .difference(&reports)
+                    .next()
+                    .is_some()
+                {
+                    tracing::warn!("LibreOffice crashed");
+                    child.kill();
+                    log.crashed = true;
+                    return Ok(log);
+                }
             }
             if started.elapsed() > TIMEOUT {
                 child.kill();
@@ -172,6 +197,17 @@ impl<'a> Office<'a> {
         }
         Ok(log)
     }
+}
+
+/// The crash reports in a profile (`crash/*.dmp`), by name.
+fn crash_reports(profile: &Path) -> std::collections::BTreeSet<std::ffi::OsString> {
+    fs::read_dir(profile.join("crash"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| entry.file_name())
+        .filter(|name| Path::new(name).extension().is_some_and(|ext| ext == "dmp"))
+        .collect()
 }
 
 /// On Windows, `soffice.com` beside `soffice.exe`: the console version, which waits for
@@ -306,6 +342,8 @@ fn forward(pipe: impl Read + Send + 'static, sender: mpsc::Sender<String>) {
 pub(super) struct Log {
     pub(super) tail: VecDeque<String>,
     closed: bool,
+    /// LibreOffice crashed: it left a crash report in the profile.
+    crashed: bool,
 }
 
 impl Log {
@@ -605,6 +643,35 @@ mod tests {
         assert!(office.convert(&input, None, &export, &out).is_err());
         let runs = fs::read_to_string(out.join("runs.txt")).unwrap();
         assert_eq!(runs.lines().count(), 2, "{runs:?}");
+    }
+
+    #[test]
+    fn office_soffice_a_crash_that_hangs_ends_at_once_after_a_second_try() {
+        let (dir, out, input, profile) = job();
+        fs::create_dir_all(profile.join("user").join("config")).unwrap();
+        let crash = profile.join("crash");
+        fs::create_dir_all(&crash).unwrap();
+        // An old report from before is not this run's crash.
+        fs::write(crash.join("earlier.dmp"), b"").unwrap();
+        // As LibreOffice does on some computers: a crash report, then no end. The stand-in runs
+        // in the output folder beside the profile; a relative path keeps the batch file clear of
+        // the folder's Turkish letters and emoji, which cmd would read in another code page.
+        let program = stand_in(
+            dir.path(),
+            "echo.> \"..\\profile\\crash\\run-%RANDOM%%RANDOM%.dmp\"\r\nping -n 60 127.0.0.1 >nul",
+            ": > ../profile/crash/run-$$.dmp\nsleep 60",
+        );
+        let office = Office::new(&program, &profile, Progress::none());
+        let export = Export::new("pdf", "writer_pdf_Export");
+        let started = Instant::now();
+        let result = office.convert(&input, None, &export, &out);
+        assert!(
+            matches!(result, Err(Error::Crashed(crate::Codec::LibreOffice))),
+            "{result:?}"
+        );
+        assert!(started.elapsed() < Duration::from_secs(20), "it waited");
+        let reports = fs::read_dir(&crash).unwrap().count();
+        assert_eq!(reports, 3, "the earlier report and one per try");
     }
 
     #[test]
