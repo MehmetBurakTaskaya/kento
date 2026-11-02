@@ -34,6 +34,8 @@ export interface Settings {
   shelf: { keepCopy: boolean };
   /** Web downloads: the clipboard shortcut, and whether the first-use notice was shown. */
   web: { shortcut: boolean; noticeShown: boolean };
+  /** Window layouts: the feature (off by default) and, while it is on, its global shortcuts. */
+  layouts: { enabled: boolean; shortcuts: boolean };
 }
 
 export type WheelKey = 'shift' | 'control' | 'alt' | 'command';
@@ -171,14 +173,27 @@ export interface ActionEntry {
   icon: string;
 }
 
-export type WheelKind = 'convert' | 'tools' | 'actions';
+export type WheelKind = 'convert' | 'tools' | 'actions' | 'window';
 
-/** What the floating wheel shows; paths are known up front only without a drag. */
+/** What the floating wheel shows; paths are known up front only without a drag. The Window ring
+ *  has no paths but the title of the window it places. */
 export interface WheelSession {
   id: number;
   kind: WheelKind;
   mode: 'drag' | 'click';
   paths: string[];
+  window?: string;
+}
+
+/** Window layouts (SPEC 5.12). */
+export type LayoutId =
+  'left-half' | 'right-half' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'full-screen';
+
+export interface LayoutStatus {
+  /** macOS needs the Accessibility permission; Windows needs none. */
+  permission: 'not-needed' | 'granted' | 'missing';
+  /** Each layout's shortcut as the system writes it, and whether another app holds it. */
+  shortcuts: { layout: LayoutId; keys: string; taken: boolean }[];
 }
 
 /** A system drag over a window: positions in CSS pixels of that window. A drag carries files, or
@@ -557,6 +572,12 @@ export interface Api {
   /** The link the main window should open the dialog for, once. */
   webTakePending(): Promise<string | null>;
   onWebOpen(handler: () => void): Promise<UnlistenFn>;
+  layoutsStatus(): Promise<LayoutStatus>;
+  /** A slice of the Window ring: places the window that was in front when the ring opened. */
+  layoutsApply(layout: LayoutId): Promise<void>;
+  /** macOS: the system's prompt for the Accessibility permission, once Kento has said why. */
+  layoutsAskPermission(): Promise<LayoutStatus>;
+  layoutsOpenPermissionSettings(): Promise<void>;
 }
 
 /** Kento's drag event as the core sends it: physical pixels. */
@@ -696,6 +717,10 @@ const tauriApi: Api = {
   webOpen: (url) => invoke('web_open', { url }),
   webTakePending: () => invoke('web_take_pending'),
   onWebOpen: (handler) => listen('web-open', () => handler()),
+  layoutsStatus: () => invoke('layouts_status'),
+  layoutsApply: (layout) => invoke('layouts_apply', { layout }),
+  layoutsAskPermission: () => invoke('layouts_ask_permission'),
+  layoutsOpenPermissionSettings: () => invoke('layouts_open_permission_settings'),
 };
 
 /** PNG bytes from a command as an image Blob; a file without a preview gives null. */
@@ -724,6 +749,7 @@ export const DEFAULT_SETTINGS: Settings = {
   shell: { sendTo: false, contextMenu: false },
   shelf: { keepCopy: false },
   web: { shortcut: true, noticeShown: false },
+  layouts: { enabled: false, shortcuts: true },
 };
 
 /** The browser stand-in: the same answers the core would give, from memory. */
@@ -853,10 +879,12 @@ export function browserApi(params: URLSearchParams): Api {
       }
       return () => {};
     },
-    // ?surface=wheel&wheel=convert shows the floating wheel for the demo files.
+    // ?surface=wheel&wheel=convert shows the floating wheel for the demo files; wheel=window the
+    // Window ring for a demo window.
     wheelSession: async () => {
       if (params.get('drag') === 'link') return { id: 1, kind: 'convert', mode: 'drag', paths: [] };
       const kind = params.get('wheel') as WheelKind | null;
+      if (kind === 'window') return { id: 1, kind, mode: 'click', paths: [], window: 'Rapor 2026.docx - Word' };
       return kind ? { id: 1, kind, mode: 'click', paths: DEMO_FILES } : null;
     },
     wheelDropped: async () => {},
@@ -962,6 +990,35 @@ export function browserApi(params: URLSearchParams): Api {
     webOpen: async () => {},
     webTakePending: async () => null,
     onWebOpen: async () => () => {},
+    // ?layouts=missing shows macOS without the Accessibility permission; ?layouts=taken one
+    // shortcut another app holds.
+    layoutsStatus: async () => demoLayouts(platform, params.get('layouts')),
+    layoutsApply: async () => {},
+    layoutsAskPermission: async () => demoLayouts(platform, params.get('layouts')),
+    layoutsOpenPermissionSettings: async () => {},
+  };
+}
+
+const LAYOUT_KEYS: Record<LayoutId, [string, string]> = {
+  'left-half': ['←', '←'],
+  'right-half': ['→', '→'],
+  'top-left': ['Home', 'U'],
+  'top-right': ['Page Up', 'I'],
+  'bottom-left': ['End', 'J'],
+  'bottom-right': ['Page Down', 'K'],
+  center: ['↓', '↓'],
+  'full-screen': ['↑', '↑'],
+};
+
+function demoLayouts(platform: Platform, state: string | null): LayoutStatus {
+  const mac = platform === 'macos';
+  return {
+    permission: mac ? (state === 'missing' ? 'missing' : 'granted') : 'not-needed',
+    shortcuts: (Object.keys(LAYOUT_KEYS) as LayoutId[]).map((layout) => ({
+      layout,
+      keys: mac ? `⌃⌥⌘${LAYOUT_KEYS[layout][1]}` : `Ctrl+Alt+${LAYOUT_KEYS[layout][0]}`,
+      taken: state === 'taken' && layout === 'center',
+    })),
   };
 }
 

@@ -2,6 +2,9 @@
 // Kento's own 24 x 24 stroke icons (design/DESIGN.md, section 5). Directional ones mirror in
 // right-to-left layouts through the "flip" class.
 
+/** The screen outline of the window layout icons. */
+const SCREEN = 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z';
+
 const PATHS = {
   home: 'M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z',
   library:
@@ -80,6 +83,15 @@ const PATHS = {
   marker: 'M12 3v18M12 4.5h6l-1.8 3 1.8 3h-6',
   keyboard:
     'M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M8 14h8',
+  // Window layouts: a screen with the part the window takes. Physical sides, so never mirrored.
+  'layout-left-half': `${SCREEN}M5.5 7.5h5v9h-5z`,
+  'layout-right-half': `${SCREEN}M13.5 7.5h5v9h-5z`,
+  'layout-top-left': `${SCREEN}M5.5 7.5h5v3h-5z`,
+  'layout-top-right': `${SCREEN}M13.5 7.5h5v3h-5z`,
+  'layout-bottom-left': `${SCREEN}M5.5 13.5h5v3h-5z`,
+  'layout-bottom-right': `${SCREEN}M13.5 13.5h5v3h-5z`,
+  'layout-center': `${SCREEN}M8.5 9.5h7v5h-7z`,
+  'layout-full-screen': `${SCREEN}M5.5 7.5h13v9h-13z`,
 } as const;
 
 export type IconName = keyof typeof PATHS;

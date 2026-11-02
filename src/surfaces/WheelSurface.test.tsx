@@ -120,3 +120,54 @@ describe('a link dragged onto the floating wheel', () => {
     expect(closed).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('the Window ring', () => {
+  async function open() {
+    vi.spyOn(api, 'wheelSession').mockResolvedValue({
+      id: 9,
+      kind: 'window',
+      mode: 'click',
+      paths: [],
+      window: 'Rapor 2026.docx - Word',
+    });
+    render(<WheelSurface />);
+    await act(async () => {});
+  }
+
+  it('shows the eight layouts for the window that was in front', async () => {
+    await open();
+    expect(document.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('Window');
+    expect(document.body.textContent).toContain('Rapor 2026.docx - Word');
+    expect(items()).toEqual([
+      'Full screen',
+      'Top right',
+      'Right half',
+      'Bottom right',
+      'Center',
+      'Bottom left',
+      'Left half',
+      'Top left',
+    ]);
+    // Every slice draws its layout icon.
+    const icons = [...document.querySelectorAll('[role="menuitem"] svg.icon path')];
+    expect(icons).toHaveLength(8);
+    expect(icons.every((path) => (path.getAttribute('d') ?? '').length > 20)).toBe(true);
+  });
+
+  it('places the window with the chosen layout', async () => {
+    const apply = vi.spyOn(api, 'layoutsApply');
+    await open();
+    act(() => key('End'));
+    act(() => key('Enter'));
+    expect(apply).toHaveBeenCalledWith('top-left');
+  });
+
+  it('does not turn into a file wheel when a wheel key is pressed', async () => {
+    const switched = vi.spyOn(api, 'wheelSwitch');
+    await open();
+    act(() => void fireEvent.keyDown(window, { key: 'Shift' }));
+    act(() => void fireEvent.keyDown(window, { key: 'Control' }));
+    expect(switched).not.toHaveBeenCalled();
+    expect(items()).toHaveLength(8);
+  });
+});

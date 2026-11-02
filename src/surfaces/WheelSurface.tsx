@@ -4,11 +4,14 @@
 // enters the window: files get the wheel of the key held, and a link or a media card out of a
 // browser gets the download ring whichever key is held (SPEC 5.10). The drop on a slice runs the
 // choice. Without a drag (the selection shortcut, Send To) the files come with the session and
-// the wheel takes the keyboard.
+// the wheel takes the keyboard; with nothing selected and window layouts on, the selection
+// shortcut opens the Window ring for the window that was in front (SPEC 5.12).
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { downloadRing, NEEDS_SETUP, slicesFor, type Ring } from '../app/slices';
-import { api, type DragOver, type FileEntry, type WheelKey, type WheelKind, type WheelSession } from '../ipc';
+import { windowRing } from '../app/windowRing';
+import { isRtl } from '../i18n';
+import { api, type DragOver, type FileEntry, type LayoutId, type WheelKey, type WheelSession } from '../ipc';
 import { useApp } from '../state/store';
 import { QUICK_CHOICES, siteName } from '../web/links';
 import { Wheel, type WheelControl } from '../wheel/Wheel';
@@ -85,7 +88,8 @@ export function WheelSurface() {
   const paths = files.map((file) => file.path);
   const key = session ? `${session.id}:${link ? `link:${link}` : `${session.kind}:${paths.join('\u0001')}`}` : '';
   useEffect(() => {
-    if (!session || (!files.length && !link)) return;
+    // The Window ring needs nothing loaded; it is drawn as it is below.
+    if (!session || session.kind === 'window' || (!files.length && !link)) return;
     let live = true;
     void (link ? downloadRing() : slicesFor(session.kind, files)).then((next) => {
       if (!live) return;
@@ -105,12 +109,14 @@ export function WheelSurface() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  // Without a drag the wheel has the keyboard: a wheel key switches wheels, leaving closes it.
+  // Without a drag the wheel has the keyboard: a wheel key switches wheels (not from the Window
+  // ring, which has no files), leaving closes it.
   useEffect(() => {
     if (session?.mode !== 'click' || !settings) return;
     const onKey = (event: KeyboardEvent) => {
+      if (session.kind === 'window') return;
       const pressed = KEY_OF[event.key];
-      const kind = (['convert', 'tools', 'actions'] as WheelKind[]).find((k) => settings.wheels[k] === pressed);
+      const kind = (['convert', 'tools', 'actions'] as const).find((k) => settings.wheels[k] === pressed);
       if (kind && kind !== session.kind) void api.wheelSwitch(kind);
     };
     const onBlur = () => control.current?.close();
@@ -131,15 +137,18 @@ export function WheelSurface() {
     void api.wheelClosed();
   };
 
-  if (!session || !settings || !ring) return null;
+  const shown = session?.kind === 'window' ? windowRing(isRtl(i18n.language)) : ring;
+  if (!session || !settings || !shown) return null;
   const run = (promise: Promise<unknown>) =>
     promise.catch((error) => void api.log('warn', `wheel choice failed: ${String(error)}`));
-  const view = ring.view(t, (k) => i18n.exists(k), mac);
+  const view = shown.view(t, (k) => i18n.exists(k), mac);
   const subtitle = link
     ? siteName(link)
-    : view.paths.length === 1
-      ? (files.find((f) => f.path === view.paths[0])?.name ?? '')
-      : t('wheel.files', { count: view.paths.length });
+    : session.kind === 'window'
+      ? (session.window ?? '')
+      : view.paths.length === 1
+        ? (files.find((f) => f.path === view.paths[0])?.name ?? '')
+        : t('wheel.files', { count: view.paths.length });
 
   return (
     <Wheel
@@ -168,7 +177,8 @@ export function WheelSurface() {
           // A quick slice downloads with the dialog's defaults; More… opens the dialog.
           const quick = QUICK_CHOICES[id as keyof typeof QUICK_CHOICES];
           run(quick ? api.webDownload(link, quick, null) : api.webOpen(link));
-        } else if (session.kind === 'convert') run(api.convert(view.paths, id));
+        } else if (session.kind === 'window') run(api.layoutsApply(id as LayoutId));
+        else if (session.kind === 'convert') run(api.convert(view.paths, id));
         else if (session.kind === 'tools') {
           if (id === 'extract') run(api.extract(view.paths));
           else if (id === 'mute') run(api.runMediaTool({ tool: 'mute' }, view.paths));
