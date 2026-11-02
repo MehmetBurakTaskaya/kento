@@ -1,0 +1,738 @@
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Kento's searchable conversion table: one self-contained section that builds itself from catalog.json
+     (written by `npm run catalog:export`). The catalog is read from data-catalog on the section or on an
+     element around it (catalog.json next to the page by default). How to embed it: website-kit/README.md. -->
+<section class="kento-embed kento-formats" id="kento-formats" aria-labelledby="kento-formats-title">
+  <style>
+    .kento-formats {
+      --kf-bg: #ffffff;
+      --kf-bg-2: #f5f6f8;
+      --kf-border: #dcdfe4;
+      --kf-border-strong: #aab1ba;
+      --kf-text: #15181c;
+      --kf-muted: #555c67;
+      --kf-accent: #2a4ea6;
+      --kf-on-accent: #ffffff;
+      --kf-focus: #2a4ea6;
+      --kf-chip: #e8ebef;
+      --kf-chip-text: #2b3036;
+      --kf-steel: linear-gradient(90deg, #c7ccd2 0%, #a8aeb6 10%, #91979f 19%, #b4bac1 30%, #eef1f3 38%, #c3c8ce 46%, #a0a6ae 57%, #8a9098 68%, #aeb4bb 78%, #f7f8fa 88%, #d6dade 96%, #c7ccd2 100%);
+      display: block;
+      margin-block: 1.5rem;
+      color: var(--kf-text);
+      font: inherit;
+      line-height: 1.5;
+      text-align: start;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .kento-formats {
+        --kf-bg: #1f2226;
+        --kf-bg-2: #272b30;
+        --kf-border: #32373e;
+        --kf-border-strong: #58606a;
+        --kf-text: #eef0f3;
+        --kf-muted: #a3abb6;
+        --kf-accent: #89a7f5;
+        --kf-on-accent: #0a1530;
+        --kf-focus: #a3bbff;
+        --kf-chip: #30353c;
+        --kf-chip-text: #dfe4ea;
+        --kf-steel: linear-gradient(90deg, #6b7179 0%, #555b63 10%, #454b53 19%, #5d646c 30%, #9ba2aa 38%, #676e76 46%, #4d535b 57%, #3f454c 68%, #585e66 78%, #a9b0b8 88%, #7c838b 96%, #6b7179 100%);
+      }
+    }
+    :root[data-theme="dark"] .kento-formats {
+      --kf-bg: #1f2226;
+      --kf-bg-2: #272b30;
+      --kf-border: #32373e;
+      --kf-border-strong: #58606a;
+      --kf-text: #eef0f3;
+      --kf-muted: #a3abb6;
+      --kf-accent: #89a7f5;
+      --kf-on-accent: #0a1530;
+      --kf-focus: #a3bbff;
+      --kf-chip: #30353c;
+      --kf-chip-text: #dfe4ea;
+      --kf-steel: linear-gradient(90deg, #6b7179 0%, #555b63 10%, #454b53 19%, #5d646c 30%, #9ba2aa 38%, #676e76 46%, #4d535b 57%, #3f454c 68%, #585e66 78%, #a9b0b8 88%, #7c838b 96%, #6b7179 100%);
+    }
+    /* One language at a time: the page's lang, or data-lang on the section. */
+    .kento-embed:not([data-lang="tr"]):not(:lang(tr)) [data-l="tr"],
+    .kento-embed[data-lang="en"] [data-l="tr"],
+    .kento-embed[data-lang="tr"] [data-l="en"],
+    .kento-embed:lang(tr):not([data-lang="en"]) [data-l="en"] {
+      display: none !important;
+    }
+    .kento-formats *,
+    .kento-formats *::before,
+    .kento-formats *::after {
+      box-sizing: border-box;
+    }
+    .kento-formats [hidden] {
+      display: none !important;
+    }
+    .kento-formats .kf-card {
+      overflow: hidden;
+      border: 1px solid var(--kf-border);
+      border-radius: 10px;
+      background: var(--kf-bg);
+    }
+    .kento-formats .kf-steel {
+      block-size: 5px;
+      background: var(--kf-steel);
+    }
+    .kento-formats .kf-body {
+      padding: clamp(1.125rem, 3vw, 1.75rem);
+    }
+    .kento-formats .kf-title {
+      margin: 0;
+      color: inherit;
+      font: inherit;
+      font-size: 1.375rem;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: normal;
+    }
+    /* The page's own measure for prose (such as main p { max-width: 60ch }) does not fit the table's lines. */
+    .kento-formats p {
+      max-width: none;
+      margin: 0;
+    }
+    .kento-formats .kf-lede,
+    .kento-formats .kf-foot p {
+      max-width: 90ch;
+    }
+    .kento-formats .kf-lede,
+    .kento-formats .kf-summary {
+      margin-block-start: 0.25rem;
+      color: var(--kf-muted);
+    }
+    .kento-formats .kf-summary {
+      font-size: 0.875rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .kento-formats .kf-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1rem;
+      align-items: flex-end;
+      margin-block-start: 1.25rem;
+    }
+    .kento-formats .kf-search {
+      display: flex;
+      flex: 1 1 16rem;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .kento-formats input {
+      inline-size: 100%;
+      min-block-size: 2.75rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--kf-border-strong);
+      border-radius: 6px;
+      background: var(--kf-bg);
+      color: var(--kf-text);
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 400;
+    }
+    .kento-formats input::placeholder {
+      color: var(--kf-muted);
+      opacity: 1;
+    }
+    .kento-formats input:focus-visible,
+    .kento-formats button:focus-visible,
+    .kento-formats a:focus-visible {
+      outline: 2px solid var(--kf-focus);
+      outline-offset: 2px;
+    }
+    .kento-formats .kf-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin-block-start: 0.75rem;
+    }
+    .kento-formats .kf-filter {
+      min-block-size: 2rem;
+      padding: 0.25rem 0.75rem;
+      border: 1px solid var(--kf-border);
+      border-radius: 999px;
+      background: var(--kf-bg-2);
+      color: var(--kf-text);
+      font: inherit;
+      font-size: 0.8125rem;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+    .kento-formats .kf-filter:hover {
+      border-color: var(--kf-border-strong);
+    }
+    .kento-formats .kf-filter[aria-pressed="true"] {
+      border-color: var(--kf-accent);
+      background: var(--kf-accent);
+      color: var(--kf-on-accent);
+    }
+    .kento-formats .kf-status {
+      margin-block: 1rem 0.5rem;
+      color: var(--kf-muted);
+      font-size: 0.875rem;
+    }
+    .kento-formats .kf-status a,
+    .kento-formats .kf-foot a {
+      color: var(--kf-accent);
+    }
+    .kento-formats table {
+      inline-size: 100%;
+      border-collapse: collapse;
+      font-size: 0.9375rem;
+    }
+    .kento-formats caption {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .kento-formats thead th {
+      padding: 0.5rem 0.75rem;
+      border-block-end: 1px solid var(--kf-border-strong);
+      color: var(--kf-muted);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-align: start;
+    }
+    .kento-formats tbody th,
+    .kento-formats tbody td {
+      padding: 0.75rem;
+      border-block-end: 1px solid var(--kf-border);
+      text-align: start;
+      vertical-align: top;
+    }
+    .kento-formats tbody th {
+      inline-size: 11rem;
+      font-weight: 400;
+    }
+    .kento-formats .kf-group th {
+      padding-block: 1rem 0.375rem;
+      border-block-end-color: var(--kf-border-strong);
+      color: var(--kf-muted);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .kento-formats .kf-name {
+      display: block;
+      font-size: 1.0625rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .kento-formats .kf-ext {
+      display: block;
+      color: var(--kf-muted);
+      font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.8125rem;
+    }
+    /* One line per tool that does the work: its name, then the formats it makes. */
+    .kento-formats .kf-route {
+      display: grid;
+      grid-template-columns: 11.5rem minmax(0, 1fr);
+      gap: 0.25rem 0.75rem;
+      align-items: baseline;
+    }
+    .kento-formats .kf-route + .kf-route {
+      margin-block-start: 0.375rem;
+    }
+    .kento-formats .kf-by {
+      color: var(--kf-muted);
+      font-size: 0.8125rem;
+    }
+    .kento-formats .kf-route .kf-note {
+      grid-column: 2;
+      margin: 0;
+    }
+    .kento-formats ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .kento-formats .kf-group-tools {
+      display: block;
+      margin-block-start: 0.125rem;
+      font-size: 0.8125rem;
+      font-weight: 400;
+      letter-spacing: normal;
+      text-transform: none;
+    }
+    .kento-formats .kf-more {
+      min-block-size: 2.5rem;
+      margin-block-start: 0.75rem;
+      padding: 0.375rem 1rem;
+      border: 1px solid var(--kf-accent);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--kf-accent);
+      font: inherit;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .kento-formats .kf-more:hover {
+      background: var(--kf-bg-2);
+    }
+    .kento-formats li {
+      margin: 0;
+      padding: 0.0625rem 0.4375rem;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: var(--kf-chip);
+      color: var(--kf-chip-text);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .kento-formats li.is-preview {
+      border-color: var(--kf-border-strong);
+      border-style: dashed;
+      background: transparent;
+    }
+    .kento-formats .kf-note,
+    .kento-formats .kf-tools {
+      margin-block-start: 0.5rem;
+      color: var(--kf-muted);
+      font-size: 0.8125rem;
+    }
+    .kento-formats .kf-hide {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .kento-formats .kf-foot {
+      margin-block-start: 1rem;
+      color: var(--kf-muted);
+      font-size: 0.8125rem;
+    }
+    .kento-formats .kf-foot p + p {
+      margin-block-start: 0.375rem;
+    }
+    /* On a phone each format is a small card: the name, then what it becomes. */
+    @media (max-width: 40rem) {
+      .kento-formats thead {
+        display: none;
+      }
+      .kento-formats tbody tr,
+      .kento-formats tbody th,
+      .kento-formats tbody td {
+        display: block;
+        inline-size: auto;
+      }
+      .kento-formats tbody th {
+        padding-block-end: 0;
+        border: 0;
+      }
+      .kento-formats tbody th .kf-ext {
+        display: inline;
+        margin-inline-start: 0.5rem;
+      }
+      .kento-formats tbody th .kf-name {
+        display: inline;
+      }
+      .kento-formats tbody td {
+        padding-block-start: 0.375rem;
+      }
+      .kento-formats .kf-route {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .kento-formats .kf-route .kf-note {
+        grid-column: 1;
+      }
+    }
+    @media (forced-colors: active) {
+      .kento-formats .kf-steel {
+        background: CanvasText;
+      }
+      .kento-formats li {
+        border-color: CanvasText;
+      }
+    }
+  </style>
+  <div class="kf-card">
+    <div class="kf-steel"></div>
+    <div class="kf-body">
+      <h2 class="kf-title" id="kento-formats-title"><span data-l="en">What converts to what</span><span data-l="tr">Ne neye dönüşür</span></h2>
+      <p class="kf-lede"><span data-l="en">Find a format to see what Kento turns it into, and what does the work.</span><span data-l="tr">Bir biçim arayın: Kento’nun onu neye dönüştürdüğünü ve işi neyin yaptığını görün.</span></p>
+      <p class="kf-summary" hidden></p>
+
+      <div class="kf-controls">
+        <label class="kf-search">
+          <span><span data-l="en">Format or extension</span><span data-l="tr">Biçim ya da uzantı</span></span>
+          <input type="search" autocomplete="off" spellcheck="false" autocapitalize="off" disabled>
+        </label>
+      </div>
+      <div class="kf-filters" role="group" hidden></div>
+
+      <p class="kf-status" role="status" aria-live="polite"><span data-l="en">Loading the formats…</span><span data-l="tr">Biçimler yükleniyor…</span></p>
+      <noscript><p class="kf-status"><span data-l="en">The table needs JavaScript. The full list is in</span><span data-l="tr">Tablo JavaScript ister. Tam liste şurada:</span> <a href="https://github.com/MehmetBurakTaskaya/kento/blob/main/docs/FORMATS.md">docs/FORMATS.md</a>.</p></noscript>
+      <div class="kf-results"></div>
+
+      <div class="kf-foot">
+        <p><span data-l="en">Built in: works as soon as Kento is installed. FFmpeg (the Media tools) and LibreOffice (the Office tools) are downloaded by Kento when you ask for them, from their own builds, and checked against a fixed fingerprint; copies already on your computer are used instead. Every conversion writes a new file next to the original.</span><span data-l="tr">Yerleşik: Kento kurulur kurulmaz çalışır. FFmpeg (Medya araçları) ve LibreOffice (Ofis araçları), siz istediğinizde Kento tarafından kendi derlemelerinden indirilir ve sabit bir parmak izine göre doğrulanır; bilgisayarınızda zaten varsa onlar kullanılır. Her dönüştürme, özgün dosyanın yanına yeni bir dosya yazar.</span></p>
+        <p><span data-l="en">A dashed outline means the conversion depends on the computer, such as HEIC, which needs the system’s HEIF support or the Media tools.</span><span data-l="tr">Kesik çizgili çerçeve, dönüştürmenin bilgisayara bağlı olduğunu gösterir; örneğin HEIC, sistemin HEIF desteğini ya da Medya araçlarını ister.</span></p>
+      </div>
+    </div>
+  </div>
+  <script>
+    // @ts-nocheck: plain JavaScript, left alone by a site that type-checks its components (astro check).
+    (function () {
+      var FORMATS_MD = 'https://github.com/MehmetBurakTaskaya/kento/blob/main/docs/FORMATS.md';
+      var TEXT = {
+        en: {
+          placeholder: 'heic, .docx, mp4…',
+          all: 'All',
+          categories: 'Categories',
+          caption: 'Formats Kento reads, and what each one converts to',
+          format: 'Format',
+          convertsTo: 'Converts to',
+          builtIn: 'Built in',
+          heif: 'The system’s HEIF support',
+          tools: function (group) { return group + ' tools'; },
+          preview: '(depends on the computer)',
+          madeFrom: 'Kento writes this format; it is made from',
+          wheel: 'On the Tools wheel:',
+          summary: function (n) { return n.formats + ' formats · ' + n.routes + ' conversions · ' + n.tools + ' tools · ' + n.actions + ' file actions'; },
+          shown: function (shown, total) { return shown === total ? total + ' formats' : shown + ' of ' + total + ' formats'; },
+          none: function (query) { return 'No format matches “' + query + '”.'; },
+          failed: 'The format list could not be loaded. The full list is in ',
+          more: function (total) { return 'Show all ' + total + ' formats'; },
+        },
+        tr: {
+          placeholder: 'heic, .docx, mp4…',
+          all: 'Tümü',
+          categories: 'Kategoriler',
+          caption: 'Kento’nun okuduğu biçimler ve her birinin neye dönüştüğü',
+          format: 'Biçim',
+          convertsTo: 'Dönüşür',
+          builtIn: 'Yerleşik',
+          heif: 'Sistemin HEIF desteği',
+          tools: function (group) { return group + ' araçları'; },
+          preview: '(bilgisayara bağlı)',
+          madeFrom: 'Kento bu biçimi yazar; şunlardan üretir:',
+          wheel: 'Araçlar çarkında:',
+          summary: function (n) { return n.formats + ' biçim · ' + n.routes + ' dönüştürme · ' + n.tools + ' araç · ' + n.actions + ' dosya işlemi'; },
+          shown: function (shown, total) { return shown === total ? total + ' biçim' : total + ' biçimden ' + shown + ' tanesi'; },
+          none: function (query) { return '“' + query + '” ile eşleşen bir biçim yok.'; },
+          failed: 'Biçim listesi yüklenemedi. Tam liste şurada: ',
+          more: function (total) { return '' + total + ' biçimin tümünü göster'; },
+        },
+      };
+      // The catalog's notes are written in English; these are their Turkish forms.
+      var NOTES_TR = {
+        'animated GIF': 'hareketli GIF',
+        'best effort': 'mümkün olduğunca',
+        'best effort, as text boxes': 'mümkün olduğunca, metin kutuları olarak',
+        'best effort, the first sheet': 'mümkün olduğunca, ilk sayfa',
+        'best effort, without attachments': 'mümkün olduğunca, ekler olmadan',
+        'extract only (UnRAR licence)': 'yalnızca açılır (UnRAR lisansı)',
+        'one image per page': 'sayfa başına bir görsel',
+        'one image per slide': 'slayt başına bir görsel',
+        'only where a reliable HEIC encoder exists': 'yalnızca güvenilir bir HEIC kodlayıcısı olan bilgisayarlarda',
+        "read with the system's HEIF support or the media tools": 'sistemin HEIF desteğiyle ya da Medya araçlarıyla okunur',
+        'several sizes in one icon': 'tek simgede birkaç boyut',
+        'tables found in the text, best effort': 'metindeki tablolar, mümkün olduğunca',
+        "text and pictures, without the book's styles": 'metin ve görseller, kitabın biçemleri olmadan',
+        'text and structure, without pictures': 'metin ve yapı, görseller olmadan',
+        'text only': 'yalnızca metin',
+        'the first sheet': 'ilk sayfa',
+        'values only': 'yalnızca değerler',
+        'with page images': 'sayfa görselleriyle',
+      };
+      // How many formats the table shows before Show all, when nothing is searched or chosen.
+      var SHORT = 12;
+      var ENGINES = { ffmpeg: 'FFmpeg', 'libre-office': 'LibreOffice', 'exif-tool': 'ExifTool', 'background-removal': 'ONNX Runtime' };
+
+      var script = document.currentScript;
+      var mine = script && script.closest('.kento-formats');
+      var roots = mine ? [mine] : [].slice.call(document.querySelectorAll('.kento-formats'));
+      roots.forEach(init);
+
+      function langOf(root) {
+        var chosen = root.getAttribute('data-lang');
+        var page = root.parentElement && root.parentElement.closest('[lang]');
+        var value = (chosen || (page && page.getAttribute('lang')) || document.documentElement.lang || 'en').toLowerCase();
+        return value.indexOf('tr') === 0 ? 'tr' : 'en';
+      }
+
+      /** Lower case without the dotted and dotless i getting in the way, and without a leading dot. */
+      function fold(text) {
+        return String(text).replace(/İ/g, 'i').replace(/I/g, 'i').replace(/ı/g, 'i').toLowerCase().trim().replace(/^\./, '');
+      }
+
+      function element(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+
+      /** What each format becomes, grouped by what does the work; and what makes the formats only written. */
+      function prepare(catalog) {
+        var usable = catalog.routes.filter(function (r) { return r.status === 'ready' || r.status === 'preview'; });
+        var formats = {};
+        catalog.formats.forEach(function (f) { formats[f.id] = f; });
+        var groups = {};
+        (catalog.groups || []).forEach(function (g) { groups[g.id] = g.names; });
+        var categories = {};
+        (catalog.categories || []).forEach(function (c) { categories[c.id] = c.names; });
+        var rows = catalog.formats.map(function (format) {
+          var out = usable.filter(function (r) { return r.from === format.id && formats[r.to]; });
+          var by = [];
+          out.forEach(function (route) {
+            var key = route.group === 'core' ? (route.engine === 'heif' ? 'heif' : 'core') : route.group + ':' + route.engine;
+            var entry = by.filter(function (e) { return e.key === key; })[0];
+            if (!entry) {
+              entry = { key: key, group: route.group, engine: route.engine, routes: [] };
+              by.push(entry);
+            }
+            entry.routes.push(route);
+          });
+          // Built in first, then the system's support, then the downloaded tools in the catalog's order.
+          var rank = function (e) { return e.key === 'core' ? 0 : e.key === 'heif' ? 1 : 2; };
+          by.sort(function (a, b) { return rank(a) - rank(b); });
+          var sources = usable.filter(function (r) { return r.to === format.id && formats[r.from]; }).map(function (r) { return formats[r.from].label; });
+          return {
+            format: format,
+            by: by,
+            sources: sources.filter(function (label, i) { return sources.indexOf(label) === i; }),
+            category: categories[format.category] || { en: format.category, tr: format.category },
+            words: [format.label, format.id].concat(format.extensions).map(fold),
+          };
+        });
+        var tools = (catalog.tools || []).filter(function (t) { return t.status === 'ready' || t.status === 'preview'; });
+        // A note that every conversion to a format carries (ICO: several sizes in one icon) is said once,
+        // under the table, rather than on every row.
+        var byTarget = {};
+        usable.forEach(function (r) { if (r.note) (byTarget[r.to] = byTarget[r.to] || []).push(r.note); });
+        var targetNotes = {};
+        Object.keys(byTarget).forEach(function (id) {
+          var notes = byTarget[id];
+          if (notes.length >= 3 && notes.every(function (n) { return n === notes[0]; })) targetNotes[id] = notes[0];
+        });
+        return { rows: rows, tools: tools, targetNotes: targetNotes, groups: groups, categories: catalog.categories || [], formats: formats, summary: catalog.summary || null };
+      }
+
+      function init(root) {
+        if (root.hasAttribute('data-ready')) return;
+        root.setAttribute('data-ready', '');
+        var input = root.querySelector('input');
+        var filters = root.querySelector('.kf-filters');
+        var status = root.querySelector('.kf-status');
+        var results = root.querySelector('.kf-results');
+        var summary = root.querySelector('.kf-summary');
+        var data = null;
+        var failed = false;
+        var category = 'all';
+        var expanded = false;
+        var shownLang = null;
+
+        function label(names, lang) {
+          return (names && (names[lang] || names.en)) || '';
+        }
+
+        function byLabel(entry, lang) {
+          if (entry.key === 'core') return TEXT[lang].builtIn;
+          if (entry.key === 'heif') return TEXT[lang].heif;
+          var engine = ENGINES[entry.engine] || entry.engine;
+          return engine + ' · ' + TEXT[lang].tools(label(data.groups[entry.group], lang) || entry.group);
+        }
+
+        function note(text, lang) {
+          return lang === 'tr' ? NOTES_TR[text] || text : text;
+        }
+
+        function routeBlock(entry, lang) {
+          var block = element('div', 'kf-route');
+          block.appendChild(element('span', 'kf-by', byLabel(entry, lang)));
+          var list = element('ul');
+          var notes = [];
+          entry.routes.forEach(function (route) {
+            var target = data.formats[route.to].label;
+            var item = element('li', route.status === 'preview' ? 'is-preview' : '', target);
+            if (route.status === 'preview') item.appendChild(element('span', 'kf-hide', ' ' + TEXT[lang].preview));
+            if (route.platforms === 'windows' || route.platforms === 'macos') {
+              item.appendChild(document.createTextNode(route.platforms === 'windows' ? ' (Windows)' : ' (macOS)'));
+            }
+            list.appendChild(item);
+            if (route.note && data.targetNotes[route.to] !== route.note) {
+              var found = notes.filter(function (n) { return n.text === route.note; })[0];
+              if (found) found.targets.push(target);
+              else notes.push({ text: route.note, targets: [target] });
+            }
+          });
+          block.appendChild(list);
+          notes.forEach(function (n) {
+            var all = n.targets.length === entry.routes.length;
+            block.appendChild(element('p', 'kf-note', (all ? '' : n.targets.join(', ') + ': ') + note(n.text, lang)));
+          });
+          return block;
+        }
+
+        function render() {
+          var lang = langOf(root);
+          shownLang = lang;
+          if (root.getAttribute('data-lang')) root.setAttribute('lang', lang);
+          var text = TEXT[lang];
+          input.placeholder = text.placeholder;
+          filters.setAttribute('aria-label', text.categories);
+          results.textContent = '';
+          if (failed) {
+            status.textContent = text.failed;
+            var link = element('a', '', 'docs/FORMATS.md');
+            link.href = FORMATS_MD;
+            status.appendChild(link);
+            status.appendChild(document.createTextNode('.'));
+            return;
+          }
+          if (!data) return;
+
+          if (data.summary) {
+            summary.textContent = text.summary(data.summary);
+            summary.hidden = false;
+          }
+
+          // The category buttons, each with its count.
+          filters.textContent = '';
+          [{ id: 'all', names: { en: TEXT.en.all, tr: TEXT.tr.all } }].concat(data.categories).forEach(function (c) {
+            var count = data.rows.filter(function (row) { return c.id === 'all' || row.format.category === c.id; }).length;
+            if (!count) return;
+            var button = element('button', 'kf-filter', label(c.names, lang) + ' ' + count);
+            button.type = 'button';
+            button.setAttribute('aria-pressed', String(category === c.id));
+            button.addEventListener('click', function () {
+              category = c.id;
+              render();
+              var again = filters.querySelector('[aria-pressed="true"]');
+              if (again) again.focus();
+            });
+            filters.appendChild(button);
+          });
+          filters.hidden = false;
+
+          var query = fold(input.value);
+          var shown = data.rows.filter(function (row) {
+            if (category !== 'all' && row.format.category !== category) return false;
+            if (!query) return true;
+            var names = [row.category.en, row.category.tr].map(fold);
+            return row.words.concat(names).some(function (word) { return word.indexOf(query) === 0; }) || row.words.some(function (word) { return word.indexOf(query) !== -1; });
+          });
+
+          status.textContent = shown.length ? text.shown(shown.length, data.rows.length) : text.none(input.value.trim());
+          if (!shown.length) return;
+          // Untouched, the table starts short: the first formats and a button for the rest.
+          var short = !query && category === 'all' && !expanded && shown.length > SHORT;
+          if (short) shown = shown.slice(0, SHORT);
+
+          var table = element('table');
+          table.appendChild(element('caption', '', text.caption));
+          var head = element('thead');
+          var headRow = element('tr');
+          [text.format, text.convertsTo].forEach(function (title) {
+            var th = element('th', '', title);
+            th.scope = 'col';
+            headRow.appendChild(th);
+          });
+          head.appendChild(headRow);
+          table.appendChild(head);
+
+          data.categories.forEach(function (c) {
+            var rows = shown.filter(function (row) { return row.format.category === c.id; });
+            if (!rows.length) return;
+            var body = element('tbody');
+            var groupRow = element('tr', 'kf-group');
+            var groupHead = element('th', '', label(c.names, lang));
+            groupHead.colSpan = 2;
+            groupHead.scope = 'rowgroup';
+            // The Tools wheel offers the same tools for every format of a category: once, under its name.
+            var tools = (data.tools || []).filter(function (t) { return t.categories.indexOf(c.id) !== -1; });
+            if (tools.length) {
+              groupHead.appendChild(element('span', 'kf-group-tools', text.wheel + ' ' + tools.map(function (t) { return label(t.names, lang); }).join(', ') + '.'));
+            }
+            groupRow.appendChild(groupHead);
+            body.appendChild(groupRow);
+            rows.forEach(function (row) {
+              var tr = element('tr');
+              var th = element('th');
+              th.scope = 'row';
+              th.appendChild(element('span', 'kf-name', row.format.label));
+              th.appendChild(element('span', 'kf-ext', row.format.extensions.map(function (e) { return '.' + e; }).join(' ')));
+              tr.appendChild(th);
+              var td = element('td');
+              if (row.by.length) {
+                row.by.forEach(function (entry) { td.appendChild(routeBlock(entry, lang)); });
+              } else if (row.sources.length) {
+                td.appendChild(element('p', 'kf-note', text.madeFrom + ' ' + row.sources.join(', ') + '.'));
+              }
+              tr.appendChild(td);
+              body.appendChild(tr);
+            });
+            table.appendChild(body);
+          });
+          results.appendChild(table);
+          var said = Object.keys(data.targetNotes).filter(function (id) {
+            return shown.some(function (row) { return row.by.some(function (e) { return e.routes.some(function (r) { return r.to === id; }); }); });
+          });
+          if (said.length) {
+            results.appendChild(element('p', 'kf-note', said.map(function (id) { return data.formats[id].label + ': ' + note(data.targetNotes[id], lang); }).join('. ') + '.'));
+          }
+          if (short) {
+            var more = element('button', 'kf-more', text.more(data.rows.length));
+            more.type = 'button';
+            more.addEventListener('click', function () {
+              expanded = true;
+              render();
+              var first = results.querySelectorAll('tbody tr:not(.kf-group)')[SHORT];
+              if (first) {
+                first.setAttribute('tabindex', '-1');
+                first.focus();
+              }
+            });
+            results.appendChild(more);
+          }
+        }
+
+        input.addEventListener('input', render);
+
+        // The catalog: inline in the section (a script of type application/json), or from data-catalog.
+        var inline = root.querySelector('script[type="application/json"]');
+        var source = root.closest('[data-catalog]');
+        var load = inline
+          ? Promise.resolve().then(function () { return JSON.parse(inline.textContent); })
+          : fetch((source && source.getAttribute('data-catalog')) || 'catalog.json', { credentials: 'same-origin' }).then(function (response) {
+              if (!response.ok) throw new Error(String(response.status));
+              return response.json();
+            });
+        load
+          .then(function (catalog) {
+            data = prepare(catalog);
+            input.disabled = false;
+          })
+          .catch(function () {
+            failed = true;
+          })
+          .then(render);
+
+        if (window.MutationObserver) {
+          new MutationObserver(function () {
+            if (langOf(root) !== shownLang) render();
+          }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang', 'data-lang'], subtree: true });
+        }
+      }
+    })();
+  </script>
+</section>
