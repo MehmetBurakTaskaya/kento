@@ -1393,7 +1393,7 @@
       "enhancement": false,
       "from": "heic",
       "group": "core",
-      "note": "read with the system's HEIF support",
+      "note": "read with the system's HEIF support or the media tools",
       "platforms": "both",
       "status": "preview",
       "to": "jpg"
@@ -1403,7 +1403,7 @@
       "enhancement": false,
       "from": "heic",
       "group": "core",
-      "note": "read with the system's HEIF support",
+      "note": "read with the system's HEIF support or the media tools",
       "platforms": "both",
       "status": "preview",
       "to": "png"
@@ -1413,7 +1413,7 @@
       "enhancement": false,
       "from": "heic",
       "group": "core",
-      "note": "read with the system's HEIF support",
+      "note": "read with the system's HEIF support or the media tools",
       "platforms": "both",
       "status": "preview",
       "to": "webp"
@@ -1423,7 +1423,7 @@
       "enhancement": false,
       "from": "heic",
       "group": "core",
-      "note": "read with the system's HEIF support",
+      "note": "read with the system's HEIF support or the media tools",
       "platforms": "both",
       "status": "preview",
       "to": "avif"
@@ -1433,7 +1433,7 @@
       "enhancement": false,
       "from": "heic",
       "group": "core",
-      "note": "read with the system's HEIF support",
+      "note": "read with the system's HEIF support or the media tools",
       "platforms": "both",
       "status": "preview",
       "to": "bmp"
@@ -1443,7 +1443,7 @@
       "enhancement": false,
       "from": "heic",
       "group": "core",
-      "note": "read with the system's HEIF support",
+      "note": "read with the system's HEIF support or the media tools",
       "platforms": "both",
       "status": "preview",
       "to": "tiff"
@@ -1453,7 +1453,7 @@
       "enhancement": false,
       "from": "heic",
       "group": "core",
-      "note": "read with the system's HEIF support",
+      "note": "read with the system's HEIF support or the media tools",
       "platforms": "both",
       "status": "preview",
       "to": "gif"
@@ -1463,7 +1463,7 @@
       "enhancement": false,
       "from": "heic",
       "group": "core",
-      "note": "read with the system's HEIF support",
+      "note": "read with the system's HEIF support or the media tools",
       "platforms": "both",
       "status": "preview",
       "to": "pdf"
@@ -1645,7 +1645,7 @@
       "group": "media",
       "note": "animated GIF",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp4"
     },
     {
@@ -1655,7 +1655,7 @@
       "group": "media",
       "note": "animated GIF",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webm"
     },
     {
@@ -1665,7 +1665,7 @@
       "group": "media",
       "note": "animated GIF",
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mov"
     },
     {
@@ -1675,7 +1675,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp4"
     },
     {
@@ -1685,7 +1685,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mov"
     },
     {
@@ -1695,7 +1695,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mkv"
     },
     {
@@ -1705,7 +1705,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webm"
     },
     {
@@ -1715,7 +1715,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wmv"
     },
     {
@@ -1725,7 +1725,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1735,7 +1735,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -1745,7 +1745,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp4"
     },
     {
@@ -1755,7 +1755,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mov"
     },
     {
@@ -1765,7 +1765,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webm"
     },
     {
@@ -1775,7 +1775,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avi"
     },
     {
@@ -1785,7 +1785,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wmv"
     },
     {
@@ -1795,7 +1795,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1805,7 +1805,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -1815,7 +1815,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp4"
     },
     {
@@ -1825,7 +1825,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mkv"
     },
     {
@@ -1835,7 +1835,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webm"
     },
     {
@@ -1845,7 +1845,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avi"
     },
     {
@@ -1855,7 +1855,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wmv"
     },
     {
@@ -1865,7 +1865,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1875,7 +1875,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -1885,7 +1885,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mov"
     },
     {
@@ -1895,7 +1895,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mkv"
     },
     {
@@ -1905,7 +1905,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webm"
     },
     {
@@ -1915,7 +1915,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avi"
     },
     {
@@ -1925,7 +1925,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wmv"
     },
     {
@@ -1935,7 +1935,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -1945,7 +1945,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -1955,7 +1955,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp4"
     },
     {
@@ -1965,7 +1965,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mov"
     },
     {
@@ -1975,7 +1975,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mkv"
     },
     {
@@ -1985,7 +1985,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avi"
     },
     {
@@ -1995,7 +1995,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wmv"
     },
     {
@@ -2005,7 +2005,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -2015,7 +2015,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2025,7 +2025,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp4"
     },
     {
@@ -2035,7 +2035,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mov"
     },
     {
@@ -2045,7 +2045,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mkv"
     },
     {
@@ -2055,7 +2055,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "webm"
     },
     {
@@ -2065,7 +2065,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "avi"
     },
     {
@@ -2075,7 +2075,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "gif"
     },
     {
@@ -2085,7 +2085,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2095,7 +2095,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2105,7 +2105,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2115,7 +2115,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2125,7 +2125,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2135,7 +2135,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2145,7 +2145,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2155,7 +2155,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2165,7 +2165,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2175,7 +2175,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2185,7 +2185,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2195,7 +2195,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2205,7 +2205,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2215,7 +2215,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "flac"
     },
     {
@@ -2225,7 +2225,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2235,7 +2235,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2245,7 +2245,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ogg"
     },
     {
@@ -2255,7 +2255,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "opus"
     },
     {
@@ -2265,7 +2265,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2275,7 +2275,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wma"
     },
     {
@@ -2285,7 +2285,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "aiff"
     },
     {
@@ -2295,7 +2295,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2305,7 +2305,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2315,7 +2315,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ogg"
     },
     {
@@ -2325,7 +2325,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "opus"
     },
     {
@@ -2335,7 +2335,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2345,7 +2345,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wma"
     },
     {
@@ -2355,7 +2355,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "aiff"
     },
     {
@@ -2365,7 +2365,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "flac"
     },
     {
@@ -2375,7 +2375,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2385,7 +2385,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ogg"
     },
     {
@@ -2395,7 +2395,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "opus"
     },
     {
@@ -2405,7 +2405,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2415,7 +2415,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wma"
     },
     {
@@ -2425,7 +2425,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "aiff"
     },
     {
@@ -2435,7 +2435,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "flac"
     },
     {
@@ -2445,7 +2445,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2455,7 +2455,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ogg"
     },
     {
@@ -2465,7 +2465,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "opus"
     },
     {
@@ -2475,7 +2475,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2485,7 +2485,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wma"
     },
     {
@@ -2495,7 +2495,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "aiff"
     },
     {
@@ -2505,7 +2505,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "flac"
     },
     {
@@ -2515,7 +2515,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2525,7 +2525,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2535,7 +2535,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "opus"
     },
     {
@@ -2545,7 +2545,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2555,7 +2555,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wma"
     },
     {
@@ -2565,7 +2565,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "aiff"
     },
     {
@@ -2575,7 +2575,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "flac"
     },
     {
@@ -2585,7 +2585,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2595,7 +2595,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2605,7 +2605,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ogg"
     },
     {
@@ -2615,7 +2615,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -2625,7 +2625,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wma"
     },
     {
@@ -2635,7 +2635,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "aiff"
     },
     {
@@ -2645,7 +2645,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "flac"
     },
     {
@@ -2655,7 +2655,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2665,7 +2665,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2675,7 +2675,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ogg"
     },
     {
@@ -2685,7 +2685,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "opus"
     },
     {
@@ -2695,7 +2695,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wma"
     },
     {
@@ -2705,7 +2705,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "aiff"
     },
     {
@@ -2715,7 +2715,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "flac"
     },
     {
@@ -2725,7 +2725,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "m4a"
     },
     {
@@ -2735,7 +2735,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "mp3"
     },
     {
@@ -2745,7 +2745,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "ogg"
     },
     {
@@ -2755,7 +2755,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "opus"
     },
     {
@@ -2765,7 +2765,7 @@
       "group": "media",
       "note": null,
       "platforms": "both",
-      "status": "planned",
+      "status": "ready",
       "to": "wav"
     },
     {
@@ -4373,7 +4373,7 @@
     "actions": 8,
     "coreInputs": 46,
     "formats": 54,
-    "ready": 127,
+    "ready": 253,
     "routes": 355,
     "tools": 31
   },
@@ -4653,7 +4653,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4670,7 +4670,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4687,7 +4687,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4704,7 +4704,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4721,7 +4721,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4738,7 +4738,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4755,7 +4755,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4772,7 +4772,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4789,7 +4789,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4806,7 +4806,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4823,7 +4823,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4840,7 +4840,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [
@@ -4857,7 +4857,7 @@
       },
       "note": null,
       "platforms": "both",
-      "status": "planned"
+      "status": "ready"
     },
     {
       "categories": [

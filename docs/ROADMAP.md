@@ -45,9 +45,13 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 4: media
 
-- [ ] Tool setup wizard
-- [ ] FFmpeg conversions and the 15 media tools
-- [ ] Proxy preview, waveform, real progress
+- [x] Tool setup wizard: the Media group (pinned FFmpeg downloads, resumed and checked by SHA-256); Office and Extras arrive with their phases
+- [x] FFmpeg conversions, with M4A and WAV from video [+]
+- [x] The 13 video and audio tools and their editors (shared player, timeline and keys, SPEC 5.6)
+- [x] Proxy preview, waveform, real progress
+- [x] HEIC through FFmpeg where the system cannot read it
+- [x] Wheel slices that need a missing tool open the setup
+- [x] Settings › Tools: each tool's state, version and path; choosing a program, verifying again, updating and removing Kento's download
 
 ## Phase 5: image editors and metadata
 

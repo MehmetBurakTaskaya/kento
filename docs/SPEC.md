@@ -95,7 +95,7 @@ Rust side (current versions are verified when added; a better option is proposed
 - Platform layer: the `windows` crate (Win32, COM, WinRT); on macOS `objc2`, `objc2-app-kit`, `objc2-foundation`.
 - Images: `image`, `resvg`/`usvg` (SVG). AVIF is decoded in pure Rust (`avif-parse`, `rav1d`, `yuv`) and encoded with `ravif`, both without assembly code, so the build needs no assembler. Lossy WEBP through libwebp (`webp`). HEIC through the system:
   - macOS: ImageIO (read and write).
-  - Windows: WIC with the free HEIF Image Extensions (read and write); without them the job says what to install. Reading through FFmpeg is added once the media tools exist (Phase 4). A bundled libheif was considered and left out: it would ship an LGPL library that WIC and FFmpeg make unnecessary.
+  - Windows: WIC with the free HEIF Image Extensions (read and write); without them the job says what to install. Where they are missing, FFmpeg reads HEIC once the media tools are installed. A bundled libheif was considered and left out: it would ship an LGPL library that WIC and FFmpeg make unnecessary.
   - Writing HEIC is offered only when a reliable encoder exists (a test encode at start).
 - PDF:
   - `pdfium-render` + a bundled PDFium binary (bblanchon/pdfium-binaries, one pinned release checked by SHA-256, fetched by `npm run pdfium`): page rendering and text extraction. Every PDFium call goes through one lock.
@@ -112,14 +112,14 @@ Downloaded on request at first setup, never bundled.
 
 | Group | Contents |
 | --- | --- |
-| Media | FFmpeg + ffprobe (Windows: BtbN or gyan.dev builds; macOS: static arm64 + x86_64 builds), yt-dlp (`yt-dlp.exe` / `yt-dlp_macos`), Deno (yt-dlp now needs a JavaScript runtime for YouTube) |
+| Media | FFmpeg + ffprobe (Windows: the gyan.dev "essentials" release build; macOS: the evermeet.cx static release builds for Intel, which Apple silicon runs through Rosetta 2 until a pinned arm64 build is added), yt-dlp (`yt-dlp.exe` / `yt-dlp_macos`), Deno (yt-dlp now needs a JavaScript runtime for YouTube) |
 | Office | LibreOffice. On Windows the official MSI is unpacked with `msiexec /a` (administrative install) into the app data folder and used portably; on macOS it is taken from the DMG. An existing system install is used when present. |
 | Extras | ExifTool, a background-removal model + ONNX Runtime |
 
 Rules:
 
 - **Pinned versions.** Each tool's version, URL, size and SHA-256 are pinned in `src-tauri/toolchain.lock.json`. A file that fails hash verification is never run.
-- **Existing installs.** Tools already on the system (PATH or standard install locations) are detected and used. A path can also be set by hand in Settings.
+- **Existing installs.** Tools already on the system (PATH or standard install locations) are detected and used. A path can also be set by hand in Settings. A found tool counts only when it runs and is recent enough (FFmpeg 6 or newer).
 - **Platform security flags.** On macOS the `com.apple.quarantine` attribute is removed from verified tools, with an ad-hoc signature when needed. On Windows, Mark-of-the-Web and SmartScreen behavior is handled.
 - **Process isolation.** Tools run as separate processes. Arguments are always passed as arrays, never as a shell string. GPL tools are therefore never combined with the app's code, and the app stays MIT.
 - **yt-dlp updates.** yt-dlp has its own "Update yt-dlp" option, independent of app updates, with hash or signature verification.
@@ -780,7 +780,7 @@ Every phase ends with a test pass on Windows, and on macOS where it applies. Pro
 - **Phase 1: skeleton.** Tauri 2 + React/TS project, settings, design tokens and the pluggable theme system (default theme only, 5.20). Translation infrastructure (EN + TR), RTL infrastructure, pseudo-localization and pseudo-RTL test languages. Main window shell. Catalog skeleton, job queue, naming rules, logging. Single instance and tray icon. `ShelfProvider` interface. CI, license files, SPDX headers.
 - **Phase 2: core local engines (no downloads).** Image conversions. PDF tools: merge, split, edit, PDF from images, PDF to images. Archive extraction and creation. QR reading. Text, subtitle and spreadsheet conversions. In-app wheel, drop zone, paste, Library and success card.
 - **Phase 3: global wheel and desktop integration.** Drag + modifier detection: Windows first, then macOS. The three wheels and file actions. The chosen shelf model. Selection shortcut, Send To and context menu. Sounds and haptics.
-- **Phase 4: media.** Tool setup wizard. FFmpeg conversions and the 15 media tools. Proxy preview, waveform, real progress.
+- **Phase 4: media.** Tool setup wizard. FFmpeg conversions and the 13 video and audio tools (Compress and Metadata, which also take media, come in Phase 5). Proxy preview, waveform, real progress.
 - **Phase 5: image editors and metadata.** Edit image, Mark up, Add frame, Crop, Collage, Redact image. Metadata with ExifTool. The Compress tool (including target size).
 - **Phase 6: office.** Document, spreadsheet and presentation conversions with LibreOffice. PDF to other formats. Apple and macOS-specific input formats.
 - **Phase 7: web download.** yt-dlp + Deno. Ctrl+Shift+D and dragging from browsers. Site-specific flows. Independent yt-dlp updates.

@@ -2,7 +2,7 @@
 
 Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export`; do not edit by hand.
 
-**Status:** *ready* works today; *preview* depends on the computer (HEIC needs the system's HEIF support); *planned* arrives in a later phase. **[+]** marks an enhancement beyond the core feature set. Core needs no download; Media, Office and Extras are optional tool groups (SPEC 4.2).
+**Status:** *ready* works today; *preview* depends on the computer (HEIC needs the system's HEIF support or the media tools); *planned* arrives in a later phase. **[+]** marks an enhancement beyond the core feature set. Core needs no download; Media, Office and Extras are optional tool groups (SPEC 4.2).
 
 | | Count |
 | --- | ---: |
@@ -22,8 +22,8 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 | BMP | HEIC | Core | preview | only where a reliable HEIC encoder exists |
 | GIF | JPG, PNG, WEBP, AVIF, BMP, TIFF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
 | GIF | HEIC | Core | preview | only where a reliable HEIC encoder exists |
-| GIF | MP4, WEBM, MOV | Media | planned | animated GIF |
-| HEIC | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | preview | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF: read with the system's HEIF support |
+| GIF | MP4, WEBM, MOV | Media | ready | animated GIF |
+| HEIC | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | preview | JPG, PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF: read with the system's HEIF support or the media tools |
 | JPG | PNG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
 | JPG | HEIC | Core | preview | only where a reliable HEIC encoder exists |
 | PNG | JPG, WEBP, AVIF, BMP, TIFF, GIF, PDF, ICO [+] | Core | ready | ICO: several sizes in one icon |
@@ -39,25 +39,25 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 
 | From | To | Needs | Status | Notes |
 | --- | --- | --- | --- | --- |
-| AVI | MP4, MOV, MKV, WEBM, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
-| MKV | MP4, MOV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
-| MOV | MP4, MKV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
-| MP4 | MOV, MKV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
-| WEBM | MP4, MOV, MKV, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
-| WMV | MP4, MOV, MKV, WEBM, AVI, GIF, MP3, M4A [+], WAV [+] | Media | planned |  |
+| AVI | MP4, MOV, MKV, WEBM, WMV, GIF, MP3, M4A [+], WAV [+] | Media | ready |  |
+| MKV | MP4, MOV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | ready |  |
+| MOV | MP4, MKV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | ready |  |
+| MP4 | MOV, MKV, WEBM, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | ready |  |
+| WEBM | MP4, MOV, MKV, AVI, WMV, GIF, MP3, M4A [+], WAV [+] | Media | ready |  |
+| WMV | MP4, MOV, MKV, WEBM, AVI, GIF, MP3, M4A [+], WAV [+] | Media | ready |  |
 
 ## Audio
 
 | From | To | Needs | Status | Notes |
 | --- | --- | --- | --- | --- |
-| AIFF | FLAC, M4A, MP3, OGG, OPUS, WAV, WMA | Media | planned |  |
-| FLAC | AIFF, M4A, MP3, OGG, OPUS, WAV, WMA | Media | planned |  |
-| M4A | AIFF, FLAC, MP3, OGG, OPUS, WAV, WMA | Media | planned |  |
-| MP3 | AIFF, FLAC, M4A, OGG, OPUS, WAV, WMA | Media | planned |  |
-| OGG | AIFF, FLAC, M4A, MP3, OPUS, WAV, WMA | Media | planned |  |
-| OPUS | AIFF, FLAC, M4A, MP3, OGG, WAV, WMA | Media | planned |  |
-| WAV | AIFF, FLAC, M4A, MP3, OGG, OPUS, WMA | Media | planned |  |
-| WMA | AIFF, FLAC, M4A, MP3, OGG, OPUS, WAV | Media | planned |  |
+| AIFF | FLAC, M4A, MP3, OGG, OPUS, WAV, WMA | Media | ready |  |
+| FLAC | AIFF, M4A, MP3, OGG, OPUS, WAV, WMA | Media | ready |  |
+| M4A | AIFF, FLAC, MP3, OGG, OPUS, WAV, WMA | Media | ready |  |
+| MP3 | AIFF, FLAC, M4A, OGG, OPUS, WAV, WMA | Media | ready |  |
+| OGG | AIFF, FLAC, M4A, MP3, OPUS, WAV, WMA | Media | ready |  |
+| OPUS | AIFF, FLAC, M4A, MP3, OGG, WAV, WMA | Media | ready |  |
+| WAV | AIFF, FLAC, M4A, MP3, OGG, OPUS, WMA | Media | ready |  |
+| WMA | AIFF, FLAC, M4A, MP3, OGG, OPUS, WAV | Media | ready |  |
 
 ## Document
 
@@ -147,19 +147,19 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 | Merge PDFs | PDF | Core | ready |  |
 | PDF from images | Image | Core | ready |  |
 | Extract archive | Archive | Core | ready |  |
-| Remove audio | Video | Media | planned |  |
-| Trim video | Video | Media | planned |  |
-| Crop video area | Video | Media | planned |  |
-| Change video speed | Video | Media | planned |  |
-| Merge videos | Video | Media | planned |  |
-| Extract frames | Video | Media | planned |  |
-| Split video | Video | Media | planned |  |
-| Redact video | Video | Media | planned |  |
-| Normalize loudness | Audio | Media | planned |  |
-| Trim audio | Audio | Media | planned |  |
-| Audio channels | Audio | Media | planned |  |
-| Redact audio | Audio | Media | planned |  |
-| Audio to video | Audio | Media | planned |  |
+| Remove audio | Video | Media | ready |  |
+| Trim video | Video | Media | ready |  |
+| Crop video area | Video | Media | ready |  |
+| Change video speed | Video | Media | ready |  |
+| Merge videos | Video | Media | ready |  |
+| Extract frames | Video | Media | ready |  |
+| Split video | Video | Media | ready |  |
+| Redact video | Video | Media | ready |  |
+| Normalize loudness | Audio | Media | ready |  |
+| Trim audio | Audio | Media | ready |  |
+| Audio channels | Audio | Media | ready |  |
+| Redact audio | Audio | Media | ready |  |
+| Audio to video | Audio | Media | ready |  |
 | Remove background [+] | Image | Extras | planned | permissively licensed models only |
 | Extract text [+] | Image, PDF | Core | planned | Windows OCR and Apple Vision |
 | Burn in subtitles [+] | Video, Subtitles | Media | planned |  |
