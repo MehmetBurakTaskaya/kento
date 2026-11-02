@@ -47,6 +47,7 @@ export const TOOL_ICONS: Record<string, IconName> = {
   'crop-image': 'crop',
   collage: 'grid',
   'redact-image': 'redact',
+  'remove-background': 'cutout',
 };
 
 const ACTION_ICONS: Record<string, IconName> = {
@@ -61,7 +62,16 @@ const ACTION_ICONS: Record<string, IconName> = {
 };
 
 /** Tools that ask for choices in a panel of the main window before they run. */
-export const PANEL_TOOLS = ['merge-pdf', 'split-pdf', 'edit-pdf', 'images-to-pdf', 'read-qr', 'compress', 'metadata'];
+export const PANEL_TOOLS = [
+  'merge-pdf',
+  'split-pdf',
+  'edit-pdf',
+  'images-to-pdf',
+  'read-qr',
+  'compress',
+  'metadata',
+  'remove-background',
+];
 
 /** Media tools with an editor; Remove audio runs at once. */
 export { MEDIA_PANELS } from '../editors';

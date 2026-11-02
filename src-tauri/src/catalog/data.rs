@@ -707,6 +707,7 @@ const READY_TOOLS: &[&str] = &[
     "frame",
     "collage",
     "redact-image",
+    "remove-background",
 ];
 
 pub fn tools() -> &'static [Tool] {

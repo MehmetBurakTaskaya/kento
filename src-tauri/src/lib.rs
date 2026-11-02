@@ -3,6 +3,7 @@
 //! (catalog, jobs, settings, languages) and its desktop shell (window, tray, single instance).
 
 pub mod actions;
+pub mod bgremove;
 pub mod catalog;
 pub mod commands;
 pub mod compress;
@@ -319,6 +320,8 @@ pub fn run() {
             images::image_info,
             images::image_preview,
             images::run_image_tool,
+            bgremove::remove_background,
+            bgremove::background_preview,
             compress::run_compress,
             metadata::metadata_read,
             metadata::run_metadata,

@@ -538,6 +538,11 @@ export interface Api {
   /** A PNG of the tool applied (or of the picture itself), at most `size` px on its longer side. */
   imagePreview(paths: string[], tool: ImageTool | null, size: number): Promise<Blob | null>;
   runImageTool(tool: ImageTool, paths: string[]): Promise<number[]>;
+  /** Remove background: one job per picture, each writing a transparent PNG. */
+  removeBackground(paths: string[]): Promise<number[]>;
+  /** A PNG of the picture with its background removed, at most `size` px on its longer side; the
+   *  first one for a picture runs the model, which takes a few seconds. */
+  backgroundPreview(path: string, size: number): Promise<Blob>;
   runCompress(compression: Compression, paths: string[]): Promise<number[]>;
   metadataRead(path: string): Promise<MetadataInfo>;
   runMetadata(path: string, change: MetadataChange): Promise<number[]>;
@@ -689,6 +694,10 @@ const tauriApi: Api = {
   imageInfo: (path) => invoke('image_info', { path }),
   imagePreview: (paths, tool, size) => blob(invoke<ArrayBuffer>('image_preview', { paths, tool, size })),
   runImageTool: (tool, paths) => invoke('run_image_tool', { tool, paths }),
+  removeBackground: (paths) => invoke('remove_background', { paths }),
+  // Errors stay errors here: the panel says why there is no preview.
+  backgroundPreview: async (path, size) =>
+    new Blob([await invoke<ArrayBuffer>('background_preview', { path, size })], { type: 'image/png' }),
   runCompress: (compression, paths) => invoke('run_compress', { compression, paths }),
   metadataRead: (path) => invoke('metadata_read', { path }),
   runMetadata: (path, change) => invoke('run_metadata', { path, change }),
@@ -954,6 +963,10 @@ export function browserApi(params: URLSearchParams): Api {
     imageInfo: async () => ({ width: 4032, height: 3024 }),
     imagePreview: async () => null,
     runImageTool: async () => [1],
+    removeBackground: async (paths) => paths.map((_, i) => i + 1),
+    backgroundPreview: async () => {
+      throw new Error('No preview in the browser stand-in.');
+    },
     runCompress: async (_compression, paths) => paths.map((_, i) => i + 1),
     metadataRead: async (path) => demoMetadata(path),
     runMetadata: async () => [1],
@@ -1159,8 +1172,23 @@ function demoTools(ready: boolean): ToolGroupStatus[] {
           version: ready ? '13.60' : null,
           source: ready ? ('kento' as const) : null,
         },
+        {
+          id: 'onnxruntime',
+          path: ready
+            ? 'C:\\Users\\me\\AppData\\Local\\Kento\\tools\\extras\\onnxruntime\\1.23.2\\onnxruntime.dll'
+            : null,
+          version: ready ? '1.23.2' : null,
+          source: ready ? ('kento' as const) : null,
+        },
+        {
+          id: 'bg-model',
+          path: ready ? 'C:\\Users\\me\\AppData\\Local\\Kento\\tools\\extras\\bg-model\\1.0\\BEN2_Base.onnx' : null,
+          version: ready ? '1.0' : null,
+          source: ready ? ('kento' as const) : null,
+        },
       ],
-      download: ready ? 0 : 11_198_064,
+      // ExifTool's zip, ONNX Runtime's zip and the model, as pinned for Windows.
+      download: ready ? 0 : 11_198_064 + 78_127_794 + 222_932_053,
       available: true,
       outdated: false,
       downloaded: ready,

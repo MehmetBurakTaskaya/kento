@@ -207,6 +207,8 @@ pub fn tools(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<ToolEntry> 
                 count == 1 && all(&[Category::Image])
             }
             "collage" => count >= 2 && all(&[Category::Image]),
+            // One job per picture, so it takes one or several; hidden where ONNX Runtime cannot run.
+            "remove-background" => all(&[Category::Image]) && engines::bgremove::supported(),
             "metadata" => count == 1 && all(tool.categories),
             _ => all(tool.categories),
         })
@@ -235,6 +237,11 @@ fn needs(
         "metadata" if media => missing(state, ToolGroup::Media),
         "metadata" if has(Category::Image) => missing(state, ToolGroup::Extras),
         "metadata" => None,
+        // The Extras tools hold ExifTool too; this tool needs their runtime and model.
+        "remove-background" => {
+            let tools = engine_tools(state);
+            (tools.onnxruntime.is_none() || tools.bg_model.is_none()).then_some(ToolGroup::Extras)
+        }
         _ => missing(state, tool.group),
     }
 }
@@ -380,6 +387,19 @@ impl Context {
         source: Option<PathBuf>,
     ) -> u64 {
         self.submit_then(title, target, work, origin, source, None)
+    }
+
+    /// Like `submit`, in the given lane: the heavy one runs its jobs one at a time.
+    pub(crate) fn submit_in(
+        &self,
+        lane: Lane,
+        title: String,
+        target: Target,
+        work: Work,
+        origin: Origin,
+        source: Option<PathBuf>,
+    ) -> u64 {
+        self.enqueue(lane, title, target, work, origin, source, None)
     }
 
     /// Like `submit`, with a step that runs once the output has its final name (a move removes

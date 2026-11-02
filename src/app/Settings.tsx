@@ -99,7 +99,13 @@ const TOOL_NAMES: Record<string, string> = {
   deno: 'Deno',
   soffice: 'LibreOffice',
   exiftool: 'ExifTool',
+  onnxruntime: 'ONNX Runtime',
+  'bg-model': 'BEN2 Base',
 };
+
+/** Files Kento loads rather than programs it runs: only its own pinned downloads are used, so no
+ *  other copy can be chosen. */
+const KENTO_ONLY = new Set(['onnxruntime', 'bg-model']);
 
 /** Each optional tool's state, version and path; choosing a program, checking again, updating and
  *  removing Kento's own download, and updating Kento's yt-dlp on its own (SPEC 4.2, 5.17). */
@@ -191,14 +197,16 @@ function ToolSettings() {
                     {t('settings.tools.automatic')}
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="button small"
-                  disabled={busy}
-                  onClick={() => act(() => api.toolsChoose(tool.id))}
-                >
-                  {t('settings.tools.choose')}
-                </button>
+                {!KENTO_ONLY.has(tool.id) && (
+                  <button
+                    type="button"
+                    className="button small"
+                    disabled={busy}
+                    onClick={() => act(() => api.toolsChoose(tool.id))}
+                  >
+                    {t('settings.tools.choose')}
+                  </button>
+                )}
               </span>
             </div>
           ))}

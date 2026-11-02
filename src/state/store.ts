@@ -26,6 +26,7 @@ export type PanelTool =
   | 'read-qr'
   | 'compress'
   | 'metadata'
+  | 'remove-background'
   | MediaPanel
   | ImagePanel;
 

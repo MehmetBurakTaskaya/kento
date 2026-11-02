@@ -1,0 +1,75 @@
+/* SPDX-License-Identifier: MIT */
+/* The Remove background panel (src/tools/RemoveBackground.tsx): the picture cut out on a
+   checkerboard beside the list of pictures. Logical properties only, so right to left needs
+   nothing more. */
+
+.cutout-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 16px;
+}
+@media (max-width: 720px) {
+  .cutout-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* A picture is physical, so its box stays left to right like the editors' stage. */
+.cutout-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 280px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--slot);
+  direction: ltr;
+}
+.cutout-stage img {
+  display: block;
+  max-inline-size: 100%;
+  max-block-size: 60vh;
+  background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px;
+}
+.cutout-side {
+  display: grid;
+  gap: 8px;
+}
+.cutout-side p {
+  margin: 0;
+}
+.cutout-files {
+  display: grid;
+  max-block-size: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  list-style: none;
+}
+.cutout-files li + li {
+  border-block-start: 1px solid var(--border);
+}
+.cutout-file {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  padding-block: 4px;
+  padding-inline: 8px;
+  border: 0;
+  border-inline-start: 3px solid transparent;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.cutout-file[aria-pressed='true'] {
+  border-inline-start-color: var(--accent);
+  background: var(--surface-2);
+}

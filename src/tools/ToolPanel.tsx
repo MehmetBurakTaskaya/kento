@@ -12,6 +12,7 @@ import { api, type FileEntry, type PageSize, type QrFound, type QrReport } from 
 import { useApp, type PanelTool } from '../state/store';
 import { CompressPanel } from './Compress';
 import { MetadataPanel } from './Metadata';
+import { RemoveBackgroundPanel } from './RemoveBackground';
 import { move, OrderList } from './OrderList';
 import { parseRanges } from './ranges';
 
@@ -57,6 +58,7 @@ export function ToolPanel() {
     'read-qr': <ReadQr {...props} />,
     compress: <CompressPanel {...props} />,
     metadata: <MetadataPanel {...props} />,
+    'remove-background': <RemoveBackgroundPanel {...props} />,
   };
   return panels[panel.tool];
 }
