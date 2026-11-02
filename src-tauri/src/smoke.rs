@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 //! `kento --smoke-test`: starts the app without showing it, checks the parts that exist so far and
 //! writes a JSON report to the data folder (smoke-test.json), then quits with 0 when all passed.
-//! The media check runs only where FFmpeg is installed or found.
+//! The media check runs only where FFmpeg is installed or found, the office check only where
+//! LibreOffice is.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -100,6 +101,47 @@ fn media(dir: &Path, tools: kento_engines::Tools) -> Result<String, String> {
         return Err(format!("unexpected result: {info:?}"));
     }
     Ok("wav → mp3 with FFmpeg, probed back".into())
+}
+
+/// A short text turned into a Word document and that into a PDF by LibreOffice, then read back
+/// with PDFium, when the Office tools are installed or found. The profile is the one jobs use,
+/// so this also makes it ready.
+fn office(dir: &Path, tools: kento_engines::Tools, profile: PathBuf) -> Result<String, String> {
+    use kento_engines as e;
+    let options = e::Options {
+        tools,
+        office_profile: Some(profile),
+        ..e::Options::default()
+    };
+    let run = |input: &Path, from: &str, to: &str, dest: &Path| {
+        e::convert(&e::Conversion {
+            input,
+            from,
+            to,
+            dest,
+            temp: dir,
+            options: &options,
+            progress: &e::Progress::none(),
+        })
+        .map_err(|err| format!("{from} → {to}: {err}"))
+    };
+    let txt = dir.join("mektup ğüş 🧪.txt");
+    std::fs::write(&txt, "Kento çark\n").map_err(|err| err.to_string())?;
+    let docx = dir.join("mektup.docx");
+    run(&txt, "txt", "docx", &docx)?;
+    let pdf = dir.join("mektup.pdf");
+    run(&docx, "docx", "pdf", &pdf)?;
+    let pages = e::pdf::page_count(&pdf).map_err(|err| err.to_string())?;
+    if pages != 1 {
+        return Err(format!("{pages} pages from one line of text"));
+    }
+    let back = dir.join("geri.txt");
+    run(&pdf, "pdf", "txt", &back)?;
+    let text = std::fs::read_to_string(&back).map_err(|err| err.to_string())?;
+    if !text.contains("Kento çark") {
+        return Err(format!("the PDF reads {text:?}"));
+    }
+    Ok("txt → docx → pdf with LibreOffice, read back with PDFium".into())
 }
 
 /// The image editors, Compress and Metadata on files made here: a picture drawn from SVG, cropped
@@ -400,6 +442,20 @@ pub async fn run(app: AppHandle) -> bool {
         (true, Err(err)) => Err(err.to_string()),
     };
     checks.push(check("media", media_result));
+
+    let tools = crate::toolchain::engine_tools(&state);
+    let profile = state.paths.office_profile();
+    let dir = scratch.join("office");
+    let office_result = match (tools.soffice.is_some(), std::fs::create_dir_all(&dir)) {
+        (false, _) => Ok("skipped: no Office tools on this computer".into()),
+        (true, Ok(())) => {
+            tauri::async_runtime::spawn_blocking(move || office(&dir, tools, profile))
+                .await
+                .unwrap_or_else(|err| Err(err.to_string()))
+        }
+        (true, Err(err)) => Err(err.to_string()),
+    };
+    checks.push(check("office", office_result));
 
     checks.push(check(
         "floating wheel",
