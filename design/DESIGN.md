@@ -183,13 +183,17 @@ Anatomy, outside in (radii in the 400-unit space):
 | --- | --- | --- |
 | Open | 180 ms (+7 ms per slice for the labels) | On screen at frame 0 from 92 % scale and 40 % opacity; the dial spins in from almost a full turn back (−300°) and settles with a detent overshoot; labels fade in one after another |
 | Hover | 170 ms | The dial turns the shortest way to the slice and clicks into place |
+| Into a ring | 220 ms | The new ring takes the pointer at once; the old one fades in 70 ms. 0–180 ms: the dial clicks a short way into its stop (14.4°, four steps of its scale, from behind in the reading direction, a little past and back). 0–150 ms: the keyline of the slice splits in two and the halves run round the chapter ring to the far side; the new slices light up as they pass, outward from the slice's angle (each grows from 86 % as it fades in over 90 ms, starting between 10 and 130 ms). 0–130 ms: the slice's icon and label fly to the hub and shrink into its title, which fades in over them from 120 ms with the breadcrumb and Back |
+| Back a ring | 220 ms | The reverse. 0–140 ms: the keyline halves come back from the far side and meet on the slice the ring came from, and ahead of them the ring folds towards it, the farthest labels first (each shrinks and fades in 50 ms, all gone by 120 ms). 0–140 ms: the title flies out of the hub into its slice. 140–220 ms: the ring below returns, that slice first. The dial clicks back the other way. Back from the hub, where nothing points at the slice, its window and keyline light up (140–600 ms) |
 | Apply | 640 ms | 0–34 %: the dial snaps past the slice and back. 8–60 %: the handle turns an eighth (overshoot to 47°, rest at 45°). 16–57 %: the bolts are thrown in two stages (9 units, then 19.5 with a recoil to 18). 52–72 %: the latch drops and a ring closes on the numeral. 54–100 %: one glint runs round the steel |
 | Close | 120 ms | The bolts pull back in the first 70 ms; the wheel fades to 95 % scale |
 | Denied | 260 ms | A short sideways shake |
 
 - **Easing:** entrances `cubic-bezier(0.12, 0.75, 0.3, 1.06)` (detent overshoot); exits `cubic-bezier(0.4, 0, 1, 1)`; the handle `cubic-bezier(0.45, 0, 0.35, 1)`; the bolt throw `cubic-bezier(0.3, 0, 0.2, 1)`.
 - **The wheel closes** about 450 ms after an apply ends, so the bolts are seen out.
-- **Reduced motion:** open and close become 90 ms and 80 ms fades; the dial does not spin or turn on hover (the index jumps); on apply the bolts and the latch appear without travel.
+- **Inside a ring** the hub keeps a breadcrumb: the rings above in a small muted line ("Convert ›", "Convert › Image ›"; the outer ones give way to "…" when it is long) over the ring's own title ("PDF"), then the file name and Back. The separators follow the reading direction.
+- **Levels never wait:** the new ring answers the pointer, the keyboard and a drop from the first frame; everything that moves is a copy (the old ring, the flying label, the keyline halves) or a transform and opacity of the slices in place, so pointing stays exact and the floating wheel stays smooth during a drag. Right to left, the detent turns the other way and the sweep follows the mirrored ring.
+- **Reduced motion:** open and close become 90 ms and 80 ms fades; the dial does not spin or turn on hover (the index jumps); on apply the bolts and the latch appear without travel. A ring opens and closes with a 110 ms cross-fade and the breadcrumb, without detent, sweep, fold or flight; the fade stays on under Kento's own Reduce motion setting, since it moves nothing.
 
 ## 7. Sound
 
@@ -199,13 +203,15 @@ Every sound is synthesized (WebAudio in the wheel window); nothing is recorded o
 | --- | --- | --- |
 | Wheel opens | a fast run of about ten fine dial ticks, slowing into a last click | about 150 ms |
 | Slice changes | one crisp combination click: a dry tick, a thin ring of steel, a small body | about 30 ms |
+| Into a ring | a deeper detent, the dial dropping into a stop: a lower click with a heavier body and a short ring of steel, then the spring settling | about 50 ms |
+| Back a ring | a lighter detent, the dial lifting out: a faint release, then a higher, quieter click with a small body | about 45 ms |
 | Job done (apply) | the handle ratchet (five ticks), a heavy bolt throw (a low thud with a ring of steel), a small latch click | about 450 ms |
 
 - On by default at a low level (master gain 30 %); Settings has an on/off switch and a level slider.
 - Slice clicks are limited to one per 30 ms, so a fast sweep does not buzz.
 - A denied apply makes no sound; the shake is enough.
 - Sound never replaces a visual state; everything works muted.
-- **Haptics (macOS):** `NSHapticFeedbackManager` alignment feedback on slice change and level-change feedback on apply, when the setting is on.
+- **Haptics (macOS):** `NSHapticFeedbackManager` alignment feedback on slice change and when a ring opens or closes, and level-change feedback on apply, when the setting is on.
 
 ## 8. Accessibility
 
