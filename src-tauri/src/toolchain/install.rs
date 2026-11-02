@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 //! Installing one group: download every pinned file (resuming), verify each SHA-256, then unpack
-//! only the needed binaries (and the folders a tool needs beside it) into
+//! only the needed binaries (and the folders a tool needs beside it or runs from) into
 //! `<data>/tools/<group>/<version>/`.
 
 use std::collections::BTreeMap;
@@ -23,8 +23,15 @@ pub struct Layout {
     pub downloads: PathBuf,
     /// `<data>/tools/<group>/<version>`
     pub dest: PathBuf,
-    /// Tool id → its file name on this platform (`ffmpeg.exe`).
-    pub names: BTreeMap<String, String>,
+    /// Tool id → its program relative to `dest`: `ffmpeg.exe`, or
+    /// `LibreOffice/program/soffice.exe` for a tool that runs inside its kept folder.
+    pub programs: BTreeMap<String, PathBuf>,
+}
+
+/// The folder an installer image is unpacked or attached in while its folders are taken out:
+/// beside the download, so detection never sees a half-unpacked image.
+pub fn image_scratch(downloads: &Path, file: &Download) -> PathBuf {
+    downloads.join(format!("{}.image", file.file_name()))
 }
 
 pub async fn install(
@@ -96,7 +103,8 @@ async fn verified_already(
 }
 
 /// Unpacks into a fresh `<version>.partial` folder and renames it into place at the end, so a
-/// crash never leaves a half-written install that detection would pick up.
+/// crash never leaves a half-written install that detection would pick up. A failure removes the
+/// partial folder: LibreOffice alone is about a gigabyte unpacked.
 fn unpack_all(archives: &[(PathBuf, Download)], layout: &Layout) -> Result<(), Error> {
     let mut stage = layout.dest.clone().into_os_string();
     stage.push(".partial");
@@ -105,30 +113,65 @@ fn unpack_all(archives: &[(PathBuf, Download)], layout: &Layout) -> Result<(), E
         fs::remove_dir_all(&stage)?;
     }
     fs::create_dir_all(&stage)?;
-    for (archive, file) in archives {
-        let mut wanted = Wanted::default();
-        for (tool, inner) in &file.entries {
-            let name = layout
-                .names
-                .get(tool)
-                .ok_or_else(|| Error::UnknownTool(tool.clone()))?;
-            wanted.files.insert(inner.clone(), stage.join(name));
+    let result = archives
+        .iter()
+        .try_for_each(|(archive, file)| unpack_one(archive, file, &stage, layout))
+        .and_then(|()| {
+            if layout.dest.exists() {
+                fs::remove_dir_all(&layout.dest)?;
+            }
+            Ok(fs::rename(&stage, &layout.dest)?)
+        });
+    if result.is_err() {
+        if let Err(err) = fs::remove_dir_all(&stage) {
+            tracing::warn!("a half-unpacked tool folder was not removed: {err}");
         }
-        for (inner, name) in &file.folders {
-            wanted.folders.insert(inner.clone(), stage.join(name));
+    }
+    result
+}
+
+fn unpack_one(archive: &Path, file: &Download, stage: &Path, layout: &Layout) -> Result<(), Error> {
+    let program = |tool: &String| {
+        layout
+            .programs
+            .get(tool)
+            .map(|path| stage.join(path))
+            .ok_or_else(|| Error::UnknownTool(tool.clone()))
+    };
+    let folders: BTreeMap<String, PathBuf> = file
+        .folders
+        .iter()
+        .map(|(inner, name)| (inner.clone(), stage.join(name)))
+        .collect();
+    if file.archive.is_image() {
+        let scratch = image_scratch(&layout.downloads, file);
+        super::image::unpack(archive, file.archive, &folders, &scratch)?;
+    } else {
+        let mut wanted = Wanted {
+            folders: folders.clone(),
+            ..Wanted::default()
+        };
+        // A tool inside a kept folder comes out with its folder.
+        for (tool, inner) in &file.entries {
+            if file.kept(inner).is_none() {
+                wanted.files.insert(inner.clone(), program(tool)?);
+            }
         }
         super::unpack::extract(archive, file.archive, &wanted)?;
-        for dest in wanted.files.values() {
-            super::unpack::prepare(dest)?;
+    }
+    for dest in folders.values() {
+        super::unpack::prepare_folder(dest)?;
+    }
+    for (tool, inner) in &file.entries {
+        let path = program(tool)?;
+        if !path.is_file() {
+            return Err(Error::MissingEntry(inner.clone()));
         }
-        for dest in wanted.folders.values() {
-            super::unpack::prepare_folder(dest)?;
+        // An image's programs keep the signature they came with.
+        if !file.archive.is_image() {
+            super::unpack::prepare(&path)?;
         }
     }
-    if layout.dest.exists() {
-        fs::remove_dir_all(&layout.dest)?;
-    }
-    fs::rename(&stage, &layout.dest)?;
     Ok(())
 }
 
@@ -152,9 +195,9 @@ mod tests {
         Layout {
             downloads: base.join("downloads"),
             dest: base.join("media").join("1.0"),
-            names: [("ffmpeg", "ffmpeg.exe"), ("ffprobe", "ffprobe.exe")]
+            programs: [("ffmpeg", "ffmpeg.exe"), ("ffprobe", "ffprobe.exe")]
                 .into_iter()
-                .map(|(tool, name)| (tool.to_string(), name.to_string()))
+                .map(|(tool, name)| (tool.to_string(), PathBuf::from(name)))
                 .collect(),
         }
     }
@@ -288,7 +331,7 @@ mod tests {
         let layout = Layout {
             downloads: base.path().join("downloads"),
             dest: base.path().join("extras ğ 🧪").join("1.0"),
-            names: [("exiftool".to_string(), "exiftool".to_string())].into(),
+            programs: [("exiftool".to_string(), PathBuf::from("exiftool"))].into(),
         };
         let file = Download {
             url: server.url.replace("tool.zip", "Image-ExifTool-1.0.tar.gz"),
@@ -312,6 +355,88 @@ mod tests {
         );
         assert_eq!(fs::read_dir(&layout.dest).unwrap().count(), 2);
         assert_eq!(fs::read_dir(&layout.downloads).unwrap().count(), 0);
+    }
+
+    /// LibreOffice's shape in an ordinary archive: the program must stay inside its folder, which
+    /// is kept whole.
+    fn kept_folder(url: &str, archive: &[u8]) -> Download {
+        Download {
+            url: url.to_string(),
+            size: archive.len() as u64,
+            sha256: sha256(archive),
+            archive: ArchiveKind::Zip,
+            entries: [("soffice".into(), "pack/Office/program/soffice.exe".into())].into(),
+            folders: [("pack/Office".into(), "Office".into())].into(),
+        }
+    }
+
+    fn office_layout(base: &Path) -> Layout {
+        Layout {
+            downloads: base.join("downloads"),
+            dest: base.join("office ğ 🧪").join("1.0"),
+            programs: [(
+                "soffice".to_string(),
+                Path::new("Office").join("program").join("soffice.exe"),
+            )]
+            .into(),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_tool_inside_a_kept_folder_stays_there() {
+        let archive = zip_of(&[
+            ("pack/Office/program/soffice.exe", b"soffice"),
+            ("pack/Office/program/soffice.com", b"console"),
+            ("pack/Office/share/registry/main.xcd", b"<xcd/>"),
+            ("pack/setup.exe", b"not wanted"),
+        ]);
+        let server = serve(archive.clone(), Mode::Ranges);
+        let base = tempfile::tempdir().unwrap();
+        let layout = office_layout(base.path());
+        let client = download::client(false).unwrap();
+        install(
+            &client,
+            &[kept_folder(&server.url, &archive)],
+            &layout,
+            &Cancel::default(),
+            &|_| {},
+        )
+        .await
+        .unwrap();
+        let program = layout.dest.join("Office").join("program");
+        assert_eq!(fs::read(program.join("soffice.exe")).unwrap(), b"soffice");
+        assert_eq!(fs::read(program.join("soffice.com")).unwrap(), b"console");
+        assert!(layout
+            .dest
+            .join("Office")
+            .join("share")
+            .join("registry")
+            .join("main.xcd")
+            .is_file());
+        // Nothing is copied out next to the folder.
+        assert_eq!(fs::read_dir(&layout.dest).unwrap().count(), 1);
+    }
+
+    #[tokio::test]
+    async fn a_failed_unpack_leaves_no_partial_folder() {
+        // The kept folder is there, the program the lockfile names is not.
+        let archive = zip_of(&[("pack/Office/program/other.exe", b"x")]);
+        let base = tempfile::tempdir().unwrap();
+        let layout = office_layout(base.path());
+        fs::create_dir_all(&layout.downloads).unwrap();
+        fs::write(layout.downloads.join("tool.zip"), &archive).unwrap();
+        let file = kept_folder("http://127.0.0.1:9/tool.zip", &archive);
+        let client = download::client(false).unwrap();
+        let result = install(&client, &[file], &layout, &Cancel::default(), &|_| {}).await;
+        assert!(
+            matches!(&result, Err(Error::MissingEntry(inner)) if inner == "pack/Office/program/soffice.exe"),
+            "{result:?}"
+        );
+        assert!(!layout.dest.exists());
+        assert_eq!(
+            fs::read_dir(layout.dest.parent().unwrap()).unwrap().count(),
+            0
+        );
     }
 
     #[tokio::test]

@@ -85,6 +85,10 @@ pub fn extract(archive: &Path, kind: ArchiveKind, wanted: &Wanted) -> Result<(),
         ArchiveKind::Zip => extract_zip(archive, wanted, &mut found)?,
         ArchiveKind::SevenZ => extract_7z(archive, wanted, &mut found)?,
         ArchiveKind::TarGz => extract_tar_gz(archive, wanted, &mut found)?,
+        // An installer image is opened by its system's own tool, in `image.rs`.
+        ArchiveKind::Msi | ArchiveKind::Dmg => {
+            return Err(Error::Unpack("an installer image is not an archive".into()))
+        }
     }
     found.check(wanted)
 }

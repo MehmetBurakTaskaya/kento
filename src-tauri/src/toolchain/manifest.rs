@@ -4,6 +4,7 @@
 //! there.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::PathBuf;
 use std::sync::OnceLock;
 
 use serde::Deserialize;
@@ -56,10 +57,12 @@ pub struct Download {
     /// Lowercase hex.
     pub sha256: String,
     pub archive: ArchiveKind,
-    /// Tool id → the path of its binary inside the archive, with `/` between folders.
+    /// Tool id → the path of its binary inside the archive, with `/` between folders. The binary is
+    /// copied out next to the others, unless it lies inside one of `folders`: then it stays there.
     pub entries: BTreeMap<String, String>,
     /// A folder inside the archive → the name Kento gives it next to the binaries, for tools that
-    /// need files of their own beside them (ExifTool's `exiftool_files` or its Perl `lib`).
+    /// need files of their own beside them (ExifTool's `exiftool_files` or its Perl `lib`), or that
+    /// must run from inside their own program folder (LibreOffice).
     #[serde(default)]
     pub folders: BTreeMap<String, String>,
 }
@@ -72,12 +75,66 @@ pub enum ArchiveKind {
     SevenZ,
     #[serde(rename = "tar.gz")]
     TarGz,
+    /// A Windows Installer package, unpacked by an administrative install (`msiexec /a`): nothing
+    /// is installed or registered, and no elevation is needed.
+    #[serde(rename = "msi")]
+    Msi,
+    /// A macOS disk image, attached read-only while its folders are copied out with `ditto`.
+    #[serde(rename = "dmg")]
+    Dmg,
+}
+
+impl ArchiveKind {
+    /// An installer image is unpacked by the system's own tool, whole: Kento keeps folders of it
+    /// (with their links and code signatures) and never copies single files out.
+    pub fn is_image(self) -> bool {
+        matches!(self, ArchiveKind::Msi | ArchiveKind::Dmg)
+    }
+
+    /// Whether a lockfile platform may use this kind: an image only unpacks on its own system.
+    fn allowed_on(self, platform: &str) -> bool {
+        match self {
+            ArchiveKind::Msi => platform.starts_with("windows-"),
+            ArchiveKind::Dmg => platform.starts_with("macos-"),
+            ArchiveKind::Zip | ArchiveKind::SevenZ | ArchiveKind::TarGz => true,
+        }
+    }
 }
 
 impl Download {
     /// The last part of the URL, checked by `Lock::parse` to be a plain file name.
     pub fn file_name(&self) -> &str {
         self.url.rsplit('/').next().unwrap_or_default()
+    }
+
+    /// For an entry inside one of the kept folders: the name Kento gives that folder and the rest
+    /// of the entry's path inside it. Such a tool runs from where it lies in the folder.
+    pub fn kept<'a>(&'a self, inner: &'a str) -> Option<(&'a str, &'a str)> {
+        self.folders.iter().find_map(|(folder, name)| {
+            let rest = inner.strip_prefix(folder.as_str())?.strip_prefix('/')?;
+            Some((name.as_str(), rest))
+        })
+    }
+}
+
+impl Platform {
+    /// Where each tool's program lands, relative to the install folder: `file_name(tool)` for a
+    /// binary copied out, its place inside its kept folder otherwise.
+    pub fn programs(&self, file_name: impl Fn(&str) -> String) -> BTreeMap<String, PathBuf> {
+        self.files
+            .iter()
+            .flat_map(|file| {
+                file.entries.iter().map(|(tool, inner)| {
+                    let path = match file.kept(inner) {
+                        Some((folder, rest)) => rest
+                            .split('/')
+                            .fold(PathBuf::from(folder), |path, part| path.join(part)),
+                        None => PathBuf::from(file_name(tool)),
+                    };
+                    (tool.clone(), path)
+                })
+            })
+            .collect()
     }
 }
 
@@ -185,9 +242,17 @@ fn check_platform(group: &Group, key: &str, platform: &Platform) -> Result<(), S
         if !hex || file.size == 0 {
             return Err(at(format!("bad size or SHA-256 for {}", file.url)));
         }
+        if !file.archive.allowed_on(key) {
+            return Err(at(format!("{} cannot be unpacked here", file.url)));
+        }
         for (tool, inner) in &file.entries {
             if !inner_path(inner) {
                 return Err(at(format!("bad entry path {inner:?}")));
+            }
+            if file.archive.is_image() && file.kept(inner).is_none() {
+                return Err(at(format!(
+                    "{inner:?} must lie in a kept folder of the image"
+                )));
             }
             covered.push(tool.as_str());
         }
@@ -197,6 +262,14 @@ fn check_platform(group: &Group, key: &str, platform: &Platform) -> Result<(), S
             }
             if !plain_name(name) || !placed.insert(name.clone()) {
                 return Err(at(format!("bad or repeated folder name {name:?}")));
+            }
+            // A folder inside another would be taken twice.
+            if file
+                .folders
+                .keys()
+                .any(|other| inner.starts_with(&format!("{other}/")))
+            {
+                return Err(at(format!("{inner:?} lies inside another kept folder")));
             }
         }
     }
@@ -303,12 +376,61 @@ mod tests {
             extras.platforms["macos-x64"].files[0].url
         );
 
+        // LibreOffice: the official installers, each unpacked by its own system's tool, the
+        // program running from inside its kept folder.
         let office = lock.group("office").unwrap();
-        assert!(!office.available);
-        assert!(office.platform(current_platform()).is_none());
+        assert!(office.available);
+        assert_eq!(office.tools, ["soffice"]);
+        assert_eq!(office.license.as_deref(), Some("MPL-2.0"));
+        let version = office.version.as_deref().unwrap();
+        for key in PLATFORMS {
+            let platform = &office.platforms[key];
+            assert_eq!(platform.files.len(), 1);
+            let file = &platform.files[0];
+            assert!(file.url.starts_with(&format!(
+                "https://download.documentfoundation.org/libreoffice/stable/{version}/"
+            )));
+            assert!(file
+                .file_name()
+                .starts_with(&format!("LibreOffice_{version}_")));
+            assert!(file.archive.is_image());
+            assert!(file.kept(&file.entries["soffice"]).is_some());
+        }
+        let windows = &office.platforms["windows-x64"];
+        assert_eq!(windows.files[0].archive, ArchiveKind::Msi);
+        assert_eq!(
+            windows.files[0].file_name(),
+            "LibreOffice_26.8.2_Win_x86-64.msi"
+        );
+        assert_eq!(
+            windows.programs(|tool| format!("{tool}.exe"))["soffice"],
+            ["LibreOffice", "program", "soffice.exe"]
+                .iter()
+                .collect::<PathBuf>()
+        );
+        for (key, name) in [
+            ("macos-arm64", "LibreOffice_26.8.2_MacOS_aarch64.dmg"),
+            ("macos-x64", "LibreOffice_26.8.2_MacOS_x86-64.dmg"),
+        ] {
+            let mac = &office.platforms[key];
+            assert_eq!(mac.files[0].archive, ArchiveKind::Dmg);
+            assert_eq!(mac.files[0].file_name(), name);
+            assert_eq!(
+                mac.programs(|tool| tool.to_string())["soffice"],
+                ["LibreOffice.app", "Contents", "MacOS", "soffice"]
+                    .iter()
+                    .collect::<PathBuf>()
+            );
+        }
+        // Apple silicon has its own build, not Rosetta.
+        assert_ne!(
+            office.platform(Some("macos-arm64")).unwrap().files[0].url,
+            office.platforms["macos-x64"].files[0].url
+        );
+
         assert_eq!(lock.group_of("ffprobe").unwrap().id, "media");
         assert_eq!(lock.group_of("exiftool").unwrap().id, "extras");
-        assert!(lock.group_of("soffice").is_none());
+        assert_eq!(lock.group_of("soffice").unwrap().id, "office");
         // The embedded copy is the same file.
         assert_eq!(Lock::embedded().groups.len(), 3);
     }
@@ -316,7 +438,7 @@ mod tests {
     #[test]
     fn this_platform_is_known() {
         if cfg!(all(windows, target_arch = "x86_64")) {
-            for group in ["media", "extras"] {
+            for group in ["media", "office", "extras"] {
                 let group = Lock::embedded().group(group).unwrap();
                 assert!(group.platform(current_platform()).is_some());
             }
@@ -327,10 +449,94 @@ mod tests {
     }
 
     fn lock_with(file: &str) -> String {
+        lock_on("windows-x64", file)
+    }
+
+    fn lock_on(platform: &str, file: &str) -> String {
         format!(
             r#"{{"schema":1,"groups":[{{"id":"media","available":true,"version":"1.0","tools":["ffmpeg"],
-            "platforms":{{"windows-x64":{{"source":"test","files":[{file}]}}}}}}]}}"#
+            "platforms":{{"{platform}":{{"source":"test","files":[{file}]}}}}}}]}}"#
         )
+    }
+
+    const NO_HASH: &str = "0000000000000000000000000000000000000000000000000000000000000000";
+
+    #[test]
+    fn installer_images_are_read_and_kept_to_their_own_platform() {
+        let msi = format!(
+            r#"{{"url":"https://example.org/Office.msi","size":1,"sha256":"{NO_HASH}","archive":"msi",
+            "entries":{{"ffmpeg":"Office/program/ffmpeg.exe"}},"folders":{{"Office":"Office"}}}}"#
+        );
+        let lock = Lock::parse(&lock_on("windows-x64", &msi)).unwrap();
+        let file = &lock.groups[0].platforms["windows-x64"].files[0];
+        assert_eq!(file.archive, ArchiveKind::Msi);
+        assert!(file.archive.is_image());
+        assert_eq!(
+            file.kept("Office/program/ffmpeg.exe"),
+            Some(("Office", "program/ffmpeg.exe"))
+        );
+        assert_eq!(file.kept("Other/ffmpeg.exe"), None);
+        assert_eq!(file.kept("Office"), None);
+
+        let dmg = msi
+            .replace(".msi", ".dmg")
+            .replace("\"msi\"", "\"dmg\"")
+            .replace(
+                "Office/program/ffmpeg.exe",
+                "Office.app/Contents/MacOS/ffmpeg",
+            )
+            .replace("{\"Office\":\"Office\"}", "{\"Office.app\":\"Office.app\"}");
+        for key in ["macos-arm64", "macos-x64"] {
+            let lock = Lock::parse(&lock_on(key, &dmg)).unwrap();
+            let platform = &lock.groups[0].platforms[key];
+            assert_eq!(platform.files[0].archive, ArchiveKind::Dmg);
+            assert_eq!(
+                platform.programs(|tool| tool.to_string())["ffmpeg"],
+                ["Office.app", "Contents", "MacOS", "ffmpeg"]
+                    .iter()
+                    .collect::<PathBuf>()
+            );
+        }
+
+        // Each image only on its own system.
+        assert!(Lock::parse(&lock_on("macos-arm64", &msi)).is_err());
+        assert!(Lock::parse(&lock_on("macos-x64", &msi)).is_err());
+        assert!(Lock::parse(&lock_on("windows-x64", &dmg)).is_err());
+        for bad in [
+            // An image keeps folders; its programs stay inside them.
+            msi.replace("Office/program/ffmpeg.exe", "setup/ffmpeg.exe"),
+            msi.replace(",\"folders\":{\"Office\":\"Office\"}", ""),
+            // A kept folder inside another would be taken twice.
+            msi.replace(
+                "{\"Office\":\"Office\"}",
+                "{\"Office\":\"Office\",\"Office/program\":\"program\"}",
+            ),
+            msi.replace("\"msi\"", "\"MSI\""),
+        ] {
+            assert!(Lock::parse(&lock_on("windows-x64", &bad)).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_tool_inside_a_kept_folder_of_an_archive_stays_there() {
+        let zip = format!(
+            r#"{{"url":"https://example.org/a.zip","size":1,"sha256":"{NO_HASH}","archive":"zip",
+            "entries":{{"ffmpeg":"pack/Tool/bin/ffmpeg.exe"}},"folders":{{"pack/Tool":"Tool"}}}}"#
+        );
+        let lock = Lock::parse(&lock_with(&zip)).unwrap();
+        let platform = &lock.groups[0].platforms["windows-x64"];
+        assert_eq!(
+            platform.programs(|tool| format!("{tool}.exe"))["ffmpeg"],
+            ["Tool", "bin", "ffmpeg.exe"].iter().collect::<PathBuf>()
+        );
+        // Outside its folders a binary is copied out under the name Kento gives it.
+        let copied = zip.replace("pack/Tool/bin/ffmpeg.exe", "pack/bin/ffmpeg.exe");
+        let lock = Lock::parse(&lock_with(&copied)).unwrap();
+        assert_eq!(
+            lock.groups[0].platforms["windows-x64"].programs(|tool| format!("{tool}.exe"))
+                ["ffmpeg"],
+            PathBuf::from("ffmpeg.exe")
+        );
     }
 
     #[test]

@@ -7,6 +7,7 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -18,8 +19,12 @@ const MIN_AVUTIL: u32 = 58;
 /// The oldest ExifTool Kento drives: 12.0 (2020) reads and writes every image format Kento
 /// edits, takes UTF-8 file names from an argument file and writes JSON with group names.
 pub const MIN_EXIFTOOL: u32 = 12;
+/// The oldest LibreOffice Kento drives (7.0, 2020).
+pub const MIN_LIBREOFFICE: u32 = 7;
 /// A first run of a large static build can be slow while antivirus software scans it.
 const PROBE_TIMEOUT: Duration = Duration::from_secs(20);
+/// LibreOffice loads far more than one program on its first start from a new folder.
+const SOFFICE_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -110,7 +115,19 @@ fn extra_dirs() -> Vec<PathBuf> {
             root.push("\\");
             dirs.push(PathBuf::from(root).join("ffmpeg").join("bin"));
         }
+        // LibreOffice's program folder, 64-bit or 32-bit; it never puts itself on PATH.
+        for programs in ["ProgramFiles", "ProgramFiles(x86)"] {
+            if let Some(programs) = env(programs) {
+                dirs.push(programs.join("LibreOffice").join("program"));
+            }
+        }
     } else if cfg!(target_os = "macos") {
+        // LibreOffice for everyone or for one user, then Homebrew (whose cask links `soffice`).
+        let app = Path::new("LibreOffice.app").join("Contents").join("MacOS");
+        dirs.push(Path::new("/Applications").join(&app));
+        if let Some(home) = std::env::var_os("HOME") {
+            dirs.push(PathBuf::from(home).join("Applications").join(&app));
+        }
         for dir in ["/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin"] {
             dirs.push(PathBuf::from(dir));
         }
@@ -121,7 +138,7 @@ fn extra_dirs() -> Vec<PathBuf> {
 }
 
 /// The first working copy of `tool`: the custom path when it works, then the search folders, then
-/// Kento's install folders (newest pinned version first).
+/// Kento's own copies (`kento`: the program in each install folder, newest pinned version first).
 pub fn find(
     tool: &str,
     places: &Places,
@@ -143,7 +160,7 @@ pub fn find(
         .search
         .iter()
         .map(|dir| (dir.join(&name), Source::System))
-        .chain(kento.iter().map(|dir| (dir.join(&name), Source::Kento)));
+        .chain(kento.iter().map(|path| (path.clone(), Source::Kento)));
     for (path, source) in candidates {
         if !path.is_file() {
             continue;
@@ -159,18 +176,58 @@ pub fn find(
     None
 }
 
-/// Runs `<path> -version` (ExifTool: `-ver`) and returns the version to show when the output is
-/// `tool`'s and the version is supported.
+/// The program a path chosen in Settings stands for. A folder means the tool inside it; for
+/// LibreOffice that may also be its install folder (`program\soffice.exe` inside) or
+/// `LibreOffice.app`, and `soffice.com`, its console twin on Windows, means the program beside it.
+pub fn resolve(tool: &str, path: &Path, places: &Places) -> PathBuf {
+    let name = places.file_name(tool);
+    if tool == "soffice" {
+        if path.is_dir() {
+            let inside = [
+                path.join("program").join(&name),
+                path.join("Contents").join("MacOS").join(&name),
+                path.join("LibreOffice.app")
+                    .join("Contents")
+                    .join("MacOS")
+                    .join(&name),
+            ];
+            if let Some(program) = inside.into_iter().find(|program| program.is_file()) {
+                return program;
+            }
+        } else if path
+            .file_name()
+            .is_some_and(|file| file.eq_ignore_ascii_case("soffice.com"))
+        {
+            return path.with_file_name(&name);
+        }
+    }
+    if path.is_dir() {
+        path.join(name)
+    } else {
+        path.to_path_buf()
+    }
+}
+
+/// Runs `<path> -version` (ExifTool: `-ver`, LibreOffice: `--version`) and returns the version to
+/// show when the output is `tool`'s and the version is supported.
 pub fn probe(tool: &str, path: &Path) -> Option<String> {
     if tool == "exiftool" {
-        let (label, major) = parse_exiftool(&run_version(path, "-ver")?)?;
+        let (label, major) = parse_exiftool(&run_version(path, &["-ver"], PROBE_TIMEOUT)?)?;
         if major >= MIN_EXIFTOOL {
             return Some(label);
         }
         tracing::info!("ExifTool {label} is older than {MIN_EXIFTOOL}; not used");
         return None;
     }
-    let output = run_version(path, "-version")?;
+    if tool == "soffice" {
+        let (label, major) = parse_libreoffice(&soffice_version(path)?)?;
+        if major >= MIN_LIBREOFFICE {
+            return Some(label);
+        }
+        tracing::info!("LibreOffice {label} is older than {MIN_LIBREOFFICE}; not used");
+        return None;
+    }
+    let output = run_version(path, &["-version"], PROBE_TIMEOUT)?;
     let version = parse_version(tool, &output)?;
     if version.supported() {
         Some(version.label)
@@ -201,10 +258,88 @@ pub fn parse_exiftool(output: &str) -> Option<(String, u32)> {
     Some((line.to_string(), major.parse().ok()?))
 }
 
-fn run_version(path: &Path, flag: &str) -> Option<String> {
+/// LibreOffice's `--version` prints `LibreOffice 26.8.2.2 <build hash>` (a development build:
+/// `LibreOfficeDev 26.8.0.0.alpha1 …`). The number shown is the release, `26.8.2`, without the
+/// build. Anything else is another program.
+pub fn parse_libreoffice(output: &str) -> Option<(String, u32)> {
+    output.lines().find_map(|line| {
+        let mut words = line.split_whitespace();
+        if !matches!(words.next()?, "LibreOffice" | "LibreOfficeDev") {
+            return None;
+        }
+        let parts: Vec<&str> = words
+            .next()?
+            .split('.')
+            .take_while(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()))
+            .collect();
+        if parts.len() < 2 {
+            return None;
+        }
+        Some((
+            parts[..parts.len().min(3)].join("."),
+            parts[0].parse().ok()?,
+        ))
+    })
+}
+
+/// Asks LibreOffice for its version without touching a LibreOffice the user has open: the probe
+/// runs with a profile folder of its own, removed afterwards, so it can never hand itself over to
+/// a running copy, which listens under the user's profile. On Windows `soffice.exe` is a window
+/// program that prints nothing; its console twin `soffice.com` beside it answers instead.
+fn soffice_version(path: &Path) -> Option<String> {
+    static PROBES: AtomicU32 = AtomicU32::new(0);
+    let program = version_program(path)?;
+    let profile = std::env::temp_dir().join(format!(
+        "kento-soffice-probe-{}-{}",
+        std::process::id(),
+        PROBES.fetch_add(1, Ordering::Relaxed)
+    ));
+    let isolated = format!("-env:UserInstallation={}", file_url(&profile));
+    let output = run_version(&program, &[&isolated, "--version"], SOFFICE_TIMEOUT);
+    if profile.exists() {
+        let _ = std::fs::remove_dir_all(&profile);
+    }
+    output
+}
+
+/// The file to run for `--version`: `soffice.com` beside a Windows `soffice.exe`, which must be
+/// there; otherwise the program itself.
+fn version_program(path: &Path) -> Option<PathBuf> {
+    let windows_program = cfg!(windows)
+        && path
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("exe"));
+    if !windows_program {
+        return Some(path.to_path_buf());
+    }
+    let console = path.with_extension("com");
+    console.is_file().then_some(console)
+}
+
+/// A `file:` URL for a local folder, as LibreOffice's `-env:` settings take it: `/` between parts
+/// and every byte outside the plain ASCII set percent-encoded, so Turkish letters, emoji and spaces
+/// in a user name survive.
+fn file_url(path: &Path) -> String {
+    let text = path.to_string_lossy().replace('\\', "/");
+    let mut url = String::from("file://");
+    if !text.starts_with('/') {
+        // `C:/…` becomes `file:///C:/…`.
+        url.push('/');
+    }
+    for byte in text.bytes() {
+        if byte.is_ascii_alphanumeric() || b"/-._~:".contains(&byte) {
+            url.push(char::from(byte));
+        } else {
+            url.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    url
+}
+
+fn run_version(path: &Path, args: &[&str], limit: Duration) -> Option<String> {
     let mut command = Command::new(path);
     command
-        .arg(flag)
+        .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
@@ -222,7 +357,7 @@ fn run_version(path: &Path, flag: &str) -> Option<String> {
         let _ = stdout.by_ref().take(1 << 20).read_to_end(&mut bytes);
         bytes
     });
-    let deadline = Instant::now() + PROBE_TIMEOUT;
+    let deadline = Instant::now() + limit;
     let status = loop {
         match child.try_wait() {
             Ok(Some(status)) => break status,
@@ -437,17 +572,17 @@ pub(crate) mod tests {
         assert!(find("ffmpeg", &wrong_places, None, &[]).is_none());
 
         // Kento's own copy comes after the system's.
-        let (_, kento) = fake_tool(&base.path().join("kento"), "ffmpeg", "9.0.2");
+        let (own, kento) = fake_tool(&base.path().join("kento"), "ffmpeg", "9.0.2");
         let empty = Places {
             search: vec![base.path().join("nothing")],
             suffix: kento.suffix,
         };
-        let found = find("ffmpeg", &empty, None, &kento.search).unwrap();
+        let found = find("ffmpeg", &empty, None, std::slice::from_ref(&own)).unwrap();
         assert_eq!(
             (found.source, found.version.as_str()),
             (Source::Kento, "9.0.2")
         );
-        let found = find("ffmpeg", &places, None, &kento.search).unwrap();
+        let found = find("ffmpeg", &places, None, &[own]).unwrap();
         assert_eq!(found.source, Source::System);
     }
 
@@ -518,13 +653,242 @@ pub(crate) mod tests {
             (found.version.as_str(), found.source),
             ("12.40", Source::Custom)
         );
-        let (_, kento) = fake_exiftool(&base.path().join("kento"), "13.60");
+        let (own, _) = fake_exiftool(&base.path().join("kento"), "13.60");
         let nowhere = Places {
             search: vec![base.path().join("nothing")],
             suffix: FAKE_SUFFIX,
         };
-        let found = find("exiftool", &nowhere, None, &kento.search).unwrap();
+        let found = find("exiftool", &nowhere, None, &[own]).unwrap();
         assert_eq!(found.source, Source::Kento);
+    }
+
+    #[test]
+    fn reads_libreoffice_versions() {
+        for (output, label, major) in [
+            (
+                "LibreOffice 26.8.2.2 0e5b4a3c2d1f00112233445566778899aabbccdd\n",
+                "26.8.2",
+                26,
+            ),
+            (
+                "\r\nLibreOffice 7.6.4.1 e19e193f88cd6c0525a17fb7a176ed8e6a3e2aa1\r\n",
+                "7.6.4",
+                7,
+            ),
+            ("LibreOfficeDev 26.8.0.0.alpha1 abcdef", "26.8.0", 26),
+            ("LibreOffice 24.2 x", "24.2", 24),
+            // A warning on standard output before the version line.
+            (
+                "Warning: failed to launch javaldx\nLibreOffice 25.8.2.2 1234",
+                "25.8.2",
+                25,
+            ),
+        ] {
+            assert_eq!(
+                parse_libreoffice(output),
+                Some((label.to_string(), major)),
+                "{output:?}"
+            );
+        }
+        for other in [
+            "",
+            "LibreOffice",
+            "LibreOffice 26",
+            "LibreOffice x.y.z",
+            "Collabora Office 24.04.5.2 abcdef",
+            "OpenOffice 4.1.15 abcdef",
+            "ffmpeg version 9.0.2 Copyright",
+            "13.60",
+        ] {
+            assert_eq!(parse_libreoffice(other), None, "{other:?}");
+        }
+    }
+
+    /// A stand-in for LibreOffice that prints `line` for `--version`. Where a shell script can
+    /// check its arguments, it insists on a profile of the probe's own, as the real probe passes.
+    pub(crate) fn fake_soffice(dir: &Path, line: &str) -> (PathBuf, Places) {
+        std::fs::create_dir_all(dir).unwrap();
+        let text = if cfg!(windows) {
+            format!("@echo off\r\necho {line}\r\n")
+        } else {
+            format!(
+                "#!/bin/sh\ncase \"$1\" in -env:UserInstallation=file:///*) ;; *) exit 1 ;; esac\n\
+                 [ \"$2\" = --version ] || exit 1\necho '{line}'\n"
+            )
+        };
+        let path = dir.join(format!("soffice{FAKE_SUFFIX}"));
+        std::fs::write(&path, text).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let places = Places {
+            search: vec![dir.to_path_buf()],
+            suffix: FAKE_SUFFIX,
+        };
+        (path, places)
+    }
+
+    #[test]
+    fn finds_libreoffice_and_passes_over_old_ones_and_other_suites() {
+        let base = tempfile::tempdir().unwrap();
+        let (system, places) = fake_soffice(
+            &base
+                .path()
+                .join("Program Files ğ 🧪")
+                .join("LibreOffice")
+                .join("program"),
+            "LibreOffice 25.8.2.2 0123456789abcdef",
+        );
+        let found = find("soffice", &places, None, &[]).unwrap();
+        assert_eq!(found.path, system);
+        assert_eq!(
+            (found.version.as_str(), found.source),
+            ("25.8.2", Source::System)
+        );
+
+        let (_, old) = fake_soffice(&base.path().join("old"), "LibreOffice 6.4.7.2 abcdef");
+        assert!(find("soffice", &old, None, &[]).is_none());
+        let (_, other) = fake_soffice(&base.path().join("other"), "Collabora Office 24.04.5.2 ab");
+        assert!(find("soffice", &other, None, &[]).is_none());
+        // FFmpeg under LibreOffice's name is not LibreOffice, and the other way round.
+        let (ffmpeg, _) = fake_tool(&base.path().join("wrong"), "ffmpeg", "9.0");
+        let renamed = base.path().join("wrong").join(old.file_name("soffice"));
+        std::fs::rename(&ffmpeg, &renamed).unwrap();
+        assert!(probe("soffice", &renamed).is_none());
+        assert!(probe("ffmpeg", &system).is_none());
+
+        // A custom path first; Kento's own copy, inside its kept folder, last.
+        let (custom, _) = fake_soffice(&base.path().join("custom"), "LibreOffice 7.0.0.3 ab");
+        let found = find("soffice", &places, Some(&custom), &[]).unwrap();
+        assert_eq!(
+            (found.version.as_str(), found.source),
+            ("7.0.0", Source::Custom)
+        );
+        let (own, _) = fake_soffice(
+            &base
+                .path()
+                .join("26.8.2")
+                .join("LibreOffice")
+                .join("program"),
+            "LibreOffice 26.8.2.2 0e5b4a3c",
+        );
+        let nowhere = Places {
+            search: vec![base.path().join("nothing")],
+            suffix: FAKE_SUFFIX,
+        };
+        let found = find("soffice", &nowhere, None, std::slice::from_ref(&own)).unwrap();
+        assert_eq!((found.path, found.source), (own, Source::Kento));
+    }
+
+    #[test]
+    fn a_chosen_libreoffice_folder_or_bundle_means_the_program_inside() {
+        let base = tempfile::tempdir().unwrap();
+        let places = Places {
+            search: Vec::new(),
+            suffix: FAKE_SUFFIX,
+        };
+        let name = places.file_name("soffice");
+        let install = base.path().join("LibreOffice ğ 🧪");
+        let program = install.join("program");
+        fake_soffice(&program, "LibreOffice 26.8.2.2 ab");
+        // The install folder, the program folder, the program, its console twin.
+        assert_eq!(resolve("soffice", &install, &places), program.join(&name));
+        assert_eq!(resolve("soffice", &program, &places), program.join(&name));
+        assert_eq!(
+            resolve("soffice", &program.join(&name), &places),
+            program.join(&name)
+        );
+        assert_eq!(
+            resolve("soffice", &program.join("soffice.com"), &places),
+            program.join(&name)
+        );
+
+        // LibreOffice.app, or the folder that holds it.
+        let apps = base.path().join("Applications ğ");
+        let bundle = apps.join("LibreOffice.app");
+        let macos = bundle.join("Contents").join("MacOS");
+        fake_soffice(&macos, "LibreOffice 26.8.2.2 ab");
+        assert_eq!(resolve("soffice", &bundle, &places), macos.join(&name));
+        assert_eq!(resolve("soffice", &apps, &places), macos.join(&name));
+
+        // Other tools keep the plain rule, and a folder without LibreOffice gives a path that
+        // then fails its check.
+        assert_eq!(
+            resolve("ffmpeg", &install, &places),
+            install.join(places.file_name("ffmpeg"))
+        );
+        let empty = base.path().join("empty");
+        std::fs::create_dir_all(&empty).unwrap();
+        assert_eq!(resolve("soffice", &empty, &places), empty.join(&name));
+        assert!(probe("soffice", &resolve("soffice", &empty, &places)).is_none());
+    }
+
+    #[test]
+    fn the_probe_profile_is_a_file_url_that_survives_any_name() {
+        if cfg!(windows) {
+            assert_eq!(
+                file_url(Path::new(
+                    r"C:\Users\Ayşe Yılmaz\AppData\Local\Temp\kento 🧪"
+                )),
+                "file:///C:/Users/Ay%C5%9Fe%20Y%C4%B1lmaz/AppData/Local/Temp/kento%20%F0%9F%A7%AA"
+            );
+        } else {
+            assert_eq!(
+                file_url(Path::new("/Users/ayşe/Library/Caches/kento 🧪")),
+                "file:///Users/ay%C5%9Fe/Library/Caches/kento%20%F0%9F%A7%AA"
+            );
+        }
+    }
+
+    #[test]
+    fn windows_asks_the_console_twin_for_the_version() {
+        let base = tempfile::tempdir().unwrap();
+        let dir = base.path().join("program ğ");
+        std::fs::create_dir_all(&dir).unwrap();
+        let exe = dir.join("soffice.exe");
+        std::fs::write(&exe, b"").unwrap();
+        if cfg!(windows) {
+            // Without soffice.com nothing is run.
+            assert_eq!(version_program(&exe), None);
+            std::fs::write(dir.join("soffice.com"), b"").unwrap();
+            assert_eq!(version_program(&exe), Some(dir.join("soffice.com")));
+        } else {
+            assert_eq!(version_program(&exe), Some(exe.clone()));
+        }
+        let script = dir.join("soffice.cmd");
+        assert_eq!(version_program(&script), Some(script.clone()));
+    }
+
+    /// Where this computer has LibreOffice in one of the usual places, detection must find it and
+    /// read its version. CI installs it and sets `KENTO_REQUIRE_SOFFICE=1`, so there a LibreOffice
+    /// that is missing or does not answer fails the test.
+    #[test]
+    fn finds_libreoffice_on_this_computer_when_it_is_installed() {
+        let places = Places::system();
+        let installed = places
+            .search
+            .iter()
+            .map(|dir| dir.join(places.file_name("soffice")))
+            .find(|path| path.is_file() && probe("soffice", path).is_some());
+        let Some(expected) = installed else {
+            assert!(
+                std::env::var_os("KENTO_REQUIRE_SOFFICE").is_none_or(|v| v != "1"),
+                "KENTO_REQUIRE_SOFFICE is set, but no LibreOffice {MIN_LIBREOFFICE}+ answered in {:?}",
+                places.search
+            );
+            eprintln!("no LibreOffice in the usual places; skipped");
+            return;
+        };
+        let found = find("soffice", &places, None, &[]).unwrap();
+        assert_eq!(found.path, expected);
+        assert_eq!(found.source, Source::System);
+        eprintln!(
+            "found LibreOffice {} at {}",
+            found.version,
+            found.path.display()
+        );
     }
 
     /// Where PATH has a recent ExifTool, detection must find it.
@@ -566,8 +930,11 @@ pub(crate) mod tests {
         let found = find("ffmpeg", &places, None, &[]).unwrap();
         assert_eq!(found.path, expected);
         assert_eq!(found.source, Source::System);
-        let version =
-            parse_version("ffmpeg", &run_version(&found.path, "-version").unwrap()).unwrap();
+        let version = parse_version(
+            "ffmpeg",
+            &run_version(&found.path, &["-version"], PROBE_TIMEOUT).unwrap(),
+        )
+        .unwrap();
         assert!(version.major.is_none_or(|major| major >= MIN_MAJOR));
         eprintln!("found FFmpeg {} at {}", found.version, found.path.display());
     }

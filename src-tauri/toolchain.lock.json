@@ -50,9 +50,63 @@
     },
     {
       "id": "office",
-      "available": false,
-      "tools": [],
-      "platforms": {}
+      "available": true,
+      "version": "26.8.2",
+      "license": "MPL-2.0",
+      "tools": ["soffice"],
+      "platforms": {
+        "windows-x64": {
+          "source": "LibreOffice 26.8.2 by The Document Foundation, the official Windows x86-64 installer from download.documentfoundation.org, unpacked by an administrative install (msiexec /a) and run from Kento's folder; size and SHA-256 as published by the download server (the file's .mirrorlist, .sha256 and .meta4)",
+          "files": [
+            {
+              "url": "https://download.documentfoundation.org/libreoffice/stable/26.8.2/win/x86_64/LibreOffice_26.8.2_Win_x86-64.msi",
+              "size": 375934976,
+              "sha256": "ff4b911403b67ee9e6249f820f9782c44bb32c94fdaa45b0da53a8e419e5307a",
+              "archive": "msi",
+              "entries": {
+                "soffice": "LibreOffice/program/soffice.exe"
+              },
+              "folders": {
+                "LibreOffice": "LibreOffice"
+              }
+            }
+          ]
+        },
+        "macos-arm64": {
+          "source": "LibreOffice 26.8.2 by The Document Foundation, the official Apple silicon disk image from download.documentfoundation.org; LibreOffice.app is copied out whole with its signature; size and SHA-256 as published by the download server (the file's .mirrorlist, .sha256 and .meta4)",
+          "files": [
+            {
+              "url": "https://download.documentfoundation.org/libreoffice/stable/26.8.2/mac/aarch64/LibreOffice_26.8.2_MacOS_aarch64.dmg",
+              "size": 299236406,
+              "sha256": "9f24fe83ab1ed5c95eb3df580119f32932f713e577feeac02bf619fb00749b55",
+              "archive": "dmg",
+              "entries": {
+                "soffice": "LibreOffice.app/Contents/MacOS/soffice"
+              },
+              "folders": {
+                "LibreOffice.app": "LibreOffice.app"
+              }
+            }
+          ]
+        },
+        "macos-x64": {
+          "source": "LibreOffice 26.8.2 by The Document Foundation, the official Intel Mac disk image from download.documentfoundation.org; LibreOffice.app is copied out whole with its signature; size and SHA-256 as published by the download server (the file's .mirrorlist, .sha256 and .meta4)",
+          "files": [
+            {
+              "url": "https://download.documentfoundation.org/libreoffice/stable/26.8.2/mac/x86_64/LibreOffice_26.8.2_MacOS_x86-64.dmg",
+              "size": 309690507,
+              "sha256": "0af062779cc17f6f852918b2424c745f7dd2d20d51d7fb8a0925eb92ec0417a7",
+              "archive": "dmg",
+              "entries": {
+                "soffice": "LibreOffice.app/Contents/MacOS/soffice"
+              },
+              "folders": {
+                "LibreOffice.app": "LibreOffice.app"
+              }
+            }
+          ]
+        }
+      }
     },
     {
       "id": "extras",

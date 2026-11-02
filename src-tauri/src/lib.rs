@@ -177,10 +177,16 @@ fn setup(
     if let Some(wheel) = app.get_webview_window(overlay::wheel::LABEL) {
         overlay::park(&wheel);
     }
-    // Finding the media tools runs each candidate once; the first wheel should not wait for it.
+    // Finding the tools runs each candidate once; the first wheel should not wait for it. A
+    // LibreOffice that has never run with Kento's profile is then started once, so the first
+    // office job does not wait for the profile either (the hidden test run leaves it alone).
     let handle = app.clone();
     std::thread::spawn(move || {
-        let _ = toolchain::engine_tools(&handle.state::<AppState>());
+        let state = handle.state::<AppState>();
+        let tools = toolchain::engine_tools(&state);
+        if !smoke_test && tools.soffice.is_some() && !state.paths.office_profile().exists() {
+            toolchain::warm_up_office(&handle);
+        }
     });
     if !smoke_test {
         overlay::wheel::sync_watcher(app);

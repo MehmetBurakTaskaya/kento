@@ -3,19 +3,22 @@
 //! the pinned builds on request. The network is used only when the page asks for an install.
 //!
 //! Layout under the data folder: `tools/paths.json` (paths set in Settings), `tools/downloads/`
-//! (`<file>.part` while downloading) and `tools/<group>/<version>/` (the unpacked binaries).
+//! (`<file>.part` while downloading, `<file>.image` while an installer image is open) and
+//! `tools/<group>/<version>/` (the unpacked binaries, or the program folder a tool runs from).
 
 mod custom;
 mod detect;
 mod download;
+mod image;
 mod install;
 pub mod manifest;
 mod unpack;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::{Serialize, Serializer};
@@ -100,6 +103,10 @@ pub enum Error {
     MissingEntry(String),
     #[error("unpacking: {0}")]
     Unpack(String),
+    #[error("the administrative install of the package failed: {0}")]
+    AdminInstall(String),
+    #[error("the disk image: {0}")]
+    DiskImage(String),
     #[error("{0} did not run, or is older than Kento needs")]
     NotWorking(String),
     #[error("cancelled")]
@@ -121,8 +128,11 @@ impl Error {
             Error::Network(_) => "toolchain.failed.network",
             Error::Checksum => "toolchain.failed.checksum",
             Error::MissingEntry(_) | Error::Unpack(_) => "toolchain.failed.unpack",
+            Error::AdminInstall(_) => "toolchain.failed.msi",
+            Error::DiskImage(_) => "toolchain.failed.dmg",
             Error::Io(_) => "toolchain.failed.disk",
             Error::NotWorking(tool) if tool == "exiftool" => "toolchain.failed.check.exiftool",
+            Error::NotWorking(tool) if tool == "soffice" => "toolchain.failed.check.soffice",
             Error::NotWorking(_) => "toolchain.failed.check",
             Error::Cancelled => "toolchain.failed.cancelled",
             Error::Unavailable(_) => "toolchain.failed.unavailable",
@@ -234,6 +244,7 @@ impl Toolchain {
 
     fn detect(&self, group: &Group, custom: &custom::Paths) -> ToolGroupStatus {
         let kento = self.kento_dirs(group);
+        let programs = self.programs(group);
         let places = &self.inner.places;
         // A first run of a large binary can take a while; the tools are probed side by side.
         let found: Vec<Option<Found>> = std::thread::scope(|scope| {
@@ -242,8 +253,9 @@ impl Toolchain {
                 .iter()
                 .map(|tool| {
                     let custom = custom.get(tool).map(PathBuf::as_path);
-                    let kento = &kento;
-                    scope.spawn(move || detect::find(tool, places, custom, kento))
+                    let own: Vec<PathBuf> =
+                        kento.iter().map(|dir| dir.join(&programs[tool])).collect();
+                    scope.spawn(move || detect::find(tool, places, custom, &own))
                 })
                 .collect();
             probes
@@ -307,6 +319,23 @@ impl Toolchain {
         current.into_iter().chain(earlier).collect()
     }
 
+    /// Where each tool of a group lies in one of Kento's install folders: next to the others
+    /// (`ffmpeg.exe`), or inside the program folder it runs from, as this computer's pinned
+    /// download lays it out (`LibreOffice/program/soffice.exe`).
+    fn programs(&self, group: &Group) -> BTreeMap<String, PathBuf> {
+        let file_name = |tool: &str| self.inner.places.file_name(tool);
+        let mut programs = group
+            .platform(self.inner.platform)
+            .map(|platform| platform.programs(file_name))
+            .unwrap_or_default();
+        for tool in &group.tools {
+            programs
+                .entry(tool.clone())
+                .or_insert_with(|| PathBuf::from(file_name(tool)));
+        }
+        programs
+    }
+
     /// The paths jobs hand to the engines.
     pub fn engine_tools(&self) -> kento_engines::Tools {
         let status = self.status();
@@ -326,7 +355,8 @@ impl Toolchain {
     }
 
     /// Sets or clears the path of one tool. A path is kept only when the tool there runs; a
-    /// folder stands for the tool's file inside it.
+    /// folder stands for the tool's file inside it (for LibreOffice also its install folder or
+    /// `LibreOffice.app`).
     pub fn set_path(
         &self,
         tool: &str,
@@ -338,11 +368,7 @@ impl Toolchain {
         let mut paths = lock(&self.inner.custom).clone();
         match path {
             Some(path) => {
-                let path = if path.is_dir() {
-                    path.join(self.inner.places.file_name(tool))
-                } else {
-                    path
-                };
+                let path = detect::resolve(tool, &path, &self.inner.places);
                 if !path.is_absolute() || detect::probe(tool, &path).is_none() {
                     return Err(Error::NotWorking(tool.to_string()));
                 }
@@ -378,18 +404,13 @@ impl Toolchain {
         }
         let cancel = Cancel::default();
         running.insert(group.to_string(), cancel.clone());
-        let names = entry
-            .tools
-            .iter()
-            .map(|tool| (tool.clone(), self.inner.places.file_name(tool)))
-            .collect();
         Ok(Some(Job {
             group: group.to_string(),
             files: platform.files.clone(),
             layout: Layout {
                 downloads: self.inner.root.join("downloads"),
                 dest: self.inner.root.join(group).join(version),
-                names,
+                programs: self.programs(entry),
             },
             cancel,
         }))
@@ -431,6 +452,14 @@ impl Toolchain {
             ] {
                 result = result.and(gone(fs::remove_file(downloads.join(name))));
             }
+            // An installer image left open by an install that never finished; a disk image still
+            // attached there cannot be deleted, and is no reason to fail.
+            let scratch = install::image_scratch(&downloads, file);
+            if file.archive.is_image() && scratch.exists() {
+                if let Err(err) = fs::remove_dir_all(&scratch) {
+                    tracing::warn!("a left-over installer image was not removed: {err}");
+                }
+            }
         }
         drop(running);
         let status = self.refresh();
@@ -466,9 +495,9 @@ impl Toolchain {
         tokio::task::spawn_blocking(move || {
             // The new copies must work themselves, whatever else detection would find.
             let broken = layout
-                .names
+                .programs
                 .iter()
-                .find(|(tool, name)| detect::probe(tool, &layout.dest.join(name)).is_none());
+                .find(|(tool, program)| detect::probe(tool, &layout.dest.join(program)).is_none());
             if let Some((tool, _)) = broken {
                 return Err(Error::NotWorking(tool.clone()));
             }
@@ -498,6 +527,39 @@ impl Toolchain {
 /// run the tools with `-version`, so call it from the job's worker thread.
 pub fn engine_tools(state: &AppState) -> kento_engines::Tools {
     state.toolchain.engine_tools()
+}
+
+/// Starts LibreOffice once with Kento's profile, so the first office job does not wait while the
+/// profile is made (SPEC 7: its first start is slow). Runs on a thread of its own; a call while
+/// one runs does nothing, and a failure is only logged.
+pub fn warm_up_office(app: &AppHandle) {
+    static RUNNING: AtomicBool = AtomicBool::new(false);
+    /// Frees the flag however the warm-up ends.
+    struct Done;
+    impl Drop for Done {
+        fn drop(&mut self) {
+            RUNNING.store(false, Ordering::Release);
+        }
+    }
+    if RUNNING.swap(true, Ordering::AcqRel) {
+        return;
+    }
+    let app = app.clone();
+    let started = std::thread::Builder::new()
+        .name("office-warm-up".into())
+        .spawn(move || {
+            let _done = Done;
+            let state = app.state::<AppState>();
+            let tools = state.toolchain.engine_tools();
+            match kento_engines::office::warm_up(&tools, &state.paths.office_profile()) {
+                Ok(()) => tracing::info!("LibreOffice is warmed up"),
+                Err(err) => tracing::warn!("warming up LibreOffice failed: {err}"),
+            }
+        });
+    if let Err(err) = started {
+        RUNNING.store(false, Ordering::Release);
+        tracing::warn!("the LibreOffice warm-up did not start: {err}");
+    }
 }
 
 fn explain(state: &AppState, err: &Error) -> crate::error::Error {
@@ -536,6 +598,9 @@ pub fn tools_install(
         let last = match toolchain.run(job, &emit).await {
             Ok(()) => {
                 tracing::info!("the {group} tools are installed");
+                if group == "office" {
+                    warm_up_office(&app);
+                }
                 InstallState::Ready
             }
             Err(err) => {
@@ -630,7 +695,7 @@ async fn set_path(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::toolchain::detect::tests::{fake_exiftool, fake_tool, FAKE_SUFFIX};
+    use crate::toolchain::detect::tests::{fake_exiftool, fake_soffice, fake_tool, FAKE_SUFFIX};
     use crate::toolchain::download::tests::{serve, sha256, Mode};
     use crate::toolchain::unpack::tests::zip_of;
     use serde_json::json;
@@ -733,7 +798,7 @@ mod tests {
         let status = chain.status();
         let ids: Vec<&str> = status.iter().map(|g| g.id.as_str()).collect();
         assert_eq!(ids, ["media", "office", "extras"]);
-        for (group, tools) in [(&status[0], 2), (&status[2], 1)] {
+        for (group, tools) in [(&status[0], 2), (&status[1], 1), (&status[2], 1)] {
             assert!(!group.ready);
             assert_eq!(group.tools.len(), tools);
             assert!(group
@@ -750,9 +815,10 @@ mod tests {
                 pinned.map_or(0, |p| p.files.iter().map(|f| f.size).sum())
             );
         }
-        let office = &status[1];
-        assert!(!office.ready && !office.available);
-        assert_eq!(office.download, 0);
+        // LibreOffice is the largest download: show it, so the page can say so up front.
+        if manifest::current_platform() == Some("windows-x64") {
+            assert_eq!(status[1].download, 375_934_976);
+        }
         assert_eq!(chain.engine_tools(), kento_engines::Tools::default());
     }
 
@@ -804,7 +870,7 @@ mod tests {
             Err(Error::NotWorking(_))
         ));
         assert!(matches!(
-            chain.set_path("soffice", None),
+            chain.set_path("ffplay", None),
             Err(Error::UnknownTool(_))
         ));
         assert!(!root.join("paths.json").exists());
@@ -844,7 +910,34 @@ mod tests {
         let base = tempfile::tempdir().unwrap();
         let chain = toolchain(&base.path().join("tools"), nowhere(base.path()));
         assert!(matches!(chain.begin("nope"), Err(Error::UnknownGroup(_))));
-        assert!(matches!(chain.begin("office"), Err(Error::Unavailable(_))));
+        // A computer Kento pins nothing for.
+        let elsewhere = Toolchain::with(
+            base.path().join("elsewhere"),
+            Lock::embedded(),
+            None,
+            nowhere(base.path()),
+            false,
+        );
+        assert!(matches!(
+            elsewhere.begin("office"),
+            Err(Error::Unavailable(_))
+        ));
+        // LibreOffice runs from inside its program folder, as each platform's download lays it out.
+        if let Some(job) = chain.begin("office").ok().flatten() {
+            let program = &job.layout.programs["soffice"];
+            let expected: PathBuf = match manifest::current_platform() {
+                Some("windows-x64") => ["LibreOffice", "program", "soffice.exe"].iter().collect(),
+                _ => ["LibreOffice.app", "Contents", "MacOS", "soffice"]
+                    .iter()
+                    .collect(),
+            };
+            assert_eq!(program, &expected);
+            assert!(job
+                .layout
+                .dest
+                .ends_with(Path::new("office").join("26.8.2")));
+            chain.cancel("office");
+        }
         let media = Lock::embedded().group("media").unwrap();
         if media.platform(manifest::current_platform()).is_none() {
             assert!(matches!(chain.begin("media"), Err(Error::Unavailable(_))));
@@ -949,6 +1042,173 @@ mod tests {
         assert_eq!(fs::read_dir(root.join("downloads")).unwrap().count(), 0);
     }
 
+    /// A lockfile with one Office download for Windows: an installer image (`msi`) or, for the
+    /// tests that install, a zip shaped like it, the program inside its kept folder.
+    fn office_lock(url: &str, archive: &[u8], kind: &str) -> &'static Lock {
+        let program = format!("pack/LibreOffice/program/soffice{FAKE_SUFFIX}");
+        let (entry, folder) = if kind == "msi" {
+            (&program["pack/".len()..], "LibreOffice")
+        } else {
+            (program.as_str(), "pack/LibreOffice")
+        };
+        let text = json!({
+            "schema": 1,
+            "groups": [{
+                "id": "office", "available": true, "version": "26.8.2", "tools": ["soffice"],
+                "platforms": { "windows-x64": { "source": "test", "files": [{
+                    "url": "https://example.org/LibreOffice_26.8.2_Win_x86-64.msi",
+                    "size": archive.len(), "sha256": sha256(archive), "archive": kind,
+                    "entries": { "soffice": entry },
+                    "folders": { folder: "LibreOffice" }
+                }]}}
+            }]
+        });
+        let mut lock = Lock::parse(&text.to_string()).unwrap();
+        lock.groups[0]
+            .platforms
+            .get_mut("windows-x64")
+            .unwrap()
+            .files[0]
+            .url = url.to_string();
+        Box::leak(Box::new(lock))
+    }
+
+    #[tokio::test]
+    async fn an_office_install_keeps_the_program_folder_and_runs_soffice_inside_it() {
+        let base = tempfile::tempdir().unwrap();
+        let (built, _) = fake_soffice(&base.path().join("built"), "LibreOffice 26.8.2.2 0e5b4a3c");
+        let archive = zip_of(&[
+            (
+                format!("pack/LibreOffice/program/soffice{FAKE_SUFFIX}").as_str(),
+                fs::read(&built).unwrap().as_slice(),
+            ),
+            ("pack/LibreOffice/share/registry/main.xcd", b"<xcd/>"),
+        ]);
+        let server = serve(archive.clone(), Mode::Ranges);
+        let lock = office_lock(&server.url, &archive, "zip");
+        let root = base.path().join("tools ğ 🧪");
+        let chain = Toolchain::with(
+            root.clone(),
+            lock,
+            Some("windows-x64"),
+            nowhere(base.path()),
+            false,
+        );
+        let job = chain.begin("office").unwrap().unwrap();
+        chain.run(job, &|_| {}).await.unwrap();
+
+        let program = root
+            .join("office")
+            .join("26.8.2")
+            .join("LibreOffice")
+            .join("program")
+            .join(format!("soffice{FAKE_SUFFIX}"));
+        let office = &chain.status()[0];
+        assert!(office.ready && office.downloaded && !office.outdated);
+        assert_eq!(office.tools[0].path.as_deref(), Some(program.as_path()));
+        assert_eq!(office.tools[0].version.as_deref(), Some("26.8.2"));
+        assert_eq!(office.tools[0].source, Some(Source::Kento));
+        assert_eq!(chain.engine_tools().soffice, Some(program.clone()));
+        assert!(root
+            .join("office")
+            .join("26.8.2")
+            .join("LibreOffice")
+            .join("share")
+            .join("registry")
+            .join("main.xcd")
+            .is_file());
+
+        // A newer Kento finds it again from the lockfile's layout alone.
+        let again = Toolchain::with(
+            root.clone(),
+            lock,
+            Some("windows-x64"),
+            nowhere(base.path()),
+            false,
+        );
+        assert_eq!(
+            again.status()[0].tools[0].path.as_deref(),
+            Some(program.as_path())
+        );
+    }
+
+    #[test]
+    fn removing_office_deletes_only_kentos_copy() {
+        let base = tempfile::tempdir().unwrap();
+        let lock = office_lock(
+            "https://example.org/LibreOffice_26.8.2_Win_x86-64.msi",
+            b"msi",
+            "msi",
+        );
+        let root = base.path().join("tools ğ 🧪");
+        let (system, places) = fake_soffice(
+            &base
+                .path()
+                .join("Program Files")
+                .join("LibreOffice")
+                .join("program"),
+            "LibreOffice 25.8.2.2 0123",
+        );
+        // Kento's copy, a half download and the scratch folder of an install that never finished.
+        let own = root
+            .join("office")
+            .join("26.8.2")
+            .join("LibreOffice")
+            .join("program");
+        fake_soffice(&own, "LibreOffice 26.8.2.2 0e5b");
+        let downloads = root.join("downloads");
+        let scratch = downloads.join("LibreOffice_26.8.2_Win_x86-64.msi.image");
+        fs::create_dir_all(scratch.join("LibreOffice").join("program")).unwrap();
+        fs::write(
+            downloads.join("LibreOffice_26.8.2_Win_x86-64.msi.part"),
+            b"half",
+        )
+        .unwrap();
+        // Another group's download stays.
+        fs::write(downloads.join("tool.zip.part"), b"other").unwrap();
+
+        let chain = Toolchain::with(root.clone(), lock, Some("windows-x64"), places, false);
+        let before = &chain.status()[0];
+        assert!(before.downloaded);
+        assert_eq!(before.tools[0].path.as_deref(), Some(system.as_path()));
+
+        let office = &chain.remove("office").unwrap()[0];
+        assert!(!office.downloaded);
+        assert!(!root.join("office").exists());
+        assert!(!scratch.exists());
+        let left: Vec<String> = fs::read_dir(&downloads)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(left, ["tool.zip.part"]);
+        // The LibreOffice on the computer is untouched and still used.
+        assert!(system.is_file());
+        assert!(office.ready);
+        assert_eq!(office.tools[0].source, Some(Source::System));
+    }
+
+    #[test]
+    fn a_chosen_libreoffice_install_folder_is_kept_as_its_program() {
+        let base = tempfile::tempdir().unwrap();
+        let root = base.path().join("tools");
+        let chain = toolchain(&root, nowhere(base.path()));
+        let install = base.path().join("Uygulamalar ğ 🧪").join("LibreOffice");
+        let (program, _) = fake_soffice(&install.join("program"), "LibreOffice 24.8.7.2 abc");
+        let status = chain.set_path("soffice", Some(install)).unwrap();
+        let office = status.iter().find(|g| g.id == "office").unwrap();
+        assert!(office.ready);
+        assert_eq!(office.tools[0].path.as_deref(), Some(program.as_path()));
+        assert_eq!(office.tools[0].source, Some(Source::Custom));
+        assert_eq!(office.tools[0].version.as_deref(), Some("24.8.7"));
+        assert_eq!(chain.engine_tools().soffice, Some(program));
+
+        // An old LibreOffice, or another program, is refused with LibreOffice's own message.
+        let (old, _) = fake_soffice(&base.path().join("old"), "LibreOffice 6.4.7.2 abc");
+        let refused = chain.set_path("soffice", Some(old)).unwrap_err();
+        assert!(matches!(&refused, Error::NotWorking(tool) if tool == "soffice"));
+        assert_eq!(refused.message_key(), "toolchain.failed.check.soffice");
+    }
+
     /// The real thing: installs the pinned Media build for this computer into a temporary folder
     /// and runs it. `KENTO_TOOLCHAIN_DOWNLOADS` may name a folder that already holds the pinned
     /// files (they are still verified); otherwise they are downloaded.
@@ -963,6 +1223,14 @@ mod tests {
     #[ignore = "downloads the pinned ExifTool; run with --ignored"]
     async fn installs_the_pinned_exiftool_for_this_computer() {
         install_pinned("extras").await;
+    }
+
+    /// The same for the Office group: LibreOffice's Windows package unpacked by `msiexec /a`, or
+    /// LibreOffice.app copied out of its disk image, then run from Kento's folder.
+    #[tokio::test]
+    #[ignore = "downloads the pinned LibreOffice (about 300 MB); run with --ignored"]
+    async fn installs_the_pinned_libreoffice_for_this_computer() {
+        install_pinned("office").await;
     }
 
     async fn install_pinned(group: &str) {
@@ -1019,6 +1287,9 @@ mod tests {
             Error::Unpack("x".into()),
             Error::Io(io::Error::other("x")),
             Error::NotWorking("ffmpeg".into()),
+            Error::NotWorking("soffice".into()),
+            Error::AdminInstall("x".into()),
+            Error::DiskImage("x".into()),
             Error::Cancelled,
             Error::Unavailable("office".into()),
             Error::Busy("media".into()),
@@ -1026,6 +1297,14 @@ mod tests {
         ] {
             assert!(err.message_key().starts_with("toolchain.failed."));
         }
+        assert_eq!(
+            Error::AdminInstall("x".into()).message_key(),
+            "toolchain.failed.msi"
+        );
+        assert_eq!(
+            Error::DiskImage("x".into()).message_key(),
+            "toolchain.failed.dmg"
+        );
         assert_eq!(Error::UnknownGroup("x".into()).message_key(), "error.other");
     }
 }
