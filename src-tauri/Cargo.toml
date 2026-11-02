@@ -18,9 +18,12 @@ name = "kento"
 path = "src/main.rs"
 
 # Writes docs/FORMATS.md and website-kit/catalog.json from the catalog (npm run catalog:export).
+# A tool for the repository, not for users: behind a feature of its own, so `tauri build` neither
+# builds it nor packs it beside the app, which it does with every binary it builds.
 [[bin]]
 name = "catalog-export"
 path = "src/bin/catalog_export.rs"
+required-features = ["catalog-export"]
 
 # The command line (`kento convert …`): a console program beside the app, which stays a GUI
 # program. Installed as kento.com next to kento.exe on Windows, so a terminal finds it first.
@@ -30,6 +33,9 @@ path = "src/bin/kento_cli.rs"
 
 [workspace]
 members = ["engines"]
+
+[features]
+catalog-export = []
 
 [build-dependencies]
 tauri-build = { version = "2.7.4", features = [] }

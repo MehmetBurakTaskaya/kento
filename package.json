@@ -24,7 +24,7 @@
     "check:licenses": "node scripts/check-npm-licenses.mjs",
     "check:third-party": "node scripts/third-party.mjs --check",
     "third-party": "node scripts/third-party.mjs",
-    "catalog:export": "cargo run --quiet --manifest-path src-tauri/Cargo.toml --bin catalog-export",
+    "catalog:export": "cargo run --quiet --manifest-path src-tauri/Cargo.toml --features catalog-export --bin catalog-export",
     "icons": "node scripts/icons.mjs",
     "pdfium": "node scripts/fetch-pdfium.mjs",
     "shots": "node scripts/shoot-app.mjs"

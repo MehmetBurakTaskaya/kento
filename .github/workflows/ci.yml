@@ -64,8 +64,9 @@ jobs:
       - name: Rust format
         run: cargo fmt --all --manifest-path src-tauri/Cargo.toml --check
 
+      # All features, so the catalog export (behind a feature of its own) is linted too.
       - name: Clippy
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets -- -D warnings
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --workspace --all-targets --all-features -- -D warnings
 
       # FFmpeg and ExifTool for the media and metadata tests, yt-dlp and Deno for finding the web
       # download tools; the app downloads its own pinned builds on request.
@@ -159,7 +160,7 @@ jobs:
         run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
 
       - name: Catalog docs are current
-        run: cargo run --quiet --manifest-path src-tauri/Cargo.toml --bin catalog-export -- --check
+        run: cargo run --quiet --manifest-path src-tauri/Cargo.toml --features catalog-export --bin catalog-export -- --check
 
       - name: Build app (no installer)
         run: npm run tauri build -- --no-bundle
