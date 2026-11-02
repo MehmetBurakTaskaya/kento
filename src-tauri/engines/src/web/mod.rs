@@ -15,6 +15,8 @@ mod names;
 mod problem;
 mod progress;
 mod run;
+#[cfg(test)]
+mod tests;
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
