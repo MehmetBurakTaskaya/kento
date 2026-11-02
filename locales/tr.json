@@ -598,5 +598,6 @@
   "compress.searchHint": "Kento bu boyutun altına sığan en iyi kaliteyi arar.",
   "compress.mediaNote": "Video ve ses, medya araçlarıyla sıkıştırılır. Henüz kurulmadılarsa Ana Sayfa’da Kurulumu tamamla’yı seçin.",
   "compress.pdfNote": "PDF sıkıştırma ek bir özelliktir: çoğunlukla içindeki resimleri küçültür, bu yüzden düz metinden oluşan bir PDF küçülmeyebilir.",
-  "compress.run": "{count, plural, one {Dosyayı sıkıştır} other {# dosyayı sıkıştır}}"
+  "compress.run": "{count, plural, one {Dosyayı sıkıştır} other {# dosyayı sıkıştır}}",
+  "error.compress.unsupported": "Kento bu tür bir dosyayı kendi biçiminde küçültemez. Önce dönüştürün; örneğin WAV’ı MP3’e ya da BMP’yi PNG’ye."
 }

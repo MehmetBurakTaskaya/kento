@@ -64,7 +64,7 @@ pub(crate) fn run(run: &CompressRun) -> Result<Vec<PathBuf>> {
         other => {
             return Err(Error::Unsupported {
                 from: other.to_owned(),
-                to: other.to_owned(),
+                to: "compress".to_owned(),
             })
         }
     };

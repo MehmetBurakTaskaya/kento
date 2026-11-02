@@ -407,6 +407,8 @@ pub(crate) fn explainer(lang: &str) -> Explain {
     let lang = lang.to_string();
     Arc::new(move |error| {
         let key = match error {
+            // Compress keeps the format, and some formats cannot get smaller in themselves.
+            EngineError::Unsupported { to, .. } if to == "compress" => "error.compress.unsupported",
             EngineError::Unsupported { .. } => "error.unsupported",
             EngineError::Unreadable(_) => "error.unreadable",
             EngineError::Encrypted => "error.encrypted",
