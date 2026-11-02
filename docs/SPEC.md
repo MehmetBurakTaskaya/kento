@@ -465,7 +465,7 @@ The active window is placed in one of 8 layouts with a global shortcut or the wh
 - center
 - full screen
 
-The feature can be switched off in Settings. Its default (on or off) is still open. It must not clash with the built-in Windows Snap.
+The feature is off by default and can be switched on in Settings. It must not clash with the built-in Windows Snap.
 
 ### 5.13 Job queue, progress and notifications
 
