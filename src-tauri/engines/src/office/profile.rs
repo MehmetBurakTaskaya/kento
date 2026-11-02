@@ -11,8 +11,9 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
+use std::time::Duration;
 
-use crate::Result;
+use crate::{Progress, Result};
 
 /// The lock of each profile in this process. Jobs run one at a time already; the warm-up may
 /// not.
@@ -23,6 +24,33 @@ pub(super) fn lock(profile: &Path) -> Arc<Mutex<()>> {
         .lock()
         .unwrap_or_else(PoisonError::into_inner);
     locks.entry(profile.to_path_buf()).or_default().clone()
+}
+
+/// Holds the profile against other processes until the file is dropped: the app and the command
+/// line share the kept profile, and a second `soffice` on it would hand its document to the first
+/// instead of converting it. Waits while another process holds it; a cancelled job stops waiting.
+pub(super) fn hold(profile: &Path, progress: &Progress) -> Result<fs::File> {
+    let mut name = profile.as_os_str().to_os_string();
+    name.push(".lock");
+    let path = PathBuf::from(name);
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    let file = fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(&path)?;
+    loop {
+        match file.try_lock() {
+            Ok(()) => return Ok(file),
+            Err(fs::TryLockError::WouldBlock) => {
+                progress.check()?;
+                std::thread::sleep(Duration::from_millis(200));
+            }
+            Err(fs::TryLockError::Error(err)) => return Err(err.into()),
+        }
+    }
 }
 
 struct Setting {
@@ -240,5 +268,22 @@ mod tests {
         let b = lock(Path::new("/profiles/b"));
         assert!(Arc::ptr_eq(&a, &again));
         assert!(!Arc::ptr_eq(&a, &b));
+    }
+
+    #[test]
+    fn office_profile_is_held_against_other_processes() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile = dir.path().join("Profil ğüş 🧪");
+        let held = hold(&profile, &Progress::none()).unwrap();
+        assert!(dir.path().join("Profil ğüş 🧪.lock").is_file());
+        // Another open of the lock file stands for another process: it waits until cancelled.
+        let cancelled = || true;
+        let progress = Progress::new(&|_| {}, &cancelled);
+        assert!(matches!(
+            hold(&profile, &progress),
+            Err(crate::Error::Cancelled)
+        ));
+        drop(held);
+        drop(hold(&profile, &Progress::none()).unwrap());
     }
 }

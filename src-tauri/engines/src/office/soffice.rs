@@ -126,6 +126,7 @@ impl<'a> Office<'a> {
         // One soffice per profile at a time (SPEC 6): the warm-up may run beside a job.
         let lock = profile::lock(self.profile);
         let _guard = lock.lock().unwrap_or_else(PoisonError::into_inner);
+        let _held = profile::hold(self.profile, &self.progress)?;
         profile::prepare(self.profile)?;
         let mut command = command(&program(self.soffice));
         command
