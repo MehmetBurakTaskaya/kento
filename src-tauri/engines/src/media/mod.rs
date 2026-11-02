@@ -3,14 +3,24 @@
 //! their own with arguments as arrays, never a shell string (SPEC 4.2). Progress comes from
 //! FFmpeg's `-progress pipe:1`; cancelling kills the process.
 
+mod codec;
+mod convert;
+mod preview;
+mod probe;
+mod run;
+mod tools;
+
+#[cfg(test)]
+mod tests;
+
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Codec, Conversion, Error, Output, Progress, Result, Tools};
+use crate::{Conversion, Output, Progress, Result, Tools};
 
-pub fn supports(_from: &str, _to: &str) -> bool {
-    false
+pub fn supports(from: &str, to: &str) -> bool {
+    convert::supports(from, to)
 }
 
 pub fn output(_from: &str, _to: &str) -> Output {
@@ -18,10 +28,7 @@ pub fn output(_from: &str, _to: &str) -> Output {
 }
 
 pub fn convert(job: &Conversion) -> Result<Vec<PathBuf>> {
-    Err(Error::Unsupported {
-        from: job.from.to_owned(),
-        to: job.to.to_owned(),
-    })
+    convert::convert(job)
 }
 
 /// What ffprobe says about a file.
@@ -42,6 +49,9 @@ pub struct VideoInfo {
     pub height: u32,
     pub fps: f64,
     pub codec: String,
+    /// FFmpeg's name for it (`yuv420p`, `yuv420p10le`, …): the WebView plays 8-bit 4:2:0 H.264
+    /// only.
+    pub pixel_format: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -52,38 +62,34 @@ pub struct AudioInfo {
     pub codec: String,
 }
 
-pub fn probe(tools: &Tools, _input: &Path) -> Result<MediaInfo> {
-    tools.ffprobe()?;
-    Err(Error::Other("not implemented".into()))
+/// Reads the file's streams with ffprobe. A file with neither sound nor picture is
+/// `Error::Unreadable`; a still image has a duration of 0.
+pub fn probe(tools: &Tools, input: &Path) -> Result<MediaInfo> {
+    probe::probe(tools.ffprobe()?, input).map(|probe| probe.info)
 }
 
-/// Whether the WebView can play the file as it is; otherwise the editors use a proxy.
-pub fn playable(_info: &MediaInfo, _format: &str) -> bool {
-    false
+/// Whether the WebView can play the file as it is; otherwise the editors use a proxy. `format`
+/// is the catalog id of the file.
+pub fn playable(info: &MediaInfo, format: &str) -> bool {
+    preview::playable(info, format)
 }
 
 /// A temporary low-resolution H.264/AAC MP4 for previews (SPEC 5.6). Exports always use the
 /// original.
-pub fn proxy(tools: &Tools, _input: &Path, _dest: &Path, _progress: &Progress) -> Result<()> {
-    tools.ffmpeg()?;
-    Err(Error::Other("not implemented".into()))
+pub fn proxy(tools: &Tools, input: &Path, dest: &Path, progress: &Progress) -> Result<()> {
+    preview::proxy(tools, input, dest, progress)
 }
 
-/// Peak levels for a waveform, `buckets` values from 0 to 1 across the whole file.
-pub fn peaks(
-    tools: &Tools,
-    _input: &Path,
-    _buckets: usize,
-    _progress: &Progress,
-) -> Result<Vec<f32>> {
-    tools.ffmpeg()?;
-    Err(Error::Other("not implemented".into()))
+/// Peak levels for a waveform, `buckets` values from 0 to 1 across the whole file, relative to
+/// its loudest moment (a file without sound gives zeros).
+pub fn peaks(tools: &Tools, input: &Path, buckets: usize, progress: &Progress) -> Result<Vec<f32>> {
+    preview::peaks(tools, input, buckets, progress)
 }
 
-/// One frame at `at` seconds as PNG bytes, no larger than `max_px` on its longer side.
-pub fn frame(tools: &Tools, _input: &Path, _at: f64, _max_px: u32) -> Result<Vec<u8>> {
-    tools.ffmpeg()?;
-    Err(Error::Other("not implemented".into()))
+/// One frame at `at` seconds as PNG bytes, no larger than `max_px` on its longer side (0 keeps
+/// the full size). Past the end it gives one of the last frames.
+pub fn frame(tools: &Tools, input: &Path, at: f64, max_px: u32) -> Result<Vec<u8>> {
+    preview::frame(tools, input, at, max_px)
 }
 
 /// Seconds from the start.
@@ -252,9 +258,14 @@ impl Tool {
     }
 
     /// The extension of the result for an input of format `from` (a catalog id): most tools keep
-    /// the input's own format; Audio to video makes an MP4.
-    pub fn extension(&self, _from: &str) -> String {
-        String::new()
+    /// the input's own format; Audio to video makes an MP4; Extract frames fills its folder with
+    /// PNG files; Split video's parts keep the input's format.
+    pub fn extension(&self, from: &str) -> String {
+        match self {
+            Tool::AudioToVideo { .. } => "mp4".to_owned(),
+            Tool::Frames { .. } => "png".to_owned(),
+            _ => from.trim_start_matches('.').to_ascii_lowercase(),
+        }
     }
 }
 
@@ -270,7 +281,8 @@ pub struct ToolRun<'a> {
     pub progress: &'a Progress<'a>,
 }
 
+/// Runs a media tool and returns the files it wrote: `run.dest`, or the files inside it for the
+/// folder tools. Scratch files go to `run.temp` only.
 pub fn run_tool(run: &ToolRun) -> Result<Vec<PathBuf>> {
-    run.tools.ffmpeg()?;
-    Err(Error::MissingCodec(Codec::Ffmpeg))
+    tools::run(run)
 }
