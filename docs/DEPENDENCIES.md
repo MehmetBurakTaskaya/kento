@@ -6,7 +6,7 @@ texts are in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
 
 |  | Count |
 | --- | ---: |
-| Rust crates | 512 |
+| Rust crates | 520 |
 | npm packages | 16 |
 | Bundled library (PDFium) | 1 |
 | Tools downloaded on request | 7 |
@@ -155,6 +155,8 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [form_urlencoded](https://crates.io/crates/form_urlencoded/1.2.2) | 1.2.2 | MIT OR Apache-2.0 | Windows, macOS | `cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf` |
 | [futures-channel](https://crates.io/crates/futures-channel/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `b1f9e3d69d39e4862ffed03ed071a76f9a13ba1d9109d355b0f0aa6b15e393c4` |
 | [futures-core](https://crates.io/crates/futures-core/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `92d699e522242e69e3003b94ecc1f960f3a5e015aa7c5d7486e65ad01dd94f5e` |
+| [futures-macro](https://crates.io/crates/futures-macro/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44` |
+| [futures-sink](https://crates.io/crates/futures-sink/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `1944426bf7d03f1d14f708785e4b33efd750b36d48a157b836b3efc15ede8e1d` |
 | [futures-task](https://crates.io/crates/futures-task/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `cd417de3d1d015fc3bfd2b1ea46dfc7bab72ef86f1cc7cc9c78e728b34a6d1fd` |
 | [futures-util](https://crates.io/crates/futures-util/0.3.34) | 0.3.34 | MIT OR Apache-2.0 | Windows, macOS | `0d50a92467f8ba5dd6e3ee5d4bd04d73ab2e4e1c44474a0674821dfce14b79bc` |
 | [generic-array](https://crates.io/crates/generic-array/0.14.7) | 0.14.7 | MIT | Windows, macOS | `85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a` |
@@ -234,6 +236,7 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [memchr](https://crates.io/crates/memchr/2.8.3) | 2.8.3 | Unlicense OR MIT | Windows, macOS | `cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98` |
 | [memmap2](https://crates.io/crates/memmap2/0.9.12) | 0.9.12 | MIT OR Apache-2.0 | Windows, macOS | `6b0ca1155a9ecc25aa12e8313a119f32edf0255fea2f44839c4ac0a12b2ac157` |
 | [mime](https://crates.io/crates/mime/0.3.17) | 0.3.17 | MIT OR Apache-2.0 | Windows, macOS | `6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a` |
+| [minisign-verify](https://crates.io/crates/minisign-verify/0.3.0) | 0.3.0 | MIT | Windows, macOS | `871285dc19d8d0ebe0eef3d0e99a205f2a71363b122632cbbfa4a6c370a960ce` |
 | [miniz_oxide](https://crates.io/crates/miniz_oxide/0.8.9) | 0.8.9 | MIT OR Zlib OR Apache-2.0 | Windows, macOS | `1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316` |
 | [miniz_oxide](https://crates.io/crates/miniz_oxide/0.9.1) | 0.9.1 | MIT OR Zlib OR Apache-2.0 | Windows, macOS | `b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c` |
 | [mio](https://crates.io/crates/mio/1.2.4) | 1.2.4 | MIT | Windows, macOS | `1788edb87fdc09c7e26304471e2f5be8cdefb1b6930d6e3985fc02ff53bf86ee` |
@@ -270,6 +273,7 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [objc2-encode](https://crates.io/crates/objc2-encode/4.1.0) | 4.1.0 | MIT | macOS | `ef25abbcd74fb2609453eb695bd2f860d389e457f67dc17cafc8b8cbc89d0c33` |
 | [objc2-exception-helper](https://crates.io/crates/objc2-exception-helper/0.1.1) | 0.1.1 | Zlib OR Apache-2.0 OR MIT | macOS | `c7a1c5fbb72d7735b076bb47b578523aedc40f3c439bea6dfd595c089d79d98a` |
 | [objc2-foundation](https://crates.io/crates/objc2-foundation/0.3.2) | 0.3.2 | MIT | macOS | `e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272` |
+| [objc2-osa-kit](https://crates.io/crates/objc2-osa-kit/0.3.2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | macOS | `f112d1746737b0da274ef79a23aac283376f335f4095a083a267a082f21db0c0` |
 | [objc2-quartz-core](https://crates.io/crates/objc2-quartz-core/0.3.2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | macOS | `96c1358452b371bf9f104e21ec536d37a650eb10f7ee379fff67d2e08d537f1f` |
 | [objc2-security](https://crates.io/crates/objc2-security/0.3.2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | macOS | `709fe137109bd1e8b5a99390f77a7d8b2961dafc1a1c5db8f2e60329ad6d895a` |
 | [objc2-service-management](https://crates.io/crates/objc2-service-management/0.3.2) | 0.3.2 | Zlib OR Apache-2.0 OR MIT | macOS | `b213642d6959cc6023ceb1217aa595eaaf09b8094ce95127c103cab611fe65e8` |
@@ -281,6 +285,7 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [ort](https://crates.io/crates/ort/2.0.0-rc.15) | 2.0.0-rc.15 | MIT OR Apache-2.0 | Windows, macOS | `37c87aa7a90b7ff3e0fe36cccd475df8d67f15f07f4d6c370c4b38464232813c` |
 | [ort-sys](https://crates.io/crates/ort-sys/2.0.0-rc.15) | 2.0.0-rc.15 | MIT OR Apache-2.0 | Windows, macOS | `8d22b0417f1838db5a3ac0b3f98dfe39f6fb73624aa0a27c6bbb5040b9c7db2b` |
 | [os_info](https://crates.io/crates/os_info/3.15.0) | 3.15.0 | MIT | Windows, macOS | `9cf20a545b305cf1da722b236b5155c9bb35f1d5ceb28c048bd96ca842f41b5b` |
+| [osakit](https://crates.io/crates/osakit/0.3.1) | 0.3.1 | MIT OR Apache-2.0 | macOS | `732c71caeaa72c065bb69d7ea08717bd3f4863a4f451402fc9513e29dbd5261b` |
 | [parking_lot](https://crates.io/crates/parking_lot/0.12.5) | 0.12.5 | MIT OR Apache-2.0 | Windows, macOS | `93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a` |
 | [parking_lot_core](https://crates.io/crates/parking_lot_core/0.9.12) | 0.9.12 | MIT OR Apache-2.0 | Windows, macOS | `2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1` |
 | [paste](https://crates.io/crates/paste/1.0.15) | 1.0.15 | MIT OR Apache-2.0 | Windows, macOS | `57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a` |
@@ -410,9 +415,11 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [tauri-plugin-global-shortcut](https://crates.io/crates/tauri-plugin-global-shortcut/2.4.1) | 2.4.1 | Apache-2.0 OR MIT | Windows, macOS | `93ff17919fe09852d269bd37b1d3d2e993b9dbb514afe7acbf3346c1d3627e2d` |
 | [tauri-plugin-opener](https://crates.io/crates/tauri-plugin-opener/2.7.2) | 2.7.2 | Apache-2.0 OR MIT | Windows, macOS | `53810be1b4fed22bb6ac3f4cab5a2b80d9391d1af436bda145607532bc0bb219` |
 | [tauri-plugin-single-instance](https://crates.io/crates/tauri-plugin-single-instance/2.5.5) | 2.5.5 | Apache-2.0 OR MIT | Windows, macOS | `726b6da0dd5bd1344f84f4108a622c07d01923baacb5c803a605189672c5352f` |
+| [tauri-plugin-updater](https://crates.io/crates/tauri-plugin-updater/2.14.1) | 2.14.1 | Apache-2.0 OR MIT | Windows, macOS | `d957abbcb3f9f6c76d22a3a0f012f30880640d0bccb5634d2b12a9937e4c872b` |
 | [tauri-runtime](https://crates.io/crates/tauri-runtime/2.12.2) | 2.12.2 | Apache-2.0 OR MIT | Windows, macOS | `7c55766d99cea69055904d1735b93c2049302b2e09effd462120deb5581d78e9` |
 | [tauri-runtime-wry](https://crates.io/crates/tauri-runtime-wry/2.12.3) | 2.12.3 | Apache-2.0 OR MIT | Windows, macOS | `e1aa9d8b7a120f879f44fdc1053f7b7dbf416bf0bbc6a72b714dec46b782b52f` |
 | [tauri-utils](https://crates.io/crates/tauri-utils/2.10.2) | 2.10.2 | Apache-2.0 OR MIT | Windows, macOS | `362ab21cd4cc713f2a02b1a9b5688198b1541cfb6907c4281e9190e0f0ef4aa3` |
+| [tempfile](https://crates.io/crates/tempfile/3.27.0) | 3.27.0 | MIT OR Apache-2.0 | Windows, macOS | `32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd` |
 | [tendril](https://crates.io/crates/tendril/0.5.1) | 0.5.1 | MIT OR Apache-2.0 | Windows, macOS | `5fed54709c5b3a53d09bb1c113ea4f5ceafd1e772ddcb0030a82e1d56c087b08` |
 | [thiserror](https://crates.io/crates/thiserror/2.0.21) | 2.0.21 | MIT OR Apache-2.0 | Windows, macOS | `09e52cb86a36cede5cb101bf8908837b3e4c6e5e59fe7fd85c23fb56200d189e` |
 | [thiserror-impl](https://crates.io/crates/thiserror-impl/2.0.21) | 2.0.21 | MIT OR Apache-2.0 | Windows, macOS | `fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524` |
@@ -429,6 +436,7 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [tokio](https://crates.io/crates/tokio/1.54.1) | 1.54.1 | MIT | Windows, macOS | `b52fd3255258d26fac7264ab5a76b53c13367136dc011d3d6ad4f8ed070396a3` |
 | [tokio-macros](https://crates.io/crates/tokio-macros/2.7.2) | 2.7.2 | MIT | Windows, macOS | `78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e` |
 | [tokio-rustls](https://crates.io/crates/tokio-rustls/0.26.6) | 0.26.6 | MIT OR Apache-2.0 | Windows, macOS | `c9cc2678c2cdd569ef8215e2afd7954ada2ae20b4fdd2c5fe6139a3b02d105db` |
+| [tokio-util](https://crates.io/crates/tokio-util/0.7.20) | 0.7.20 | MIT | Windows, macOS | `e464cf451ba96ebfc6f9b6542f17ee8b8956e33f1e40d9690624e59d7a7f8a4b` |
 | [toml](https://crates.io/crates/toml/1.1.8+spec-1.1.0) | 1.1.8+spec-1.1.0 | MIT OR Apache-2.0 | Windows, macOS | `20489e00e4d8741d6be680764cc12e270655e375a20d1011e844a9c3379e678d` |
 | [toml_datetime](https://crates.io/crates/toml_datetime/1.1.2+spec-1.1.0) | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 | Windows, macOS | `2b86d767906c6c42421dcba507eb9d203e779497710a47782a224bb871653053` |
 | [toml_parser](https://crates.io/crates/toml_parser/1.1.5+spec-1.1.0) | 1.1.5+spec-1.1.0 | MIT OR Apache-2.0 | Windows, macOS | `baa693a8032d7e1cada7d0041e96126df243179ff061456783ac7f12bda4744c` |
