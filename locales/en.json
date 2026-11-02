@@ -149,7 +149,6 @@
   "paste.text": "Pasted text",
   "paste.image": "Pasted image",
   "paste.saved": "Saved as {name}",
-  "paste.link": "Downloading from links arrives in a later version.",
   "run.none": "Kento cannot convert these files yet.",
   "run.noTools": "No tool fits these files yet.",
   "format.hint.jpg": "Photos everywhere; small, no transparency",

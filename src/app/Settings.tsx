@@ -342,6 +342,13 @@ export function Settings() {
             onChange={(selectionShortcut) => set({ wheels: { ...settings.wheels, selectionShortcut } })}
           />
         </Row>
+        <Row label={t('settings.web.shortcut', { shortcut: mac ? '⌃⇧D' : 'Ctrl+Shift+D' })}>
+          <Switch
+            label={t('settings.web.shortcut', { shortcut: mac ? '⌃⇧D' : 'Ctrl+Shift+D' })}
+            checked={settings.web.shortcut}
+            onChange={(shortcut) => set({ web: { ...settings.web, shortcut } })}
+          />
+        </Row>
         <p className="note muted">{t('settings.wheel.note')}</p>
       </Group>
 

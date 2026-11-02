@@ -52,6 +52,8 @@ interface AppStore {
   panel: { tool: PanelTool; paths: string[] } | null;
   /** The tool setup dialog (SPEC 5.15). */
   setup: boolean;
+  /** The web download dialog for one link (SPEC 5.10). */
+  web: { url: string } | null;
   toasts: Toast[];
   setBoot(boot: Bootstrap): void;
   setSection(section: Section): void;
@@ -70,6 +72,8 @@ interface AppStore {
   closePanel(): void;
   openSetup(): void;
   closeSetup(): void;
+  openWeb(url: string): void;
+  closeWeb(): void;
   started(ids: number[]): void;
   refreshLibrary(): Promise<void>;
   toast(toast: NewToast): void;
@@ -92,6 +96,7 @@ export const useApp = create<AppStore>((set, get) => ({
   wheel: null,
   panel: null,
   setup: false,
+  web: null,
   toasts: [],
   setBoot: (boot) =>
     set({
@@ -164,6 +169,8 @@ export const useApp = create<AppStore>((set, get) => ({
   closePanel: () => set({ panel: null }),
   openSetup: () => set({ setup: true, wheel: null, section: 'home' }),
   closeSetup: () => set({ setup: false }),
+  openWeb: (url) => set({ web: { url }, wheel: null }),
+  closeWeb: () => set({ web: null }),
   started: (ids) => set((state) => ({ mine: new Set([...state.mine, ...ids]) })),
   refreshLibrary: async () => {
     try {

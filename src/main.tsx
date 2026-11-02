@@ -3,6 +3,7 @@ import '@fontsource-variable/ibm-plex-sans/wght.css';
 import './styles/global.css';
 import './styles/work.css';
 import './styles/surfaces.css';
+import './styles/web.css';
 import './theme/steel';
 import { isTauri } from '@tauri-apps/api/core';
 import { StrictMode } from 'react';

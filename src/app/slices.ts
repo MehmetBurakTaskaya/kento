@@ -12,6 +12,7 @@ import {
   type FileEntry,
   type TargetGroup,
   type ToolEntry,
+  type ToolGroup,
   type WheelKind,
 } from '../ipc';
 import type { WheelSlice } from '../wheel/Wheel';
@@ -135,6 +136,39 @@ export function actionSlices(actions: ActionEntry[], t: TFunction, mac: boolean)
     label: t(action.id === 'reveal' ? `action.reveal.${mac ? 'mac' : 'windows'}` : `action.${action.id}`),
     icon: ACTION_ICONS[action.id] ?? 'file',
   }));
+}
+
+const DOWNLOAD_ICONS: Record<string, IconName> = { video: 'video', audio: 'music', original: 'image' };
+
+/** The download ring of a link dragged out of a browser (SPEC 5.10): Video (the best quality up to
+ *  1080 lines), Audio (MP3) and Original (a picture stays a picture) download at once with the
+ *  dialog's defaults; More… opens the dialog with every choice. Without the web tools the quick
+ *  slices are dimmed and open the setup. */
+export function downloadSlices(t: TFunction, needs: ToolGroup | null): WheelSlice[] {
+  const quick = byRecent(['video', 'audio', 'original'], (id) => id, 'download').map((id) => ({
+    id: needs ? `${NEEDS_SETUP}:${id}` : id,
+    label: t(`wheel.download.${id}`),
+    icon: DOWNLOAD_ICONS[id] ?? 'file',
+    hint: needsHint(t, needs) ?? t(`wheel.download.${id}.hint`),
+    dimmed: !!needs,
+  }));
+  return [...quick, { id: 'more', label: t('wheel.download.more'), icon: 'more', hint: t('wheel.download.more.hint') }];
+}
+
+/** The ring for a link; the web tools are checked once, when it opens. */
+export async function downloadRing(): Promise<Ring> {
+  const needs = await api.webNeeds();
+  return {
+    view: (t) => ({
+      key: 'download',
+      slices: downloadSlices(t, needs),
+      paths: [],
+      apply: (id) => {
+        if (id !== 'more' && !id.startsWith(NEEDS_SETUP)) remember('download', id);
+        return null;
+      },
+    }),
+  };
 }
 
 /** The paths of a selection that belong to one category. */

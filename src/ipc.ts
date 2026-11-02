@@ -32,6 +32,8 @@ export interface Settings {
   };
   shell: { sendTo: boolean; contextMenu: boolean };
   shelf: { keepCopy: boolean };
+  /** Web downloads: the clipboard shortcut, and whether the first-use notice was shown. */
+  web: { shortcut: boolean; noticeShown: boolean };
 }
 
 export type WheelKey = 'shift' | 'control' | 'alt' | 'command';
@@ -139,7 +141,7 @@ export interface LibraryEntry {
   folder: boolean;
   format: string | null;
   created: number;
-  origin: 'convert' | 'tool' | 'paste';
+  origin: 'convert' | 'tool' | 'paste' | 'download';
   source: string | null;
   name: string;
   category: Category | null;
@@ -179,12 +181,60 @@ export interface WheelSession {
   paths: string[];
 }
 
-/** A system drag over a window: positions in CSS pixels of that window. */
+/** A system drag over a window: positions in CSS pixels of that window. A drag carries files, or
+ *  a web address (a link or a media card out of a browser), or neither. */
 export type DragOver =
-  | { type: 'enter'; paths: string[]; x: number; y: number }
+  | { type: 'enter'; paths: string[]; link: string | null; x: number; y: number }
   | { type: 'over'; x: number; y: number }
-  | { type: 'drop'; paths: string[]; x: number; y: number }
+  | { type: 'drop'; paths: string[]; link: string | null; x: number; y: number }
   | { type: 'leave' };
+
+/** What a drop on Home brought: files, or one web address. */
+export interface Dropped {
+  paths: string[];
+  link: string | null;
+}
+
+/** Web media download (SPEC 5.10): what a link holds, as yt-dlp found it. */
+export type WebSite = 'youtube' | 'instagram' | 'other';
+export type WebKind = 'video' | 'audio' | 'images';
+
+/** A picture of a photo post; `index` is its place in the post. */
+export interface WebImage {
+  index: number;
+  width: number | null;
+  height: number | null;
+  /** A small preview the core can fetch (WebInfo.url plus the index ask for it). */
+  preview: string | null;
+}
+
+export interface WebInfo {
+  url: string;
+  site: WebSite;
+  kind: WebKind;
+  title: string;
+  /** Seconds, for video and audio. */
+  duration: number | null;
+  /** Frame heights on offer, highest first; empty for audio and pictures. */
+  heights: number[];
+  /** The thumbnail can be downloaded on its own (YouTube). */
+  thumbnail: boolean;
+  images: WebImage[];
+}
+
+/** What to download from a link. */
+export type WebChoice =
+  | { kind: 'video'; maxHeight: number | null }
+  | { kind: 'audio' }
+  | { kind: 'thumbnail' }
+  | { kind: 'images'; indexes: number[] }
+  | { kind: 'original' };
+
+/** Why a link cannot be used: a message key of the locale files and the technical details. */
+export interface WebProblem {
+  key: string;
+  details: string;
+}
 
 export type CornerCard =
   | { kind: 'done'; id: number; title: string; outputs: string[] }
@@ -406,7 +456,8 @@ export interface Api {
   onPaused(handler: (paused: boolean) => void): Promise<UnlistenFn>;
   onNavigate(handler: (section: Section) => void): Promise<UnlistenFn>;
   onLibrary(handler: () => void): Promise<UnlistenFn>;
-  onDrop(handler: (paths: string[]) => void, hover: (over: boolean) => void): Promise<UnlistenFn>;
+  /** Files or a link dropped on the main window; `hover` says whether a drop would be taken. */
+  onDrop(handler: (dropped: Dropped) => void, hover: (over: boolean) => void): Promise<UnlistenFn>;
   inspect(paths: string[]): Promise<FileEntry[]>;
   targets(paths: string[]): Promise<TargetGroup[]>;
   tools(paths: string[]): Promise<ToolEntry[]>;
@@ -436,7 +487,10 @@ export interface Api {
   openTool(tool: string, paths: string[]): Promise<void>;
   takePendingTool(): Promise<[string, string[]] | null>;
   onOpenTool(handler: (tool: string, paths: string[]) => void): Promise<UnlistenFn>;
+  /** The webview's own drag events (files only; the shelf). */
   onDragOver(handler: (event: DragOver) => void): Promise<UnlistenFn>;
+  /** Kento's drag events, with links as well as files (the floating wheel). */
+  onDrag(handler: (event: DragOver) => void): Promise<UnlistenFn>;
   wheelSession(): Promise<WheelSession | null>;
   wheelDropped(): Promise<void>;
   wheelSwitch(kind: WheelKind): Promise<void>;
@@ -487,6 +541,29 @@ export interface Api {
    *  published SHA-256. */
   toolsUpdateYtdlp(): Promise<YtDlpUpdate>;
   onToolsProgress(handler: (progress: InstallProgress) => void): Promise<UnlistenFn>;
+  /** The tool group web downloads still need, or null when they work. */
+  webNeeds(): Promise<ToolGroup | null>;
+  /** What a link holds; rejects with a WebProblem. */
+  webProbe(url: string): Promise<WebInfo>;
+  /** The preview of one picture of a probed photo post; null when there is none. */
+  webPreview(url: string, index: number): Promise<Blob | null>;
+  webDefaultFolder(): Promise<string>;
+  /** The system's folder dialog; null when it was closed. */
+  webChooseFolder(): Promise<string | null>;
+  /** Starts the download job; `folder` is null for the default folder. */
+  webDownload(url: string, choice: WebChoice, folder: string | null): Promise<number>;
+  /** Opens the download dialog in the main window (the floating wheel's More…). */
+  webOpen(url: string): Promise<void>;
+  /** The link the main window should open the dialog for, once. */
+  webTakePending(): Promise<string | null>;
+  onWebOpen(handler: () => void): Promise<UnlistenFn>;
+}
+
+/** Kento's drag event as the core sends it: physical pixels. */
+function scaled(event: DragOver): DragOver {
+  if (event.type === 'leave') return event;
+  const scale = window.devicePixelRatio || 1;
+  return { ...event, x: event.x / scale, y: event.y / scale };
 }
 
 const tauriApi: Api = {
@@ -502,12 +579,18 @@ const tauriApi: Api = {
   onPaused: (handler) => listen<boolean>('jobs-paused', (event) => handler(event.payload)),
   onNavigate: (handler) => listen<Section>('navigate', (event) => handler(event.payload)),
   onLibrary: (handler) => listen('library', () => handler()),
-  onDrop: (handler, hover) =>
-    getCurrentWebview().onDragDropEvent((event) => {
-      const { type } = event.payload;
-      hover(type === 'enter' || type === 'over');
-      if (event.payload.type === 'drop') handler(event.payload.paths);
-    }),
+  onDrop: (handler, hover) => {
+    // Only files and links are taken; a drag of anything else leaves Home as it is.
+    let taken = false;
+    return listen<DragOver>('drag', ({ payload }) => {
+      if (payload.type === 'enter') taken = payload.paths.length > 0 || !!payload.link;
+      hover(taken && (payload.type === 'enter' || payload.type === 'over'));
+      if (payload.type === 'drop' && (payload.paths.length || payload.link)) {
+        handler({ paths: payload.paths, link: payload.link });
+      }
+      if (payload.type === 'drop' || payload.type === 'leave') taken = false;
+    });
+  },
   inspect: (paths) => invoke('inspect', { paths }),
   targets: (paths) => invoke('targets', { paths }),
   tools: (paths) => invoke('tools', { paths }),
@@ -545,10 +628,11 @@ const tauriApi: Api = {
       if (payload.type === 'leave') return handler({ type: 'leave' });
       const x = payload.position.x / scale;
       const y = payload.position.y / scale;
-      if (payload.type === 'enter') handler({ type: 'enter', paths: payload.paths, x, y });
+      if (payload.type === 'enter') handler({ type: 'enter', paths: payload.paths, link: null, x, y });
       else if (payload.type === 'over') handler({ type: 'over', x, y });
-      else handler({ type: 'drop', paths: payload.paths, x, y });
+      else handler({ type: 'drop', paths: payload.paths, link: null, x, y });
     }),
+  onDrag: (handler) => listen<DragOver>('drag', ({ payload }) => handler(scaled(payload))),
   wheelSession: () => invoke('wheel_session'),
   wheelDropped: () => invoke('wheel_dropped'),
   wheelSwitch: (kind) => invoke('wheel_switch', { kind }),
@@ -596,6 +680,22 @@ const tauriApi: Api = {
   toolsClearPath: (tool) => invoke('tools_clear_path', { tool }),
   toolsUpdateYtdlp: () => invoke('tools_update_ytdlp'),
   onToolsProgress: (handler) => listen<InstallProgress>('tools-progress', (event) => handler(event.payload)),
+  webNeeds: () => invoke('web_needs'),
+  webProbe: (url) => invoke('web_probe', { url }),
+  webPreview: async (url, index) => {
+    try {
+      // A JPEG or WEBP; the image element reads the type from the bytes.
+      return new Blob([await invoke<ArrayBuffer>('web_preview', { url, index })]);
+    } catch {
+      return null;
+    }
+  },
+  webDefaultFolder: () => invoke('web_default_folder'),
+  webChooseFolder: () => invoke('web_choose_folder'),
+  webDownload: (url, choice, folder) => invoke('web_download', { url, choice, folder }),
+  webOpen: (url) => invoke('web_open', { url }),
+  webTakePending: () => invoke('web_take_pending'),
+  onWebOpen: (handler) => listen('web-open', () => handler()),
 };
 
 /** PNG bytes from a command as an image Blob; a file without a preview gives null. */
@@ -623,6 +723,7 @@ export const DEFAULT_SETTINGS: Settings = {
   wheels: { global: true, convert: 'shift', tools: 'control', actions: 'alt', selectionShortcut: true },
   shell: { sendTo: false, contextMenu: false },
   shelf: { keepCopy: false },
+  web: { shortcut: true, noticeShown: false },
 };
 
 /** The browser stand-in: the same answers the core would give, from memory. */
@@ -745,8 +846,16 @@ export function browserApi(params: URLSearchParams): Api {
     takePendingTool: async () => null,
     onOpenTool: async () => () => {},
     onDragOver: async () => () => {},
+    // ?surface=wheel&drag=link: a link dragged out of a browser enters the floating wheel.
+    onDrag: async (handler) => {
+      if (params.get('drag') === 'link') {
+        setTimeout(() => handler({ type: 'enter', paths: [], link: DEMO_LINKS.youtube, x: 260, y: 260 }), 50);
+      }
+      return () => {};
+    },
     // ?surface=wheel&wheel=convert shows the floating wheel for the demo files.
     wheelSession: async () => {
+      if (params.get('drag') === 'link') return { id: 1, kind: 'convert', mode: 'drag', paths: [] };
       const kind = params.get('wheel') as WheelKind | null;
       return kind ? { id: 1, kind, mode: 'click', paths: DEMO_FILES } : null;
     },
@@ -833,7 +942,85 @@ export function browserApi(params: URLSearchParams): Api {
       status: demoTools(params.get('tools') === 'ready'),
     }),
     onToolsProgress: async () => () => {},
+    // ?web=setup: the web tools are missing; ?web=probing: the probe never ends; ?web=<problem>
+    // (drm, live, login, collection, unavailable, no-media, network, codec): the probe fails.
+    webNeeds: async () => (params.get('web') === 'setup' ? 'media' : null),
+    webProbe: (url) => {
+      const mode = params.get('web');
+      if (mode === 'probing') return new Promise<WebInfo>(() => {});
+      if (mode && mode !== 'setup') {
+        const key = mode === 'codec' ? 'error.codec.ytdlp' : `error.web.${mode}`;
+        return Promise.reject<WebInfo>({ key, details: `yt-dlp: ERROR: [demo] ${mode}` });
+      }
+      return Promise.resolve(demoWeb(url));
+    },
+    webPreview: async (_url, index) => new Blob([demoPicture(index)], { type: 'image/svg+xml' }),
+    webDefaultFolder: async () =>
+      platform === 'macos' ? '/Users/me/Downloads/Kento' : 'C:\\Users\\me\\Downloads\\Kento',
+    webChooseFolder: async () => (platform === 'macos' ? '/Users/me/Movies' : 'C:\\Users\\me\\Videos'),
+    webDownload: async () => 1,
+    webOpen: async () => {},
+    webTakePending: async () => null,
+    onWebOpen: async () => () => {},
   };
+}
+
+/** Links the stand-in knows; any other link reads as a plain video page. */
+export const DEMO_LINKS = {
+  youtube: 'https://www.youtube.com/watch?v=K3nt0dEmo42',
+  post: 'https://www.instagram.com/p/K3nt0P0st/',
+  reel: 'https://www.instagram.com/reel/K3nt0Re3l/',
+  podcast: 'https://podcast.example.org/bolum-12',
+};
+
+function demoWeb(url: string): WebInfo {
+  const base = { url, duration: null, heights: [], thumbnail: false, images: [] };
+  if (url === DEMO_LINKS.youtube) {
+    return {
+      ...base,
+      site: 'youtube',
+      kind: 'video',
+      title: 'Kapadokya’da gün doğumu: balon turu 🎈 (4K)',
+      duration: 754.3,
+      heights: [2160, 1440, 1080, 720, 480, 360],
+      thumbnail: true,
+    };
+  }
+  if (url === DEMO_LINKS.post) {
+    return {
+      ...base,
+      site: 'instagram',
+      kind: 'images',
+      title: 'Göreme, Mayıs 2026',
+      images: Array.from({ length: 6 }, (_, index) => ({
+        index,
+        width: 1080,
+        height: 1350,
+        preview: `https://cdn.example.org/p/${index}.jpg`,
+      })),
+    };
+  }
+  if (url === DEMO_LINKS.reel) {
+    return {
+      ...base,
+      site: 'instagram',
+      kind: 'video',
+      title: 'Peri bacaları 30 saniyede',
+      duration: 31,
+      heights: [1280, 640],
+    };
+  }
+  if (url === DEMO_LINKS.podcast) {
+    return { ...base, site: 'other', kind: 'audio', title: 'Bölüm 12: Yerel ilk yazılım', duration: 2843 };
+  }
+  const host = /^https?:\/\/(?:www\.)?([^/?#:]+)/i.exec(url)?.[1] ?? url;
+  return { ...base, site: 'other', kind: 'video', title: host, duration: 95.4, heights: [1080, 720, 480] };
+}
+
+/** A small landscape in the colours of one picture of the demo post. */
+function demoPicture(index: number): string {
+  const hue = (200 + index * 47) % 360;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${hue} 70% 78%)"/><stop offset="1" stop-color="hsl(${(hue + 30) % 360} 45% 46%)"/></linearGradient></defs><rect width="120" height="150" fill="url(#g)"/><circle cx="${30 + index * 12}" cy="42" r="13" fill="#fff" opacity=".75"/><path d="M0 118 34 82 58 104 84 78 120 112V150H0Z" fill="#1a1e23" opacity=".35"/></svg>`;
 }
 
 const DEMO_FILES = ['C:\\Users\\me\\Pictures\\Kapadokya 🎈.heic', 'C:\\Users\\me\\Documents\\Rapor 2026.pdf'];

@@ -52,6 +52,22 @@ const SHOTS = [
   ['compress-light-en', { lang: 'en', appearance: 'light' }, 'compress'],
   ['compress-size-dark-tr', { lang: 'tr', appearance: 'dark' }, 'compress:size'],
   ['compress-pseudo-rtl', { lang: 'ar-XB', appearance: 'light' }, 'compress:ratio'],
+  // The web download dialog: a YouTube video (with the first-use notice once), an Instagram photo
+  // post and reel, reading the link, a refusal, the missing tools; and a link dragged onto the
+  // floating wheel.
+  ['web-video-light-en', { lang: 'en', appearance: 'light' }, 'web:youtube:notice'],
+  ['web-video-dark-tr', { lang: 'tr', appearance: 'dark' }, 'web:youtube'],
+  ['web-post-light-tr', { lang: 'tr', appearance: 'light' }, 'web:post'],
+  ['web-post-dark-en', { lang: 'en', appearance: 'dark' }, 'web:post'],
+  ['web-reel-light-en', { lang: 'en', appearance: 'light' }, 'web:reel'],
+  ['web-probing-dark-en', { lang: 'en', appearance: 'dark', web: 'probing' }, 'web:youtube'],
+  ['web-no-media-light-tr', { lang: 'tr', appearance: 'light', web: 'no-media' }, 'web:youtube'],
+  ['web-codec-dark-en', { lang: 'en', appearance: 'dark', web: 'codec' }, 'web:youtube'],
+  ['web-setup-light-tr', { lang: 'tr', appearance: 'light', web: 'setup' }, 'web:youtube'],
+  ['web-post-pseudo-rtl', { lang: 'ar-XB', appearance: 'light' }, 'web:post'],
+  ['web-video-pseudo-long', { lang: 'en-XA', appearance: 'dark' }, 'web:youtube'],
+  ['surface-wheel-link-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', drag: 'link' }],
+  ['surface-wheel-link-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', drag: 'link' }],
 ];
 
 const SIZES = { wheel: [520, 520], shelf: [300, 480], toast: [400, 200] };
@@ -168,9 +184,28 @@ async function metadata(page, action) {
   await page.waitForTimeout(200);
 }
 
+/** Opens the web download dialog for a demo link through the store, as a pasted link does. The
+ *  first-use notice shows only when asked for. */
+async function web(page, which, notice) {
+  await page.evaluate(
+    async ([key, withNotice]) => {
+      const { useApp } = await import('/src/state/store.ts');
+      const { DEMO_LINKS } = await import('/src/ipc.ts');
+      const { settings } = useApp.getState();
+      useApp.setState({ settings: { ...settings, web: { ...settings.web, noticeShown: !withNotice } } });
+      useApp.getState().openWeb(DEMO_LINKS[key]);
+    },
+    [which, notice === 'notice'],
+  );
+  await page.waitForSelector('[role=dialog]');
+  // The demo's picture previews arrive one by one.
+  await page.waitForTimeout(600);
+}
+
 /** Opens a wheel or a panel the way a person would with the keyboard. */
 async function act(page, action) {
   if (!action) return;
+  if (action.startsWith('web:')) return web(page, ...action.split(':').slice(1));
   if (action.startsWith('image:')) return imageEditor(page, action.slice('image:'.length));
   if (action.startsWith('compress')) return compress(page, action.split(':')[1]);
   if (action.startsWith('metadata')) return metadata(page, action);

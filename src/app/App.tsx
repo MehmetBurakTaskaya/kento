@@ -9,6 +9,7 @@ import { api, type Section } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
 import { applyTheme, getTheme, modeFor } from '../theme/registry';
 import { ToolPanel } from '../tools/ToolPanel';
+import { WebDialog } from '../web/WebDialog';
 import { WheelDemo, wheelDemoRequested } from '../wheel';
 import { Home } from './Home';
 import { useFileInput } from './input';
@@ -78,6 +79,23 @@ export function App() {
     return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
   }, []);
 
+  // The download dialog for a link from the floating wheel's More… or the download shortcut. A
+  // quick download from the wheel shows the first-use notice itself, so the dialog no longer does.
+  useEffect(() => {
+    const take = () => void api.webTakePending().then((url) => url && useApp.getState().openWeb(url));
+    take();
+    const stops = [
+      api.onWebOpen(take),
+      api.onSettings((saved) => {
+        const { settings } = useApp.getState();
+        if (settings && saved.settings.web.noticeShown && !settings.web.noticeShown) {
+          useApp.setState({ settings: { ...settings, web: { ...settings.web, noticeShown: true } } });
+        }
+      }),
+    ];
+    return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()));
+  }, []);
+
   // Ctrl+1, Ctrl+2 and Ctrl+, (⌘ on macOS) switch pages.
   useEffect(() => {
     const mac = boot?.app.platform === 'macos';
@@ -133,6 +151,7 @@ export function App() {
       </main>
       <WheelHost />
       <ToolPanel />
+      <WebDialog />
       <Setup />
       <Toasts />
     </div>

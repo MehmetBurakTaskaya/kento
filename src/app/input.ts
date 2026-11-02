@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 // The ways files come into the main window (SPEC 5.2): dropping, Ctrl+O and Ctrl+V. Pasting reads
-// the clipboard only at that moment: files as they are, text as a .txt, an image as a .png.
+// the clipboard only at that moment: files as they are, text as a .txt, an image as a .png, and a
+// link opens the web download (SPEC 5.10), as a link dropped on the window does.
 import { useEffect } from 'react';
 import i18n from '../i18n';
-import { api } from '../ipc';
+import { api, type Dropped } from '../ipc';
 import { useApp } from '../state/store';
+import { isLink } from '../web/links';
 
 export async function chooseFiles() {
   try {
@@ -22,7 +24,7 @@ function editable(target: EventTarget | null) {
   );
 }
 
-async function paste(text: string, image: File | null) {
+export async function paste(text: string, image: File | null) {
   const store = useApp.getState();
   const files = await api.pasteFiles();
   if (files.length) {
@@ -36,8 +38,8 @@ async function paste(text: string, image: File | null) {
     return;
   }
   const trimmed = text.trim();
-  if (/^https?:\/\/\S+$/i.test(trimmed)) {
-    store.toast({ kind: 'info', message: i18n.t('paste.link') });
+  if (isLink(trimmed)) {
+    store.openWeb(trimmed);
     return;
   }
   if (trimmed) {
@@ -47,19 +49,27 @@ async function paste(text: string, image: File | null) {
   }
 }
 
+/** What a drop on the window brings in: a link opens the download dialog, files join Home. */
+export function drop({ paths, link }: Dropped) {
+  const store = useApp.getState();
+  if (link) store.openWeb(link);
+  else if (paths.length) void store.addFiles(paths);
+}
+
 /** Drop, paste and Ctrl+O for the whole window. */
 export function useFileInput(mac: boolean) {
   useEffect(() => {
     const root = document.documentElement;
     const dropped = api.onDrop(
-      (paths) => {
+      (what) => {
         root.removeAttribute('data-dragging');
-        void useApp.getState().addFiles(paths);
+        drop(what);
       },
       (over) => root.toggleAttribute('data-dragging', over),
     );
     const onPaste = (event: ClipboardEvent) => {
-      if (editable(event.target) || useApp.getState().wheel || useApp.getState().panel) return;
+      const { wheel, panel, web } = useApp.getState();
+      if (editable(event.target) || wheel || panel || web) return;
       // The clipboard data is only readable during the event.
       const data = event.clipboardData;
       const text = data?.getData('text/plain') ?? '';
