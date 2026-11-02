@@ -102,6 +102,112 @@ fn media(dir: &Path, tools: kento_engines::Tools) -> Result<String, String> {
     Ok("wav → mp3 with FFmpeg, probed back".into())
 }
 
+/// The image editors, Compress and Metadata on files made here: a picture drawn from SVG, cropped
+/// and marked up with text (which needs the system's fonts), a JPG compressed, and a PDF's title
+/// written and read back.
+fn image_tools(dir: &Path) -> Result<String, String> {
+    use kento_engines as e;
+    use kento_engines::image::tools::{ImageRun, ImageTool, Mark};
+    use kento_engines::media::Area;
+    let options = e::Options::default();
+    let progress = e::Progress::none();
+    let io = |err: std::io::Error| err.to_string();
+    let svg = dir.join("Kento ğüşıöç 🧪.svg");
+    std::fs::write(
+        &svg,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><defs><linearGradient id="g"><stop offset="0" stop-color="#2a4ea6"/><stop offset="1" stop-color="#e8b04a"/></linearGradient></defs><rect width="320" height="240" fill="url(#g)"/><circle cx="160" cy="120" r="70" fill="#fff" opacity="0.6"/></svg>"##,
+    )
+    .map_err(io)?;
+    let convert = |input: &Path, from: &str, to: &str, dest: &Path| {
+        e::convert(&e::Conversion {
+            input,
+            from,
+            to,
+            dest,
+            temp: dir,
+            options: &options,
+            progress: &progress,
+        })
+        .map_err(|err| format!("{from} → {to}: {err}"))
+    };
+    let png = dir.join("resim.png");
+    convert(&svg, "svg", "png", &png)?;
+    let tool = |tool: ImageTool, dest: &Path| {
+        e::image::tools::run_tool(&ImageRun {
+            inputs: &[(png.clone(), "png".into())],
+            tool: &tool,
+            dest,
+            temp: dir,
+            options: &options,
+            progress: &progress,
+        })
+        .map_err(|err| format!("{}: {err}", tool.id()))
+    };
+    let area = Area {
+        x: 40.0,
+        y: 20.0,
+        width: 200.0,
+        height: 150.0,
+    };
+    let cropped = dir.join("kırpılmış.png");
+    tool(ImageTool::CropImage { area }, &cropped)?;
+    let marked = dir.join("işaretli.png");
+    let text = Mark::Text {
+        at: [20.0, 20.0],
+        text: "Çark ğüş".into(),
+        color: [200, 30, 30, 255],
+        size: 32.0,
+    };
+    tool(ImageTool::Markup { marks: vec![text] }, &marked)?;
+    let jpg = dir.join("foto.jpg");
+    convert(&png, "png", "jpg", &jpg)?;
+    let small = dir.join("foto küçük.jpg");
+    e::compress::compress(&e::compress::CompressRun {
+        input: &jpg,
+        from: "jpg",
+        kind: e::FileKind::Image,
+        compression: e::compress::Compression::Quality { level: 30 },
+        dest: &small,
+        temp: dir,
+        options: &options,
+        progress: &progress,
+    })
+    .map_err(|err| format!("compress: {err}"))?;
+    let pdf = dir.join("belge.pdf");
+    convert(&png, "png", "pdf", &pdf)?;
+    let titled = dir.join("belge başlıklı.pdf");
+    let change = e::metadata::MetadataChange {
+        set: [("title".to_string(), "Kento ğüş 🧪".to_string())].into(),
+        ..Default::default()
+    };
+    e::metadata::write(&e::metadata::MetadataRun {
+        input: &pdf,
+        from: "pdf",
+        kind: e::FileKind::Pdf,
+        change: &change,
+        dest: &titled,
+        temp: dir,
+        tools: &options.tools,
+        progress: &progress,
+    })
+    .map_err(|err| format!("metadata: {err}"))?;
+    let info = e::metadata::read(&titled, "pdf", e::FileKind::Pdf, &options.tools)
+        .map_err(|err| format!("metadata read: {err}"))?;
+    let titled_back = info
+        .fields
+        .iter()
+        .any(|field| field.key == "title" && field.value == "Kento ğüş 🧪");
+    let size = |path: &Path| std::fs::metadata(path).map(|m| m.len()).map_err(io);
+    if size(&small)? >= size(&jpg)? || !titled_back {
+        return Err("compress or metadata gave an unexpected result".into());
+    }
+    let same = std::fs::read(&marked).map_err(io)? == std::fs::read(&png).map_err(io)?;
+    if same || size(&cropped)? == 0 {
+        return Err("crop or mark up changed nothing".into());
+    }
+    Ok("crop, mark up with text, JPG compress, PDF title written and read back".into())
+}
+
 /// Runs a chain of real conversions through the engines: an SVG drawn to PNG, then JPG and PDF,
 /// the PDF's page back to PNG (this needs the bundled PDFium), Markdown to HTML, and a ZIP made
 /// and extracted. Names carry Turkish letters and an emoji (SPEC 5.14).
@@ -274,6 +380,15 @@ pub async fn run(app: AppHandle) -> bool {
         Err(err) => Err(err.to_string()),
     };
     checks.push(check("engines", engine_result));
+
+    let dir = scratch.join("image tools");
+    let image_result = match std::fs::create_dir_all(&dir) {
+        Ok(()) => tauri::async_runtime::spawn_blocking(move || image_tools(&dir))
+            .await
+            .unwrap_or_else(|err| Err(err.to_string())),
+        Err(err) => Err(err.to_string()),
+    };
+    checks.push(check("image tools", image_result));
 
     let tools = crate::toolchain::engine_tools(&state);
     let dir = scratch.join("media");
