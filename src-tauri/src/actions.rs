@@ -197,7 +197,7 @@ async fn confirm_move(app: &AppHandle, question: &str, dir: &Path) -> bool {
 }
 
 /// Copies or moves one file or folder into `dir` under a free name, as a job.
-fn transfer(ctx: &Context, source: &Path, dir: &Path, moving: bool) -> u64 {
+pub(crate) fn transfer(ctx: &Context, source: &Path, dir: &Path, moving: bool) -> u64 {
     let name = display(source);
     let target = if source.is_dir() {
         Target::Folder {

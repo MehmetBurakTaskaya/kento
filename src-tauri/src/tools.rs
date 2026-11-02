@@ -209,22 +209,25 @@ pub fn extract_archives(
     let ctx = Context::new(&app, &state)?;
     let ids: Vec<u64> = archives
         .into_iter()
-        .map(|(path, format)| {
-            let target = Target::Folder {
-                dir: ctx.dir_for(&path),
-                name: stem_of(&path),
-            };
-            let title = title(&ctx, "extract", std::slice::from_ref(&path));
-            let (input, from) = (path.clone(), format.id);
-            let work: Work = Box::new(move |dest, _, progress| {
-                let options = Options::default();
-                archive::extract(&input, from, dest, &options.archive_limits, progress).map(|_| ())
-            });
-            ctx.submit(title, target, work, Origin::Tool, Some(path))
-        })
+        .map(|(path, format)| submit_extract(&ctx, path, format))
         .collect();
     crate::actions::watch(&window, &state, &ids);
     Ok(ids)
+}
+
+/// One archive into a new folder named after it.
+pub(crate) fn submit_extract(ctx: &Context, path: PathBuf, format: &'static Format) -> u64 {
+    let target = Target::Folder {
+        dir: ctx.dir_for(&path),
+        name: stem_of(&path),
+    };
+    let title = title(ctx, "extract", std::slice::from_ref(&path));
+    let (input, from) = (path.clone(), format.id);
+    let work: Work = Box::new(move |dest, _, progress| {
+        let options = Options::default();
+        archive::extract(&input, from, dest, &options.archive_limits, progress).map(|_| ())
+    });
+    ctx.submit(title, target, work, Origin::Tool, Some(path))
 }
 
 #[tauri::command]

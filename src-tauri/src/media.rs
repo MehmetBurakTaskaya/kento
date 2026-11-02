@@ -211,7 +211,12 @@ pub fn run_media_tool(
     Ok(ids)
 }
 
-fn submit(ctx: &Context, tool: Tool, inputs: Vec<PathBuf>, from: &'static Format) -> u64 {
+pub(crate) fn submit(
+    ctx: &Context,
+    tool: Tool,
+    inputs: Vec<PathBuf>,
+    from: &'static Format,
+) -> u64 {
     let source = inputs[0].clone();
     let name = file_name(
         &stem_of(&source),

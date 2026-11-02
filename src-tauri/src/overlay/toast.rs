@@ -99,6 +99,20 @@ pub fn on_job(app: &AppHandle, info: &JobInfo) {
     show(app, card);
 }
 
+/// A failure no window started, such as a folder automation rule's.
+pub fn alert(app: &AppHandle, title: String, message: String, details: Option<String>) {
+    let id = app.state::<AppState>().toasts.id();
+    show(
+        app,
+        Card::Failed {
+            id,
+            title,
+            message,
+            details,
+        },
+    );
+}
+
 /// A short note, for example "Copied the path".
 pub fn note(app: &AppHandle, message: String) {
     let id = app.state::<AppState>().toasts.id();

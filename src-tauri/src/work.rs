@@ -335,6 +335,12 @@ impl Context {
         }
     }
 
+    /// Every output of this request goes to `dir` (a folder automation rule's output folder).
+    pub(crate) fn into_folder(mut self, dir: PathBuf) -> Self {
+        self.output = OutputDir::Folder(dir);
+        self
+    }
+
     pub(crate) fn text(&self, key: &str) -> String {
         i18n::text(&self.lang, key)
     }

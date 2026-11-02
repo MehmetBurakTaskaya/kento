@@ -4,6 +4,7 @@
 
 pub mod actions;
 pub mod bgremove;
+pub mod automation;
 pub mod catalog;
 pub mod commands;
 pub mod compress;
@@ -151,6 +152,7 @@ fn setup(
     let listener: Listener = Arc::new(move |info: &JobInfo| {
         let _ = handle.emit("job", info);
         overlay::toast::on_job(&handle, info);
+        automation::on_job(&handle, info);
     });
     let library = Library::load(paths.data.join("library.json"));
     let toolchain = toolchain::Toolchain::new(&paths.data);
@@ -162,6 +164,7 @@ fn setup(
     // The example recipe is named in the interface language when the recipes file is first made.
     let lang = i18n::resolve(&settings.language, i18n::system_locale().as_deref());
     app.manage(recipes::Recipes::open(paths.recipes_file(), &lang));
+    app.manage(automation::Automation::open(paths.automation_file()));
     app.manage(AppState {
         paths,
         settings: Mutex::new(settings),
@@ -206,6 +209,7 @@ fn setup(
     if !smoke_test {
         overlay::wheel::sync_watcher(app);
         shortcut::sync(app);
+        automation::start(app);
     }
     if let Some(paths) = launch {
         overlay::wheel::open_for(app, paths, overlay::wheel::Kind::Convert);
@@ -383,6 +387,13 @@ pub fn run() {
             recipes::recipes_reorder,
             recipes::recipes_for,
             recipes::run_recipe,
+            automation::automation_view,
+            automation::automation_choose_folder,
+            automation::automation_save_rule,
+            automation::automation_delete_rule,
+            automation::automation_set_enabled,
+            automation::automation_set_paused,
+            automation::automation_clear_activity,
         ])
         .build(tauri::generate_context!())
         .expect("Kento could not start")
