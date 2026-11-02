@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MediaTool } from '../../ipc';
 import { NumberField, Section } from '../controls';
+import { Slider } from '../image/controls';
 import { EditorShell } from '../EditorShell';
 import { LOUDNESS, LOUDNESS_PRESETS } from '../levels';
 import type { EditorProps } from '../panels';
@@ -60,40 +61,23 @@ export function Normalize(props: EditorProps) {
         )}
       </Section>
       <Section title={t('editor.normalize.more')}>
-        <label className="editor-field">
-          <span>
-            {t('editor.normalize.range')}
-            <output className="editor-value">
-              {t('editor.normalize.lu', { value: formatNumber(range, lang, 1) })}
-            </output>
-          </span>
-          <input
-            type="range"
-            className="editor-range"
-            min={LOUDNESS.range.min}
-            max={LOUDNESS.range.max}
-            step={1}
-            value={range}
-            onChange={(event) => setRange(Number(event.target.value))}
-          />
-        </label>
-        <label className="editor-field">
-          <span>
-            {t('editor.normalize.peak')}
-            <output className="editor-value">
-              {t('editor.normalize.dbtp', { value: formatNumber(peak, lang, 1) })}
-            </output>
-          </span>
-          <input
-            type="range"
-            className="editor-range"
-            min={LOUDNESS.peak.min}
-            max={LOUDNESS.peak.max}
-            step={0.5}
-            value={peak}
-            onChange={(event) => setPeak(Number(event.target.value))}
-          />
-        </label>
+        <Slider
+          label={t('editor.normalize.range')}
+          value={range}
+          min={LOUDNESS.range.min}
+          max={LOUDNESS.range.max}
+          text={t('editor.normalize.lu', { value: formatNumber(range, lang, 1) })}
+          onChange={setRange}
+        />
+        <Slider
+          label={t('editor.normalize.peak')}
+          value={peak}
+          min={LOUDNESS.peak.min}
+          max={LOUDNESS.peak.max}
+          step={0.5}
+          text={t('editor.normalize.dbtp', { value: formatNumber(peak, lang, 1) })}
+          onChange={setPeak}
+        />
         <p className="editor-hint muted">{t('editor.normalize.text')}</p>
       </Section>
     </EditorShell>

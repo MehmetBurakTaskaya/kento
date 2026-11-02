@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MediaTool } from '../../ipc';
 import { Section, Segmented } from '../controls';
+import { Slider } from '../image/controls';
 import { EditorShell } from '../EditorShell';
 import type { EditorProps } from '../panels';
 import { Waveform } from '../Timeline';
@@ -30,22 +31,15 @@ export function Channels(props: EditorProps) {
   const peaks = core.media.peaks ?? [];
 
   const level = (label: string, value: number, set: (value: number) => void) => (
-    <label className="editor-field">
-      <span>
-        {label}
-        <output className="editor-value">{t('editor.channels.level', { value })}</output>
-      </span>
-      <input
-        type="range"
-        className="editor-range"
-        min={0}
-        max={2}
-        step={0.05}
-        value={value}
-        aria-valuetext={t('editor.channels.level', { value })}
-        onChange={(event) => set(Number(event.target.value))}
-      />
-    </label>
+    <Slider
+      label={label}
+      value={value}
+      min={0}
+      max={2}
+      step={0.05}
+      text={t('editor.channels.level', { value })}
+      onChange={set}
+    />
   );
 
   return (
