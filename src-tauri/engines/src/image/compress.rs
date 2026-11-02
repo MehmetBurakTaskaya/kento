@@ -53,21 +53,28 @@ enum Method {
     Tiff,
 }
 
-pub(crate) fn run(run: &CompressRun) -> Result<Vec<PathBuf>> {
-    let method = match run.from {
+fn method(from: &str) -> Option<Method> {
+    Some(match from {
         "jpg" => Method::Quality("jpg"),
         "webp" => Method::Quality("webp"),
         "avif" => Method::Quality("avif"),
         "heic" if heic_write_available() => Method::Quality("heic"),
         "png" => Method::Png,
         "tiff" => Method::Tiff,
-        other => {
-            return Err(Error::Unsupported {
-                from: other.to_owned(),
-                to: "compress".to_owned(),
-            })
-        }
-    };
+        _ => return None,
+    })
+}
+
+/// Whether Compress makes pictures of this format smaller in the same format.
+pub(crate) fn takes(from: &str) -> bool {
+    method(from).is_some()
+}
+
+pub(crate) fn run(run: &CompressRun) -> Result<Vec<PathBuf>> {
+    let method = method(run.from).ok_or_else(|| Error::Unsupported {
+        from: run.from.to_owned(),
+        to: "compress".to_owned(),
+    })?;
     let original = fs::metadata(run.input)?.len();
     let target = target(run.compression, original)?;
     run.progress.check()?;

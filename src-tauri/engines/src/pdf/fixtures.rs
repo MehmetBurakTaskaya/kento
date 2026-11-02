@@ -8,7 +8,7 @@ use pdfium_render::prelude::Pdfium;
 
 /// Loads PDFium from `KENTO_PDFIUM` or `src-tauri/resources/pdfium`. Without it the caller
 /// skips its PDFium checks (this prints why), unless `KENTO_REQUIRE_PDFIUM=1` (CI).
-pub(super) fn pdfium() -> bool {
+pub(crate) fn pdfium() -> bool {
     let path = std::env::var_os("KENTO_PDFIUM")
         .map(PathBuf::from)
         .unwrap_or_else(|| {

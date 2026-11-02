@@ -53,6 +53,11 @@ pub fn output(_from: &str, _to: &str) -> Output {
     Output::File
 }
 
+/// Whether the image tools take pictures of this format (a recipe's crop and resize too).
+pub fn reads(from: &str) -> bool {
+    INPUTS.contains(&from)
+}
+
 /// Whether this computer can write HEIC. The answer comes from a small test encode through the
 /// system codec, made once per run.
 pub fn heic_write_available() -> bool {

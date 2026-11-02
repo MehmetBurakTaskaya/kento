@@ -34,6 +34,18 @@ pub struct CompressRun<'a> {
     pub progress: &'a Progress<'a>,
 }
 
+/// The kind of file Compress takes in this format (a catalog id), or None when the format cannot
+/// get smaller in itself (BMP, GIF, WAV, AIFF…) or is not one Compress takes at all.
+pub fn kind(from: &str) -> Option<FileKind> {
+    if crate::image::compress::takes(from) {
+        Some(FileKind::Image)
+    } else if from == "pdf" {
+        Some(FileKind::Pdf)
+    } else {
+        crate::media::compress::kind(from)
+    }
+}
+
 /// Compresses one file. When nothing smaller than the original (or under the target size) comes
 /// out, the job ends with `Error::NotSmaller` and writes nothing.
 pub fn compress(run: &CompressRun) -> Result<Vec<PathBuf>> {

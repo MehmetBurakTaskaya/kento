@@ -28,7 +28,7 @@ use super::convert::EVEN;
 use super::probe::{self, Probe, Stream};
 use super::run::{self, Cmd, Watch};
 use crate::compress::{CompressRun, Compression};
-use crate::{Error, Result};
+use crate::{Error, FileKind, Result};
 
 /// Encodes at most this many times to land under a target.
 const ATTEMPTS: i32 = 4;
@@ -48,6 +48,20 @@ const MP3_LOW_RATES: [u32; 14] = [8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 12
 const VORBIS: [f64; 11] = [
     64.0, 80.0, 96.0, 112.0, 128.0, 160.0, 192.0, 224.0, 256.0, 320.0, 500.0,
 ];
+
+/// Whether Compress makes files of this format (a catalog id) smaller in the same format, and
+/// whether they count as video or audio.
+pub(crate) fn kind(from: &str) -> Option<FileKind> {
+    let container = Container::from_id(from).filter(|container| *container != Container::Gif)?;
+    if matches!(container.audio(), Some(AudioCodec::Pcm(_))) {
+        return None;
+    }
+    Some(if container.audio_only() {
+        FileKind::Audio
+    } else {
+        FileKind::Video
+    })
+}
 
 pub(crate) fn run(run: &CompressRun) -> Result<Vec<PathBuf>> {
     let unsupported = || Error::Unsupported {

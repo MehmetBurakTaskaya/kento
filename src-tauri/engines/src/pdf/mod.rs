@@ -5,7 +5,7 @@
 
 pub(crate) mod compress;
 #[cfg(test)]
-mod fixtures;
+pub(crate) mod fixtures;
 mod jpeg;
 mod pdfium;
 mod table;
