@@ -17,6 +17,7 @@ pub mod office;
 pub mod pdf;
 mod process;
 pub mod qr;
+pub mod recipe;
 pub mod sheet;
 pub mod subtitle;
 pub mod text;

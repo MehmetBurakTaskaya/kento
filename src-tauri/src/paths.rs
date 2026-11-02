@@ -29,6 +29,16 @@ impl AppPaths {
         self.data.join("settings.json")
     }
 
+    /// The recipes (SPEC 5.11), shared by the wheel, folder automation and the command line.
+    pub fn recipes_file(&self) -> PathBuf {
+        self.data.join("recipes.json")
+    }
+
+    /// The folder automation rules and their state (SPEC 5.11).
+    pub fn automation_file(&self) -> PathBuf {
+        self.data.join("automation.json")
+    }
+
     /// LibreOffice's profile for Kento's jobs, apart from the user's own (SPEC 7).
     pub fn office_profile(&self) -> PathBuf {
         self.data.join("office-profile")
