@@ -44,6 +44,12 @@ pub struct Group {
     /// updated without touching the rest of the group.
     #[serde(default)]
     pub versions: BTreeMap<String, String>,
+    /// Tools that are files Kento loads or reads rather than programs it runs (ONNX Runtime's
+    /// library, the background-removal model). Each has a version of its own, keeps the name it has
+    /// in its download and is only ever Kento's own pinned copy: nothing on the computer is searched
+    /// and no path can be chosen, since the engine is written for exactly that file.
+    #[serde(default)]
+    pub resources: BTreeSet<String>,
     #[serde(default)]
     pub license: Option<String>,
     #[serde(default)]
@@ -157,7 +163,36 @@ impl Platform {
     }
 }
 
+/// The last part of a path inside an archive: the name a resource keeps.
+fn last_part(inner: &str) -> &str {
+    inner.rsplit('/').next().unwrap_or(inner)
+}
+
 impl Group {
+    /// Whether a tool is a file Kento loads or reads rather than a program it runs.
+    pub fn is_resource(&self, tool: &str) -> bool {
+        self.resources.contains(tool)
+    }
+
+    /// Where each tool of `platform` lands, relative to its install folder, as
+    /// `Platform::programs` says, except that a resource keeps its own file name
+    /// (`onnxruntime.dll`, `BEN2_Base.onnx`).
+    pub fn programs(
+        &self,
+        platform: &Platform,
+        file_name: impl Fn(&str) -> String,
+    ) -> BTreeMap<String, PathBuf> {
+        let mut programs = platform.programs(file_name);
+        for file in &platform.files {
+            for (tool, inner) in &file.entries {
+                if self.is_resource(tool) && file.kept(inner).is_none() {
+                    programs.insert(tool.clone(), PathBuf::from(last_part(inner)));
+                }
+            }
+        }
+        programs
+    }
+
     /// The version a tool is pinned at: its own, or the group's.
     pub fn version_of(&self, tool: &str) -> Option<&str> {
         self.versions
@@ -251,6 +286,17 @@ impl Lock {
                     return Err(format!("{}: bad own version for {tool:?}", group.id));
                 }
             }
+            // A resource is replaced on its own, like any tool with a version of its own.
+            if let Some(tool) = group
+                .resources
+                .iter()
+                .find(|tool| !group.versions.contains_key(*tool))
+            {
+                return Err(format!(
+                    "{}: the resource {tool:?} needs a version of its own",
+                    group.id
+                ));
+            }
             for (key, platform) in &group.platforms {
                 if !PLATFORMS.contains(&key.as_str()) {
                     return Err(format!("{}: unknown platform {key}", group.id));
@@ -309,6 +355,13 @@ fn check_platform(group: &Group, key: &str, platform: &Platform) -> Result<(), S
         for (tool, inner) in &file.entries {
             if !inner_path(inner) {
                 return Err(at(format!("bad entry path {inner:?}")));
+            }
+            // A resource keeps its own name in Kento's folder, so that name must be a plain one.
+            if group.is_resource(tool)
+                && file.kept(inner).is_none()
+                && (!plain_name(last_part(inner)) || !placed.insert(last_part(inner).to_string()))
+            {
+                return Err(at(format!("bad or repeated resource name {inner:?}")));
             }
             if file.archive.is_image() && file.kept(inner).is_none() {
                 return Err(at(format!(
@@ -495,11 +548,11 @@ mod tests {
         // every Mac (Perl needs no Rosetta, so Apple silicon has its own entry).
         let extras = lock.group("extras").unwrap();
         assert!(extras.available);
-        assert_eq!(extras.tools, ["exiftool"]);
+        assert_eq!(extras.tools, ["exiftool", "onnxruntime", "bg-model"]);
         let version = extras.version.as_deref().unwrap();
         for key in PLATFORMS {
             let platform = &extras.platforms[key];
-            assert_eq!(platform.files.len(), 1);
+            assert_eq!(platform.files.len(), 3);
             let file = &platform.files[0];
             assert!(file
                 .url
@@ -523,6 +576,45 @@ mod tests {
         assert_eq!(
             extras.platform(Some("macos-arm64")).unwrap().files[0].url,
             extras.platforms["macos-x64"].files[0].url
+        );
+
+        // Background removal: ONNX Runtime's library from Microsoft's own release (native on both
+        // Mac kinds) and the model from its authors, each at a version of its own and kept under
+        // its own name, the same model file everywhere.
+        assert_eq!(extras.version_of("onnxruntime"), Some("1.23.2"));
+        assert_eq!(extras.version_of("bg-model"), Some("1.0"));
+        assert!(extras.is_resource("onnxruntime") && extras.is_resource("bg-model"));
+        assert!(!extras.is_resource("exiftool"));
+        for (key, library) in [
+            ("windows-x64", "onnxruntime.dll"),
+            ("macos-arm64", "libonnxruntime.1.23.2.dylib"),
+            ("macos-x64", "libonnxruntime.1.23.2.dylib"),
+        ] {
+            let platform = &extras.platforms[key];
+            let runtime = &platform.files[1];
+            assert!(runtime.url.starts_with(
+                "https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-"
+            ));
+            assert_eq!(extras.own_tool(runtime), Some("onnxruntime"));
+            let model = &platform.files[2];
+            assert_eq!(model.archive, ArchiveKind::File);
+            assert!(model
+                .url
+                .starts_with("https://huggingface.co/PramaLLC/BEN2/resolve/"));
+            assert_eq!(model.file_name(), "BEN2_Base.onnx");
+            assert_eq!(extras.own_tool(model), Some("bg-model"));
+            let programs = extras.programs(platform, |tool| format!("{tool}.exe"));
+            assert_eq!(programs["onnxruntime"], PathBuf::from(library));
+            assert_eq!(programs["bg-model"], PathBuf::from("BEN2_Base.onnx"));
+            assert_eq!(programs["exiftool"], PathBuf::from("exiftool.exe"));
+        }
+        assert_eq!(
+            extras.platforms["windows-x64"].files[1].archive,
+            ArchiveKind::Zip
+        );
+        assert_ne!(
+            extras.platform(Some("macos-arm64")).unwrap().files[1].url,
+            extras.platforms["macos-x64"].files[1].url
         );
 
         // LibreOffice: the official installers, each unpacked by its own system's tool, the
@@ -581,6 +673,8 @@ mod tests {
         assert_eq!(lock.group_of("yt-dlp").unwrap().id, "media");
         assert_eq!(lock.group_of("deno").unwrap().id, "media");
         assert_eq!(lock.group_of("exiftool").unwrap().id, "extras");
+        assert_eq!(lock.group_of("onnxruntime").unwrap().id, "extras");
+        assert_eq!(lock.group_of("bg-model").unwrap().id, "extras");
         assert_eq!(lock.group_of("soffice").unwrap().id, "office");
         // The embedded copy is the same file.
         assert_eq!(Lock::embedded().groups.len(), 3);
@@ -867,6 +961,77 @@ mod tests {
                 &ytdlp_file().replace("yt-dlp_macos\"", "yt-dlp_2\""),
             ),
             media_with(VERSIONS, &ytdlp, &deno).replace("\"file\"", "\"bin\""),
+        ] {
+            assert!(Lock::parse(&bad).is_err(), "{bad}");
+        }
+    }
+
+    /// An Extras group like the pinned one: a program under the group's version, a library in an
+    /// archive and a model file, the last two resources at versions of their own.
+    fn extras_with(resources: &str, versions: &str, library: &str, model: &str) -> String {
+        format!(
+            r#"{{"schema":1,"groups":[{{"id":"extras","available":true,"version":"13.60",
+            "tools":["exiftool","onnxruntime","bg-model"],"versions":{versions},"resources":{resources},
+            "platforms":{{"windows-x64":{{"source":"test","files":[
+            {{"url":"https://example.org/exiftool.zip","size":1,"sha256":"{NO_HASH}","archive":"zip","entries":{{"exiftool":"exiftool(-k).exe"}}}},
+            {{"url":"https://example.org/runtime.zip","size":1,"sha256":"{NO_HASH}","archive":"zip","entries":{{"onnxruntime":"{library}"}}}},
+            {{"url":"https://example.org/{model}","size":1,"sha256":"{NO_HASH}","archive":"file","entries":{{"bg-model":"{model}"}}}}
+            ]}}}}}}]}}"#
+        )
+    }
+
+    const RESOURCES: &str = r#"["onnxruntime","bg-model"]"#;
+    const RESOURCE_VERSIONS: &str = r#"{"onnxruntime":"1.23.2","bg-model":"1.0"}"#;
+
+    #[test]
+    fn resources_keep_their_own_names_and_versions() {
+        let text = extras_with(
+            RESOURCES,
+            RESOURCE_VERSIONS,
+            "pack/lib/onnxruntime.dll",
+            "Model_1.onnx",
+        );
+        let lock = Lock::parse(&text).unwrap();
+        let extras = &lock.groups[0];
+        let platform = &extras.platforms["windows-x64"];
+        let programs = extras.programs(platform, |tool| format!("{tool}.exe"));
+        assert_eq!(programs["exiftool"], PathBuf::from("exiftool.exe"));
+        assert_eq!(programs["onnxruntime"], PathBuf::from("onnxruntime.dll"));
+        assert_eq!(programs["bg-model"], PathBuf::from("Model_1.onnx"));
+        // Without the resources, every tool is a program named after itself.
+        assert_eq!(
+            platform.programs(|tool| format!("{tool}.exe"))["bg-model"],
+            PathBuf::from("bg-model.exe")
+        );
+
+        for bad in [
+            // A resource is replaced on its own, so it has a version of its own.
+            extras_with(
+                RESOURCES,
+                r#"{"onnxruntime":"1.23.2"}"#,
+                "pack/lib/onnxruntime.dll",
+                "Model_1.onnx",
+            ),
+            // Only the group's tools.
+            extras_with(
+                r#"["onnxruntime","bg-model","ffmpeg"]"#,
+                RESOURCE_VERSIONS,
+                "pack/lib/onnxruntime.dll",
+                "Model_1.onnx",
+            ),
+            // Its name lands in Kento's folder as it is.
+            extras_with(
+                RESOURCES,
+                RESOURCE_VERSIONS,
+                "pack/lib/onnx runtime.dll",
+                "Model_1.onnx",
+            ),
+            extras_with(
+                RESOURCES,
+                RESOURCE_VERSIONS,
+                "pack/lib/exiftool.exe",
+                "Model_1.onnx",
+            ),
         ] {
             assert!(Lock::parse(&bad).is_err(), "{bad}");
         }

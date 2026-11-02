@@ -193,11 +193,16 @@
       "id": "extras",
       "available": true,
       "version": "13.60",
-      "license": "Artistic-1.0-Perl OR GPL-1.0-or-later",
-      "tools": ["exiftool"],
+      "license": "(Artistic-1.0-Perl OR GPL-1.0-or-later) AND MIT",
+      "tools": ["exiftool", "onnxruntime", "bg-model"],
+      "versions": {
+        "onnxruntime": "1.23.2",
+        "bg-model": "1.0"
+      },
+      "resources": ["onnxruntime", "bg-model"],
       "platforms": {
         "windows-x64": {
-          "source": "ExifTool 13.60 by Phil Harvey, the official 64-bit Windows package (the launcher and the Perl it runs, in exiftool_files), from the project's SourceForge release files; SHA-256 as published in exiftool.org/checksums.txt. The launcher is renamed exiftool.exe, since exiftool(-k).exe waits for a key press.",
+          "source": "ExifTool 13.60 by Phil Harvey, the official 64-bit Windows package (the launcher and the Perl it runs, in exiftool_files), from the project's SourceForge release files; SHA-256 as published in exiftool.org/checksums.txt. The launcher is renamed exiftool.exe, since exiftool(-k).exe waits for a key press. ONNX Runtime 1.23.2 (MIT) by Microsoft: the official x86-64 Windows zip from the microsoft/onnxruntime GitHub release (the last release with Intel Mac builds), of which only the library is kept; size and SHA-256 as the GitHub API publishes them for the release's files. The background-removal model: BEN2 Base (MIT) by Prama LLC, the ONNX file its authors publish in their Hugging Face repository PramaLLC/BEN2, pinned to the commit e48a207; size and SHA-256 as Hugging Face publishes them for the file (its X-Linked-Size and its Git LFS object id).",
           "files": [
             {
               "url": "https://downloads.sourceforge.net/project/exiftool/exiftool-13.60_64.zip",
@@ -210,11 +215,29 @@
               "folders": {
                 "exiftool-13.60_64/exiftool_files": "exiftool_files"
               }
+            },
+            {
+              "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-win-x64-1.23.2.zip",
+              "size": 78127794,
+              "sha256": "0b38df9af21834e41e73d602d90db5cb06dbd1ca618948b8f1d66d607ac9f3cd",
+              "archive": "zip",
+              "entries": {
+                "onnxruntime": "onnxruntime-win-x64-1.23.2/lib/onnxruntime.dll"
+              }
+            },
+            {
+              "url": "https://huggingface.co/PramaLLC/BEN2/resolve/e48a20765fb421d19dcdb0bf3cc61e802ca5ec8f/BEN2_Base.onnx",
+              "size": 222932053,
+              "sha256": "22cea62108ff53b7ccc20f7a008bf30494228d84b1687f29ecbe76936a998101",
+              "archive": "file",
+              "entries": {
+                "bg-model": "BEN2_Base.onnx"
+              }
             }
           ]
         },
         "macos-arm64": {
-          "source": "ExifTool 13.60 by Phil Harvey, the full Perl distribution, run by the system's /usr/bin/perl (the same files serve every Mac), from the project's SourceForge release files; SHA-256 as published in exiftool.org/checksums.txt",
+          "source": "ExifTool 13.60 by Phil Harvey, the full Perl distribution, run by the system's /usr/bin/perl (the same files serve every Mac), from the project's SourceForge release files; SHA-256 as published in exiftool.org/checksums.txt. ONNX Runtime 1.23.2 (MIT) by Microsoft: the official Apple silicon archive from the microsoft/onnxruntime GitHub release (the last release with Intel Mac builds), of which only the library is kept; size and SHA-256 as the GitHub API publishes them for the release's files. The background-removal model: BEN2 Base (MIT) by Prama LLC, the ONNX file its authors publish in their Hugging Face repository PramaLLC/BEN2, pinned to the commit e48a207; size and SHA-256 as Hugging Face publishes them for the file (its X-Linked-Size and its Git LFS object id).",
           "files": [
             {
               "url": "https://downloads.sourceforge.net/project/exiftool/Image-ExifTool-13.60.tar.gz",
@@ -227,11 +250,29 @@
               "folders": {
                 "Image-ExifTool-13.60/lib": "lib"
               }
+            },
+            {
+              "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-osx-arm64-1.23.2.tgz",
+              "size": 9999931,
+              "sha256": "b4d513ab2b26f088c66891dbbc1408166708773d7cc4163de7bdca0e9bbb7856",
+              "archive": "tar.gz",
+              "entries": {
+                "onnxruntime": "onnxruntime-osx-arm64-1.23.2/lib/libonnxruntime.1.23.2.dylib"
+              }
+            },
+            {
+              "url": "https://huggingface.co/PramaLLC/BEN2/resolve/e48a20765fb421d19dcdb0bf3cc61e802ca5ec8f/BEN2_Base.onnx",
+              "size": 222932053,
+              "sha256": "22cea62108ff53b7ccc20f7a008bf30494228d84b1687f29ecbe76936a998101",
+              "archive": "file",
+              "entries": {
+                "bg-model": "BEN2_Base.onnx"
+              }
             }
           ]
         },
         "macos-x64": {
-          "source": "ExifTool 13.60 by Phil Harvey, the full Perl distribution, run by the system's /usr/bin/perl (the same files serve every Mac), from the project's SourceForge release files; SHA-256 as published in exiftool.org/checksums.txt",
+          "source": "ExifTool 13.60 by Phil Harvey, the full Perl distribution, run by the system's /usr/bin/perl (the same files serve every Mac), from the project's SourceForge release files; SHA-256 as published in exiftool.org/checksums.txt. ONNX Runtime 1.23.2 (MIT) by Microsoft: the official Intel Mac archive from the microsoft/onnxruntime GitHub release (the last release with Intel Mac builds), of which only the library is kept; size and SHA-256 as the GitHub API publishes them for the release's files. The background-removal model: BEN2 Base (MIT) by Prama LLC, the ONNX file its authors publish in their Hugging Face repository PramaLLC/BEN2, pinned to the commit e48a207; size and SHA-256 as Hugging Face publishes them for the file (its X-Linked-Size and its Git LFS object id).",
           "files": [
             {
               "url": "https://downloads.sourceforge.net/project/exiftool/Image-ExifTool-13.60.tar.gz",
@@ -243,6 +284,24 @@
               },
               "folders": {
                 "Image-ExifTool-13.60/lib": "lib"
+              }
+            },
+            {
+              "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-osx-x86_64-1.23.2.tgz",
+              "size": 11676322,
+              "sha256": "d10359e16347b57d9959f7e80a225a5b4a66ed7d7e007274a15cae86836485a6",
+              "archive": "tar.gz",
+              "entries": {
+                "onnxruntime": "onnxruntime-osx-x86_64-1.23.2/lib/libonnxruntime.1.23.2.dylib"
+              }
+            },
+            {
+              "url": "https://huggingface.co/PramaLLC/BEN2/resolve/e48a20765fb421d19dcdb0bf3cc61e802ca5ec8f/BEN2_Base.onnx",
+              "size": 222932053,
+              "sha256": "22cea62108ff53b7ccc20f7a008bf30494228d84b1687f29ecbe76936a998101",
+              "archive": "file",
+              "entries": {
+                "bg-model": "BEN2_Base.onnx"
               }
             }
           ]

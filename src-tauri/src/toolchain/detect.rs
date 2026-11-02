@@ -199,6 +199,21 @@ pub fn find(
     None
 }
 
+/// The first of Kento's own copies of a resource (a library Kento loads, a model it reads) that is
+/// there: such a file is never run to be checked, and it was verified against its pinned SHA-256
+/// before it was unpacked. Its version is the name of its install folder.
+pub fn find_file(kento: &[PathBuf]) -> Option<Found> {
+    kento.iter().find_map(|path| {
+        let usable = std::fs::metadata(path).is_ok_and(|meta| meta.is_file() && meta.len() > 0);
+        let version = path.parent()?.file_name()?.to_string_lossy().into_owned();
+        usable.then(|| Found {
+            path: path.clone(),
+            version,
+            source: Source::Kento,
+        })
+    })
+}
+
 /// The program a path chosen in Settings stands for. A folder means the tool inside it; for
 /// LibreOffice that may also be its install folder (`program\soffice.exe` inside) or
 /// `LibreOffice.app`, and `soffice.com`, its console twin on Windows, means the program beside it.
@@ -693,6 +708,29 @@ pub(crate) mod tests {
         );
         let found = find("ffmpeg", &places, None, &[own]).unwrap();
         assert_eq!(found.source, Source::System);
+    }
+
+    #[test]
+    fn a_resource_is_kentos_first_copy_that_is_there() {
+        let base = tempfile::tempdir().unwrap();
+        let dir = base.path().join("araçlar ğ 🧪").join("bg-model");
+        let (newer, older) = (dir.join("2.0"), dir.join("1.0"));
+        std::fs::create_dir_all(&newer).unwrap();
+        std::fs::create_dir_all(&older).unwrap();
+        let (empty, file) = (newer.join("Model.onnx"), older.join("Model.onnx"));
+        std::fs::write(&empty, b"").unwrap();
+        std::fs::write(&file, b"model").unwrap();
+        // An empty file is a broken copy; a missing one is skipped too.
+        let found = find_file(&[dir.join("3.0").join("Model.onnx"), empty, file.clone()]).unwrap();
+        assert_eq!(
+            (found.path, found.version.as_str(), found.source),
+            (file, "1.0", Source::Kento)
+        );
+        assert!(find_file(&[]).is_none());
+        assert!(
+            find_file(std::slice::from_ref(&older)).is_none(),
+            "a folder is not the file"
+        );
     }
 
     #[test]

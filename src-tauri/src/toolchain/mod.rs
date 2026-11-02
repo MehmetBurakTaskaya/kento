@@ -147,6 +147,14 @@ impl Error {
             Error::NotWorking(tool) if tool == "soffice" => "toolchain.failed.check.soffice",
             Error::NotWorking(tool) if tool == "yt-dlp" => "toolchain.failed.check.ytdlp",
             Error::NotWorking(tool) if tool == "deno" => "toolchain.failed.check.deno",
+            // A resource is never run: when it is not there after an install, the unpacking failed.
+            Error::NotWorking(tool)
+                if Lock::embedded()
+                    .group_of(tool)
+                    .is_some_and(|group| group.is_resource(tool)) =>
+            {
+                "toolchain.failed.unpack"
+            }
             Error::NotWorking(_) => "toolchain.failed.check",
             Error::Missing(_) => "toolchain.ytdlp.missing",
             Error::Elsewhere(_) => "toolchain.ytdlp.elsewhere",
@@ -290,7 +298,14 @@ impl Toolchain {
                     let custom = custom.get(tool).map(PathBuf::as_path);
                     let own: Vec<PathBuf> =
                         dirs.iter().map(|dir| dir.join(&programs[tool])).collect();
-                    scope.spawn(move || detect::find(tool, places, custom, &own))
+                    let resource = group.is_resource(tool);
+                    scope.spawn(move || {
+                        if resource {
+                            detect::find_file(&own)
+                        } else {
+                            detect::find(tool, places, custom, &own)
+                        }
+                    })
                 })
                 .collect();
             probes
@@ -414,13 +429,14 @@ impl Toolchain {
     }
 
     /// Where each tool of a group lies in one of Kento's install folders: next to the others
-    /// (`ffmpeg.exe`), or inside the program folder it runs from, as this computer's pinned
-    /// download lays it out (`LibreOffice/program/soffice.exe`).
+    /// (`ffmpeg.exe`), inside the program folder it runs from, as this computer's pinned download
+    /// lays it out (`LibreOffice/program/soffice.exe`), or for a resource under its own name
+    /// (`BEN2_Base.onnx`).
     fn programs(&self, group: &Group) -> BTreeMap<String, PathBuf> {
         let file_name = |tool: &str| self.inner.places.file_name(tool);
         let mut programs = group
             .platform(self.inner.platform)
-            .map(|platform| platform.programs(file_name))
+            .map(|platform| group.programs(platform, file_name))
             .unwrap_or_default();
         for tool in &group.tools {
             programs
@@ -454,13 +470,18 @@ impl Toolchain {
 
     /// Sets or clears the path of one tool. A path is kept only when the tool there runs; a
     /// folder stands for the tool's file inside it (for LibreOffice also its install folder or
-    /// `LibreOffice.app`).
+    /// `LibreOffice.app`). Resources are Kento's own downloads only, so they take no path.
     pub fn set_path(
         &self,
         tool: &str,
         path: Option<PathBuf>,
     ) -> Result<Vec<ToolGroupStatus>, Error> {
-        if self.inner.lock.group_of(tool).is_none() {
+        if self
+            .inner
+            .lock
+            .group_of(tool)
+            .is_none_or(|group| group.is_resource(tool))
+        {
             return Err(Error::UnknownTool(tool.to_string()));
         }
         let mut paths = lock(&self.inner.custom).clone();
@@ -633,11 +654,19 @@ impl Toolchain {
         }
         let this = self.clone();
         let group = job.group.clone();
+        let entry = self.inner.lock.group(&job.group);
+        let resources = entry.map(|g| g.resources.clone()).unwrap_or_default();
         blocking(move || {
-            // The new copies must work themselves, whatever else detection would find.
+            // The new copies must work themselves, whatever else detection would find. A resource
+            // is not run: its file, verified before unpacking, must be there.
             for layout in needed.iter().map(|unit| &unit.layout) {
                 let broken = layout.programs.iter().find(|(tool, program)| {
-                    detect::probe(tool, &layout.dest.join(program)).is_none()
+                    let path = layout.dest.join(program);
+                    if resources.contains(*tool) {
+                        detect::find_file(std::slice::from_ref(&path)).is_none()
+                    } else {
+                        detect::probe(tool, &path).is_none()
+                    }
                 });
                 if let Some((tool, _)) = broken {
                     return Err(Error::NotWorking(tool.clone()));
@@ -1030,7 +1059,7 @@ mod tests {
         let status = chain.status();
         let ids: Vec<&str> = status.iter().map(|g| g.id.as_str()).collect();
         assert_eq!(ids, ["media", "office", "extras"]);
-        for (group, tools) in [(&status[0], 4), (&status[1], 1), (&status[2], 1)] {
+        for (group, tools) in [(&status[0], 4), (&status[1], 1), (&status[2], 3)] {
             assert!(!group.ready);
             assert_eq!(group.tools.len(), tools);
             assert!(group
@@ -1063,9 +1092,19 @@ mod tests {
         let (system, places) = fake_exiftool(&base.path().join("system ğ 🧪"), "13.60");
         let chain = toolchain(&root, places.clone());
         let extras = &chain.status()[2];
-        assert!(extras.ready);
         assert_eq!(extras.tools[0].version.as_deref(), Some("13.60"));
         assert_eq!(chain.engine_tools().exiftool, Some(system));
+        // Background removal is still missing, and only its downloads are offered.
+        assert!(!extras.ready);
+        assert!(extras.tools[1..].iter().all(|tool| tool.path.is_none()));
+        if let Some(pinned) = Lock::embedded()
+            .group("extras")
+            .unwrap()
+            .platform(manifest::current_platform())
+        {
+            let sizes: u64 = pinned.files[1..].iter().map(|file| file.size).sum();
+            assert_eq!(extras.download, sizes);
+        }
 
         // A chosen ExifTool must be one; FFmpeg is not.
         let (ffmpeg, _) = fake_tool(&base.path().join("ffmpeg"), "ffmpeg", "9.0");
@@ -1497,6 +1536,134 @@ mod tests {
         assert_eq!(status.tools[2].version.as_deref(), Some("2026.10.26"));
     }
 
+    /// The Extras downloads in small, served by a local server: ExifTool in a zip under the group's
+    /// version, then ONNX Runtime's library in a zip and the model as a plain file, both resources
+    /// at versions of their own.
+    fn extras_served(base: &Path) -> (crate::toolchain::download::tests::Routes, &'static Lock) {
+        let (exiftool, _) = fake_exiftool(&base.join("built"), "13.60");
+        let exiftool = zip_of(&[(
+            format!("pack/exiftool{FAKE_SUFFIX}").as_str(),
+            fs::read(exiftool).unwrap().as_slice(),
+        )]);
+        let runtime = zip_of(&[
+            ("onnxruntime-1.23.2/lib/onnxruntime.dll", b"runtime library"),
+            (
+                "onnxruntime-1.23.2/lib/onnxruntime.pdb",
+                b"symbols, not wanted",
+            ),
+        ]);
+        let model = b"model weights".to_vec();
+        let server = serve_routes(vec![
+            ("/exiftool.zip".into(), exiftool.clone()),
+            ("/runtime.zip".into(), runtime.clone()),
+            ("/BEN2_Base.onnx".into(), model.clone()),
+        ]);
+        let file = |name: &str, bytes: &[u8], archive: &str, entries: serde_json::Value| {
+            json!({
+                "url": format!("https://example.org/{name}"), "size": bytes.len(),
+                "sha256": sha256(bytes), "archive": archive, "entries": entries
+            })
+        };
+        let text = json!({
+            "schema": 1,
+            "groups": [{
+                "id": "extras", "available": true, "version": "13.60",
+                "tools": ["exiftool", "onnxruntime", "bg-model"],
+                "versions": { "onnxruntime": "1.23.2", "bg-model": "1.0" },
+                "resources": ["onnxruntime", "bg-model"],
+                "platforms": { "windows-x64": { "source": "test", "files": [
+                    file("exiftool.zip", &exiftool, "zip",
+                        json!({ "exiftool": format!("pack/exiftool{FAKE_SUFFIX}") })),
+                    file("runtime.zip", &runtime, "zip",
+                        json!({ "onnxruntime": "onnxruntime-1.23.2/lib/onnxruntime.dll" })),
+                    file("BEN2_Base.onnx", &model, "file", json!({ "bg-model": "BEN2_Base.onnx" }))
+                ]}}
+            }]
+        });
+        let mut lock = Lock::parse(&text.to_string()).unwrap();
+        let platform = lock.groups[0].platforms.get_mut("windows-x64").unwrap();
+        for file in &mut platform.files {
+            file.url = format!("{}/{}", server.base, file.file_name());
+        }
+        (server, Box::leak(Box::new(lock)))
+    }
+
+    #[tokio::test]
+    async fn background_removal_installs_beside_a_working_exiftool_under_its_own_names() {
+        let base = tempfile::tempdir().unwrap();
+        let (server, lock) = extras_served(base.path());
+        // ExifTool is on the computer already, and files named like the resources lie on its
+        // folder too: resources are only ever Kento's own copies.
+        let system = base.path().join("system ğ 🧪");
+        let (exiftool, places) = fake_exiftool(&system, "13.60");
+        for name in [
+            "onnxruntime.dll",
+            "BEN2_Base.onnx",
+            "bg-model.cmd",
+            "onnxruntime.cmd",
+        ] {
+            fs::write(system.join(name), b"not Kento's").unwrap();
+        }
+        let root = base.path().join("tools ğ 🧪");
+        let chain = Toolchain::with(root.clone(), lock, Some("windows-x64"), places, false);
+        let before = &chain.status()[0];
+        assert!(!before.ready);
+        assert_eq!(before.tools[0].path.as_deref(), Some(exiftool.as_path()));
+        assert!(before.tools[1..].iter().all(|tool| tool.path.is_none()));
+
+        let job = chain.begin("extras").unwrap().unwrap();
+        let dests: Vec<&Path> = job.units.iter().map(|u| u.layout.dest.as_path()).collect();
+        assert!(dests[1].ends_with(Path::new("extras").join("onnxruntime").join("1.23.2")));
+        assert!(dests[2].ends_with(Path::new("extras").join("bg-model").join("1.0")));
+        chain.run(job, &|_| {}).await.unwrap();
+        // ExifTool is not downloaded again.
+        assert_eq!(asked(&server), ["/BEN2_Base.onnx", "/runtime.zip"]);
+
+        let extras = &chain.status()[0];
+        assert!(extras.ready && extras.downloaded && !extras.outdated);
+        assert_eq!(extras.download, 0);
+        let library = root
+            .join("extras")
+            .join("onnxruntime")
+            .join("1.23.2")
+            .join("onnxruntime.dll");
+        let model = root
+            .join("extras")
+            .join("bg-model")
+            .join("1.0")
+            .join("BEN2_Base.onnx");
+        for (status, path, version) in [
+            (&extras.tools[1], &library, "1.23.2"),
+            (&extras.tools[2], &model, "1.0"),
+        ] {
+            assert_eq!(status.path.as_ref(), Some(path));
+            assert_eq!(status.version.as_deref(), Some(version));
+            assert_eq!(status.source, Some(Source::Kento));
+        }
+        // Only the library comes out of its archive.
+        assert_eq!(fs::read_dir(library.parent().unwrap()).unwrap().count(), 1);
+        assert_eq!(fs::read(&model).unwrap(), b"model weights");
+        let tools = chain.engine_tools();
+        assert_eq!(tools.onnxruntime, Some(library));
+        assert_eq!(tools.bg_model, Some(model.clone()));
+        assert_eq!(tools.exiftool, Some(exiftool));
+
+        // No path can be chosen for a resource.
+        assert!(matches!(
+            chain.set_path("bg-model", Some(system.join("BEN2_Base.onnx"))),
+            Err(Error::UnknownTool(_))
+        ));
+        assert!(matches!(
+            chain.set_path("onnxruntime", None),
+            Err(Error::UnknownTool(_))
+        ));
+        // A model that went missing is missing again, and only it is offered.
+        fs::remove_file(&model).unwrap();
+        let after = &chain.refresh()[0];
+        assert!(!after.ready);
+        assert_eq!(after.download, b"model weights".len() as u64);
+    }
+
     /// A lockfile with one Office download for Windows: an installer image (`msi`) or, for the
     /// tests that install, a zip shaped like it, the program inside its kept folder.
     fn office_lock(url: &str, archive: &[u8], kind: &str) -> &'static Lock {
@@ -1674,11 +1841,55 @@ mod tests {
         install_pinned("media").await;
     }
 
-    /// The same for the Extras group: ExifTool with its Perl folder (Windows) or library (macOS).
+    /// The same for the Extras group: ExifTool with its Perl folder (Windows) or library (macOS),
+    /// then ONNX Runtime's library and the background-removal model, which then remove the
+    /// background of a drawn picture.
     #[tokio::test]
-    #[ignore = "downloads the pinned ExifTool; run with --ignored"]
-    async fn installs_the_pinned_exiftool_for_this_computer() {
-        install_pinned("extras").await;
+    #[ignore = "downloads the pinned ExifTool, ONNX Runtime and model (about 300 MB); run with --ignored"]
+    async fn installs_the_pinned_extras_for_this_computer() {
+        let tools = install_pinned("extras").await;
+        if tools.onnxruntime.is_some() {
+            remove_a_background(tools);
+        }
+    }
+
+    /// Runs the installed background removal on a red disk on light gray: the disk must stay and
+    /// the corners must go.
+    fn remove_a_background(tools: kento_engines::Tools) {
+        use kento_engines::bgremove::{self, CutoutRun};
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("daire ğ.svg");
+        fs::write(
+            &input,
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
+            <rect width="400" height="300" fill="#ebebe8"/>
+            <circle cx="200" cy="150" r="90" fill="#c81e28"/></svg>"##,
+        )
+        .unwrap();
+        let dest = dir.path().join("daire ğ - arka plansız.png");
+        let options = kento_engines::Options {
+            tools,
+            ..kento_engines::Options::default()
+        };
+        bgremove::run(&CutoutRun {
+            input: &input,
+            from: "svg",
+            dest: &dest,
+            options: &options,
+            progress: &kento_engines::Progress::none(),
+        })
+        .unwrap();
+        let result = kento_engines::image::decode(&dest, "png", &options)
+            .unwrap()
+            .to_rgba8();
+        assert!(result.get_pixel(200, 150)[3] > 200, "the subject stays");
+        for (x, y) in [(3, 3), (396, 3), (3, 296), (396, 296)] {
+            assert!(
+                result.get_pixel(x, y)[3] < 60,
+                "the background goes at {x},{y}"
+            );
+        }
+        eprintln!("the background of a test picture was removed");
     }
 
     /// The same for the Office group: LibreOffice's Windows package unpacked by `msiexec /a`, or
@@ -1689,11 +1900,16 @@ mod tests {
         install_pinned("office").await;
     }
 
-    async fn install_pinned(group: &str) {
+    /// Installs a group's pinned downloads for this computer and returns the tools as the engines
+    /// get them. `KENTO_TOOLCHAIN_ROOT` may name a folder to install into and keep (CI caches the
+    /// Extras tools so); otherwise a temporary one is used.
+    async fn install_pinned(group: &str) -> kento_engines::Tools {
         let base = tempfile::tempdir().unwrap();
         // ExifTool's Windows launcher finds its Perl through the system code page, so it cannot
         // start from a folder whose name has letters outside it (an emoji always is).
-        let root = base.path().join("tools");
+        let root = std::env::var_os("KENTO_TOOLCHAIN_ROOT")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| base.path().join("tools"));
         let places = Places {
             search: Vec::new(),
             suffix: std::env::consts::EXE_SUFFIX,
@@ -1702,7 +1918,7 @@ mod tests {
         let chain = Toolchain::with(root.clone(), Lock::embedded(), platform, places, true);
         let Some(job) = chain.begin(group).ok().flatten() else {
             eprintln!("nothing pinned for this computer; skipped");
-            return;
+            return kento_engines::Tools::default();
         };
         if let Some(cached) = std::env::var_os("KENTO_TOOLCHAIN_DOWNLOADS") {
             for unit in &job.units {
@@ -1742,6 +1958,7 @@ mod tests {
                 tool.path.as_ref().unwrap().display()
             );
         }
+        chain.engine_tools()
     }
 
     #[test]
@@ -1778,6 +1995,12 @@ mod tests {
             Error::NotWorking("deno".into()).message_key(),
             "toolchain.failed.check.deno"
         );
+        for resource in ["onnxruntime", "bg-model"] {
+            assert_eq!(
+                Error::NotWorking(resource.into()).message_key(),
+                "toolchain.failed.unpack"
+            );
+        }
         for err in [
             Error::Missing("yt-dlp".into()),
             Error::Elsewhere("yt-dlp".into()),
