@@ -719,6 +719,13 @@ mod tests {
                 .map_or(0, |text| text.lines().count())
         }
 
+        /// Checks how many LibreOffice stand-ins started in the profile folder. A stand-in writes
+        /// its line once it runs, which may be after the job that started it has ended.
+        fn started(&self, expected: usize, what: &str) {
+            until(what, || self.starts() >= expected);
+            assert_eq!(self.starts(), expected, "{what}");
+        }
+
         fn runs(&self) -> Vec<String> {
             fs::read_to_string(self.root.join("runs.txt"))
                 .unwrap_or_default()
@@ -777,7 +784,7 @@ mod tests {
             assert_eq!(written, bench.out.join("in.pdf"));
             assert!(keeper.running());
         }
-        assert_eq!(bench.starts(), 1, "one LibreOffice for the three jobs");
+        bench.started(1, "one LibreOffice for the three jobs");
         let runs = bench.runs();
         assert_eq!(runs.len(), 3, "{runs:?}");
         assert!(runs.iter().all(|run| run.contains("convert")
@@ -794,7 +801,7 @@ mod tests {
         drop(held);
         // The next job starts a new one.
         bench.convert(&keeper, &python, &Progress::none()).unwrap();
-        assert_eq!(bench.starts(), 1, "a new profile folder, a new count");
+        bench.started(1, "a new profile folder, a new count");
         keeper.stop("the check is over");
     }
 
@@ -809,7 +816,7 @@ mod tests {
             "if [ -e ../broke ]; then printf '%%PDF-1.7' > ../out/in.pdf; else : > ../broke; echo 'kento-office: connected: p' >&2; echo 'kento-office: broken: Binary URP bridge disposed' >&2; exit 6; fi",
         );
         bench.convert(&keeper, &python, &Progress::none()).unwrap();
-        assert_eq!(bench.starts(), 2, "a new LibreOffice for the second try");
+        bench.started(2, "a new LibreOffice for the second try");
         assert_eq!(bench.runs().len(), 2);
         keeper.stop("the check is over");
         bench.gone();
@@ -852,7 +859,7 @@ mod tests {
             "it waited: {:?}",
             started.elapsed()
         );
-        assert_eq!(bench.starts(), 2);
+        bench.started(2, "a new LibreOffice after the crash report");
         keeper.stop("the check is over");
         bench.gone();
     }
@@ -886,11 +893,7 @@ mod tests {
         bench
             .convert(&keeper, &bench.converting(), &Progress::none())
             .unwrap();
-        assert_eq!(
-            bench.starts(),
-            1,
-            "a new LibreOffice in a new profile folder"
-        );
+        bench.started(1, "a new LibreOffice in a new profile folder");
         keeper.stop("the check is over");
     }
 
