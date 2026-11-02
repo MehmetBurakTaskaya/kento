@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
-// A picture of Kento's wheel as one SVG, for the website kit: the hero of index.html and the social
-// cards (scripts/social-cards.mjs). The geometry and the colours follow design/DESIGN.md and
-// src/wheel/geometry.ts (a 400-unit drawing, angles in degrees from twelve o'clock, clockwise). It is
-// drawn with plain shapes and gradients, no filters and no fonts of its own, so it works inline in a
-// page and as a standalone file.
+// A picture of Kento's wheel as one SVG, for the website kit: the hero of index.html, the social
+// cards (scripts/social-cards.mjs) and the wheel of the playground (playground/playground.js). The
+// geometry and the colours follow design/DESIGN.md and src/wheel/geometry.ts (a 400-unit drawing,
+// angles in degrees from twelve o'clock, clockwise). It is drawn with plain shapes and gradients, no
+// filters, no style attributes and no fonts of its own, so it works inline in a page under a strict
+// Content-Security-Policy and as a standalone file.
 
 const C = 200;
-const R = {
+/** Radii in the 400-unit drawing, outside in. */
+export const R = {
   OUT: 197,
   RING: 187,
   KNURL: 184,
@@ -200,35 +202,66 @@ function bezelAt(stops, deg) {
   return stops[stops.length - 1][1];
 }
 
-/** The slices of a ring of `count`, clockwise from twelve. */
-export function layout(count) {
+/**
+ * The slices of a ring of `count`, clockwise from twelve. `offset` turns the whole ring: slice 1 sits
+ * there, as a ring of choices does when it unfolds from the slice that opened it.
+ */
+export function layout(count, offset = 0) {
   const step = 360 / count;
   return Array.from({ length: count }, (_, index) => {
-    const mid = index * step;
+    const mid = offset + index * step;
     return { index, mid, start: mid - step / 2, end: mid + step / 2, step };
   });
 }
 
 /** Where the dial's index points: over the slice in use, or parked on the boundary before slice 1. */
-export function dialAngle(count, slice) {
-  return slice === null || slice === undefined ? -180 / count : (slice * 360) / count;
+export function dialAngle(count, slice, offset = 0) {
+  return offset + (slice === null || slice === undefined ? -180 / count : (slice * 360) / count);
 }
 
 /** The slice under a point of the 400-unit drawing, or null outside the slices and the steel. */
-export function sliceAt(x, y, count) {
+export function sliceAt(x, y, count, offset = 0) {
   const r = Math.hypot(x - C, y - C);
   if (r < R.WINDOW || r > R.OUT) return null;
   const step = 360 / count;
-  const angle = (Math.atan2(x - C, -(y - C)) * 180) / Math.PI;
+  const angle = (Math.atan2(x - C, -(y - C)) * 180) / Math.PI - offset;
   return Math.floor((((angle + step / 2) % 360) + 360) % 360 / step) % count;
+}
+
+/** An angle reached from `current` by the shortest turn, counting on past 360 so that a CSS
+ *  transition never spins the long way round (src/wheel/geometry.ts, turnTo). */
+export function turnTo(current, target) {
+  return current + ((((target - current + 180) % 360) + 360) % 360) - 180;
+}
+
+/** A label for a slice of words, such as a tool or a choice: one line, or two split at the space
+ *  nearest the middle when it is long. */
+function wordLines(text) {
+  const words = String(text).split(' ');
+  if (String(text).length <= 11 || words.length < 2) return [String(text)];
+  let best = 1;
+  let gap = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const d = Math.abs(words.slice(0, i).join(' ').length - words.slice(i).join(' ').length);
+    if (d < gap) {
+      gap = d;
+      best = i;
+    }
+  }
+  return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
 }
 
 /**
  * The wheel as SVG markup.
  * @param {object} o
- * @param {{label: string, small?: boolean, choices?: boolean}[]} o.slices up to eight, clockwise from twelve
+ * @param {{label: string, small?: boolean, choices?: boolean, word?: boolean, icon?: string}[]} o.slices
+ *   up to eight, clockwise from twelve. A format is drawn large ("PNG"); `word` draws a tool or a choice
+ *   ("High quality") smaller, on two lines when it is long, under `icon` (the path of a 24-unit stroke icon)
  * @param {string} o.title the hub's title (drawn in capitals)
  * @param {string} [o.subtitle] the hub's second line, such as the file name
+ * @param {string} [o.trail] inside a ring of choices, the rings above it over the title ("Convert ›")
+ * @param {string} [o.back] inside a ring of choices, the hub's way back ("Back")
+ * @param {number} [o.offset] where slice 1 sits, in degrees from twelve (see `layout`)
  * @param {number | null} [o.hover] the slice under the pointer
  * @param {number | null} [o.selected] the applied slice: blue, with the bolts thrown and the handle turned
  * @param {typeof LIGHT} [o.palette]
@@ -240,6 +273,9 @@ export function dialSvg({
   slices,
   title,
   subtitle = '',
+  trail = '',
+  back = '',
+  offset = 0,
   hover = null,
   selected = null,
   palette = LIGHT,
@@ -249,14 +285,14 @@ export function dialSvg({
 }) {
   const p = palette;
   const count = slices.length;
-  const geo = layout(count);
+  const geo = layout(count, offset);
   const applied = selected !== null && selected !== undefined;
-  const turn = dialAngle(count, applied ? selected : hover);
+  const turn = dialAngle(count, applied ? selected : hover, offset);
   const out = [];
   const push = (s) => out.push(s);
 
   push(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-30 -30 460 460" font-family="${esc(FONT)}" ${attrs}>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-30 -30 460 460" font-family="${esc(FONT)}"${offset ? ` data-offset="${fx(offset)}"` : ''} ${attrs}>`,
   );
   push('<defs>');
   push(
@@ -443,6 +479,23 @@ export function dialSvg({
       push(
         `<text class="kw-label" x="${fx(lx)}" y="${fx(ly + 8)}" fill="${textFill}" font-size="12.8" font-weight="600" text-anchor="middle" dominant-baseline="central">${esc(slice.label)}</text>`,
       );
+    } else if (slice.word || slice.icon) {
+      // A tool or a choice: a 22-unit icon over a 12.8 label of one or two lines, centred as a block.
+      const lines = wordLines(slice.label);
+      const height = (slice.icon ? 26 : 0) + lines.length * 14.5;
+      let y = ly - height / 2;
+      if (slice.icon) {
+        push(
+          `<path class="kw-icon" d="${esc(slice.icon)}" transform="translate(${fx(lx - 11)} ${fx(y)}) scale(${fx(22 / 24)})" fill="none" stroke="${textFill}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`,
+        );
+        y += 26;
+      }
+      for (const line of lines) {
+        push(
+          `<text class="kw-label" x="${fx(lx)}" y="${fx(y + 7.25)}" fill="${textFill}" font-size="12.8" font-weight="600" text-anchor="middle" dominant-baseline="central">${esc(line)}</text>`,
+        );
+        y += 14.5;
+      }
     } else {
       push(
         `<text class="kw-label" x="${fx(lx)}" y="${fx(ly)}" fill="${textFill}" font-size="20.5" font-weight="600" letter-spacing="0.8" text-anchor="middle" dominant-baseline="central">${esc(slice.label)}</text>`,
@@ -472,12 +525,22 @@ export function dialSvg({
   push(`<circle cx="${C}" cy="${C}" r="${R.HUB}" fill="url(#${id}-dome)"/>`);
   push(`<circle cx="${C}" cy="${C}" r="${R.HUB + 0.4}" fill="none" stroke="${p.edgeDark}" stroke-width="0.9"/>`);
   const titleY = subtitle ? C - 8 : C;
+  if (trail) {
+    push(
+      `<text class="kw-trail" x="${C}" y="${C - 24}" fill="${p.textMuted}" font-size="9.5" font-weight="500" text-anchor="middle" dominant-baseline="central">${esc(trail)}</text>`,
+    );
+  }
   push(
     `<text x="${C}" y="${titleY}" fill="${p.text}" font-size="11.5" font-weight="600" letter-spacing="1.6" text-anchor="middle" dominant-baseline="central">${esc(title.toLocaleUpperCase(lang(title)))}</text>`,
   );
   if (subtitle) {
     push(
       `<text x="${C}" y="${C + 8.5}" fill="${p.textMuted}" font-size="11" font-weight="450" text-anchor="middle" dominant-baseline="central">${esc(subtitle)}</text>`,
+    );
+  }
+  if (back) {
+    push(
+      `<text class="kw-back" x="${C}" y="${C + 26}" fill="${p.index}" font-size="10" font-weight="650" text-anchor="middle" dominant-baseline="central">‹ ${esc(back)}</text>`,
     );
   }
   push('</svg>');
@@ -489,15 +552,25 @@ function lang(text) {
   return /[ğüşıöçĞÜŞİÖÇ]/.test(text) ? 'tr' : 'en';
 }
 
+/** The dial's angle as last set on each wheel, so the next turn takes the shortest way. */
+const turns = new WeakMap();
+
 /**
  * Shows a slice under the pointer, or applies one, on a wheel drawn by dialSvg, without drawing it
- * again, so the page's transitions run: the dial turns, the bolts slide and the handle turns.
+ * again, so the page's transitions run: the dial turns the shortest way, the bolts slide and the
+ * handle turns. It changes attributes and the CSSOM only, which a strict Content-Security-Policy
+ * allows.
  */
 export function setState(svg, palette, { hover = null, selected = null }) {
   const p = palette;
   const count = svg.querySelectorAll('.kw-slice').length;
   const applied = selected !== null;
-  svg.querySelector('.kw-dial').style.transform = `rotate(${dialAngle(count, applied ? selected : hover)}deg)`;
+  const dial = svg.querySelector('.kw-dial');
+  const target = dialAngle(count, applied ? selected : hover, Number(svg.getAttribute('data-offset')) || 0);
+  const drawn = /rotate\((-?[\d.]+)/.exec(dial.getAttribute('transform') || '');
+  const angle = turnTo(turns.has(svg) ? turns.get(svg) : drawn ? Number(drawn[1]) : target, target);
+  turns.set(svg, angle);
+  dial.style.transform = `rotate(${fx(angle)}deg)`;
   svg.querySelector('.kw-handle').style.transform = `rotate(${applied ? 45 : 0}deg)`;
   svg.querySelector('.kw-pointer').setAttribute('fill', applied || hover !== null ? p.index : p.indexIdle);
   for (const bolt of svg.querySelectorAll('.kw-bolt')) {
@@ -523,6 +596,9 @@ export function setState(svg, palette, { hover = null, selected = null }) {
     numeral.setAttribute('font-weight', isSelected || isHover ? '700' : '600');
     for (const label of marks.querySelectorAll('.kw-label')) {
       label.setAttribute('fill', isSelected ? p.textSelected : p.text);
+    }
+    for (const icon of marks.querySelectorAll('.kw-icon')) {
+      icon.setAttribute('stroke', isSelected ? p.textSelected : p.text);
     }
     const mark = marks.querySelector('.kw-ringmark');
     if (mark) {
