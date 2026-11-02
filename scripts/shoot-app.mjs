@@ -30,6 +30,10 @@ const SHOTS = [
   ['wheel-images-dark-tr', { lang: 'tr', appearance: 'dark', files: 'demo' }, 'convert-image'],
   ['wheel-images-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', files: 'demo' }, 'convert-image'],
   ['panel-qr-light-en', { lang: 'en', appearance: 'light', files: 'demo' }, 'tools'],
+  // Metadata of the demo photo (EXIF, GPS) and of a video with chapters.
+  ['panel-metadata-photo-light-tr', { lang: 'tr', appearance: 'light', files: 'demo' }, 'metadata-photo'],
+  ['panel-metadata-video-dark-en', { lang: 'en', appearance: 'dark', files: 'demo' }, 'metadata-video'],
+  ['panel-metadata-photo-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', files: 'demo' }, 'metadata-photo'],
   // The windows outside the main one, at their own sizes.
   ['surface-wheel-light-tr', { lang: 'tr', appearance: 'light', surface: 'wheel', wheel: 'convert' }],
   ['surface-wheel-dark-en', { lang: 'en', appearance: 'dark', surface: 'wheel', wheel: 'actions' }],
@@ -140,11 +144,36 @@ async function compress(page, mode) {
   await page.waitForTimeout(300);
 }
 
+/** Opens the Metadata panel straight from the store (the stand-in's tool list has no Metadata)
+ *  and unfolds the first groups of fields. */
+async function metadata(page, action) {
+  await page.evaluate(async (which) => {
+    const { useApp } = await import('/src/state/store.ts');
+    const app = useApp.getState();
+    let path = app.files.find((file) => file.category === 'image')?.path;
+    if (which === 'metadata-video') {
+      path = 'C:\\Users\\me\\Videos\\Gezi 🎒.mp4';
+      app.addEntries([
+        { path, name: 'Gezi 🎒.mp4', folder: false, format: 'mp4', category: 'video', size: 48_123_456 },
+      ]);
+    }
+    useApp.getState().openPanel('metadata', [path]);
+  }, action);
+  await page.waitForSelector('.meta-panel');
+  await page.waitForTimeout(500);
+  for (const summary of (await page.$$('.meta-group > summary')).slice(0, 2)) await summary.click();
+  // Opening the groups scrolled them into view; the shot starts at the top, or at the chapters.
+  if (action === 'metadata-video') await page.$eval('.meta-chapters', (list) => list.scrollIntoView());
+  else await page.$eval('.dialog-body', (body) => body.scrollTo(0, 0));
+  await page.waitForTimeout(200);
+}
+
 /** Opens a wheel or a panel the way a person would with the keyboard. */
 async function act(page, action) {
   if (!action) return;
   if (action.startsWith('image:')) return imageEditor(page, action.slice('image:'.length));
   if (action.startsWith('compress')) return compress(page, action.split(':')[1]);
+  if (action.startsWith('metadata')) return metadata(page, action);
   await page.click('.file-row');
   if (action === 'tools') await page.keyboard.press('Control+Space');
   else await page.keyboard.press('Control+a').then(() => page.keyboard.press('Enter'));

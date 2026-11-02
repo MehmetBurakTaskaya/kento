@@ -345,6 +345,8 @@ export interface MetadataInfo {
   /** Video and audio only. */
   chapters: Chapter[];
   hasLocation: boolean;
+  /** Whether the format can hold chapters, so they can be edited. */
+  chaptersEditable: boolean;
 }
 
 export interface MetadataChange {
@@ -804,7 +806,7 @@ export function browserApi(params: URLSearchParams): Api {
     imagePreview: async () => null,
     runImageTool: async () => [1],
     runCompress: async (_compression, paths) => paths.map((_, i) => i + 1),
-    metadataRead: async () => ({ fields: [], chapters: [], hasLocation: false }),
+    metadataRead: async (path) => demoMetadata(path),
     runMetadata: async () => [1],
     toolsStatus: async () => demoTools(params.get('tools') === 'ready'),
     toolsInstall: async () => {},
@@ -861,8 +863,111 @@ function demoTools(ready: boolean): ToolGroupStatus[] {
       downloaded: ready,
     },
     { id: 'office', ready: false, tools: [], download: 0, available: false, outdated: false, downloaded: false },
-    { id: 'extras', ready: false, tools: [], download: 0, available: false, outdated: false, downloaded: false },
+    {
+      id: 'extras',
+      ready,
+      tools: [
+        {
+          id: 'exiftool',
+          path: ready ? 'C:\\Users\\me\\AppData\\Local\\Kento\\tools\\extras\\13.60\\exiftool.exe' : null,
+          version: ready ? '13.60' : null,
+          source: ready ? ('kento' as const) : null,
+        },
+      ],
+      download: 11_198_064,
+      available: true,
+      outdated: false,
+      downloaded: ready,
+    },
   ];
+}
+
+/** What the Metadata panel shows for the demo files: a phone photo, a video with chapters, a
+ *  report. */
+function demoMetadata(path: string): MetadataInfo {
+  const field = (group: string, name: string, value: string): MetadataField => ({
+    key: `${group}:${name}`,
+    group,
+    name,
+    value,
+    editable: false,
+  });
+  const edit = (key: string, group: string, name: string, value: string): MetadataField => ({
+    key,
+    group,
+    name,
+    value,
+    editable: true,
+  });
+  const kind = demoEntry(path).category ?? (/\.(mp4|mov|mkv|webm|mp3|m4a)$/i.test(path) ? 'video' : null);
+  if (kind === 'pdf') {
+    return {
+      fields: [
+        edit('title', 'PDF', 'Title', 'Rapor 2026'),
+        edit('author', 'PDF', 'Author', 'Ayşe Yılmaz'),
+        edit('subject', 'PDF', 'Subject', 'Yıllık değerlendirme'),
+        edit('keywords', 'PDF', 'Keywords', 'rapor, 2026'),
+        edit('creator', 'PDF', 'Creator', 'Writer'),
+        edit('producer', 'PDF', 'Producer', 'Kento'),
+        field('PDF', 'CreationDate', '2026-01-12 09:30:00 +03:00'),
+        field('PDF', 'ModDate', '2026-02-02 17:05:00 +03:00'),
+        field('Document', 'Version', '1.7'),
+        field('Document', 'Pages', '6'),
+        field('XMP', 'Metadata', '3412 B'),
+      ],
+      chapters: [],
+      hasLocation: false,
+      chaptersEditable: false,
+    };
+  }
+  if (kind === 'video') {
+    const tags = ['title', 'artist', 'album', 'album_artist', 'date', 'track', 'genre', 'comment', 'composer'];
+    const values: Record<string, string> = { title: 'Gezi 🎒', artist: 'Ayşe Yılmaz', date: '2026', genre: 'Belgesel' };
+    return {
+      fields: [
+        ...tags.map((key) => edit(key, 'Format', key, values[key] ?? '')),
+        field('Format', 'major_brand', 'isom'),
+        field('Format', 'encoder', 'Lavf61.7.100'),
+        field('Format', 'location', '+38.6430+034.8281/'),
+        field('Stream 0 · video', 'handler_name', 'VideoHandler'),
+        field('Stream 1 · audio', 'language', 'tur'),
+      ],
+      chapters: [
+        { start: 0, end: 42.5, title: 'Giriş' },
+        { start: 42.5, end: 95.4, title: 'Kapadokya' },
+      ],
+      hasLocation: true,
+      chaptersEditable: true,
+    };
+  }
+  return {
+    fields: [
+      edit('title', 'XMP', 'Title', 'Göreme’de gün doğumu'),
+      edit('author', 'EXIF', 'Artist', 'Ayşe Yılmaz'),
+      edit('description', 'EXIF', 'ImageDescription', ''),
+      edit('copyright', 'EXIF', 'Copyright', '© 2026 Ayşe Yılmaz'),
+      edit('keywords', 'XMP', 'Keywords', 'balon, Kapadokya'),
+      edit('date', 'EXIF', 'DateTimeOriginal', '2026-05-01 06:12:44'),
+      field('File', 'FileType', 'HEIC'),
+      field('File', 'ImageWidth', '4032'),
+      field('File', 'ImageHeight', '3024'),
+      field('EXIF', 'Make', 'Apple'),
+      field('EXIF', 'Model', 'iPhone 15 Pro'),
+      field('EXIF', 'Orientation', 'Rotate 90 CW'),
+      field('EXIF', 'ExposureTime', '1/120'),
+      field('EXIF', 'FNumber', '1.8'),
+      field('EXIF', 'ISO', '64'),
+      field('EXIF', 'LensModel', 'iPhone 15 Pro back triple camera 6.765mm f/1.78'),
+      field('GPS', 'GPSLatitude', '38 deg 38\' 34.92" N'),
+      field('GPS', 'GPSLongitude', '34 deg 49\' 41.16" E'),
+      field('GPS', 'GPSAltitude', '1071.2 m Above Sea Level'),
+      field('XMP', 'CreatorTool', '17.4'),
+      field('ICC_Profile', 'ProfileDescription', 'Display P3'),
+    ],
+    chapters: [],
+    hasLocation: true,
+    chaptersEditable: false,
+  };
 }
 
 function demoEntry(path: string): FileEntry {

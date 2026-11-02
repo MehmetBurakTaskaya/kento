@@ -1,0 +1,196 @@
+/* SPDX-License-Identifier: MIT */
+/* The Metadata panel (src/tools/Metadata.tsx): the common fields, chapters, the remove options
+   and every field the file carries, grouped. Logical properties only, so right to left needs
+   nothing more. */
+
+.meta-panel {
+  display: grid;
+  gap: 16px;
+}
+.meta-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.meta-section {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+.meta-heading {
+  margin: 0;
+  color: var(--text-muted);
+  font: var(--type-caption);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* The common fields: label beside its field, stacked when the panel is narrow. */
+.meta-form {
+  display: grid;
+  grid-template-columns: minmax(7em, max-content) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+}
+.meta-form > label {
+  color: var(--text-muted);
+}
+.meta-form input[type='text'],
+.meta-form textarea {
+  inline-size: 100%;
+}
+.meta-form .meta-hint {
+  grid-column: 2;
+  margin-block-start: -4px;
+  font: var(--type-caption);
+}
+.meta-panel textarea {
+  min-block-size: 56px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+.meta-panel textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.meta-panel fieldset:disabled {
+  opacity: 0.55;
+}
+@media (max-width: 560px) {
+  .meta-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .meta-form .meta-hint {
+    grid-column: 1;
+  }
+}
+
+/* Chapters: number, start, end, title and a remove button per row. */
+.meta-chapters {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.meta-chapter,
+.meta-chapter-head {
+  display: grid;
+  grid-template-columns: 2em 6.5em 6.5em minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 6px;
+}
+.meta-chapter-head {
+  color: var(--text-muted);
+  font: var(--type-caption);
+}
+.meta-chapter input[type='text'] {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+.meta-chapter-number {
+  color: var(--text-muted);
+  font: var(--type-caption);
+  text-align: end;
+}
+.meta-chapter-times {
+  font-variant-numeric: tabular-nums;
+}
+.meta-chapter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The remove options, each with a line saying what it does. */
+.meta-options {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.meta-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 2px 8px;
+  cursor: pointer;
+}
+.meta-option input {
+  margin: 3px 0 0;
+  accent-color: var(--accent);
+}
+.meta-option .muted {
+  grid-column: 2;
+  font: var(--type-caption);
+}
+.meta-option:has(input:disabled) {
+  cursor: default;
+}
+.meta-option:has(input:disabled) > span:first-of-type {
+  color: var(--text-muted);
+}
+
+/* Every field, grouped; long values stop after a few lines and show whole on hover. */
+.meta-groups {
+  display: grid;
+  gap: 6px;
+}
+.meta-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.meta-group > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.meta-group > summary .muted {
+  margin-inline-start: auto;
+  font: var(--type-caption);
+}
+.meta-group[open] > summary {
+  border-block-end: 1px solid var(--border);
+}
+.meta-table {
+  display: grid;
+  margin: 0;
+  padding: 4px 10px 8px;
+}
+.meta-row {
+  display: grid;
+  grid-template-columns: minmax(8em, 34%) minmax(0, 1fr);
+  gap: 12px;
+  padding-block: 3px;
+}
+.meta-row + .meta-row {
+  border-block-start: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+.meta-row dt {
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.meta-row dd {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
