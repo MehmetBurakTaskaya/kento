@@ -119,7 +119,7 @@ Downloaded on request at first setup, never bundled.
 Rules:
 
 - **Pinned versions.** Each tool's version, URL, size and SHA-256 are pinned in `src-tauri/toolchain.lock.json`. A file that fails hash verification is never run.
-- **Existing installs.** Tools already on the system (PATH or standard install locations) are detected and used. A path can also be set by hand in Settings. A found tool counts only when it runs and is recent enough (FFmpeg 6, ExifTool 12, LibreOffice 7 or newer).
+- **Existing installs.** Tools already on the system (PATH or standard install locations) are detected and used. A path can also be set by hand in Settings. A found tool counts only when it runs and is recent enough (FFmpeg 6, ExifTool 12, LibreOffice 7, yt-dlp 2025.11.12, Deno 2.3 or newer). A group installs only the tools it is missing.
 - **Platform security flags.** On macOS the `com.apple.quarantine` attribute is removed from verified tools, with an ad-hoc signature when needed. On Windows, Mark-of-the-Web and SmartScreen behavior is handled.
 - **Process isolation.** Tools run as separate processes. Arguments are always passed as arrays, never as a shell string. GPL tools are therefore never combined with the app's code, and the app stays MIT.
 - **yt-dlp updates.** yt-dlp has its own "Update yt-dlp" option, independent of app updates, with hash or signature verification.
@@ -551,7 +551,7 @@ Old releases are removed from GitHub:
 - Appearance: System / Light / Dark, and the theme (5.20; the default theme only until Phase 10).
 - Language: "System language" (default) or one of the 12 languages (see 5.19).
 - Drag modifiers and key combinations.
-- Global shortcuts: selection wheel, download, window layouts.
+- Global shortcuts: selection wheel, download (Ctrl+Shift+D, on by default; while it is on, the browser's own Ctrl+Shift+D does not reach the browser), window layouts.
 - Output: default output location and naming suffixes.
 - Feedback:
   - Sound effects: on and low by default, with a level slider.

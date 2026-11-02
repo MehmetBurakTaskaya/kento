@@ -69,10 +69,10 @@ Progress against [SPEC.md](SPEC.md) section 9.
 
 ## Phase 7: web download
 
-- [ ] yt-dlp + Deno
-- [ ] Ctrl+Shift+D and dragging from browsers
-- [ ] Site-specific flows
-- [ ] Independent yt-dlp updates
+- [x] yt-dlp + Deno in the Media group, installing only the tools that are missing
+- [x] Ctrl+Shift+D, pasting or dropping a link on Home, and dragging links from browsers onto the wheel's Download ring
+- [x] Site-specific flows: YouTube video and thumbnail apart, Instagram reels, Instagram photo posts with a picture picker
+- [x] Independent yt-dlp updates, checked against the release's SHA-256
 
 ## Phase 8: automation and enhancements
 
