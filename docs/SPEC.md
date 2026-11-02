@@ -537,7 +537,8 @@ Updates are mandatory:
 Infrastructure:
 
 - Tauri updater + signing (free).
-- The update URL is always `.../releases/latest/download/latest.json`, because old releases are deleted.
+- The update URL is always `.../releases/latest/download/latest.json`, because only the newest release stays published.
+- `requireSignedVersion` is on: the version signed into an update must match the version `latest.json` announces, so an altered `latest.json` cannot offer an older signed release as a new one.
 
 Check times:
 
@@ -547,17 +548,18 @@ Check times:
 
 Release notes appear on the first launch after an update.
 
-Old releases are removed from GitHub:
+Only the newest release stays on GitHub:
 
-- After a new release is published and verified, the release workflow deletes older GitHub Releases with their assets. Only the newest release stays downloadable.
-- If the new release fails, nothing is deleted.
+- A tag builds a draft release; the owner publishes it by hand once it is verified.
+- Publishing a release turns every older published release back into a draft. Drafts keep their files and download counts but only the owner sees them; publishing one again brings it back.
+- If the new release fails, nothing is hidden.
 - Git tags stay for the code history.
 
-**Portable ZIP:** it follows mandatory updates too: a new signed ZIP is downloaded and the folder is replaced, keeping the previous folder once as a backup. If this proves too complex, the portable build moves after v1.0.
+**Portable ZIP:** it follows mandatory updates too. It asks for its own entry of `latest.json`, a ZIP signed with the update key for that version. After the signature check each file of the new version is written next to the old one and takes its name; the running program, which Windows lets one rename but not overwrite, becomes `Kento.old` and is removed at the next start.
 
 **One channel:** stable only, no beta channel.
 
-**Consistency with Pano:** the security and update documents of Pano (Panopin) (`SECURITY.md`, updater settings, release workflow) are followed to the letter; any contradiction is resolved before a release.
+**Consistency with Pano:** the security and update documents of Pano (Panopin) (`docs/SIGNING.md`, updater settings, release workflows) are followed to the letter; any contradiction is resolved before a release.
 
 ### 5.17 Settings (Ctrl+, / ⌘,)
 
@@ -750,18 +752,26 @@ Rules for every theme:
 
 ## 8. Distribution and website integration
 
-GitHub Releases is the main channel. Because old releases are deleted, assets are uploaded under fixed names, so `https://github.com/<owner>/<repo>/releases/latest/download/...` links never break:
+GitHub Releases is the main channel. Because only the newest release stays published, assets are uploaded under fixed names, so `https://github.com/<owner>/<repo>/releases/latest/download/...` links never break:
 
 - `Kento-Windows-x64-Setup.exe`
 - `Kento-Windows-x64-Portable.zip`
 - `Kento-macOS-Universal.dmg`
 
+Beside them, for updates and checks:
+
+- `Kento-Windows-x64-Update.exe`: the same installer under the name updates fetch, so the download counts tell people's downloads from updates.
+- `Kento-macOS-Universal.app.tar.gz`: the archive Mac updates install.
+- `latest.json` with the update signatures (no `.sig` file appears on the release page), and `SHA256SUMS.txt` for every file.
+
 Signing:
 
-- The first releases are unsigned (ad-hoc signature on macOS).
+- Updates are signed with the project's update key from the first release; the private key lives only in the repository's GitHub Secrets and the owner's offline backup.
+- Windows builds are not code-signed.
+- Every Mac build is signed with the project's own self-signed certificate, the same for every version, so macOS keeps the Accessibility and Automation permissions given to Kento across updates (an ad-hoc signature changes with every build). It is not an Apple certificate, so the app is not notarized.
 - The README explains the first launch with screenshots:
   - Windows SmartScreen: "More info" → "Run anyway".
-  - macOS: right-click → Open, or System Settings → Privacy & Security.
+  - macOS: close the warning, then System Settings → Privacy & Security → Open Anyway.
 - After v1.0 has some users: apply to the SignPath Foundation's free code-signing program for open-source Windows apps.
 - No Apple notarization for now: it needs a paid developer account.
 

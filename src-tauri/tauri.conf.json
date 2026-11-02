@@ -73,6 +73,19 @@
     },
     "resources": {
       "resources/pdfium/": "pdfium/"
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDA0NkQwRTY1NzdFMDE1MTMKUldRVEZlQjNaUTV0Qk1EdjF3TnBiTHNlSlBiZlh5enoyZG5Ea0prcmp5THNGbkpWTmZ0VkRhMCsK",
+      "endpoints": [
+        "https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/latest.json"
+      ],
+      "requireSignedVersion": true,
+      "windows": {
+        "installMode": "quiet"
+      }
     }
   }
 }

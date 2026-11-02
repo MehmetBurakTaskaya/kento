@@ -1,0 +1,1 @@
+identifier "com.mehmetburaktaskaya.kento" and certificate root = H"1f6e11350e43b6fb8194f46a62cf96215967f08c"
