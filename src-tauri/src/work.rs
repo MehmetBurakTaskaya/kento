@@ -448,39 +448,41 @@ pub(crate) fn stem_of(path: &Path) -> String {
 /// Plain-language messages for engine errors (SPEC 5.13); the technical text goes to details.
 pub(crate) fn explainer(lang: &str) -> Explain {
     let lang = lang.to_string();
-    Arc::new(move |error| {
-        let key = match error {
-            // Compress keeps the format, and some formats cannot get smaller in themselves.
-            EngineError::Unsupported { to, .. } if to == "compress" => "error.compress.unsupported",
-            EngineError::Unsupported { .. } => "error.unsupported",
-            EngineError::Unreadable(_) => "error.unreadable",
-            EngineError::Encrypted => "error.encrypted",
-            EngineError::MissingCodec(Codec::Heif) if cfg!(target_os = "macos") => {
-                "error.codec.heif.mac"
-            }
-            EngineError::MissingCodec(Codec::Heif) => "error.codec.heif.windows",
-            EngineError::MissingCodec(Codec::Pdfium) => "error.codec.pdfium",
-            EngineError::MissingCodec(Codec::Ffmpeg) => "error.codec.ffmpeg",
-            EngineError::MissingCodec(Codec::ExifTool) => "error.codec.exiftool",
-            EngineError::MissingCodec(Codec::LibreOffice) => "error.codec.libreoffice",
-            EngineError::MissingCodec(Codec::YtDlp) => "error.codec.ytdlp",
-            EngineError::Web(problem) => match problem {
-                WebProblem::Drm => "error.web.drm",
-                WebProblem::Live => "error.web.live",
-                WebProblem::Login => "error.web.login",
-                WebProblem::Collection => "error.web.collection",
-                WebProblem::Unavailable => "error.web.unavailable",
-                WebProblem::NoMedia => "error.web.no-media",
-                WebProblem::Network => "error.web.network",
-                WebProblem::NotALink => "error.web.not-a-link",
-            },
-            EngineError::NotSmaller => "error.not-smaller",
-            EngineError::Limit(_) => "error.limit",
-            EngineError::Io(_) => "error.io",
-            EngineError::Cancelled | EngineError::Other(_) => "error.other",
-        };
-        i18n::text(&lang, key)
-    })
+    Arc::new(move |error| i18n::text(&lang, error_key(error)))
+}
+
+/// The message key that explains an engine error in plain language.
+pub(crate) fn error_key(error: &EngineError) -> &'static str {
+    match error {
+        // Compress keeps the format, and some formats cannot get smaller in themselves.
+        EngineError::Unsupported { to, .. } if to == "compress" => "error.compress.unsupported",
+        EngineError::Unsupported { .. } => "error.unsupported",
+        EngineError::Unreadable(_) => "error.unreadable",
+        EngineError::Encrypted => "error.encrypted",
+        EngineError::MissingCodec(Codec::Heif) if cfg!(target_os = "macos") => {
+            "error.codec.heif.mac"
+        }
+        EngineError::MissingCodec(Codec::Heif) => "error.codec.heif.windows",
+        EngineError::MissingCodec(Codec::Pdfium) => "error.codec.pdfium",
+        EngineError::MissingCodec(Codec::Ffmpeg) => "error.codec.ffmpeg",
+        EngineError::MissingCodec(Codec::ExifTool) => "error.codec.exiftool",
+        EngineError::MissingCodec(Codec::LibreOffice) => "error.codec.libreoffice",
+        EngineError::MissingCodec(Codec::YtDlp) => "error.codec.ytdlp",
+        EngineError::Web(problem) => match problem {
+            WebProblem::Drm => "error.web.drm",
+            WebProblem::Live => "error.web.live",
+            WebProblem::Login => "error.web.login",
+            WebProblem::Collection => "error.web.collection",
+            WebProblem::Unavailable => "error.web.unavailable",
+            WebProblem::NoMedia => "error.web.no-media",
+            WebProblem::Network => "error.web.network",
+            WebProblem::NotALink => "error.web.not-a-link",
+        },
+        EngineError::NotSmaller => "error.not-smaller",
+        EngineError::Limit(_) => "error.limit",
+        EngineError::Io(_) => "error.io",
+        EngineError::Cancelled | EngineError::Other(_) => "error.other",
+    }
 }
 
 #[cfg(test)]

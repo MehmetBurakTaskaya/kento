@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
-//! The selection shortcut (SPEC 5.2): Ctrl+Shift+Space on Windows, ⌃⇧Space on macOS, opens the
-//! wheel at the pointer for the files selected in Explorer or Finder.
+//! The global shortcuts (SPEC 5.2, 5.10): Ctrl+Shift+Space (⌃⇧Space on macOS) opens the wheel at
+//! the pointer for the files selected in Explorer or Finder, and Ctrl+Shift+D (⌃⇧D) downloads the
+//! link on the clipboard. Each can be switched off in Settings; one another app holds is
+//! reported once.
 
 use tauri::plugin::TauriPlugin;
 use tauri::{AppHandle, Manager, Wry};
@@ -14,15 +16,24 @@ fn selection() -> Shortcut {
     Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space)
 }
 
+fn download() -> Shortcut {
+    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyD)
+}
+
 pub fn plugin() -> TauriPlugin<Wry> {
     tauri_plugin_global_shortcut::Builder::new()
         .with_handler(|app, shortcut, event| {
-            if event.state != ShortcutState::Pressed || *shortcut != selection() {
+            if event.state != ShortcutState::Pressed {
                 return;
             }
             let app = app.clone();
-            // COM (Explorer) and Apple Events (Finder) may take a moment; not on the main thread.
-            std::thread::spawn(move || open_for_selection(&app));
+            // COM (Explorer), Apple Events (Finder) and the clipboard may take a moment; not on
+            // the main thread.
+            if *shortcut == selection() {
+                std::thread::spawn(move || open_for_selection(&app));
+            } else if *shortcut == download() {
+                std::thread::spawn(move || crate::web::open_from_clipboard(&app));
+            }
         })
         .build()
 }
@@ -57,22 +68,70 @@ fn read_selection(app: &AppHandle) -> platform::Result<Vec<std::path::PathBuf>> 
     }
 }
 
-/// Registers or releases the shortcut to match the setting; a shortcut another app holds is
-/// reported once.
+/// What to do with a shortcut so that it matches its setting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Change {
+    Register,
+    Release,
+    Keep,
+}
+
+fn change(wanted: bool, registered: bool) -> Change {
+    match (wanted, registered) {
+        (true, false) => Change::Register,
+        (false, true) => Change::Release,
+        _ => Change::Keep,
+    }
+}
+
+/// Registers or releases each shortcut to match the settings. Registering fails when another app
+/// holds the keys; the user then hears which shortcut is taken.
 pub fn sync(app: &AppHandle) {
-    let wanted = app.state::<AppState>().settings().wheels.selection_shortcut;
+    let settings = app.state::<AppState>().settings();
+    apply(
+        app,
+        selection(),
+        settings.wheels.selection_shortcut,
+        "shortcut.taken",
+    );
+    apply(app, download(), settings.web.shortcut, "web.shortcut.taken");
+}
+
+fn apply(app: &AppHandle, shortcut: Shortcut, wanted: bool, taken: &str) {
     let shortcuts = app.global_shortcut();
-    let registered = shortcuts.is_registered(selection());
-    let result = match (wanted, registered) {
-        (true, false) => shortcuts.register(selection()),
-        (false, true) => shortcuts.unregister(selection()),
-        _ => Ok(()),
+    let result = match change(wanted, shortcuts.is_registered(shortcut)) {
+        Change::Register => shortcuts.register(shortcut),
+        Change::Release => shortcuts.unregister(shortcut),
+        Change::Keep => Ok(()),
     };
     if let Err(err) = result {
-        tracing::warn!("the selection shortcut could not be set: {err}");
+        tracing::warn!("a global shortcut could not be set: {err}");
         if wanted {
             let lang = app.state::<AppState>().lang();
-            toast::note(app, i18n::text(&lang, "shortcut.taken"));
+            toast::note(app, i18n::text(&lang, taken));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_shortcut_follows_its_setting() {
+        assert_eq!(change(true, false), Change::Register);
+        assert_eq!(change(false, true), Change::Release);
+        assert_eq!(change(true, true), Change::Keep);
+        assert_eq!(change(false, false), Change::Keep);
+    }
+
+    #[test]
+    fn the_shortcuts_are_control_shift_space_and_d() {
+        let both = Modifiers::CONTROL | Modifiers::SHIFT;
+        assert_eq!((selection().mods, selection().key), (both, Code::Space));
+        assert_eq!((download().mods, download().key), (both, Code::KeyD));
+        // Different keys, so the handler tells them apart and one can be off alone.
+        assert_ne!(selection(), download());
+        assert_ne!(selection().id(), download().id());
     }
 }

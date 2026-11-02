@@ -94,7 +94,10 @@ pub fn save_settings(
     state: State<'_, AppState>,
     settings: Settings,
 ) -> Result<Saved> {
-    let new = settings.normalized();
+    let mut new = settings.normalized();
+    // The first-use notice of web downloads, once shown, stays shown, whatever an older copy of
+    // the settings in a window says (the wheel's quick download marks it in the core).
+    new.web.notice_shown |= state.settings().web.notice_shown;
     let old = state.replace_settings(new.clone());
     settings::save(&state.paths.settings_file(), &new)?;
     if old.launch_at_login != new.launch_at_login {
@@ -118,7 +121,9 @@ pub fn save_settings(
     if old.wheels.global != new.wheels.global {
         crate::overlay::wheel::sync_watcher(&app);
     }
-    if old.wheels.selection_shortcut != new.wheels.selection_shortcut {
+    if old.wheels.selection_shortcut != new.wheels.selection_shortcut
+        || old.web.shortcut != new.web.shortcut
+    {
         crate::shortcut::sync(&app);
     }
     if old.shell != new.shell {

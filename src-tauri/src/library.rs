@@ -19,6 +19,8 @@ pub enum Origin {
     Convert,
     Tool,
     Paste,
+    /// A web download (SPEC 5.10).
+    Download,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

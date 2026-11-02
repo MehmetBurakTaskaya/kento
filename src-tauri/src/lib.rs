@@ -26,6 +26,7 @@ mod smoke;
 pub mod toolchain;
 pub mod tools;
 mod tray;
+pub mod web;
 mod window;
 pub mod work;
 
@@ -53,6 +54,8 @@ pub struct AppState {
     pub toasts: overlay::toast::ToastState,
     /// A tool panel the main window should open once it is ready (from the global wheel).
     pub pending_tool: Mutex<Option<(String, Vec<std::path::PathBuf>)>>,
+    /// Web downloads: recent probes, chosen folders, the link for the dialog.
+    pub web: web::WebState,
     _log: Option<WorkerGuard>,
 }
 
@@ -163,6 +166,7 @@ fn setup(
         wheel: Default::default(),
         toasts: Default::default(),
         pending_tool: Mutex::new(None),
+        web: Default::default(),
         _log: log,
     });
     tracing::info!("Kento {} started", app.package_info().version);
@@ -344,6 +348,14 @@ pub fn run() {
             tools::pdf_thumbnail,
             tools::scan_qr,
             tools::save_qr_report,
+            web::web_needs,
+            web::web_probe,
+            web::web_preview,
+            web::web_default_folder,
+            web::web_choose_folder,
+            web::web_download,
+            web::web_open,
+            web::web_take_pending,
         ])
         .build(tauri::generate_context!())
         .expect("Kento could not start")

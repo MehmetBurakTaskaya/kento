@@ -117,6 +117,25 @@ pub struct ShelfSettings {
     pub keep_copy: bool,
 }
 
+/// Web media download (SPEC 5.10).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct WebSettings {
+    /// Ctrl+Shift+D (⌃⇧D on macOS) downloads the link on the clipboard.
+    pub shortcut: bool,
+    /// The first-use notice ("only download what you have the right to") has been shown.
+    pub notice_shown: bool,
+}
+
+impl Default for WebSettings {
+    fn default() -> Self {
+        Self {
+            shortcut: true,
+            notice_shown: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -137,6 +156,7 @@ pub struct Settings {
     pub wheels: Wheels,
     pub shell: Shell,
     pub shelf: ShelfSettings,
+    pub web: WebSettings,
 }
 
 impl Default for Settings {
@@ -157,6 +177,7 @@ impl Default for Settings {
             wheels: Wheels::default(),
             shell: Shell::default(),
             shelf: ShelfSettings::default(),
+            web: WebSettings::default(),
         }
     }
 }
@@ -269,5 +290,17 @@ mod tests {
         assert_eq!(settings.wheel_size, 300);
         assert_eq!(settings.concurrency, Some(MAX_JOBS));
         assert_eq!(settings.output.location, OutputLocation::NextToSource);
+    }
+
+    #[test]
+    fn the_download_shortcut_is_on_and_the_notice_unseen_until_saved() {
+        let settings = Settings::default();
+        assert!(settings.web.shortcut && !settings.web.notice_shown);
+        // A file from before web downloads gets the defaults; a saved choice is kept.
+        let old: Settings = serde_json::from_str(r#"{"language":"tr"}"#).unwrap();
+        assert_eq!(old.web, WebSettings::default());
+        let saved: Settings =
+            serde_json::from_str(r#"{"web":{"shortcut":false,"noticeShown":true}}"#).unwrap();
+        assert!(!saved.web.shortcut && saved.web.notice_shown);
     }
 }
