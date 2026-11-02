@@ -676,6 +676,14 @@ const READY_TOOLS: &[&str] = &[
     "channels",
     "redact-audio",
     "audio-to-video",
+    "compress",
+    "metadata",
+    "edit-image",
+    "crop-image",
+    "markup",
+    "frame",
+    "collage",
+    "redact-image",
 ];
 
 pub fn tools() -> &'static [Tool] {

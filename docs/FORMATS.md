@@ -132,14 +132,14 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 
 | Tool | Works on | Needs | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Compress | Image, Video, Audio, PDF | Core | planned | video and audio need the Media tools; PDF compression is [+] |
-| Metadata | Image, PDF, Video, Audio | Extras | planned | media files also use ffprobe from the Media tools |
-| Edit image | Image | Core | planned |  |
-| Mark up | Image | Core | planned |  |
-| Add frame | Image | Core | planned |  |
-| Crop image | Image | Core | planned |  |
-| Make a collage | Image | Core | planned |  |
-| Redact image | Image | Core | planned |  |
+| Compress | Image, Video, Audio, PDF | Core | ready | video and audio need the Media tools; PDF compression is [+] |
+| Metadata | Image, PDF, Video, Audio | Extras | ready | media files also use ffprobe from the Media tools |
+| Edit image | Image | Core | ready |  |
+| Mark up | Image | Core | ready |  |
+| Add frame | Image | Core | ready |  |
+| Crop image | Image | Core | ready |  |
+| Make a collage | Image | Core | ready |  |
+| Redact image | Image | Core | ready |  |
 | Read QR codes | Image, PDF | Core | ready |  |
 | Make a QR code [+] | text or a link | Core | planned | from text or a link |
 | Split PDF | PDF | Core | ready |  |
