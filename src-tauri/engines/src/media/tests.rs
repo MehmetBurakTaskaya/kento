@@ -15,6 +15,8 @@ use super::probe::{self, Kind, Probe};
 use super::*;
 use crate::{Codec, Conversion, Error, Options, Progress, Tools};
 
+mod compress;
+
 const NAME: &str = "Kento ğüşıöç 🧪";
 
 /// FFmpeg and ffprobe from `KENTO_FFMPEG`/`KENTO_FFPROBE` or the PATH.

@@ -301,6 +301,36 @@ pub(super) enum Subtitle {
     Drop,
 }
 
+/// How an encoder spends its bits: the defaults above, or what Compress asks for.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) enum Rate {
+    Default,
+    /// The encoder's own scale: CRF for x264, x265 and VP9, the quantiser for MPEG-4 and WMV, VBR
+    /// quality for LAME and Vorbis. Encoders that only take a bit rate keep their default.
+    Quality(f32),
+    /// Bits per second.
+    Bitrate(u64),
+}
+
+impl Rate {
+    /// The option and its value: `scale` with `default` for `Default`, `b` for a bit rate.
+    fn option(self, scale: &'static str, default: &str) -> (&'static str, String) {
+        match self {
+            Rate::Default => (scale, default.to_owned()),
+            Rate::Quality(value) => (scale, value.to_string()),
+            Rate::Bitrate(bits) => ("b", bits.to_string()),
+        }
+    }
+
+    /// For encoders that only take a bit rate.
+    fn bitrate(self, default: &str) -> (&'static str, String) {
+        match self {
+            Rate::Bitrate(bits) => ("b", bits.to_string()),
+            _ => ("b", default.to_owned()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum VideoCodec {
     H264,
@@ -330,44 +360,39 @@ impl VideoCodec {
 
     /// Adds the encoder options for output video stream 0.
     pub fn push(self, cmd: &mut Cmd, container: Container) {
+        self.push_at(cmd, container, Rate::Default);
+    }
+
+    /// Like `push`, at this rate.
+    pub fn push_at(self, cmd: &mut Cmd, container: Container, rate: Rate) {
+        let rate_args = |cmd: &mut Cmd, scale: &'static str, default: &str| {
+            let (name, value) = rate.option(scale, default);
+            cmd.arg(format!("-{name}:v:0")).arg(value);
+        };
         match self {
             VideoCodec::H264 => {
-                cmd.args([
-                    "-c:v:0",
-                    "libx264",
-                    "-preset:v:0",
-                    "medium",
-                    "-crf:v:0",
-                    "22",
-                    "-pix_fmt:v:0",
-                    "yuv420p",
-                ]);
+                cmd.args(["-c:v:0", "libx264", "-preset:v:0", "medium"]);
+                rate_args(cmd, "crf", "22");
+                cmd.args(["-pix_fmt:v:0", "yuv420p"]);
             }
             VideoCodec::Hevc => {
                 // The pixel format follows the source, so 10-bit video stays 10-bit.
-                cmd.args([
-                    "-c:v:0",
-                    "libx265",
-                    "-preset:v:0",
-                    "medium",
-                    "-crf:v:0",
-                    "24",
-                    "-x265-params:v:0",
-                    "log-level=error",
-                ]);
+                cmd.args(["-c:v:0", "libx265", "-preset:v:0", "medium"]);
+                rate_args(cmd, "crf", "24");
+                cmd.args(["-x265-params:v:0", "log-level=error"]);
                 if matches!(container, Container::Mp4 | Container::Mov) {
                     // Apple's players want the hvc1 tag.
                     cmd.args(["-tag:v:0", "hvc1"]);
                 }
             }
             VideoCodec::Vp9 => {
+                cmd.args(["-c:v:0", "libvpx-vp9"]);
+                rate_args(cmd, "crf", "32");
+                // Constant quality needs a bit rate of 0; a bit rate alone is an average.
+                if !matches!(rate, Rate::Bitrate(_)) {
+                    cmd.args(["-b:v:0", "0"]);
+                }
                 cmd.args([
-                    "-c:v:0",
-                    "libvpx-vp9",
-                    "-crf:v:0",
-                    "32",
-                    "-b:v:0",
-                    "0",
                     "-row-mt:v:0",
                     "1",
                     "-deadline:v:0",
@@ -379,13 +404,17 @@ impl VideoCodec {
                 ]);
             }
             VideoCodec::Mpeg4 => {
-                cmd.args(["-c:v:0", "mpeg4", "-q:v:0", "3", "-pix_fmt:v:0", "yuv420p"]);
+                cmd.args(["-c:v:0", "mpeg4"]);
+                rate_args(cmd, "q", "3");
+                cmd.args(["-pix_fmt:v:0", "yuv420p"]);
                 if container == Container::Avi {
                     cmd.args(["-tag:v:0", "XVID"]);
                 }
             }
             VideoCodec::Wmv2 => {
-                cmd.args(["-c:v:0", "wmv2", "-q:v:0", "3", "-pix_fmt:v:0", "yuv420p"]);
+                cmd.args(["-c:v:0", "wmv2"]);
+                rate_args(cmd, "q", "3");
+                cmd.args(["-pix_fmt:v:0", "yuv420p"]);
             }
         }
     }
@@ -424,17 +453,23 @@ impl AudioCodec {
 
     /// Adds the encoder options for output audio stream `k`, made from `source`.
     pub fn push(self, cmd: &mut Cmd, k: usize, source: Option<&Stream>) {
+        self.push_at(cmd, k, source, Rate::Default);
+    }
+
+    /// Like `push`, at this rate (lossless and PCM encoders have none).
+    pub fn push_at(self, cmd: &mut Cmd, k: usize, source: Option<&Stream>, rate: Rate) {
         let option = |name: &str| format!("-{name}:a:{k}");
-        let (encoder, rate): (&str, Option<(&str, &str)>) = match self {
-            AudioCodec::Aac => ("aac", Some(("b", "192k"))),
-            AudioCodec::Mp3 => ("libmp3lame", Some(("q", "2"))),
-            AudioCodec::Mp3Cbr => ("libmp3lame", Some(("b", "192k"))),
-            AudioCodec::Opus => ("libopus", Some(("b", "128k"))),
-            AudioCodec::Vorbis => ("libvorbis", Some(("q", "5"))),
+        let (encoder, rate): (&str, Option<(&str, String)>) = match self {
+            AudioCodec::Aac => ("aac", Some(rate.bitrate("192k"))),
+            // A bit rate makes LAME write a constant rate, which lands closest to a size.
+            AudioCodec::Mp3 => ("libmp3lame", Some(rate.option("q", "2"))),
+            AudioCodec::Mp3Cbr => ("libmp3lame", Some(rate.bitrate("192k"))),
+            AudioCodec::Opus => ("libopus", Some(rate.bitrate("128k"))),
+            AudioCodec::Vorbis => ("libvorbis", Some(rate.option("q", "5"))),
             AudioCodec::Flac => ("flac", None),
             AudioCodec::Alac => ("alac", None),
             AudioCodec::Pcm(name) => (name, None),
-            AudioCodec::Wmav2 => ("wmav2", Some(("b", "192k"))),
+            AudioCodec::Wmav2 => ("wmav2", Some(rate.bitrate("192k"))),
         };
         cmd.arg(option("c")).arg(encoder);
         if let Some((name, value)) = rate {
