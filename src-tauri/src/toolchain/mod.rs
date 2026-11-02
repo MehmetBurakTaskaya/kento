@@ -447,6 +447,8 @@ impl Toolchain {
             soffice: path("soffice"),
             ytdlp: path("yt-dlp"),
             deno: path("deno"),
+            onnxruntime: path("onnxruntime"),
+            bg_model: path("bg-model"),
         }
     }
 
@@ -1128,6 +1130,7 @@ mod tests {
                 soffice: None,
                 ytdlp: Some(system_ytdlp),
                 deno: Some(system_deno),
+                ..kento_engines::Tools::default()
             }
         );
         // Nothing of Media is downloaded while every tool of it works.

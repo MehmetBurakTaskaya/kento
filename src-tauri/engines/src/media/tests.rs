@@ -47,6 +47,7 @@ fn find_tools() -> Option<Tools> {
             soffice: None,
             ytdlp: None,
             deno: None,
+            ..Tools::default()
         }),
         _ => {
             let required = env::var("KENTO_REQUIRE_FFMPEG").is_ok_and(|v| v == "1");
@@ -339,6 +340,7 @@ fn missing_tools_are_reported() {
         soffice: None,
         ytdlp: None,
         deno: None,
+        ..Tools::default()
     };
     let dir = tempfile::tempdir().unwrap();
     let file = dir.path().join("a.mp4");

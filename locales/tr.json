@@ -500,6 +500,7 @@
   "error.codec.exiftool": "Bunun için Ekstra araçlardaki ExifTool gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
   "error.codec.libreoffice": "Bunun için Ofis araçlarındaki LibreOffice gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
   "error.codec.ytdlp": "Web’den indirmek için medya araçları (yt-dlp ve Deno) gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
+  "error.codec.background": "Arka plan kaldırmak için Ekstra araçlar (ONNX Runtime ve arka plan kaldırma modeli) gerekiyor. Ana Sayfa’yı açıp Kurulumu tamamla’yı seçin.",
   "error.web.drm": "Bu içerik DRM ile korunuyor, Kento indiremez.",
   "error.web.live": "Bu bir canlı yayın. Kento yalnızca bitmiş videoları indirir.",
   "error.web.login": "Bunun için oturum açmış bir hesap gerekiyor. Kento tarayıcınızdaki oturumu kullanmaz, bu yüzden indiremez.",

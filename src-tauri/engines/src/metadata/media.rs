@@ -592,6 +592,7 @@ mod tests {
                 soffice: None,
                 ytdlp: None,
                 deno: None,
+                ..Tools::default()
             }),
             _ => {
                 let required = std::env::var("KENTO_REQUIRE_FFMPEG").is_ok_and(|v| v == "1");

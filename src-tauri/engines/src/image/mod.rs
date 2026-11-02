@@ -97,6 +97,31 @@ pub fn decode(path: &Path, from: &str, options: &Options) -> Result<::image::Dyn
     decode::load(path, from, options).map(|decoded| decoded.image)
 }
 
+/// Decodes any image input upright, with its embedded colour profile (background removal).
+pub(crate) fn decode_with_profile(
+    path: &Path,
+    from: &str,
+    options: &Options,
+) -> Result<(::image::DynamicImage, Option<Vec<u8>>)> {
+    decode::load(path, from, options).map(|decoded| (decoded.image, decoded.icc))
+}
+
+/// Writes pixels as a PNG, with the colour profile when it suits them (background removal).
+pub(crate) fn write_png(
+    image: ::image::DynamicImage,
+    icc: Option<Vec<u8>>,
+    options: &Options,
+    dest: &Path,
+) -> Result<()> {
+    let decoded = decode::Decoded {
+        image,
+        icc,
+        lossy: false,
+        jpeg_as_is: false,
+    };
+    encode::write(decoded, "png", options, dest)
+}
+
 fn check_size(width: u32, height: u32) -> Result<()> {
     if width == 0 || height == 0 {
         return Err(Error::Unreadable("the image has no pixels".into()));

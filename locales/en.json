@@ -500,6 +500,7 @@
   "error.codec.exiftool": "This needs ExifTool from the Extras tools. Open Home and choose Complete setup.",
   "error.codec.libreoffice": "This needs LibreOffice from the Office tools. Open Home and choose Complete setup.",
   "error.codec.ytdlp": "Downloading from the web needs the media tools (yt-dlp and Deno). Open Home and choose Complete setup.",
+  "error.codec.background": "Removing backgrounds needs the Extras tools (ONNX Runtime and the background-removal model). Open Home and choose Complete setup.",
   "error.web.drm": "This is protected by DRM, so Kento cannot download it.",
   "error.web.live": "This is a live stream. Kento downloads only videos that have ended.",
   "error.web.login": "This needs a signed-in account. Kento does not use your browser’s sign-in, so it cannot download it.",

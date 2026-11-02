@@ -48,6 +48,8 @@ pub enum Codec {
     LibreOffice,
     /// yt-dlp with Deno, the web download part of the Media tools.
     YtDlp,
+    /// ONNX Runtime with the background-removal model, part of the Extras tools.
+    BackgroundRemoval,
 }
 
 /// Why a link cannot be downloaded, each said plainly in the interface (SPEC 5.10).
@@ -95,6 +97,7 @@ impl fmt::Display for Codec {
             Codec::ExifTool => "ExifTool",
             Codec::LibreOffice => "the Office tools (LibreOffice)",
             Codec::YtDlp => "the web download tools (yt-dlp)",
+            Codec::BackgroundRemoval => "background removal (ONNX Runtime and its model)",
         })
     }
 }

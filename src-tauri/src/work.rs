@@ -468,6 +468,7 @@ pub(crate) fn error_key(error: &EngineError) -> &'static str {
         EngineError::MissingCodec(Codec::ExifTool) => "error.codec.exiftool",
         EngineError::MissingCodec(Codec::LibreOffice) => "error.codec.libreoffice",
         EngineError::MissingCodec(Codec::YtDlp) => "error.codec.ytdlp",
+        EngineError::MissingCodec(Codec::BackgroundRemoval) => "error.codec.background",
         EngineError::Web(problem) => match problem {
             WebProblem::Drm => "error.web.drm",
             WebProblem::Live => "error.web.live",

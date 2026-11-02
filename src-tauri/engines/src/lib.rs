@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 //! Kento's engines: every conversion and tool. Most need nothing outside Kento; media runs FFmpeg,
 //! image metadata ExifTool and office documents LibreOffice, each downloaded on request or found
-//! on the computer.
+//! on the computer, and background removal loads ONNX Runtime and its model, downloaded on request.
 //!
 //! The crate knows nothing about windows, settings or the job queue. The app hands it paths that
 //! it has already claimed (see the app's `jobs::naming`), options and a progress handle, and runs
 //! it on a blocking thread. Format ids are the catalog's ids (`jpg`, `tar-gz`, …).
 
 pub mod archive;
+pub mod bgremove;
 pub mod compress;
 mod error;
 pub mod image;
@@ -128,6 +129,11 @@ pub struct Tools {
     pub ytdlp: Option<PathBuf>,
     /// Deno, the JavaScript runtime yt-dlp needs for YouTube.
     pub deno: Option<PathBuf>,
+    /// ONNX Runtime's library (`onnxruntime.dll`, `libonnxruntime.<version>.dylib`), loaded into
+    /// Kento for background removal.
+    pub onnxruntime: Option<PathBuf>,
+    /// The background-removal model (`bgremove::MODEL_FILE`).
+    pub bg_model: Option<PathBuf>,
 }
 
 impl Tools {
@@ -165,6 +171,18 @@ impl Tools {
         self.soffice
             .as_deref()
             .ok_or(Error::MissingCodec(Codec::LibreOffice))
+    }
+
+    pub fn onnxruntime(&self) -> Result<&Path> {
+        self.onnxruntime
+            .as_deref()
+            .ok_or(Error::MissingCodec(Codec::BackgroundRemoval))
+    }
+
+    pub fn bg_model(&self) -> Result<&Path> {
+        self.bg_model
+            .as_deref()
+            .ok_or(Error::MissingCodec(Codec::BackgroundRemoval))
     }
 }
 
