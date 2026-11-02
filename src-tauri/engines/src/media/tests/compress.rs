@@ -130,7 +130,21 @@ fn video_sources(ext: &str) -> (&'static [&'static str], &'static str, &'static 
 const AUDIO: &[(&str, &[&str], &str)] = &[
     ("mp3", &["-c:a", "libmp3lame", "-b:a", "320k"], "mp3"),
     ("m4a", &["-c:a", "aac", "-b:a", "256k"], "aac"),
-    ("ogg", &["-c:a", "libvorbis", "-q:a", "9"], "vorbis"),
+    // FFmpeg's own Vorbis encoder: Homebrew's FFmpeg has no libvorbis.
+    (
+        "ogg",
+        &[
+            "-c:a",
+            "vorbis",
+            "-strict",
+            "experimental",
+            "-ac",
+            "2",
+            "-q:a",
+            "9",
+        ],
+        "vorbis",
+    ),
     ("opus", &["-c:a", "libopus", "-b:a", "256k"], "opus"),
     ("wma", &["-c:a", "wmav2", "-b:a", "256k"], "wmav2"),
 ];
