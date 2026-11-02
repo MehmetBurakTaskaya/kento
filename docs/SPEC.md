@@ -146,11 +146,13 @@ Rules:
 ### 4.4 Licenses
 
 - App code: MIT.
-- `THIRD-PARTY-NOTICES.md` covers:
-  - bundled Rust and npm dependencies, generated with tools such as cargo-about and license-checker
-  - PDFium
+- `THIRD-PARTY-NOTICES.md`, written by `npm run third-party` (`scripts/third-party.mjs`) from `src-tauri/Cargo.lock`, `package-lock.json`, `scripts/fetch-pdfium.mjs` and `src-tauri/toolchain.lock.json`, covers:
+  - the Rust crates the Windows and macOS builds link and the npm packages of the interface, with the license texts they ship (the standard text from `scripts/licences/` when a package ships none), the bundled font included
+  - code that crates compile in from other projects: UnRAR (extract only, as its license requires), libwebp, Microsoft's WebView2 loader
+  - PDFium, whose license texts (the `licenses` folder of the pinned build) ship beside the library
   - the optional downloaded tools: FFmpeg (GPL/LGPL), LibreOffice (MPL 2.0), yt-dlp, Deno (MIT), ExifTool, ONNX Runtime (MIT) and the license of the model used
-- `docs/DEPENDENCIES.md`: a table of every dependency's version, source, hash and license.
+- `docs/DEPENDENCIES.md`, written by the same script: a table of every dependency's version, source, hash and license.
+- Both are sorted and carry no date; `npm run check:third-party` in CI's Licences job fails when they no longer match the lockfiles.
 
 ## 5. Feature specification
 
@@ -654,7 +656,7 @@ Translation process:
 
 - English is the source language. Turkish is reviewed by hand.
 - Other languages start from machine translation and are marked "not reviewed" in the translation file.
-- Terms are consistent across languages; the glossary is `docs/GLOSSARY.md` ("wheel", "shelf", "recipe"…).
+- Terms are consistent across languages; `CONTRIBUTING.md` names the ones to keep (wheel, slice, shelf, recipe, rule, Library…).
 - `CONTRIBUTING.md` has a translation guide.
 - The README and the website kit stay English + Turkish.
 
