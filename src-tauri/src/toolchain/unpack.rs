@@ -220,7 +220,9 @@ fn extract_tar_gz(archive: &Path, wanted: &Wanted, found: &mut Found) -> Result<
     let mut tar = tar::Archive::new(gzip);
     for entry in tar.entries().map_err(unpack)? {
         let mut entry = entry.map_err(unpack)?;
-        let name = String::from_utf8_lossy(&entry.path_bytes()).replace('\\', "/");
+        let raw = String::from_utf8_lossy(&entry.path_bytes()).replace('\\', "/");
+        // Some archives (ONNX Runtime's) name every entry from `./`: the same path.
+        let name = raw.strip_prefix("./").unwrap_or(&raw).to_string();
         let kind = entry.header().entry_type();
         let place = wanted.place(&name, kind.is_dir())?;
         if matches!(place, Place::Skip) {
@@ -543,6 +545,42 @@ pub(crate) mod tests {
         let missing = wanted(&out, &[("pack/nothing", "nothing")]);
         let result = extract(&archive, ArchiveKind::TarGz, &missing);
         assert!(matches!(result, Err(Error::MissingEntry(_))), "{result:?}");
+    }
+
+    #[test]
+    fn entries_named_from_dot_slash_are_found() {
+        // ONNX Runtime's archives write every name from `./`; `tar::Builder` would tidy such a
+        // name, so the header gets the bytes as they are.
+        let gzip = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        let mut tar = tar::Builder::new(gzip);
+        for (name, bytes) in [
+            ("./", &b""[..]),
+            ("./pack/lib/libtool.1.0.dylib", &b"library"[..]),
+        ] {
+            let mut header = tar::Header::new_old();
+            header.as_old_mut().name[..name.len()].copy_from_slice(name.as_bytes());
+            header.set_entry_type(if bytes.is_empty() {
+                tar::EntryType::Directory
+            } else {
+                tar::EntryType::Regular
+            });
+            header.set_size(bytes.len() as u64);
+            header.set_mode(0o644);
+            header.set_cksum();
+            tar.append(&header, bytes).unwrap();
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let archive = dir.path().join("runtime ğ 🧪.tgz");
+        fs::write(&archive, tar.into_inner().unwrap().finish().unwrap()).unwrap();
+        let out = dir.path().join("out");
+        fs::create_dir(&out).unwrap();
+        extract(
+            &archive,
+            ArchiveKind::TarGz,
+            &wanted(&out, &[("pack/lib/libtool.1.0.dylib", "libtool.1.0.dylib")]),
+        )
+        .unwrap();
+        assert_eq!(fs::read(out.join("libtool.1.0.dylib")).unwrap(), b"library");
     }
 
     #[test]
