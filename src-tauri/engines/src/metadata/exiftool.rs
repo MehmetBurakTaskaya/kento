@@ -6,11 +6,11 @@
 
 use std::io::{self, Read, Write};
 use std::path::Path;
-use std::process::{Child, Stdio};
+use std::process::Stdio;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::media::run::command;
+use crate::process::{command, Reap};
 use crate::{Codec, Error, Progress, Result};
 
 /// How often a run looks at the cancel flag.
@@ -64,7 +64,8 @@ pub(super) fn run(
             Error::Io(error)
         }
     })?;
-    let mut process = Process::new(child);
+    // On Windows the ExifTool there is a launcher that starts Perl, and the kill must reach both.
+    let mut process = Reap::new(child);
     let mut stdin = process.child.stdin.take().expect("stdin is piped");
     let mut stdout = process.child.stdout.take().expect("stdout is piped");
     let stderr = process.child.stderr.take().expect("stderr is piped");
@@ -133,100 +134,6 @@ pub(super) fn failure(stderr: &str) -> Error {
         Error::Unreadable(detail)
     } else {
         Error::Other(format!("ExifTool failed: {detail}"))
-    }
-}
-
-/// ExifTool's process, killed unless it has ended, so that no early return leaves it running.
-/// On Windows it runs in a job object: the ExifTool there is a launcher that starts Perl, and the
-/// kill must reach both (the same arrangement as the FFmpeg runner's).
-struct Process {
-    child: Child,
-    #[cfg(windows)]
-    tree: Option<tree::Tree>,
-}
-
-impl Process {
-    fn new(child: Child) -> Self {
-        Process {
-            #[cfg(windows)]
-            tree: tree::Tree::new(&child),
-            child,
-        }
-    }
-
-    fn kill(&mut self) {
-        #[cfg(windows)]
-        if let Some(tree) = &self.tree {
-            tree.kill();
-        }
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-    }
-}
-
-impl Drop for Process {
-    fn drop(&mut self) {
-        if let Ok(None) = self.child.try_wait() {
-            self.kill();
-        }
-    }
-}
-
-#[cfg(windows)]
-mod tree {
-    use std::os::windows::io::AsRawHandle;
-    use std::process::Child;
-
-    use windows::core::PCWSTR;
-    use windows::Win32::Foundation::{CloseHandle, HANDLE};
-    use windows::Win32::System::JobObjects::{
-        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
-        SetInformationJobObject, TerminateJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
-    };
-
-    /// A job object holding ExifTool and the Perl it starts; closing it ends them all.
-    pub struct Tree(HANDLE);
-
-    // The handle is only used to end the processes; the job object itself is thread-safe.
-    unsafe impl Send for Tree {}
-
-    impl Tree {
-        /// None when the process cannot be put in a job; the kill then reaches only the launcher.
-        pub fn new(child: &Child) -> Option<Tree> {
-            // SAFETY: plain Win32 calls on a handle this function owns, with a correctly sized
-            // structure; the child's handle stays valid while `child` lives.
-            unsafe {
-                let job = Tree(CreateJobObjectW(None, PCWSTR::null()).ok()?);
-                let mut limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
-                limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-                SetInformationJobObject(
-                    job.0,
-                    JobObjectExtendedLimitInformation,
-                    (&raw const limits).cast(),
-                    size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
-                )
-                .ok()?;
-                AssignProcessToJobObject(job.0, HANDLE(child.as_raw_handle())).ok()?;
-                Some(job)
-            }
-        }
-
-        pub fn kill(&self) {
-            // SAFETY: the handle is open until drop.
-            unsafe {
-                let _ = TerminateJobObject(self.0, 1);
-            }
-        }
-    }
-
-    impl Drop for Tree {
-        fn drop(&mut self) {
-            // SAFETY: closed once, here.
-            unsafe {
-                let _ = CloseHandle(self.0);
-            }
-        }
     }
 }
 

@@ -15,6 +15,7 @@ pub mod media;
 pub mod metadata;
 pub mod office;
 pub mod pdf;
+mod process;
 pub mod qr;
 pub mod sheet;
 pub mod subtitle;

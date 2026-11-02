@@ -7,12 +7,14 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::{OsStr, OsString};
 use std::io::{self, BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
-use std::process::{Child, ChildStderr, Command, Stdio};
+use std::process::{ChildStderr, Command, Stdio};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
+pub(crate) use crate::process::command;
+use crate::process::Reap;
 use crate::{Codec, Error, Progress, Result};
 
 /// How many of the last stderr lines a run keeps for its error message and for filters that
@@ -34,19 +36,6 @@ const INPUT_PROBLEMS: &[&str] = &[
     // The file lacks the stream asked for (a picture from a sound file).
     "matches no streams",
 ];
-
-/// A command for the tools, set up the same way every time.
-pub(crate) fn command(program: &Path) -> Command {
-    let mut command = Command::new(program);
-    command.stdin(Stdio::null());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        // CREATE_NO_WINDOW: FFmpeg is a console program, and every run would flash a window.
-        command.creation_flags(0x0800_0000);
-    }
-    command
-}
 
 pub(crate) fn spawn_error(error: io::Error) -> Error {
     if error.kind() == io::ErrorKind::NotFound {
@@ -323,101 +312,6 @@ impl Log {
     }
 }
 
-/// Kills the process unless it has ended, so that no early return leaves FFmpeg running. On
-/// Windows the process runs in a job object, and the kill ends everything in it.
-struct Reap {
-    child: Child,
-    #[cfg(windows)]
-    tree: Option<tree::Tree>,
-}
-
-impl Reap {
-    fn spawn(mut command: Command) -> Result<Reap> {
-        let child = command.spawn().map_err(spawn_error)?;
-        Ok(Reap {
-            #[cfg(windows)]
-            tree: tree::Tree::new(&child),
-            child,
-        })
-    }
-
-    fn kill(&mut self) {
-        #[cfg(windows)]
-        if let Some(tree) = &self.tree {
-            tree.kill();
-        }
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-    }
-}
-
-impl Drop for Reap {
-    fn drop(&mut self) {
-        if let Ok(None) = self.child.try_wait() {
-            self.kill();
-        }
-    }
-}
-
-#[cfg(windows)]
-mod tree {
-    use std::os::windows::io::AsRawHandle;
-    use std::process::Child;
-
-    use windows::core::PCWSTR;
-    use windows::Win32::Foundation::{CloseHandle, HANDLE};
-    use windows::Win32::System::JobObjects::{
-        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
-        SetInformationJobObject, TerminateJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
-    };
-
-    /// A job object holding one FFmpeg process and anything it starts. Closing it ends them all,
-    /// so a run can never outlive Kento either.
-    pub struct Tree(HANDLE);
-
-    // The handle is only used to end the processes; the job object itself is thread-safe.
-    unsafe impl Send for Tree {}
-
-    impl Tree {
-        /// None when the process cannot be put in a job; the kill then reaches only the process.
-        pub fn new(child: &Child) -> Option<Tree> {
-            // SAFETY: plain Win32 calls on a handle this function owns, with a correctly sized
-            // structure; the child's handle stays valid while `child` lives.
-            unsafe {
-                let job = Tree(CreateJobObjectW(None, PCWSTR::null()).ok()?);
-                let mut limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
-                limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-                SetInformationJobObject(
-                    job.0,
-                    JobObjectExtendedLimitInformation,
-                    (&raw const limits).cast(),
-                    size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
-                )
-                .ok()?;
-                AssignProcessToJobObject(job.0, HANDLE(child.as_raw_handle())).ok()?;
-                Some(job)
-            }
-        }
-
-        pub fn kill(&self) {
-            // SAFETY: the handle is open until drop.
-            unsafe {
-                let _ = TerminateJobObject(self.0, 1);
-            }
-        }
-    }
-
-    impl Drop for Tree {
-        fn drop(&mut self) {
-            // SAFETY: closed once, here.
-            unsafe {
-                let _ = CloseHandle(self.0);
-            }
-        }
-    }
-}
-
 /// The position in `out_time_us=…` (or the older `out_time_ms=…`, which FFmpeg also writes in
 /// microseconds), in seconds.
 fn out_time(line: &str) -> Option<f64> {
@@ -434,7 +328,7 @@ fn out_time(line: &str) -> Option<f64> {
 /// Runs FFmpeg to the end, reporting its position, and returns what it logged.
 pub(crate) fn run(ffmpeg: &Path, cmd: &Cmd, watch: Watch) -> Result<Log> {
     watch.progress.check()?;
-    let mut child = Reap::spawn(cmd.command(ffmpeg, true))?;
+    let mut child = Reap::spawn(cmd.command(ffmpeg, true)).map_err(spawn_error)?;
     let stdout = child.child.stdout.take().expect("stdout is piped");
     let stderr = child.child.stderr.take().expect("stderr is piped");
     let keep = cmd.keep;
@@ -494,7 +388,7 @@ pub(crate) fn pipe(
     mut sink: impl FnMut(&[u8]) -> Result<()>,
 ) -> Result<Log> {
     progress.check()?;
-    let mut child = Reap::spawn(cmd.command(ffmpeg, false))?;
+    let mut child = Reap::spawn(cmd.command(ffmpeg, false)).map_err(spawn_error)?;
     let mut stdout = child.child.stdout.take().expect("stdout is piped");
     let stderr: ChildStderr = child.child.stderr.take().expect("stderr is piped");
     let keep = cmd.keep;
