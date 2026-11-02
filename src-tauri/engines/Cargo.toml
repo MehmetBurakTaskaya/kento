@@ -68,6 +68,8 @@ roxmltree = "0.21.2"
 # so nothing is downloaded or linked when Kento is built. API 23 is ONNX Runtime 1.23, the last
 # release with Intel Mac builds; every later release serves it too. Pinned exactly: release
 # candidates change their API.
+# Only to read why ONNX Runtime fails to load; ort loads it through the same crate.
+libloading = "0.9"
 ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "load-dynamic", "api-23", "tracing"] }
 
 # Images: HEIC through the system codecs (WIC on Windows; ImageIO on macOS needs no crate).

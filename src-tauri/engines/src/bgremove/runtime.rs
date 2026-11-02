@@ -135,7 +135,12 @@ fn environment(runtime: &Path) -> Result<Environment> {
         return Ok(environment.clone());
     }
     let built = ort::init_from(runtime)
-        .map_err(|err| Error::Other(format!("ONNX Runtime could not be loaded: {err}")))?
+        .map_err(|err| {
+            Error::Other(format!(
+                "ONNX Runtime could not be loaded: {err}{}",
+                why_not_loaded(runtime)
+            ))
+        })?
         .with_name("kento")
         .with_telemetry(false)
         .build()
@@ -144,6 +149,25 @@ fn environment(runtime: &Path) -> Result<Environment> {
     built.set_log_level(ort::logging::LogLevel::Warning);
     tracing::info!("ONNX Runtime is loaded");
     Ok(environment.insert(built).clone())
+}
+
+/// What the system says when it cannot load the library, which ort's own error leaves out: it
+/// tells a missing Visual C++ runtime (Windows error 126) from an old one (127) or a damaged file.
+fn why_not_loaded(runtime: &Path) -> String {
+    // SAFETY: the library is Kento's own pinned and checked copy, which ort has just tried to
+    // load; it is loaded once more only to read why that fails.
+    match unsafe { libloading::Library::new(runtime) } {
+        Ok(_) => String::new(),
+        Err(err) => {
+            let mut text = String::new();
+            let mut cause = std::error::Error::source(&err);
+            while let Some(reason) = cause {
+                text.push_str(&format!(" ({reason})"));
+                cause = reason.source();
+            }
+            text
+        }
+    }
 }
 
 /// A session for the model, on the computer's processor.
