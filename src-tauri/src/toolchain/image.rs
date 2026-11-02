@@ -16,7 +16,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
-use super::manifest::{ArchiveKind, IMAGE_ROOT};
+use super::manifest::ArchiveKind;
+#[cfg(windows)]
+use super::manifest::IMAGE_ROOT;
 use super::Error;
 
 /// Unpacking LibreOffice takes a minute or two; a tool still busy after this is stuck.
