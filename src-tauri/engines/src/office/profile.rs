@@ -120,17 +120,6 @@ pub(super) fn prepare(profile: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Whether LibreOffice has not set this profile up yet: its `user` folder holds nothing but the
-/// settings Kento put there.
-pub(super) fn is_new(profile: &Path) -> bool {
-    match fs::read_dir(profile.join("user")) {
-        Ok(entries) => entries
-            .filter_map(|entry| entry.ok())
-            .all(|entry| entry.file_name() == "registrymodifications.xcu"),
-        Err(_) => true,
-    }
-}
-
 /// The file with Kento's settings in it: unchanged when they are all there, otherwise with any
 /// other value of those properties replaced; a new file when there is none or it is broken.
 fn seeded(existing: Option<&str>) -> String {
@@ -236,16 +225,12 @@ mod tests {
     fn office_profile_prepare_writes_the_file_once() {
         let dir = tempfile::tempdir().unwrap();
         let profile = dir.path().join("Profil ğüşıöç 🧪");
-        assert!(is_new(&profile));
         prepare(&profile).unwrap();
         let file = profile.join("user").join("registrymodifications.xcu");
         let first = fs::read_to_string(&file).unwrap();
         assert!(first.contains("MacroSecurityLevel"));
-        assert!(is_new(&profile), "only Kento's settings are there");
         prepare(&profile).unwrap();
         assert_eq!(fs::read_to_string(&file).unwrap(), first);
-        fs::create_dir(profile.join("user").join("config")).unwrap();
-        assert!(!is_new(&profile), "LibreOffice has set it up");
     }
 
     #[test]

@@ -37,6 +37,9 @@ const TIMEOUT: Duration = Duration::from_secs(20 * 60);
 /// How often a run looks at the cancel flag.
 const POLL: Duration = Duration::from_millis(100);
 
+/// The wait before a run that wrote nothing is tried again.
+const RETRY_PAUSE: Duration = Duration::from_secs(1);
+
 /// How many of LibreOffice's last output lines a run keeps for its error message.
 const TAIL: usize = 32;
 
@@ -98,13 +101,14 @@ impl<'a> Office<'a> {
             .file_stem()
             .map(|stem| stem.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let (mut log, fresh, ended_well) = self.run(&args, outdir)?;
-        if written(outdir, &stem, export.extension).is_none()
-            && (fresh || (!ended_well && !log.input_problem()))
-        {
-            // A first start may only set the new profile up and end, and a start right after a
-            // run that was ended can crash once; the second run converts.
-            log = self.run(&args, outdir)?.0;
+        let mut log = self.run(&args, outdir)?;
+        if written(outdir, &stem, export.extension).is_none() && !log.input_problem() {
+            // A first start may only set a new profile up and end, and a start right after a run
+            // that was ended can crash or hand the job to the instance still going away; the
+            // second run, a moment later, converts. A document that cannot be loaded is not
+            // tried twice.
+            std::thread::sleep(RETRY_PAUSE);
+            log = self.run(&args, outdir)?;
         }
         match written(outdir, &stem, export.extension) {
             Some(path) => Ok(path),
@@ -116,14 +120,12 @@ impl<'a> Office<'a> {
         }
     }
 
-    /// One run of LibreOffice, whether its profile was new before it, and whether it ended with
-    /// success.
-    fn run(&self, args: &[OsString], cwd: &Path) -> Result<(Log, bool, bool)> {
+    /// One run of LibreOffice and what it said.
+    fn run(&self, args: &[OsString], cwd: &Path) -> Result<Log> {
         self.progress.check()?;
         // One soffice per profile at a time (SPEC 6): the warm-up may run beside a job.
         let lock = profile::lock(self.profile);
         let _guard = lock.lock().unwrap_or_else(PoisonError::into_inner);
-        let fresh = profile::is_new(self.profile);
         profile::prepare(self.profile)?;
         let mut command = command(&program(self.soffice));
         command
@@ -167,7 +169,7 @@ impl<'a> Office<'a> {
         if !status.success() {
             tracing::warn!("LibreOffice ended with {status}");
         }
-        Ok((log, fresh, status.success()))
+        Ok(log)
     }
 }
 
@@ -580,7 +582,7 @@ mod tests {
     }
 
     #[test]
-    fn office_soffice_a_new_profile_gets_a_second_run() {
+    fn office_soffice_a_run_that_wrote_nothing_gets_one_more() {
         let (dir, out, input, profile) = job();
         // The stand-in only "sets the profile up" the first time, as a first start may.
         let program = stand_in(
@@ -594,11 +596,14 @@ mod tests {
             office.convert(&input, None, &export, &out).unwrap(),
             out.join("in.pdf")
         );
-        // A profile in use gets no second run when the first ended well.
+        // A profile in use gets it too, but only one: a program that never writes runs twice.
         fs::remove_file(out.join("in.pdf")).unwrap();
-        fs::remove_file(out.join("seen")).unwrap();
         fs::create_dir_all(profile.join("user").join("config")).unwrap();
+        let program = stand_in(dir.path(), "echo run>> runs.txt", "echo run >> runs.txt");
+        let office = Office::new(&program, &profile, Progress::none());
         assert!(office.convert(&input, None, &export, &out).is_err());
+        let runs = fs::read_to_string(out.join("runs.txt")).unwrap();
+        assert_eq!(runs.lines().count(), 2, "{runs:?}");
     }
 
     #[test]
