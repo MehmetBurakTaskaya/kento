@@ -95,6 +95,7 @@ fn admin_install(package: &Path, target: &Path) -> Result<(), Error> {
         // a restart would finish.
         Some(0 | 3010) => Ok(()),
         // 1618: another installation is running.
+        Some(1618) => Err(Error::InstallerBusy),
         code => Err(Error::AdminInstall(format!("msiexec ended with {code:?}"))),
     }
 }

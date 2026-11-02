@@ -111,6 +111,9 @@ pub enum Error {
     Unpack(String),
     #[error("the administrative install of the package failed: {0}")]
     AdminInstall(String),
+    /// Windows Installer runs one installation at a time.
+    #[error("another installation is running")]
+    InstallerBusy,
     #[error("the disk image: {0}")]
     DiskImage(String),
     #[error("{0} did not run, or is older than Kento needs")]
@@ -141,6 +144,7 @@ impl Error {
             Error::Checksum => "toolchain.failed.checksum",
             Error::MissingEntry(_) | Error::Unpack(_) => "toolchain.failed.unpack",
             Error::AdminInstall(_) => "toolchain.failed.msi",
+            Error::InstallerBusy => "toolchain.failed.msi.busy",
             Error::DiskImage(_) => "toolchain.failed.dmg",
             Error::Io(_) => "toolchain.failed.disk",
             Error::NotWorking(tool) if tool == "exiftool" => "toolchain.failed.check.exiftool",
@@ -1974,6 +1978,7 @@ mod tests {
             Error::NotWorking("deno".into()),
             Error::Release("x".into()),
             Error::AdminInstall("x".into()),
+            Error::InstallerBusy,
             Error::DiskImage("x".into()),
             Error::Cancelled,
             Error::Unavailable("office".into()),
@@ -1985,6 +1990,10 @@ mod tests {
         assert_eq!(
             Error::AdminInstall("x".into()).message_key(),
             "toolchain.failed.msi"
+        );
+        assert_eq!(
+            Error::InstallerBusy.message_key(),
+            "toolchain.failed.msi.busy"
         );
         assert_eq!(
             Error::DiskImage("x".into()).message_key(),
