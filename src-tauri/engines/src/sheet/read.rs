@@ -73,7 +73,7 @@ pub(super) fn delimited(path: &Path, from: &str, progress: &Progress) -> Result<
 }
 
 /// Picks the delimiter that splits the first records into the same number of fields most often.
-pub(super) fn sniff_delimiter(content: &str) -> u8 {
+pub(crate) fn sniff_delimiter(content: &str) -> u8 {
     let mut end = content.len().min(64 * 1024);
     while !content.is_char_boundary(end) {
         end -= 1;

@@ -49,6 +49,22 @@ impl Reap {
         Ok(Reap::new(command.spawn()?))
     }
 
+    /// Like `spawn`, for programs that start others and may leave before them: on Unix the
+    /// program leads a new process group, so the kill reaches its children too.
+    pub(crate) fn spawn_group(mut command: Command) -> io::Result<Reap> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            command.process_group(0);
+            let child = command.spawn()?;
+            Ok(Reap { child, group: true })
+        }
+        #[cfg(not(unix))]
+        {
+            Ok(Reap::new(command.spawn()?))
+        }
+    }
+
     pub(crate) fn kill(&mut self) {
         #[cfg(windows)]
         if let Some(tree) = &self.tree {

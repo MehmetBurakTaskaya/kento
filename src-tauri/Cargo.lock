@@ -2958,6 +2958,7 @@ dependencies = [
  "rav1d",
  "ravif",
  "resvg",
+ "roxmltree 0.21.2",
  "rust_xlsxwriter",
  "rxing",
  "serde",

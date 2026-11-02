@@ -15,6 +15,9 @@ mod read;
 mod tests;
 mod write;
 
+/// LibreOffice's CSV import gets the delimiter this engine would read (`office`).
+pub(crate) use read::sniff_delimiter;
+
 use std::path::{Path, PathBuf};
 
 use crate::{Conversion, Error, Progress, Result};

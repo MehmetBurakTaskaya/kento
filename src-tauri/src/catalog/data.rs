@@ -335,7 +335,13 @@ pub fn routes() -> &'static [Route] {
                 });
             }
             route.status = match route.engine {
-                E::Image | E::Pdf | E::Archive | E::Text | E::Sheet | E::Ffmpeg => Status::Ready,
+                E::Image
+                | E::Pdf
+                | E::Archive
+                | E::Text
+                | E::Sheet
+                | E::Ffmpeg
+                | E::LibreOffice => Status::Ready,
                 // Depends on the computer's HEIF support.
                 E::Heif => Status::Preview,
                 _ => Status::Planned,
