@@ -89,10 +89,23 @@ export function hitTest(x: number, y: number, count: number, dir: Direction, off
   const dy = y - C;
   const r = Math.hypot(dx, dy);
   if (r < R.WINDOW || r > R.OUT) return null;
-  const angle = (Math.atan2(dx, -dy) * 180) / Math.PI - offset;
+  return sliceAt((Math.atan2(dx, -dy) * 180) / Math.PI, count, dir, offset);
+}
+
+/** The slice whose window holds an angle. */
+export function sliceAt(angle: number, count: number, dir: Direction, offset = 0): number {
   const step = 360 / count;
-  const a = dir === 'rtl' ? -angle : angle;
+  const a = dir === 'rtl' ? offset - angle : angle - offset;
   return Math.floor(normalize(a + step / 2) / step) % count;
+}
+
+/** How far slice `index` lies from slice `from` round a ring of `count`, as a share of half a turn: 0
+ * on `from`, 1 opposite it. A ring unfolds from a slice in this order and folds back in the reverse;
+ * the order follows the ring, so it mirrors with it in right-to-left layouts. */
+export function spread(index: number, from: number, count: number): number {
+  if (count <= 1) return 0;
+  const k = (((index - from) % count) + count) % count;
+  return (Math.min(k, count - k) * 2) / count;
 }
 
 /** Where a point of the screen lands in the 400-unit space of a wheel drawn in `box`. */

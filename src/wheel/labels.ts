@@ -91,7 +91,8 @@ export function canvasMeasure({ family, weight, spacing = 0 }: FontSpec): Measur
   return (text) => {
     let width = cache.get(text);
     if (width === undefined) {
-      const length = Array.from(text).length;
+      // Format characters, such as the marks that isolate a name, draw nothing.
+      const length = Array.from(text.replace(/\p{Cf}/gu, '')).length;
       if (ctx) {
         ctx.font = `${weight} 100px ${family}`;
         width = ctx.measureText(text).width / 100;

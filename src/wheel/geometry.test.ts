@@ -10,6 +10,8 @@ import {
   R,
   restAngle,
   sectorPath,
+  sliceAt,
+  spread,
   toView,
   turnTo,
 } from './geometry';
@@ -40,6 +42,24 @@ describe('slice layout', () => {
     }
     const [x, y] = polar(R.LABEL, 90);
     expect(hitTest(x, y, 5, 'rtl', offsetFor(90, 2, 5, 'rtl'))).toBe(2);
+  });
+
+  it('orders a ring outward from one slice, by half turns', () => {
+    expect([0, 1, 2, 3, 4, 5, 6, 7].map((i) => spread(i, 2, 8))).toEqual([0.5, 0.25, 0, 0.25, 0.5, 0.75, 1, 0.75]);
+    // Five slices: the farthest pair sits 144° away.
+    expect([0, 1, 2, 3, 4].map((i) => spread(i, 0, 5))).toEqual([0, 0.4, 0.8, 0.8, 0.4]);
+    expect(spread(1, 0, 2)).toBe(1);
+    expect(spread(0, 0, 1)).toBe(0);
+  });
+
+  it('finds the slice at an angle, mirrored right to left', () => {
+    const offset = offsetFor(90, 2, 5, 'ltr');
+    expect(sliceAt(90, 5, 'ltr', offset)).toBe(2);
+    expect(sliceAt(120, 5, 'ltr', offset)).toBe(2);
+    expect(sliceAt(130, 5, 'ltr', offset)).toBe(3);
+    expect(sliceAt(90, 5, 'rtl', offsetFor(90, 2, 5, 'rtl'))).toBe(2);
+    expect(sliceAt(50, 5, 'rtl', offsetFor(90, 2, 5, 'rtl'))).toBe(3);
+    expect(sliceAt(-22.6, 8, 'ltr')).toBe(7);
   });
 
   it('parks the dial on the boundary before slice 1', () => {

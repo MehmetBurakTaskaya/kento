@@ -5,7 +5,11 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { changeLanguage, initI18n } from '../i18n';
 import { C, polar, R } from './geometry';
 import { MOTION } from './motion';
+import { playWheelSound } from './sound';
 import { Wheel, type WheelControl, type WheelProps, type WheelSlice } from './Wheel';
+
+// The sounds a wheel asks for, without audio.
+vi.mock('./sound', async (original) => ({ ...(await original<typeof import('./sound')>()), playWheelSound: vi.fn() }));
 
 const FORMATS: WheelSlice[] = ['jpg', 'png', 'webp', 'avif', 'gif', 'tiff', 'bmp', 'ico', 'pdf'].map((id) => ({
   id,
@@ -413,5 +417,183 @@ describe('a slice with choices', () => {
     expect(labels()).toHaveLength(2);
     view.rerender(<Wheel {...props} slices={FORMATS.slice(0, 3)} />);
     expect(labels()).toEqual(['JPG, jpg sub', 'PNG, png sub', 'WEBP, webp sub']);
+  });
+});
+
+describe('opening and closing a ring', () => {
+  const wheel = () => document.querySelector('.wheel')!;
+  const level = () => wheel().getAttribute('data-level');
+  /** A text in the hub, without the marks that isolate each name. */
+  const hubText = (selector: string) => document.querySelector(selector)?.textContent?.replace(/[⁨⁩]/g, '');
+  const custom = (element: Element, name: string) => (element as SVGElement).style.getPropertyValue(name);
+  const animate = vi.fn<(frames: Keyframe[], options: KeyframeAnimationOptions) => { cancel(): void }>(() => ({
+    cancel: () => {},
+  }));
+  /** The first keyframe of each dial detent. */
+  const detents = () => animate.mock.calls.map(([frames]) => frames[0]!.transform);
+
+  beforeEach(() => {
+    animate.mockClear();
+    vi.mocked(playWheelSound).mockClear();
+    // jsdom has no Web Animations; the dial's detent asks for one.
+    Object.defineProperty(HTMLElement.prototype, 'animate', { value: animate, configurable: true, writable: true });
+  });
+
+  afterEach(() => {
+    delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+  });
+
+  it('sweeps the new ring out of the slice and flies the slice to the hub, which keeps the breadcrumb', () => {
+    const { key, items } = setup({ slices: WITH_PDF });
+    act(() => key('ArrowDown'));
+    act(() => key('Enter'));
+    expect(level()).toBe('in');
+    // The new ring unfolds from its default, at the slice's angle; the other choice, opposite, comes last.
+    expect(items().map((item) => custom(item, '--sweep'))).toEqual(['0', '1']);
+    expect(items()[1]!.querySelector('.wheel-fade')?.classList.contains('is-in')).toBe(true);
+    // The two halves of the slice's keyline run round the ring.
+    expect(document.querySelectorAll('.wheel-arm.is-in')).toHaveLength(2);
+    // The old ring fades over the new one, but for the slice, whose icon and label fly to the hub.
+    const ghost = document.querySelector('.wheel-ghost.is-in')!;
+    expect(ghost.textContent).toContain('JPG');
+    expect(ghost.textContent).not.toContain('PDF');
+    expect(document.querySelector('.wheel-flyer.is-in')?.textContent).toBe('PDF');
+    expect(document.querySelector('.wheel-hub-text')?.classList.contains('is-in')).toBe(true);
+    expect(hubText('.wheel-trail')).toBe('Convert ›');
+    expect(hubText('.wheel-title')).toBe('PDF');
+    expect(detents()).toEqual(['rotate(-14.4deg)']);
+    act(() => vi.advanceTimersByTime(MOTION.level - 1));
+    expect(level()).toBe('in');
+    act(() => vi.advanceTimersByTime(1));
+    expect(wheel().hasAttribute('data-level')).toBe(false);
+    expect(document.querySelector('.wheel-ghost, .wheel-flyer, .wheel-arm')).toBeNull();
+    // The breadcrumb stays while the wheel is inside.
+    expect(hubText('.wheel-trail')).toBe('Convert ›');
+    // The screen reader hears the ring as before.
+    expect(document.querySelector('.wheel-sr')?.textContent).toBe('PDF: 2 choices');
+  });
+
+  it('folds the ring back into its slice and flies the title home', () => {
+    const { key, items, said } = setup({ slices: WITH_PDF });
+    act(() => key('ArrowDown'));
+    act(() => key('Enter'));
+    act(() => vi.advanceTimersByTime(MOTION.level));
+    act(() => key('ArrowLeft'));
+    expect(level()).toBe('out');
+    // The ring left behind folds into the choice at the slice's angle, the farthest first.
+    const ghost = document.querySelector('.wheel-ghost.is-out')!;
+    const first = (slice: Element) => slice.querySelector('.wheel-label')?.textContent;
+    expect([...ghost.children].map(first)).toEqual(['One PDF', 'Separate']);
+    expect([...ghost.children].map((slice) => custom(slice, '--fold'))).toEqual(['1', '0']);
+    expect(document.querySelectorAll('.wheel-arm.is-out')).toHaveLength(2);
+    expect(document.querySelector('.wheel-flyer.is-out')?.textContent).toBe('PDF');
+    // The ring below returns to the slice, which the keyboard's hover already shows.
+    expect(items()[0]!.classList.contains('is-origin')).toBe(true);
+    expect(items()[0]!.querySelector('.wheel-fade')?.classList.contains('is-out')).toBe(true);
+    expect(document.querySelector('.wheel-wash')).toBeNull();
+    expect(document.querySelector('.wheel-hub-text')?.classList.contains('is-out')).toBe(true);
+    expect(document.querySelector('.wheel-trail')).toBeNull();
+    expect(hubText('.wheel-title')).toBe('CONVERT');
+    expect(detents()).toEqual(['rotate(-14.4deg)', 'rotate(14.4deg)']);
+    expect(said()).toBe('Back to Convert');
+    act(() => vi.advanceTimersByTime(MOTION.level));
+    expect(wheel().hasAttribute('data-level')).toBe(false);
+  });
+
+  it('lights the slice up when the ring closes from the hub, where nothing points at it', () => {
+    const { point, rest, items } = setup({ slices: WITH_PDF });
+    point(0);
+    rest();
+    point(0);
+    point('hub');
+    rest();
+    expect(level()).toBe('out');
+    expect(items()[0]!.classList.contains('is-wash')).toBe(true);
+    expect(items()[0]!.querySelector('.wheel-wash')).not.toBeNull();
+    expect(items()[1]!.querySelector('.wheel-wash')).toBeNull();
+  });
+
+  it('mirrors the dial’s detent right to left', async () => {
+    await act(() => changeLanguage('ar-XB'));
+    const { key } = setup({ slices: WITH_PDF });
+    act(() => key('ArrowDown'));
+    act(() => key('ArrowLeft'));
+    act(() => key('ArrowRight'));
+    expect(detents()).toEqual(['rotate(14.4deg)', 'rotate(-14.4deg)']);
+  });
+
+  it('cross-fades without a detent, a sweep or a flight when motion is reduced', () => {
+    const { key } = setup({ slices: WITH_PDF, reducedMotion: true });
+    act(() => key('ArrowDown'));
+    act(() => key('Enter'));
+    expect(wheel().classList.contains('is-reduced')).toBe(true);
+    expect(level()).toBe('in');
+    expect(document.querySelector('.wheel-ghost.is-in')).not.toBeNull();
+    expect(document.querySelector('.wheel-flyer, .wheel-arm')).toBeNull();
+    expect(animate).not.toHaveBeenCalled();
+    // The breadcrumb tells where the wheel is.
+    expect(hubText('.wheel-trail')).toBe('Convert ›');
+    act(() => vi.advanceTimersByTime(MOTION.reduced.level));
+    expect(wheel().hasAttribute('data-level')).toBe(false);
+    act(() => key('Escape'));
+    expect(level()).toBe('out');
+    expect(document.querySelector('.wheel-flyer, .wheel-arm')).toBeNull();
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it('sounds a deeper detent going in and a lighter one coming back, and taps the trackpad', () => {
+    const onTick = vi.fn();
+    const sound = { enabled: true, volume: 0.3 };
+    const { key } = setup({ slices: WITH_PDF, sound, onTick });
+    const heard = () => vi.mocked(playWheelSound).mock.calls.map(([name]) => name);
+    act(() => key('ArrowDown'));
+    vi.mocked(playWheelSound).mockClear();
+    onTick.mockClear();
+    act(() => key('Enter'));
+    expect(heard()).toEqual(['enter']);
+    expect(playWheelSound).toHaveBeenCalledWith('enter', sound);
+    expect(onTick).toHaveBeenCalledTimes(1);
+    vi.mocked(playWheelSound).mockClear();
+    act(() => key('Escape'));
+    expect(heard()).toEqual(['leave']);
+    expect(onTick).toHaveBeenCalledTimes(2);
+  });
+
+  it('still clicks once for a new page', () => {
+    const { key } = setup({ slices: FORMATS });
+    act(() => key('End'));
+    vi.mocked(playWheelSound).mockClear();
+    act(() => key('Enter'));
+    expect(vi.mocked(playWheelSound).mock.calls.map(([name]) => name)).toEqual(['tick']);
+    expect(wheel().hasAttribute('data-level')).toBe(false);
+  });
+
+  it('lets a drop during the sweep land on the slice under the pointer', () => {
+    const { point, rest, drop, onApply } = setup({ slices: WITH_PDF });
+    point(0);
+    rest();
+    expect(level()).toBe('in');
+    point(180);
+    drop(180);
+    expect(level()).toBe('in');
+    expect(onApply).toHaveBeenCalledWith('separate', ['pdf']);
+  });
+
+  it('keeps the whole trail in the hub two rings in, and lets the outer rings give way when it is long', () => {
+    const image: WheelSlice = { id: 'image', label: 'Image', icon: 'image', variants: [PDF, ...FORMATS.slice(0, 2)] };
+    const { key } = setup({ slices: [image, FORMATS[5]!] });
+    act(() => key('ArrowDown'));
+    act(() => key('Enter'));
+    expect(hubText('.wheel-trail')).toBe('Convert ›');
+    expect(hubText('.wheel-title')).toBe('IMAGE');
+    act(() => key('Enter'));
+    expect(hubText('.wheel-trail')).toBe('Convert › Image ›');
+    expect(hubText('.wheel-title')).toBe('PDF');
+    cleanup();
+    const long = setup({ title: 'Convert every file', slices: [image, FORMATS[5]!] });
+    act(() => long.key('ArrowDown'));
+    act(() => long.key('Enter'));
+    act(() => long.key('Enter'));
+    expect(hubText('.wheel-trail')).toBe('… › Image ›');
   });
 });

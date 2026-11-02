@@ -406,8 +406,18 @@ svg.wheel-layer {
   fill: var(--wheel-text-muted);
   font-weight: 450;
 }
-/* Back, for category sub-wheels: a keycap under the hub text. */
+/* Inside a ring, the rings above it head the title: the two lines read as one breadcrumb. */
+.wheel-trail {
+  fill: var(--wheel-text-muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.wheel:is(:lang(ar), :lang(ja), :lang(zh), :lang(ko)) .wheel-trail {
+  letter-spacing: 0;
+}
+/* Back, for category sub-wheels: a keycap under the hub text, which comes in with it. */
 .wheel-back {
+  animation: wheel-hub-in var(--wheel-level) linear both;
   position: absolute;
   inset-block-start: 53.5%;
   inset-inline: 0;
@@ -555,6 +565,76 @@ svg.wheel-layer {
   animation: wheel-numeral var(--wheel-apply) linear both;
 }
 
+/* ---------------------------------------------------------------- into a ring and back */
+/* Into a ring (220 ms). The new ring takes the pointer at once; the old one fades in 70 ms. The two
+   halves of the keyline of the slice that opened it part and run round the chapter ring to the far
+   side (150 ms), and the new slices light up as they pass, outward from that slice's angle: each
+   grows from 86 % as it fades in over 90 ms, from 10 to 130 ms in (--sweep: 0 on that slice, 1
+   opposite it). The slice's icon and label fly to the hub and shrink into its title, which fades in
+   behind them with the breadcrumb and Back. The dial's detent runs from the script (Wheel.tsx). */
+.wheel-fade.is-in {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wheel-unfold 90ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(10ms + var(--sweep, 0) * 120ms);
+}
+.wheel-ghost.is-in .wheel-ghost-part {
+  animation: wheel-fade-out 70ms var(--ease-exit) both;
+}
+.wheel-arm path {
+  fill: none;
+  stroke: var(--index);
+  stroke-width: 2.6;
+}
+.wheel-arm.is-in {
+  animation: wheel-arm 150ms cubic-bezier(0.25, 0.5, 0.45, 1) both;
+}
+.wheel-flyer {
+  will-change: transform, opacity;
+}
+.wheel-flyer.is-in {
+  animation: wheel-fly-in var(--wheel-level) linear both;
+}
+.wheel-hub-text:is(.is-in, .is-out) {
+  animation: wheel-hub-in var(--wheel-level) linear both;
+}
+/* Back out of a ring (220 ms): the reverse. The two halves of the keyline come back from the far
+   side and meet on the slice the ring came from (140 ms), and ahead of them the ring's labels fold
+   towards it, the farthest first (each shrinks and fades in 50 ms, all gone by 120 ms; --fold: 0
+   opposite the slice, 1 on it). The title flies out of the hub into the slice, and the ring below
+   returns: that slice as the title lands (140 ms), then the others outward from it. Back from the
+   hub, where nothing points at the slice, its window and keyline light up for a moment. */
+.wheel-ghost .wheel-ghost-part {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.wheel-ghost.is-out .wheel-ghost-part {
+  animation: wheel-fold 50ms var(--ease-exit) both;
+  animation-delay: calc(var(--fold, 0) * 70ms);
+}
+.wheel-arm.is-out {
+  animation: wheel-arm 140ms cubic-bezier(0.3, 0.1, 0.5, 1) both;
+}
+.wheel-flyer.is-out {
+  animation: wheel-fly-out var(--wheel-level) linear both;
+}
+.wheel-fade.is-out {
+  animation: wheel-fade-in 50ms linear both;
+  animation-delay: calc(150ms + var(--sweep, 0) * 20ms);
+}
+.wheel-slice.is-origin .wheel-fade.is-out {
+  animation-delay: 140ms;
+}
+.wheel-wash {
+  fill: var(--wheel-slice-hover);
+  opacity: 0;
+}
+/* Backwards only: once lit, the slice falls back to its own state (hovered or not). */
+.wheel-wash,
+.wheel-slice.is-wash .wheel-keyline {
+  animation: wheel-wash 600ms linear backwards;
+}
+
 /* ---------------------------------------------------------------- reduced motion */
 /* Short fades only: the dial jumps instead of turning, and on apply the bolts and the latch appear
    without travel. */
@@ -574,6 +654,20 @@ svg.wheel-layer {
 }
 .wheel.is-reduced :is(.wheel-cell, .wheel-window, .wheel-keyline, .wheel-numeral, .wheel-pointer) {
   transition: none;
+}
+/* Into a ring and back: a 110 ms cross-fade, with the breadcrumb in the hub to say where the wheel is;
+   no detent, sweep, fold or flight (the script draws no keyline halves or flyer). Fades move nothing,
+   so they stay on under the app's own reduce-motion switch, which stops every other animation
+   (global.css). */
+.wheel.is-reduced :is(.wheel-fade:is(.is-in, .is-out), .wheel-hub-text:is(.is-in, .is-out), .wheel-back) {
+  transform: none;
+  animation: wheel-fade-in var(--wheel-level) linear both !important;
+}
+.wheel.is-reduced .wheel-ghost .wheel-ghost-part {
+  animation: wheel-fade-out var(--wheel-level) linear both !important;
+}
+.wheel.is-reduced :is(.wheel-wash, .wheel-slice.is-wash .wheel-keyline) {
+  animation: wheel-wash 600ms linear backwards !important;
 }
 
 /* ---------------------------------------------------------------- Windows High Contrast */
@@ -624,9 +718,16 @@ svg.wheel-layer {
   .wheel :is(.wheel-spoke, .wheel-spoke-hi) {
     stroke: Canvas;
   }
-  .wheel :is(.wheel-content, .wheel-numeral, .wheel-sub, .wheel-title, .wheel-subtitle, .wheel-dial-number) {
+  .wheel
+    :is(.wheel-content, .wheel-numeral, .wheel-sub, .wheel-title, .wheel-subtitle, .wheel-trail, .wheel-dial-number) {
     fill: CanvasText;
     color: CanvasText;
+  }
+  .wheel-arm path {
+    stroke: Highlight;
+  }
+  .wheel-wash {
+    fill: Highlight;
   }
   .wheel :is(.wheel-pointer, .wheel-notch, .wheel-latch) {
     fill: CanvasText;
@@ -871,6 +972,92 @@ svg.wheel-layer {
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+@keyframes wheel-unfold {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+}
+@keyframes wheel-fold {
+  to {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+}
+@keyframes wheel-arm {
+  from {
+    opacity: 1;
+    transform: rotate(var(--arm-from));
+  }
+  75% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--arm-to));
+  }
+}
+/* Into the hub by 60 % (130 ms) and gone by 80 %, while the title fades in over it and takes over. */
+@keyframes wheel-fly-in {
+  from {
+    opacity: 1;
+    transform: none;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(var(--fly-x), var(--fly-y)) scale(var(--fly-s));
+  }
+  80%,
+  to {
+    opacity: 0;
+    transform: translate(var(--fly-x), var(--fly-y)) scale(var(--fly-s));
+  }
+}
+/* Out of the hub into the slice by 64 % (140 ms), where the slice's own label takes over by 85 %. */
+@keyframes wheel-fly-out {
+  from {
+    opacity: 0;
+    transform: translate(var(--fly-x), var(--fly-y)) scale(var(--fly-s));
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  15% {
+    opacity: 1;
+  }
+  64% {
+    opacity: 1;
+    transform: none;
+  }
+  85%,
+  to {
+    opacity: 0;
+    transform: none;
+  }
+}
+/* The hub's text comes in once the flight has left it or reached it. */
+@keyframes wheel-hub-in {
+  0%,
+  55% {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Lit as the keyline halves meet on the slice (140 ms), held, then gone by 600 ms. */
+@keyframes wheel-wash {
+  0%,
+  23% {
+    opacity: 0;
+  }
+  33%,
+  70% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 @keyframes wheel-numeral {

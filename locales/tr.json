@@ -942,6 +942,7 @@
   "wheel.recipes": "{count, plural, one {# tarif} other {# tarif}}",
   "wheel.opened": "{name}: {count, plural, other {# seçenek}}",
   "wheel.backTo": "Geri: {name}",
+  "wheel.trail": "{name} ›",
   "wheel.choices": "Daha fazla seçenek için burada bekle",
   "wheel.choices.hint": "{hint} · Daha fazla seçenek için burada bekle",
   "wheel.other": "Diğer…",

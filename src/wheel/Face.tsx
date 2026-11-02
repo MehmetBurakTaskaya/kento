@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 // The enamel face: the chapter ring with the slice numerals and the slice windows with their labels.
 // The face never moves (design/DESIGN.md, "precise pointing"); only the slices' states change. It is
-// also the menu for assistive technology: each slice is a menu item with its own label.
+// also the menu for assistive technology: each slice is a menu item with its own label. When a ring
+// of choices opens or closes, the ring left behind is drawn once more over the new one while it
+// goes (the ghost), and the label of the slice that opened it flies between the slice and the hub.
 import { useMemo, type CSSProperties, type Ref } from 'react';
 import { Icon, type IconName } from '../components/Icon';
-import { arcPath, C, fx, polar, R, rayPath, sectorPath, VIEW, type SliceGeometry } from './geometry';
+import { arcPath, C, fx, polar, R, rayPath, sectorPath, spread, VIEW, type SliceGeometry } from './geometry';
 import type { LabelBlock } from './labels';
+
+/** How the slices on the face came: with a ring opened ('in') or closed ('out'). */
+export type Entrance = 'in' | 'out';
 
 export interface FaceSlice {
   key: string;
@@ -32,6 +37,13 @@ interface FaceProps {
   selected: number | null;
   /** Bumped when the ring's contents change, so the labels fade in again. */
   generation: number;
+  /** This generation came with a ring opened or closed: its slices enter from `origin` outward. */
+  entrance: Entrance | null;
+  /** The slice at the angle of the slice that opened the ring: the new ring unfolds from it, or the
+   *  ring below returns to it. */
+  origin: number | null;
+  /** The slice that lights up as its ring returns, when nothing points at it. */
+  wash: number | null;
   label: string;
   describedBy: string;
   menuRef: Ref<SVGSVGElement>;
@@ -104,8 +116,23 @@ function Content({ slice }: { slice: FaceSlice }) {
   );
 }
 
-export function Face({ uid, slices, hover, selected, generation, label, describedBy, menuRef, itemRef }: FaceProps) {
+export function Face({
+  uid,
+  slices,
+  hover,
+  selected,
+  generation,
+  entrance,
+  origin,
+  wash,
+  label,
+  describedBy,
+  menuRef,
+  itemRef,
+}: FaceProps) {
   const geometry = useMemo(() => slices.map((slice) => slice.geometry), [slices]);
+  // The entrance belongs to the generation, so the groups keyed by it never change their animation.
+  const fade = entrance ? `wheel-fade is-${entrance}` : 'wheel-fade';
   return (
     <svg
       ref={menuRef}
@@ -140,6 +167,9 @@ export function Face({ uid, slices, hover, selected, generation, label, describe
         if (i === selected) classes.push('is-selected');
         if (slice.disabled) classes.push('is-off');
         if (slice.dimmed) classes.push('is-dimmed');
+        if (entrance && i === origin) classes.push('is-origin');
+        if (i === wash) classes.push('is-wash');
+        const sweep = entrance && origin !== null ? spread(i, origin, slices.length) : 0;
         return (
           <g
             key={slice.key}
@@ -153,10 +183,11 @@ export function Face({ uid, slices, hover, selected, generation, label, describe
             aria-disabled={slice.disabled || undefined}
             aria-posinset={i + 1}
             aria-setsize={slices.length}
-            style={{ '--i': i } as CSSProperties}
+            style={{ '--i': i, '--sweep': fx(sweep) } as CSSProperties}
           >
             <path d={sectorPath(R.CHAPTER, R.FACE, start, end)} className="wheel-cell" />
             <path d={sectorPath(R.WINDOW, R.CHAPTER, start, end)} className="wheel-window" />
+            {i === wash && <path d={sectorPath(R.WINDOW, R.CHAPTER, start, end)} className="wheel-wash" />}
             <path
               d={sectorPath(R.WINDOW - 3, R.CHAPTER, start, end)}
               className="wheel-inlay"
@@ -169,18 +200,91 @@ export function Face({ uid, slices, hover, selected, generation, label, describe
             {slice.ringMark !== undefined && <path d={ringMarkPath(slice.ringMark)} className="wheel-ring-mark" />}
             <circle cx={fx(nx)} cy={fx(ny)} r={8.6} className="wheel-lock" />
             <circle cx={fx(nx)} cy={fx(ny)} r={8.4} className="wheel-latch" />
-            <g key={`n${generation}`} className="wheel-fade">
-              <text x={fx(nx)} y={fx(ny + 0.4)} className="wheel-numeral">
-                {slice.numeral}
-              </text>
+            <g key={`n${generation}`} className={fade}>
+              <Numeral slice={slice} />
             </g>
-            <g key={`c${generation}`} className="wheel-fade">
+            <g key={`c${generation}`} className={fade}>
               <Content slice={slice} />
             </g>
           </g>
         );
       })}
       <Engraving slices={geometry} />
+    </svg>
+  );
+}
+
+function Numeral({ slice }: { slice: FaceSlice }) {
+  const [x, y] = polar(R.NUMERAL, slice.geometry.mid);
+  return (
+    <text x={fx(x)} y={fx(y + 0.4)} className="wheel-numeral">
+      {slice.numeral}
+    </text>
+  );
+}
+
+/** The ring a level change leaves, over the new one while it goes: its numerals and labels. Going in,
+ *  it fades at once, but for the slice that opened the new ring, which flies to the hub instead.
+ *  Going back, it folds into the slice at `origin`, the farthest slices first. */
+export function Ghost({ slices, entrance, origin }: { slices: FaceSlice[]; entrance: Entrance; origin: number }) {
+  return (
+    <svg className={`wheel-layer wheel-ghost is-${entrance}`} viewBox={`0 0 ${VIEW} ${VIEW}`} aria-hidden="true">
+      {slices.map((slice, i) => {
+        if (entrance === 'in' && i === origin) return null;
+        const classes = ['wheel-slice'];
+        if (slice.disabled) classes.push('is-off');
+        if (slice.dimmed) classes.push('is-dimmed');
+        const fold = entrance === 'out' ? 1 - spread(i, origin, slices.length) : 0;
+        return (
+          <g key={slice.key} className={classes.join(' ')} style={{ '--fold': fx(fold) } as CSSProperties}>
+            <g className="wheel-ghost-part">
+              <Numeral slice={slice} />
+            </g>
+            <g className="wheel-ghost-part">
+              <Content slice={slice} />
+            </g>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/** The icon and label of the slice that opened a ring, flying from it into the hub's title as the
+ *  ring opens, or back out of the hub into it as the ring closes. The whole layer moves, so the
+ *  flight is a transform the compositor runs alone. */
+export function Flyer({
+  slice,
+  hub,
+  size,
+  entrance,
+}: {
+  slice: FaceSlice;
+  /** The middle of the hub's title. */
+  hub: [number, number];
+  /** The hub title's font size: the label shrinks to it. */
+  size: number;
+  entrance: Entrance;
+}) {
+  // The icon and the label fly; the sub-label stays behind.
+  const block = { ...slice.block, sub: null };
+  const lines = block.label.lines;
+  const y = lines.reduce((sum, line) => sum + line.y, 0) / Math.max(1, lines.length);
+  const share = (n: number) => `${fx((n * 100) / VIEW)}%`;
+  const style = {
+    transformOrigin: `${share(block.x)} ${share(y)}`,
+    '--fly-x': share(hub[0] - block.x),
+    '--fly-y': share(hub[1] - y),
+    '--fly-s': fx(Math.min(1, Math.max(0.4, size / block.label.size))),
+  } as CSSProperties;
+  return (
+    <svg
+      className={`wheel-layer wheel-flyer is-${entrance}`}
+      viewBox={`0 0 ${VIEW} ${VIEW}`}
+      aria-hidden="true"
+      style={style}
+    >
+      <Content slice={{ ...slice, block }} />
     </svg>
   );
 }

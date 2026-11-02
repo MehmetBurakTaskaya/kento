@@ -3,8 +3,21 @@
 // so the browser rasterizes it once per theme and scale and only moves the layer (design/DESIGN.md,
 // section 9): the dial turns, the handle turns an eighth, the bolts slide out. Nothing here uses an SVG
 // filter; the brushing and the knurl are gradients and dash patterns.
-import { memo } from 'react';
-import { BOLT, BOLT_ANGLES, C, fx, polar, R, rayPath, ringPath, sectorPath, SPOKE_ANGLES, VIEW } from './geometry';
+import { memo, type CSSProperties } from 'react';
+import {
+  arcPath,
+  BOLT,
+  BOLT_ANGLES,
+  C,
+  fx,
+  polar,
+  R,
+  rayPath,
+  ringPath,
+  sectorPath,
+  SPOKE_ANGLES,
+  VIEW,
+} from './geometry';
 
 const VIEWBOX = `0 0 ${VIEW} ${VIEW}`;
 const stop = (offset: number, token: string) => <stop offset={offset} style={{ stopColor: `var(--${token})` }} />;
@@ -208,26 +221,56 @@ export const Handle = memo(function Handle({ uid }: { uid: string }) {
   );
 });
 
+/** Half of the keyline of the slice that opens or closes a ring, run round the chapter ring: the two
+ *  halves part from the slice and meet on the far side, or come back and meet on it. */
+export const Arm = memo(function Arm({ from, to, entrance }: { from: number; to: number; entrance: 'in' | 'out' }) {
+  return (
+    <svg
+      className={`wheel-layer wheel-arm is-${entrance}`}
+      viewBox={VIEWBOX}
+      aria-hidden="true"
+      style={{ '--arm-from': `${fx(from)}deg`, '--arm-to': `${fx(to)}deg` } as CSSProperties}
+    >
+      <path d={arcPath(R.CHAPTER - 1.7, -10, 10)} />
+    </svg>
+  );
+});
+
 export interface HubLine {
   text: string;
   size: number;
 }
 
-/** The hub cap in its steel collar, with the wheel's title and the file name. */
+/** Where the hub's lines sit. Inside a ring they rise to leave room for the Back control, and the
+ *  trail of the rings above heads the title, so the two read as one breadcrumb. */
+export function hubLayout(subtitle: boolean, raised: boolean) {
+  const titleY = subtitle ? (raised ? C - 16.5 : C - 8) : raised ? C - 9 : C;
+  return { trailY: titleY - 14.5, titleY, subtitleY: raised ? C + 1.5 : C + 8.5 };
+}
+
+/** The hub cap in its steel collar, with the wheel's title and the file name; inside a ring, the
+ *  ring's own title under the trail that led to it. */
 export const HubCap = memo(function HubCap({
   uid,
   title,
   subtitle,
+  trail,
   raised,
+  entrance,
+  textKey,
 }: {
   uid: string;
   title: HubLine;
   subtitle: HubLine | null;
+  trail: HubLine | null;
   /** Leaves room under the text for the Back control. */
   raised: boolean;
+  /** How the text came: with a ring opened or closed, it fades in as the title lands. */
+  entrance: 'in' | 'out' | null;
+  /** Changes with every ring opened or closed, so the text enters again. */
+  textKey: number;
 }) {
-  const titleY = subtitle ? (raised ? C - 16.5 : C - 8) : raised ? C - 9 : C;
-  const subtitleY = raised ? C + 1.5 : C + 8.5;
+  const { trailY, titleY, subtitleY } = hubLayout(!!subtitle, raised);
   return (
     <svg className="wheel-layer wheel-hub" viewBox={VIEWBOX} aria-hidden="true">
       <defs>
@@ -246,14 +289,21 @@ export const HubCap = memo(function HubCap({
       <circle cx={C} cy={C} r={R.HUB} className="wheel-hub-face" />
       <circle cx={C} cy={C} r={R.HUB} fill={`url(#${uid}-dome)`} className="wheel-dome" />
       <circle cx={C} cy={C} r={R.HUB + 0.4} className="wheel-hub-edge" />
-      <text x={C} y={titleY} fontSize={title.size} className="wheel-title">
-        {title.text}
-      </text>
-      {subtitle && (
-        <text x={C} y={subtitleY} fontSize={subtitle.size} className="wheel-subtitle">
-          {subtitle.text}
+      <g key={textKey} className={entrance ? `wheel-hub-text is-${entrance}` : 'wheel-hub-text'}>
+        {trail && (
+          <text x={C} y={trailY} fontSize={trail.size} className="wheel-trail">
+            {trail.text}
+          </text>
+        )}
+        <text x={C} y={titleY} fontSize={title.size} className="wheel-title">
+          {title.text}
         </text>
-      )}
+        {subtitle && (
+          <text x={C} y={subtitleY} fontSize={subtitle.size} className="wheel-subtitle">
+            {subtitle.text}
+          </text>
+        )}
+      </g>
     </svg>
   );
 });

@@ -942,6 +942,7 @@
   "wheel.recipes": "{count, plural, one {# recipe} other {# recipes}}",
   "wheel.opened": "{name}: {count, plural, one {# choice} other {# choices}}",
   "wheel.backTo": "Back to {name}",
+  "wheel.trail": "{name} ›",
   "wheel.choices": "Rest here for more choices",
   "wheel.choices.hint": "{hint} · Rest here for more choices",
   "wheel.other": "Other…",

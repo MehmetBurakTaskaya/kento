@@ -14,7 +14,11 @@ export const MOTION = {
   hold: 450,
   close: 120,
   denied: 260,
-  reduced: { open: 90, close: 80 },
+  /** Into a ring of choices or back out of one: the sweep, the flight to or from the hub, the fold. */
+  level: 220,
+  /** The dial clicks this far into its stop on a level change, in degrees (four steps of its scale). */
+  detent: { turn: 14.4, duration: 180 },
+  reduced: { open: 90, close: 80, level: 110 },
 } as const;
 
 export function openDuration(slices: number, reduced: boolean): number {
@@ -23,6 +27,11 @@ export function openDuration(slices: number, reduced: boolean): number {
 
 export function closeDuration(reduced: boolean): number {
   return reduced ? MOTION.reduced.close : MOTION.close;
+}
+
+/** A level change: a sweep and a flight, or a cross-fade when motion is reduced. */
+export function levelDuration(reduced: boolean): number {
+  return reduced ? MOTION.reduced.level : MOTION.level;
 }
 
 /** From the apply until the wheel starts to close. */

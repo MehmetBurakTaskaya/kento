@@ -4,8 +4,11 @@
 // keys turn the dial to a slice; applying one turns the vault handle and throws the bolts, then the
 // wheel closes. A slice may hold a ring of choices (its variants, a category's targets): resting on
 // it, Enter or the arrow in the reading direction opens that ring in place, unfolded from the slice,
-// and resting on the hub, Esc or the other arrow goes back a level. Every visible or spoken text
-// comes from the props or the locale files.
+// and resting on the hub, Esc or the other arrow goes back a level. A level change is plain to see
+// and hear: the dial clicks into a stop, the new ring sweeps out from the slice (or folds back into
+// it), the slice's label flies to the hub, which keeps the trail of rings, and a detent sounds. The
+// new ring takes the pointer at once, so nothing waits for the animation. Every visible or spoken
+// text comes from the props or the locale files.
 import {
   useEffect,
   useId,
@@ -25,7 +28,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '../components/Icon';
 import { intlLocale, isRtl } from '../i18n';
-import { Face, type FaceSlice } from './Face';
+import { Face, Flyer, Ghost, type Entrance, type FaceSlice } from './Face';
 import {
   C,
   fx,
@@ -36,16 +39,17 @@ import {
   polar,
   R,
   restAngle,
+  sliceAt,
   toView,
   turnTo,
   VIEW,
   type Direction,
 } from './geometry';
 import { keyAction } from './keys';
-import { canvasMeasure, fitLabel, layoutBlock, type Measure } from './labels';
-import { closeDuration, MOTION, openDuration } from './motion';
+import { canvasMeasure, fitLabel, layoutBlock, type FittedLabel, type Measure } from './labels';
+import { closeDuration, levelDuration, MOTION, openDuration } from './motion';
 import { clampPage, PAGE_SIZE, pageCount, pageItems } from './paging';
-import { Bolts, DialIndex, DialScale, FixedRing, Glint, Handle, HubCap } from './parts';
+import { Arm, Bolts, DialIndex, DialScale, FixedRing, Glint, Handle, HubCap, hubLayout } from './parts';
 import { armWheelAudio, playWheelSound } from './sound';
 import './wheel.css';
 
@@ -105,7 +109,8 @@ export interface WheelProps {
   /** Floating over other apps in its own transparent window: no dimmed backdrop. */
   overlay?: boolean;
   control?: Ref<WheelControl>;
-  /** Called when the dial turns to an available slice (a haptic tap on macOS trackpads). */
+  /** Called when the dial turns to an available slice, or clicks into a ring of choices or back out
+   *  of one (a haptic tap on macOS trackpads). */
   onTick?: () => void;
 }
 
@@ -129,6 +134,30 @@ interface Level {
   at: number;
   /** The slice of the new ring at that angle: the default, else the first. */
   anchor: number;
+}
+
+/** A ring opened or closed, kept until the next one: what the new ring enters from and what the old
+ *  one leaves behind. */
+interface Shift {
+  id: number;
+  dir: Entrance;
+  /** The generation it drew: those slices enter with it. */
+  generation: number;
+  /** The angle of the slice that opened the ring. */
+  at: number;
+  /** The slice of the new ring at that angle: the default going in, the slice itself coming back. */
+  origin: number;
+  /** The ring left behind, drawn over the new one while it goes. */
+  ghost: FaceSlice[];
+  /** The slice of the ghost at that angle: the one that flies to the hub going in, the one it folds
+   *  into coming back. */
+  ghostOrigin: number;
+  /** Going in: the slice that opened the ring, as it was drawn. */
+  parent: FaceSlice | null;
+  /** Back from the hub, where nothing points at the slice: it lights up as its ring returns. */
+  wash: boolean;
+  /** The ghost, the sweep and the flight are still on screen. */
+  live: boolean;
 }
 
 /** The ring the levels lead to and the slices that opened them; null when the slices changed under
@@ -183,9 +212,18 @@ function makeMeasures(lang: string, fontsReady: boolean) {
     label: make(500),
     sub: make(450, 0.01),
     title: make(600, NO_SPACING.test(lang) ? 0 : 0.14),
+    trail: make(500, NO_SPACING.test(lang) ? 0 : 0.02),
     file: make(450),
   };
 }
+
+/** Steps of the dial's detent, as a share of its turn: it clicks a little past the stop and settles. */
+const DETENT: [number, number][] = [
+  [0, -1],
+  [0.6, 0.07],
+  [0.82, -0.02],
+  [1, 0],
+];
 
 export function Wheel({
   kind,
@@ -219,6 +257,8 @@ export function Wheel({
   const path = levels.map((l) => l.id);
   const shownTitle = parent?.label ?? title;
   const shownSubtitle = parent ? (parent.subtitle ?? subtitle) : subtitle;
+  // The rings above this one, outermost first, for the hub's breadcrumb.
+  const above = parents.length ? [title, ...parents.slice(0, -1).map((p) => p.label)].join('\u0001') : '';
 
   const contentKey = keyOf(kind, title, levels, ring);
   const [shownKey, setShownKey] = useState(contentKey);
@@ -233,11 +273,15 @@ export function Wheel({
   const [announcement, setAnnouncement] = useState('');
   const [lastTip, setLastTip] = useState('');
   const [fontsReady, setFontsReady] = useState(() => !document.fonts || document.fonts.status === 'loaded');
+  const [shift, setShift] = useState<Shift | null>(null);
 
   /** Where slice 1 of a page sits: a ring opened from a slice turns so that its first page unfolds
    *  from there, with its default where the pointer rested. */
   const offsetOf = (on: Level | undefined, onPage: number, count: number) =>
     on ? offsetFor(on.at, onPage === 0 ? on.anchor : 0, count, dir) : 0;
+
+  // A new page or ring puts an end to a level change still on screen.
+  const settleShift = () => setShift((s) => (s?.live ? { ...s, live: false } : s));
 
   // New slices from the host while open: show the new ring from its first page instead of locking
   // the old one.
@@ -247,6 +291,7 @@ export function Wheel({
     setHover(null);
     setSelected(null);
     setGeneration((n) => n + 1);
+    settleShift();
     const first = pageItems(ring, 0).length;
     setDial((angle) => turnTo(angle, restAngle(first, dir, offsetOf(level, 0, first))));
     if (phase === 'applying' || phase === 'applied') setPhase('open');
@@ -318,22 +363,37 @@ export function Wheel({
     const fittedSubtitle = shownSubtitle
       ? fitLabel(shownSubtitle, { size: 11, minSize: 8, maxWidth: 90, maxLines: 1, truncate: 'middle' }, measures.file)
       : null;
+    // Inside a ring, the rings that led to it head the title as a breadcrumb: "Convert ›" over "PDF".
+    // Each name is isolated, so the separators follow the interface's direction. When the trail is
+    // too long, the outer rings give way first ("… › Image ›"), as the nearest one matters most.
+    let trail: FittedLabel | null = null;
+    const names = above ? above.split('\u0001') : [];
+    for (let skip = 0; skip < names.length && !trail; skip++) {
+      const steps = [...(skip ? ['…'] : []), ...names.slice(skip).map(isolate)];
+      const text = steps.map((name) => t('wheel.trail', { name })).join(' ');
+      const fit = { size: 9.5, minSize: 7.5, maxWidth: 76, maxLines: 1, truncate: 'middle' } as const;
+      const fitted = fitLabel(text, fit, measures.trail);
+      if (fitted.lines[0] === text || skip === names.length - 1) trail = fitted;
+    }
     return {
       title: { text: fittedTitle.lines[0]!, size: fittedTitle.size },
       subtitle: fittedSubtitle ? { text: isolate(fittedSubtitle.lines[0]!), size: fittedSubtitle.size } : null,
+      trail: trail ? { text: trail.lines[0]!, size: trail.size } : null,
     };
-  }, [shownTitle, shownSubtitle, locale, measures]);
+  }, [shownTitle, shownSubtitle, above, locale, measures, t]);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const shakeRef = useRef<HTMLDivElement>(null);
   const discRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<SVGSVGElement>(null);
+  const detentRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(SVGGElement | null)[]>([]);
   const soundRef = useRef(sound);
   const onCloseRef = useRef(onClose);
   const openSoundPlayed = useRef(false);
   const applySoundPlayed = useRef(0);
-  const firstGeneration = useRef(generation);
+  const heardGeneration = useRef(generation);
+  const shifts = useRef(0);
 
   useEffect(() => {
     soundRef.current = sound;
@@ -376,11 +436,42 @@ export function Wheel({
     if (target && document.activeElement !== target) target.focus({ preventScroll: true });
   }, [hover, generation]);
 
+  // A new page or ring clicks; opening and closing a ring sound their own detent instead.
   useEffect(() => {
-    if (generation === firstGeneration.current) return;
-    firstGeneration.current = generation;
-    playWheelSound('tick', soundRef.current);
-  }, [generation]);
+    if (generation === heardGeneration.current) return;
+    heardGeneration.current = generation;
+    if (shift?.generation !== generation) playWheelSound('tick', soundRef.current);
+  }, [generation, shift]);
+
+  // The ghost, the sweep and the flight leave the screen once the level change has played.
+  useEffect(() => {
+    if (!shift?.live) return;
+    const { id } = shift;
+    const timer = window.setTimeout(
+      () => setShift((s) => (s?.id === id ? { ...s, live: false } : s)),
+      levelDuration(reducedMotion),
+    );
+    return () => window.clearTimeout(timer);
+  }, [shift, reducedMotion]);
+
+  // The dial clicks a short way into its stop: forward going in, back coming out, mirrored right to
+  // left. It runs through the Web Animations API on a layer of its own, so it starts again on every
+  // change and leaves the cached dial and the apply effect alone. It is over before the change
+  // settles, so stopping it then changes nothing.
+  useEffect(() => {
+    const element = detentRef.current;
+    if (!shift?.live || reducedMotion || !element || typeof element.animate !== 'function') return;
+    const turn = MOTION.detent.turn * (shift.dir === 'in' ? 1 : -1) * (dir === 'rtl' ? -1 : 1);
+    const animation = element.animate(
+      DETENT.map(([offset, share]) => ({
+        offset,
+        transform: `rotate(${fx(turn * share)}deg)`,
+        easing: offset === 0 ? 'cubic-bezier(0.3, 0, 0.2, 1)' : 'ease-out',
+      })),
+      { duration: MOTION.detent.duration },
+    );
+    return () => animation.cancel();
+  }, [shift, reducedMotion, dir]);
 
   useEffect(() => {
     if (applied === applySoundPlayed.current) return;
@@ -443,7 +534,18 @@ export function Wheel({
     setHover(at);
     setDial((current) => turnTo(current, angle));
     setAnnouncement(t('wheel.page', { count: target + 1 }));
+    settleShift();
     settle();
+  };
+
+  /** A level change starts: the new ring is live at once; the old one, the dial's detent, the sweep
+   *  and the flight play over it. */
+  const shiftTo = (next: Omit<Shift, 'id' | 'generation' | 'live'>) => {
+    shifts.current += 1;
+    setShift({ ...next, id: shifts.current, generation: generation + 1, live: true });
+    setGeneration(generation + 1);
+    playWheelSound(next.dir === 'in' ? 'enter' : 'leave', sound);
+    onTick?.();
   };
 
   /** Opens the ring of the slice at `index` in place, turned so that it unfolds from the slice; the
@@ -460,8 +562,16 @@ export function Wheel({
     setPage(0);
     setSelected(null);
     setHover(anchor);
-    setGeneration((n) => n + 1);
     setDial((angle) => turnTo(angle, at));
+    shiftTo({
+      dir: 'in',
+      at,
+      origin: anchor,
+      ghost: faceSlices,
+      ghostOrigin: index,
+      parent: faceSlices[index] ?? null,
+      wash: false,
+    });
     setAnnouncement(t('wheel.opened', { name: item.label, count: variants.length }));
     settle();
   };
@@ -480,8 +590,17 @@ export function Wheel({
     setPage(last.page);
     setSelected(null);
     setHover(via === 'key' ? last.index : null);
-    setGeneration((n) => n + 1);
     setDial((angle) => turnTo(angle, via === 'key' ? last.at : restAngle(belowCount, dir, belowOffset)));
+    shiftTo({
+      dir: 'out',
+      at: last.at,
+      origin: last.index,
+      ghost: faceSlices,
+      ghostOrigin: sliceAt(last.at, count, dir, offset),
+      parent: null,
+      // From the keyboard the slice takes the hover, which already shows it.
+      wash: via === 'pointer',
+    });
     setAnnouncement(t('wheel.backTo', { name: below.parents[below.parents.length - 1]?.label ?? title }));
     settle();
   };
@@ -671,7 +790,15 @@ export function Wheel({
     '--wheel-stagger': `${MOTION.stagger}ms`,
     '--wheel-apply': `${MOTION.apply}ms`,
     '--wheel-close': `${closeDuration(reducedMotion)}ms`,
+    '--wheel-level': `${levelDuration(reducedMotion)}ms`,
   } as CSSProperties;
+
+  // The level change on screen, and the one the slices of this generation entered with.
+  const change = shift?.live ? shift : null;
+  const entered = shift && shift.generation === generation ? shift : null;
+  const titleAt: [number, number] = [C, hubLayout(!!hub.subtitle, true).titleY];
+  // Going in, the slice flies from its old ring; coming back, into its place in this one.
+  const flyer = change ? (change.dir === 'in' ? change.parent : (faceSlices[change.origin] ?? null)) : null;
 
   if (phase === 'closed') return <></>;
 
@@ -692,6 +819,7 @@ export function Wheel({
         lang={locale}
         data-kind={kind}
         data-depth={depth}
+        data-level={change?.dir}
         onKeyDown={onKeyDown}
         onMouseDown={(event) => event.preventDefault()}
       >
@@ -712,6 +840,9 @@ export function Wheel({
               hover={hover}
               selected={selected}
               generation={generation}
+              entrance={entered?.dir ?? null}
+              origin={entered ? entered.origin : null}
+              wash={entered?.wash ? entered.origin : null}
               label={shownTitle}
               describedBy={`${uid}-help`}
               menuRef={menuRef}
@@ -719,18 +850,56 @@ export function Wheel({
                 itemRefs.current[index] = element;
               }}
             />
+            {change && (
+              <Ghost
+                key={`ghost:${change.id}`}
+                slices={change.ghost}
+                entrance={change.dir}
+                origin={change.ghostOrigin}
+              />
+            )}
+            {change &&
+              !reducedMotion &&
+              // The two halves of the slice's keyline part to the far side, or come back from it.
+              [1, -1].map((way) => (
+                <Arm
+                  key={`arm:${change.id}:${way}`}
+                  entrance={change.dir}
+                  from={change.dir === 'in' ? change.at : change.at + way * 170}
+                  to={change.dir === 'in' ? change.at + way * 170 : change.at}
+                />
+              ))}
             <div className="wheel-layer wheel-spin">
               <div className="wheel-layer wheel-turn" style={{ transform: `rotate(${fx(dial)}deg)` }}>
-                <div className="wheel-layer wheel-snap">
-                  <DialScale numbers={dialNumbers} />
-                  <DialIndex />
+                <div ref={detentRef} className="wheel-layer">
+                  <div className="wheel-layer wheel-snap">
+                    <DialScale numbers={dialNumbers} />
+                    <DialIndex />
+                  </div>
                 </div>
               </div>
             </div>
             <FixedRing uid={uid} />
             <Glint />
             <Handle uid={uid} />
-            <HubCap uid={uid} title={hub.title} subtitle={hub.subtitle} raised={depth > 0} />
+            <HubCap
+              uid={uid}
+              title={hub.title}
+              subtitle={hub.subtitle}
+              trail={hub.trail}
+              raised={depth > 0}
+              entrance={shift?.dir ?? null}
+              textKey={shift?.id ?? 0}
+            />
+            {change && flyer && !reducedMotion && (
+              <Flyer
+                key={`flyer:${change.id}`}
+                slice={flyer}
+                hub={titleAt}
+                size={hub.title.size}
+                entrance={change.dir}
+              />
+            )}
             {depth > 0 && (
               <button
                 type="button"
