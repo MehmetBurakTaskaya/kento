@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 //! `kento --smoke-test`: starts the app without showing it, checks the parts that exist so far and
 //! writes a JSON report to the data folder (smoke-test.json), then quits with 0 when all passed.
-//! Later phases add the global wheel, drag and drop, the editors and exports.
+//! The media check runs only where FFmpeg is installed or found.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -55,6 +55,51 @@ impl Job for Probe {
             Ok(vec![reservation.commit().map_err(fail)?])
         })
     }
+}
+
+/// A second of silence written as a WAV by hand, converted to MP3 and probed back, when the media
+/// tools are installed or found.
+fn media(dir: &Path, tools: kento_engines::Tools) -> Result<String, String> {
+    use kento_engines as e;
+    let rate: u32 = 8000;
+    let data = vec![0u8; rate as usize * 2];
+    // 16-bit mono PCM: the RIFF header, the format chunk, then the samples.
+    let mut wav = Vec::with_capacity(44 + data.len());
+    wav.extend_from_slice(b"RIFF");
+    wav.extend_from_slice(&(36 + data.len() as u32).to_le_bytes());
+    wav.extend_from_slice(b"WAVEfmt ");
+    wav.extend_from_slice(&16u32.to_le_bytes());
+    wav.extend_from_slice(&1u16.to_le_bytes());
+    wav.extend_from_slice(&1u16.to_le_bytes());
+    wav.extend_from_slice(&rate.to_le_bytes());
+    wav.extend_from_slice(&(rate * 2).to_le_bytes());
+    wav.extend_from_slice(&2u16.to_le_bytes());
+    wav.extend_from_slice(&16u16.to_le_bytes());
+    wav.extend_from_slice(b"data");
+    wav.extend_from_slice(&(data.len() as u32).to_le_bytes());
+    wav.extend_from_slice(&data);
+    let input = dir.join("sessiz ğüş 🧪.wav");
+    std::fs::write(&input, &wav).map_err(|err| err.to_string())?;
+    let output = dir.join("sessiz.mp3");
+    let options = e::Options {
+        tools: tools.clone(),
+        ..e::Options::default()
+    };
+    e::convert(&e::Conversion {
+        input: &input,
+        from: "wav",
+        to: "mp3",
+        dest: &output,
+        temp: dir,
+        options: &options,
+        progress: &e::Progress::none(),
+    })
+    .map_err(|err| format!("wav → mp3: {err}"))?;
+    let info = e::media::probe(&tools, &output).map_err(|err| err.to_string())?;
+    if info.audio.is_none() || !(0.8..1.5).contains(&info.duration) {
+        return Err(format!("unexpected result: {info:?}"));
+    }
+    Ok("wav → mp3 with FFmpeg, probed back".into())
 }
 
 /// Runs a chain of real conversions through the engines: an SVG drawn to PNG, then JPG and PDF,
@@ -229,6 +274,17 @@ pub async fn run(app: AppHandle) -> bool {
         Err(err) => Err(err.to_string()),
     };
     checks.push(check("engines", engine_result));
+
+    let tools = crate::toolchain::engine_tools(&state);
+    let dir = scratch.join("media");
+    let media_result = match (tools.ffmpeg.is_some(), std::fs::create_dir_all(&dir)) {
+        (false, _) => Ok("skipped: no media tools on this computer".into()),
+        (true, Ok(())) => tauri::async_runtime::spawn_blocking(move || media(&dir, tools))
+            .await
+            .unwrap_or_else(|err| Err(err.to_string())),
+        (true, Err(err)) => Err(err.to_string()),
+    };
+    checks.push(check("media", media_result));
 
     checks.push(check(
         "floating wheel",
