@@ -44,6 +44,12 @@ impl AppPaths {
         self.data.join("office-profile")
     }
 
+    /// The command line's own LibreOffice profile: the app keeps a LibreOffice running on its
+    /// profile, and a script running the command line must neither wait for it nor end it.
+    pub fn office_profile_cli(&self) -> PathBuf {
+        self.data.join("office-profile-cli")
+    }
+
     pub fn create(&self) -> std::io::Result<()> {
         for dir in [&self.data, &self.logs, &self.temp] {
             fs::create_dir_all(dir)?;

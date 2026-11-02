@@ -121,7 +121,7 @@ fn conversions(
     session.load_pdfium();
     let options = Options {
         tools,
-        office_profile: Some(session.paths().office_profile()),
+        office_profile: Some(session.paths().office_profile_cli()),
         ..Options::default()
     };
     Ok(sources
@@ -523,7 +523,7 @@ fn recipe_jobs(
     session.load_pdfium();
     let options = Options {
         tools,
-        office_profile: Some(session.paths().office_profile()),
+        office_profile: Some(session.paths().office_profile_cli()),
         ..Options::default()
     };
     // Results carry the recipe's name, as tools carry theirs: "photo - Instagram.jpg".
