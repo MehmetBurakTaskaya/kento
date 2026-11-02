@@ -13,7 +13,7 @@ use super::{AudioInfo, MediaInfo, VideoInfo};
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Kind {
+pub(crate) enum Kind {
     Video,
     Audio,
     Subtitle,
@@ -21,7 +21,7 @@ pub(super) enum Kind {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct Stream {
+pub(crate) struct Stream {
     /// The stream's index in the file (`-map 0:<index>`).
     pub index: usize,
     pub kind: Kind,
@@ -41,7 +41,7 @@ pub(super) struct Stream {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct Probe {
+pub(crate) struct Probe {
     pub info: MediaInfo,
     /// ffprobe's format name (`mov,mp4,m4a,3gp,3g2,mj2`).
     pub format: String,
@@ -73,7 +73,7 @@ impl Probe {
     }
 }
 
-pub(super) fn probe(ffprobe: &Path, input: &Path) -> Result<Probe> {
+pub(crate) fn probe(ffprobe: &Path, input: &Path) -> Result<Probe> {
     // A missing file is an I/O error, not a damaged one.
     std::fs::metadata(input)?;
     let output = command(ffprobe)
@@ -139,7 +139,7 @@ struct RawStream {
     disposition: HashMap<String, Value>,
 }
 
-pub(super) fn parse(json: &str) -> Result<Probe> {
+pub(crate) fn parse(json: &str) -> Result<Probe> {
     let report: Report = serde_json::from_str(json)
         .map_err(|error| Error::Unreadable(format!("ffprobe's report: {error}")))?;
     let mut longest = 0.0f64;

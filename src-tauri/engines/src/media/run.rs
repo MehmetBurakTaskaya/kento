@@ -36,7 +36,7 @@ const INPUT_PROBLEMS: &[&str] = &[
 ];
 
 /// A command for the tools, set up the same way every time.
-pub(super) fn command(program: &Path) -> Command {
+pub(crate) fn command(program: &Path) -> Command {
     let mut command = Command::new(program);
     command.stdin(Stdio::null());
     #[cfg(windows)]
@@ -48,7 +48,7 @@ pub(super) fn command(program: &Path) -> Command {
     command
 }
 
-pub(super) fn spawn_error(error: io::Error) -> Error {
+pub(crate) fn spawn_error(error: io::Error) -> Error {
     if error.kind() == io::ErrorKind::NotFound {
         Error::MissingCodec(Codec::Ffmpeg)
     } else {
@@ -58,7 +58,7 @@ pub(super) fn spawn_error(error: io::Error) -> Error {
 
 /// FFmpeg reads `name:` as a protocol and `-name` as an option. Kento's paths are absolute, so
 /// they are neither; a relative one is anchored to be safe.
-pub(super) fn media_path(path: &Path) -> OsString {
+pub(crate) fn media_path(path: &Path) -> OsString {
     if path.is_absolute() {
         path.as_os_str().to_owned()
     } else {
@@ -67,13 +67,13 @@ pub(super) fn media_path(path: &Path) -> OsString {
 }
 
 /// Seconds as FFmpeg reads them.
-pub(super) fn secs(seconds: f64) -> String {
+pub(crate) fn secs(seconds: f64) -> String {
     format!("{:.6}", seconds.max(0.0))
 }
 
 /// The arguments of one FFmpeg run, after the flags every run shares.
 #[derive(Debug, Default, Clone)]
-pub(super) struct Cmd {
+pub(crate) struct Cmd {
     args: Vec<OsString>,
     /// Some filters (loudnorm, silencedetect) print their findings at the info level.
     info: bool,
@@ -221,7 +221,7 @@ fn encoder_names(text: &str) -> HashSet<String> {
 
 /// Where a run's position goes on the job's progress bar.
 #[derive(Clone, Copy)]
-pub(super) struct Watch<'a> {
+pub(crate) struct Watch<'a> {
     progress: &'a Progress<'a>,
     /// Seconds of media the run writes; 0 when unknown.
     span: f64,
@@ -265,7 +265,7 @@ impl<'a> Watch<'a> {
 
 /// What FFmpeg said on stderr.
 #[derive(Debug, Default)]
-pub(super) struct Log {
+pub(crate) struct Log {
     pub tail: VecDeque<String>,
     /// Every line with the `keep` text of the run.
     pub kept: Vec<String>,
@@ -432,7 +432,7 @@ fn out_time(line: &str) -> Option<f64> {
 }
 
 /// Runs FFmpeg to the end, reporting its position, and returns what it logged.
-pub(super) fn run(ffmpeg: &Path, cmd: &Cmd, watch: Watch) -> Result<Log> {
+pub(crate) fn run(ffmpeg: &Path, cmd: &Cmd, watch: Watch) -> Result<Log> {
     watch.progress.check()?;
     let mut child = Reap::spawn(cmd.command(ffmpeg, true))?;
     let stdout = child.child.stdout.take().expect("stdout is piped");
@@ -487,7 +487,7 @@ pub(super) fn run(ffmpeg: &Path, cmd: &Cmd, watch: Watch) -> Result<Log> {
 }
 
 /// Runs FFmpeg with its output on stdout, handing each chunk to `sink`.
-pub(super) fn pipe(
+pub(crate) fn pipe(
     ffmpeg: &Path,
     cmd: &Cmd,
     progress: &Progress,

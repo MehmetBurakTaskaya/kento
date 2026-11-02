@@ -7,8 +7,8 @@ mod codec;
 pub(crate) mod compress;
 mod convert;
 mod preview;
-mod probe;
-mod run;
+pub(crate) mod probe;
+pub(crate) mod run;
 mod tools;
 
 #[cfg(test)]
