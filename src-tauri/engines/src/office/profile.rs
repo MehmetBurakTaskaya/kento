@@ -92,6 +92,11 @@ const SETTINGS: &[Setting] = &[
         "1",
     ),
     setting("/org.openoffice.Office.Calc/Formula/Load", "ODFRecalcMode", "1"),
+    // LibreOffice's own interface in English. With a Turkish interface its translations ask the
+    // C++ library for the locale "Turkish_Türkiye" (the name Windows gives), which a process in
+    // UTF-8 cannot open: LibreOffice crashes on every document. Nothing of its interface shows
+    // here, and documents keep their own languages.
+    setting("/org.openoffice.Office.Linguistic/General", "UILocale", "en-US"),
     // Nothing leaves the computer: no crash reports, no update checks.
     setting("/org.openoffice.Office.Common/Misc", "CrashReport", "false"),
     Setting {
