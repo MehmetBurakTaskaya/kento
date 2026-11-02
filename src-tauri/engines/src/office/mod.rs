@@ -9,11 +9,17 @@
 //! pictures and PDF pages as slides. LibreOffice never reaches the network for a document: remote
 //! references leave HTML before it sees it (`html.rs`), and its profile turns off macros and
 //! linked content (`profile.rs`).
+//!
+//! With a kept profile the app keeps LibreOffice running between jobs and hands it each document
+//! through a small client run by LibreOffice's own Python (`kept.rs`, `client.rs`); without one,
+//! or when that cannot work, each job runs `soffice --convert-to` (`soffice.rs`).
 
+mod client;
 mod encrypted;
 mod epub;
 mod fodp;
 mod html;
+mod kept;
 mod package;
 mod profile;
 mod soffice;
@@ -126,19 +132,22 @@ fn unsupported(job: &Conversion) -> Error {
     }
 }
 
-/// Starts LibreOffice once with `profile` so the first real job does not wait for the profile to
-/// be made (SPEC 6: its first start is slow): a line of text becomes a PDF in a folder of its
-/// own, which goes again afterwards.
+/// Starts LibreOffice with `profile` so the first real job does not wait for the profile to be
+/// made (SPEC 6: its first start is slow): a line of text becomes a PDF in a folder of its own,
+/// which goes again afterwards. The LibreOffice it started stays for the jobs that follow, as a
+/// job's does.
 pub fn warm_up(tools: &Tools, profile: &Path) -> Result<()> {
     let soffice = tools.soffice()?;
     let folder = warm_up_folder()?;
     let result = (|| {
         let input = folder.join("in").join("warm-up.txt");
         let out = folder.join("out");
+        let client = folder.join("client");
         fs::create_dir_all(input.parent().unwrap_or(&folder))?;
         fs::create_dir_all(&out)?;
         fs::write(&input, "Kento\n")?;
-        let office = Office::new(soffice, profile, Progress::none());
+        let office =
+            Office::new(soffice, profile, Progress::none()).keep(client::python(soffice), &client);
         office
             .convert(
                 &input,
@@ -150,6 +159,19 @@ pub fn warm_up(tools: &Tools, profile: &Path) -> Result<()> {
     })();
     let _ = fs::remove_dir_all(&folder);
     result
+}
+
+/// Ends the LibreOffice kept for office jobs unless a job is using it; the next job starts
+/// another. Removing or replacing the Office tools calls it, since a running LibreOffice holds
+/// its folder. True when none runs afterwards.
+pub fn stop_kept() -> bool {
+    kept::global().stop_idle("its tools change")
+}
+
+/// Ends the LibreOffice kept for office jobs at once, even under a running job, and starts no
+/// other: the app calls it as it quits.
+pub fn shutdown() {
+    kept::global().shutdown();
 }
 
 fn warm_up_folder() -> Result<PathBuf> {
@@ -165,12 +187,13 @@ fn warm_up_folder() -> Result<PathBuf> {
     Err(Error::Other("no free folder for the warm-up".into()))
 }
 
-/// The job's folders inside its scratch folder: the input LibreOffice opens, what it writes, and
-/// the steps around it.
+/// The job's folders inside its scratch folder: the input LibreOffice opens, what it writes, the
+/// steps around it, and the client for the kept LibreOffice (made when it runs).
 struct Dirs {
     input: PathBuf,
     out: PathBuf,
     steps: PathBuf,
+    client: PathBuf,
 }
 
 impl Dirs {
@@ -180,6 +203,7 @@ impl Dirs {
             input: root.join("in"),
             out: root.join("out"),
             steps: root.join("steps"),
+            client: root.join("client"),
         };
         for dir in [&dirs.input, &dirs.out, &dirs.steps] {
             fs::create_dir_all(dir)?;
@@ -207,7 +231,11 @@ fn run(job: &Conversion) -> Result<Vec<PathBuf>> {
     let (input, infilter) = stage(job, &dirs, &quiet)?;
     encrypted::check(&input, job.from)?;
     quiet.check()?;
-    let office = Office::new(soffice, &profile, quiet);
+    let mut office = Office::new(soffice, &profile, quiet);
+    // Only a kept profile gets a kept LibreOffice; one in the job's own folder goes with the job.
+    if job.options.keep_office && job.options.office_profile.is_some() {
+        office = office.keep(client::python(soffice), &dirs.client);
+    }
     let produced = office.convert(&input, infilter, &export(app, job.to), &dirs.out)?;
     let quiet = Progress::new(&|_| {}, &cancelled);
     finish(job, &produced, &dirs, &quiet)

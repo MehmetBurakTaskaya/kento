@@ -123,6 +123,10 @@ pub struct Options {
     /// LibreOffice's user profile, kept between jobs so only the first start is slow. Office jobs
     /// run one at a time, so they can share it; without one each job makes its own in `temp`.
     pub office_profile: Option<PathBuf>,
+    /// Keeps LibreOffice running between office jobs with `office_profile` (the app, which ends it
+    /// with `office::shutdown` as it quits); otherwise each job starts and ends it (the command
+    /// line). Without a profile it is never kept.
+    pub keep_office: bool,
 }
 
 /// Where the external tools are (SPEC 4.2): downloaded on request or found on the system. Engines
@@ -211,6 +215,7 @@ impl Default for Options {
             archive_limits: archive::Limits::default(),
             tools: Tools::default(),
             office_profile: None,
+            keep_office: false,
         }
     }
 }

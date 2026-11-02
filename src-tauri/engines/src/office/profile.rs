@@ -9,6 +9,7 @@
 
 use std::collections::HashMap;
 use std::fs;
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
@@ -26,31 +27,77 @@ pub(super) fn lock(profile: &Path) -> Arc<Mutex<()>> {
     locks.entry(profile.to_path_buf()).or_default().clone()
 }
 
-/// Holds the profile against other processes until the file is dropped: the app and the command
-/// line share the kept profile, and a second `soffice` on it would hand its document to the first
-/// instead of converting it. Waits while another process holds it; a cancelled job stops waiting.
+/// Holds the profile until the file is dropped: one LibreOffice uses a profile at a time, and a
+/// second `soffice` on it would hand its document to the first instead of converting it. Waits
+/// while another holds it (another process, or the LibreOffice kept running in this one); a
+/// cancelled job stops waiting.
+///
+/// While it waits it holds the profile's wait file, which asks a kept LibreOffice to make way
+/// (`wanted`), so no one waits for an idle LibreOffice.
 pub(super) fn hold(profile: &Path, progress: &Progress) -> Result<fs::File> {
-    let mut name = profile.as_os_str().to_os_string();
-    name.push(".lock");
-    let path = PathBuf::from(name);
-    if let Some(dir) = path.parent() {
-        fs::create_dir_all(dir)?;
-    }
-    let file = fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(false)
-        .open(&path)?;
+    let file = beside(profile, "lock")?;
+    let mut waiting = None;
     loop {
         match file.try_lock() {
             Ok(()) => return Ok(file),
             Err(fs::TryLockError::WouldBlock) => {
+                if waiting.is_none() {
+                    waiting = beside(profile, "wait")
+                        .ok()
+                        .filter(|wait| wait.try_lock().is_ok());
+                }
                 progress.check()?;
                 std::thread::sleep(Duration::from_millis(200));
             }
             Err(fs::TryLockError::Error(err)) => return Err(err.into()),
         }
     }
+}
+
+/// Whether someone waits in `hold` for the profile.
+pub(super) fn wanted(profile: &Path) -> bool {
+    beside(profile, "wait")
+        .is_ok_and(|wait| matches!(wait.try_lock(), Err(fs::TryLockError::WouldBlock)))
+}
+
+/// `<profile>.<extension>`, a file next to the profile folder, opened for reading and writing.
+fn beside(profile: &Path, extension: &str) -> io::Result<fs::File> {
+    let mut name = profile.as_os_str().to_os_string();
+    name.push(".");
+    name.push(extension);
+    let path = PathBuf::from(name);
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .truncate(false)
+        .open(&path)
+}
+
+/// What the holder before noted in the held lock file: the pipe of the LibreOffice it kept, when
+/// it ended without clearing it.
+pub(super) fn noted(held: &mut fs::File) -> Option<String> {
+    let mut text = String::new();
+    held.seek(SeekFrom::Start(0)).ok()?;
+    Read::by_ref(held)
+        .take(256)
+        .read_to_string(&mut text)
+        .ok()?;
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_owned())
+}
+
+/// Notes the pipe of the LibreOffice kept on the profile in the held lock file, or clears it.
+pub(super) fn note(held: &mut fs::File, pipe: Option<&str>) -> io::Result<()> {
+    held.set_len(0)?;
+    held.seek(SeekFrom::Start(0))?;
+    if let Some(pipe) = pipe {
+        held.write_all(pipe.as_bytes())?;
+    }
+    held.flush()
 }
 
 struct Setting {
@@ -290,5 +337,50 @@ mod tests {
         ));
         drop(held);
         drop(hold(&profile, &Progress::none()).unwrap());
+    }
+
+    #[test]
+    fn office_profile_a_waiter_is_seen_while_it_waits() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile = dir.path().join("Profil ğ 🧪");
+        let held = hold(&profile, &Progress::none()).unwrap();
+        assert!(!wanted(&profile), "nobody waits yet");
+        let waiting = std::sync::atomic::AtomicBool::new(true);
+        std::thread::scope(|scope| {
+            let waiter = scope.spawn(|| {
+                let progress = Progress::none();
+                let file = hold(&profile, &progress);
+                waiting.store(false, std::sync::atomic::Ordering::SeqCst);
+                file
+            });
+            let deadline = std::time::Instant::now() + Duration::from_secs(10);
+            while !wanted(&profile) {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "the waiter is not seen"
+                );
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            assert!(waiting.load(std::sync::atomic::Ordering::SeqCst));
+            drop(held);
+            drop(waiter.join().unwrap().unwrap());
+        });
+        assert!(!wanted(&profile), "the wait ends with the hold");
+    }
+
+    #[test]
+    fn office_profile_the_lock_file_notes_a_pipe() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile = dir.path().join("profile");
+        let mut held = hold(&profile, &Progress::none()).unwrap();
+        assert_eq!(noted(&mut held), None);
+        note(&mut held, Some("kento-12-office-3")).unwrap();
+        drop(held);
+        let mut held = hold(&profile, &Progress::none()).unwrap();
+        assert_eq!(noted(&mut held).as_deref(), Some("kento-12-office-3"));
+        note(&mut held, Some("kento-5-office-1")).unwrap();
+        assert_eq!(noted(&mut held).as_deref(), Some("kento-5-office-1"));
+        note(&mut held, None).unwrap();
+        assert_eq!(noted(&mut held), None);
     }
 }

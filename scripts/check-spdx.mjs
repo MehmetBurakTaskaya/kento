@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const CODE = /\.(rs|ts|tsx|js|mjs|cjs|css|html)$/;
+const CODE = /\.(rs|ts|tsx|js|mjs|cjs|css|html|py)$/;
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
   cwd: root,
   encoding: 'utf8',

@@ -3,7 +3,8 @@
 //! by LibreOffice itself from HTML, CSV or flat ODP written here, under folder and file names with
 //! Turkish letters and an emoji (the profile's folder too). Without LibreOffice the real checks
 //! are skipped with a note, unless `KENTO_REQUIRE_SOFFICE=1`; LibreOffice is found through
-//! `KENTO_SOFFICE`, the PATH or its usual install folders.
+//! `KENTO_SOFFICE`, the PATH or its usual install folders. The checks convert through the kept
+//! LibreOffice, as the app does, unless they say otherwise; each ends it when it is over.
 
 use std::env;
 use std::fs::{self, File};
@@ -231,6 +232,8 @@ struct Lab {
     root: PathBuf,
     soffice: PathBuf,
     profile: PathBuf,
+    /// Jobs go through the kept LibreOffice.
+    keep: bool,
 }
 
 impl Lab {
@@ -247,7 +250,20 @@ impl Lab {
             root,
             soffice,
             profile,
+            keep: true,
         })
+    }
+
+    /// LibreOffice's own Python beside the LibreOffice found, which the kept LibreOffice needs.
+    fn python(&self) -> Option<PathBuf> {
+        let python = super::client::python(&self.soffice);
+        if python.is_none() {
+            eprintln!(
+                "no LibreOffice Python beside {}: every job runs LibreOffice itself",
+                self.soffice.display()
+            );
+        }
+        python
     }
 
     fn path(&self, name: &str) -> PathBuf {
@@ -267,6 +283,7 @@ impl Lab {
                 ..Tools::default()
             },
             office_profile: Some(self.profile.clone()),
+            keep_office: self.keep,
             ..Options::default()
         }
     }
@@ -350,6 +367,13 @@ impl Lab {
     fn text(&self, path: &Path, from: &str) -> String {
         let txt = self.convert(path, from, "txt");
         fs::read_to_string(txt).unwrap()
+    }
+}
+
+impl Drop for Lab {
+    fn drop(&mut self) {
+        // Before the folder with the profile goes, and before the next check takes its turn.
+        super::kept::global().stop("the check is over");
     }
 }
 
@@ -774,6 +798,28 @@ fn office_unreadable_documents_say_so() {
         lab.try_convert(&locked, "docx", "pdf", &Progress::none()),
         Err(Error::Encrypted)
     ));
+    // A document LibreOffice itself cannot load: its message, once, and LibreOffice stays.
+    let Some(python) = lab.python() else { return };
+    let out = lab.path("çıktı");
+    fs::create_dir(&out).unwrap();
+    let scratch = lab.path("istemci");
+    let office =
+        Office::new(&lab.soffice, &lab.profile, Progress::none()).keep(Some(python), &scratch);
+    let missing = lab.path("yok ğ.docx");
+    let result = office.convert(
+        &missing,
+        None,
+        &Export::new("pdf", "writer_pdf_Export"),
+        &out,
+    );
+    let Err(Error::Unreadable(message)) = result else {
+        panic!("a document LibreOffice cannot load is unreadable: {result:?}");
+    };
+    assert!(message.starts_with("LibreOffice: "), "{message}");
+    assert!(
+        super::kept::global().running(),
+        "LibreOffice itself is fine"
+    );
 }
 
 #[test]
@@ -807,4 +853,187 @@ fn office_warm_up_makes_the_profile_beside_a_job() {
         "LibreOffice made its profile"
     );
     warm_up(&tools, &lab.profile).unwrap();
+    if lab.python().is_some() {
+        assert!(
+            super::kept::global().running(),
+            "the warm-up leaves LibreOffice running for the next job"
+        );
+    }
+}
+
+#[test]
+fn office_kept_libreoffice_converts_one_document_after_another_quickly() {
+    let Some(lab) = Lab::new() else { return };
+    if lab.python().is_none() {
+        return;
+    }
+    let mut times = Vec::new();
+    for n in 1..=3 {
+        let page = PAGE.replace("<h1>", &format!("<p>Belge{n}</p>\n<h1>"));
+        let html = lab.write(&format!("{NAME} {n}.html"), page);
+        let started = Instant::now();
+        let docx = lab.convert(&html, "html", "docx");
+        times.push(started.elapsed());
+        let document = entry(&docx, "word/document.xml");
+        has(&document, &format!("Belge{n}"));
+        has(&document, "ğüşıöç");
+        assert!(
+            super::kept::global().running(),
+            "the kept LibreOffice converted document {n}"
+        );
+    }
+    eprintln!("HTML → DOCX through the kept LibreOffice, one after another: {times:?}");
+    // The first waits for LibreOffice to start with a new profile; the others find it running.
+    for (n, time) in times.iter().enumerate().skip(1) {
+        assert!(
+            *time < Duration::from_secs(2),
+            "document {} took {time:?}",
+            n + 1
+        );
+    }
+    // Once it has ended, the next job starts it again with the profile it made.
+    super::kept::global().stop("the check goes on with a used profile");
+    let html = lab.write(&format!("{NAME} 4.html"), PAGE);
+    let started = Instant::now();
+    let docx = lab.convert(&html, "html", "docx");
+    eprintln!(
+        "after it ended, the next document with the same profile: {:?}",
+        started.elapsed()
+    );
+    has(&entry(&docx, "word/document.xml"), "ğüşıöç");
+    assert!(super::kept::global().running());
+}
+
+#[test]
+fn office_one_libreoffice_per_job_still_converts() {
+    let Some(mut lab) = Lab::new() else { return };
+    lab.keep = false;
+    let html = lab.write(&format!("{NAME}.html"), PAGE);
+    let started = Instant::now();
+    let docx = lab.convert(&html, "html", "docx");
+    has(&entry(&docx, "word/document.xml"), "ğüşıöç");
+    assert!(!super::kept::global().running(), "nothing is kept");
+    let started_again = Instant::now();
+    let odt = lab.convert(&docx, "docx", "odt");
+    has(&lab.text(&odt, "odt"), "Çağrı kalın yazı yazdı.");
+    eprintln!(
+        "one LibreOffice per job: HTML → DOCX in {:?}, DOCX → ODT in {:?}",
+        started_again - started,
+        started_again.elapsed()
+    );
+    assert!(!super::kept::global().running(), "nothing is kept");
+}
+
+/// A stand-in for LibreOffice's Python that has no pyuno, as the client would find it.
+fn python_without_pyuno(dir: &Path) -> PathBuf {
+    if cfg!(windows) {
+        let path = dir.join("python.cmd");
+        fs::write(
+            &path,
+            "@echo off\r\necho kento-office: no-uno: No module named 'uno' 1>&2\r\nexit /b 3\r\n",
+        )
+        .unwrap();
+        path
+    } else {
+        let path = dir.join("python");
+        fs::write(
+            &path,
+            "#!/bin/sh\necho \"kento-office: no-uno: No module named 'uno'\" >&2\nexit 3\n",
+        )
+        .unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        path
+    }
+}
+
+#[test]
+fn office_without_a_python_for_the_client_each_job_runs_libreoffice() {
+    let Some(lab) = Lab::new() else { return };
+    let fodp = lab.write("sunum.fodp", slides());
+    let export = Export::new("pptx", "Impress MS PowerPoint 2007 XML");
+    let slide_files = |path: &Path| {
+        entries(path)
+            .into_iter()
+            .filter(|name| name.starts_with("ppt/slides/slide") && name.ends_with(".xml"))
+            .count()
+    };
+    // No Python beside LibreOffice: the job runs LibreOffice for itself.
+    let out = lab.path("tek");
+    fs::create_dir(&out).unwrap();
+    let scratch = lab.path("istemci");
+    let office = Office::new(&lab.soffice, &lab.profile, Progress::none()).keep(None, &scratch);
+    let made = office
+        .convert(&fodp, Some(FODP_IMPORT), &export, &out)
+        .unwrap();
+    assert_eq!(slide_files(&made), 3);
+    assert!(!super::kept::global().running());
+    assert!(!scratch.exists(), "no client was written");
+
+    // A Python without pyuno: LibreOffice starts, the client cannot reach it, the job falls back,
+    // and that Python is not tried again.
+    let keeper = super::kept::Keeper::new(Duration::from_secs(60), Duration::from_secs(1));
+    let python = python_without_pyuno(&lab.root);
+    for n in 1..=2 {
+        let out = lab.path(&format!("geri {n}"));
+        fs::create_dir(&out).unwrap();
+        let office = Office::new(&lab.soffice, &lab.profile, Progress::none()).keep_with(
+            keeper.clone(),
+            Some(python.clone()),
+            &scratch,
+        );
+        let made = office
+            .convert(&fodp, Some(FODP_IMPORT), &export, &out)
+            .unwrap();
+        assert_eq!(slide_files(&made), 3);
+        assert!(!keeper.running());
+    }
+}
+
+#[test]
+fn office_a_kept_libreoffice_that_was_ended_is_started_again() {
+    let Some(lab) = Lab::new() else { return };
+    let Some(python) = lab.python() else { return };
+    let keeper = super::kept::Keeper::new(Duration::from_secs(60), Duration::from_millis(200));
+    let html = lab.write(&format!("{NAME}.html"), PAGE);
+    let convert = |n: u32| {
+        let out = lab.path(&format!("çıktı {n}"));
+        fs::create_dir(&out).unwrap();
+        let scratch = lab.path(&format!("istemci {n}"));
+        let office = Office::new(&lab.soffice, &lab.profile, Progress::none()).keep_with(
+            keeper.clone(),
+            Some(python.clone()),
+            &scratch,
+        );
+        office
+            .convert(
+                &html,
+                Some(HTML_IMPORT),
+                &Export::new("odt", "writer8"),
+                &out,
+            )
+            .unwrap()
+    };
+    has(&entry(&convert(1), "content.xml"), "ğüşıöç");
+    let pipe = keeper.pipe().expect("LibreOffice is kept");
+    // Kento's client asks it to end, as a later Kento asks one an earlier one left behind.
+    let scratch = lab.path("durdur");
+    let script = super::client::write_script(&scratch).unwrap();
+    let args = super::client::stop_arguments(&script, &pipe, Duration::from_secs(5));
+    let status = super::client::command(&python, &script, &args)
+        .status()
+        .unwrap();
+    assert_eq!(status.code(), Some(super::client::code::OK));
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while keeper.running() {
+        assert!(Instant::now() < deadline, "LibreOffice did not end");
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    // The next job starts another.
+    has(&entry(&convert(2), "content.xml"), "ğüşıöç");
+    assert!(keeper.running());
+    assert_ne!(keeper.pipe(), Some(pipe), "a new pipe");
 }

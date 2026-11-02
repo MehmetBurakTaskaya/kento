@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-//! Running `soffice` (LibreOffice Help, "Starting LibreOffice Software With Parameters"): one
-//! headless conversion per run, arguments as an array, Kento's profile through
-//! `-env:UserInstallation`, and a kill on cancel or timeout that ends LibreOffice's own
-//! processes too (`soffice` starts `soffice.bin`).
+//! Running `soffice` (LibreOffice Help, "Starting LibreOffice Software With Parameters"): through
+//! the LibreOffice Kento keeps running when it can (`kept.rs`), otherwise one headless conversion
+//! per run, arguments as an array, Kento's profile through `-env:UserInstallation`, and a kill on
+//! cancel or timeout that ends LibreOffice's own processes too (`soffice` starts `soffice.bin`).
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
@@ -11,17 +11,18 @@ use std::io::{self, BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
-use std::sync::PoisonError;
+use std::sync::{Arc, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use super::kept::{self, Keeper, Miss, Request};
 use super::profile;
 use crate::process::{command, Reap};
 use crate::{Codec, Error, Progress, Result};
 
 /// No window, splash or start center; no check for another instance on the installation and no
 /// crash recovery, so a run that was killed leaves nothing to restore in the next one.
-const FLAGS: [&str; 6] = [
+pub(super) const FLAGS: [&str; 6] = [
     "--headless",
     "--invisible",
     "--nologo",
@@ -32,13 +33,13 @@ const FLAGS: [&str; 6] = [
 
 /// A run that takes longer is stopped. Large documents through the PDF import take minutes; a run
 /// this long is stuck.
-const TIMEOUT: Duration = Duration::from_secs(20 * 60);
+pub(super) const TIMEOUT: Duration = Duration::from_secs(20 * 60);
 
 /// How often a run looks at the cancel flag.
-const POLL: Duration = Duration::from_millis(100);
+pub(super) const POLL: Duration = Duration::from_millis(100);
 
 /// How often a run looks for a new crash report.
-const CRASH_LOOK: Duration = Duration::from_secs(1);
+pub(super) const CRASH_LOOK: Duration = Duration::from_secs(1);
 
 /// The wait before a run that wrote nothing is tried again.
 const RETRY_PAUSE: Duration = Duration::from_secs(1);
@@ -79,6 +80,15 @@ pub(super) struct Office<'a> {
     soffice: &'a Path,
     profile: &'a Path,
     progress: Progress<'a>,
+    kept: Option<Kept<'a>>,
+}
+
+/// What a job needs to go through the kept LibreOffice.
+struct Kept<'a> {
+    keeper: Arc<Keeper>,
+    python: PathBuf,
+    /// A folder of the job's own for the client script.
+    scratch: &'a Path,
 }
 
 impl<'a> Office<'a> {
@@ -87,12 +97,65 @@ impl<'a> Office<'a> {
             soffice,
             profile,
             progress,
+            kept: None,
         }
     }
 
-    /// Converts `input` into `outdir` and returns the file LibreOffice wrote. LibreOffice often
-    /// ends with success when it could not load or write anything, so only a written file counts.
+    /// Converts through the LibreOffice kept running for the profile, with LibreOffice's own
+    /// `python` (none: each conversion starts LibreOffice, as without this).
+    pub(super) fn keep(self, python: Option<PathBuf>, scratch: &'a Path) -> Self {
+        self.keep_with(kept::global(), python, scratch)
+    }
+
+    pub(super) fn keep_with(
+        mut self,
+        keeper: Arc<Keeper>,
+        python: Option<PathBuf>,
+        scratch: &'a Path,
+    ) -> Self {
+        self.kept = python.map(|python| Kept {
+            keeper,
+            python,
+            scratch,
+        });
+        self
+    }
+
+    /// Converts `input` into `outdir` and returns the file LibreOffice wrote: through the kept
+    /// LibreOffice when there is one to use, otherwise with a run of its own.
     pub(super) fn convert(
+        &self,
+        input: &Path,
+        infilter: Option<&str>,
+        export: &Export,
+        outdir: &Path,
+    ) -> Result<PathBuf> {
+        if let Some(kept) = &self.kept {
+            let request = Request {
+                soffice: self.soffice,
+                profile: self.profile,
+                python: &kept.python,
+                scratch: kept.scratch,
+                progress: &self.progress,
+                input,
+                infilter,
+                export,
+                outdir,
+            };
+            match kept.keeper.convert(&request) {
+                Ok(path) => return Ok(path),
+                Err(Miss::Failed(error)) => return Err(error),
+                Err(Miss::Fallback(why)) => {
+                    tracing::info!("LibreOffice runs for this document alone: {why}");
+                }
+            }
+        }
+        self.convert_once(input, infilter, export, outdir)
+    }
+
+    /// One conversion in a LibreOffice of its own. LibreOffice often ends with success when it
+    /// could not load or write anything, so only a written file counts.
+    fn convert_once(
         &self,
         input: &Path,
         infilter: Option<&str>,
@@ -200,7 +263,7 @@ impl<'a> Office<'a> {
 }
 
 /// The crash reports in a profile (`crash/*.dmp`), by name.
-fn crash_reports(profile: &Path) -> std::collections::BTreeSet<std::ffi::OsString> {
+pub(super) fn crash_reports(profile: &Path) -> std::collections::BTreeSet<std::ffi::OsString> {
     fs::read_dir(profile.join("crash"))
         .into_iter()
         .flatten()
@@ -222,7 +285,7 @@ pub(super) fn program(soffice: &Path) -> PathBuf {
     soffice.to_path_buf()
 }
 
-fn spawn_error(error: io::Error) -> Error {
+pub(super) fn spawn_error(error: io::Error) -> Error {
     if error.kind() == io::ErrorKind::NotFound {
         Error::MissingCodec(Codec::LibreOffice)
     } else {
@@ -254,7 +317,7 @@ pub(super) fn arguments(
 }
 
 /// A path without the Windows `\\?\` prefix, which LibreOffice does not read.
-fn plain(path: &Path) -> OsString {
+pub(super) fn plain(path: &Path) -> OsString {
     let text = path.to_string_lossy();
     match strip_verbatim(&text) {
         Some(stripped) => stripped.into(),
@@ -301,7 +364,7 @@ pub(super) fn url_of(path: &str, windows: bool) -> String {
 
 /// The file LibreOffice wrote: `<input stem>.<extension>` in `outdir`, or the one file there with
 /// that extension. Empty files do not count.
-fn written(outdir: &Path, stem: &str, extension: &str) -> Option<PathBuf> {
+pub(super) fn written(outdir: &Path, stem: &str, extension: &str) -> Option<PathBuf> {
     let non_empty =
         |path: &Path| fs::metadata(path).is_ok_and(|meta| meta.is_file() && meta.len() > 0);
     let expected = outdir.join(format!("{stem}.{extension}"));
@@ -319,7 +382,7 @@ fn written(outdir: &Path, stem: &str, extension: &str) -> Option<PathBuf> {
 }
 
 /// Sends every line of a pipe until it closes.
-fn forward(pipe: impl Read + Send + 'static, sender: mpsc::Sender<String>) {
+pub(super) fn forward(pipe: impl Read + Send + 'static, sender: mpsc::Sender<String>) {
     thread::spawn(move || {
         let mut reader = BufReader::new(pipe);
         let mut line = Vec::new();
@@ -341,14 +404,14 @@ fn forward(pipe: impl Read + Send + 'static, sender: mpsc::Sender<String>) {
 #[derive(Debug, Default)]
 pub(super) struct Log {
     pub(super) tail: VecDeque<String>,
-    closed: bool,
+    pub(super) closed: bool,
     /// LibreOffice crashed: it left a crash report in the profile.
     crashed: bool,
 }
 
 impl Log {
     /// Takes the lines that arrive within `wait`.
-    fn take(&mut self, lines: &Receiver<String>, wait: Duration) {
+    pub(super) fn take(&mut self, lines: &Receiver<String>, wait: Duration) {
         let mut wait = wait;
         loop {
             match lines.recv_timeout(wait) {
