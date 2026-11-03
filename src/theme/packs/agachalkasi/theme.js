@@ -96,6 +96,14 @@ export default function register(Board) {
       return d;
     }
 
+    // How wide a wedge's label may be, and the brand ring that fits around it: wider wedges (fewer
+    // slices) give a long label more room and a slightly larger brand.
+    function fit(sl) {
+      const chord = 2 * R.label * Math.sin(rad(Math.min(sl.step, 180) / 2));
+      const room = Math.round(Math.max(66, Math.min(88, chord * 0.82)));
+      return { room, ring: Math.max(R.brand, room / 2 + 6) };
+    }
+
     // The brand: a double ring with four short bars, burned around the label.
     function brand(cx, cy, r) {
       let ticks = '';
@@ -109,10 +117,10 @@ export default function register(Board) {
     Board.define({
       id: 'agachalkasi',
       fonts: {
-        brand: "'Zilla Slab'",
-        display: "'Zilla Slab'",
-        load: ["'Zilla Slab'"],
-        credits: [{ family: 'Zilla Slab', license: 'SIL Open Font License 1.1' }],
+        brand: "'Vollkorn Variable'",
+        display: "'Vollkorn Variable'",
+        load: ["'Vollkorn Variable'"],
+        credits: [{ family: 'Vollkorn', license: 'SIL Open Font License 1.1' }],
       },
       motion: { open: 180, close: 120, stagger: 10, apply: 660 },
 
@@ -279,23 +287,24 @@ export default function register(Board) {
             H.s('path', { d: H.sector(R.hub, R.bark, sl.a0, sl.a1), class: 'ag-hit' }, g);
             H.s('path', { d: H.sector(R.hub + 1, R.face, sl.a0, sl.a1), class: 'ag-face' }, g);
             // The brand that stays on the chosen wedge: scorch, double ring and four bars.
+            const { room, ring } = fit(sl);
             const [bx, by] = H.polar(R.label, sl.mid);
             const br = H.s(
               'g',
               { class: 'ag-brand', 'aria-hidden': 'true', style: `transform-origin: ${f2(bx)}px ${f2(by)}px` },
               g,
             );
-            H.s('circle', { cx: f2(bx), cy: f2(by), r: R.brand, class: 'ag-scorch' }, br);
-            H.s('circle', { cx: f2(bx), cy: f2(by), r: R.brand, class: 'ag-ring1' }, br);
-            H.s('circle', { cx: f2(bx), cy: f2(by), r: R.brand - 5.5, class: 'ag-ring2' }, br);
-            H.s('path', { d: brand(bx, by, R.brand), class: 'ag-bars' }, br);
+            H.s('circle', { cx: f2(bx), cy: f2(by), r: ring, class: 'ag-scorch' }, br);
+            H.s('circle', { cx: f2(bx), cy: f2(by), r: ring, class: 'ag-ring1' }, br);
+            H.s('circle', { cx: f2(bx), cy: f2(by), r: ring - 5.5, class: 'ag-ring2' }, br);
+            H.s('path', { d: brand(bx, by, ring), class: 'ag-bars' }, br);
             const ink = H.s('g', { class: 'ag-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(ink, sl, R.label, {
                 size: 21,
                 subSize: 12.5,
                 gap: 1,
-                maxWidth: 66,
+                maxWidth: room + 2,
                 minSize: 9,
                 cls: 'ag-lbl',
                 subCls: 'ag-sub',
@@ -306,7 +315,7 @@ export default function register(Board) {
                 iconSize: 21,
                 size: 13.5,
                 gap: 3,
-                maxWidth: 64,
+                maxWidth: room,
                 minSize: 8.5,
                 cls: 'ag-lbl ag-lbl-s',
                 sub: null,
@@ -328,8 +337,15 @@ export default function register(Board) {
           for (const x of ringSet(9, R.hub - 4, 7)) hr += ringPath(x.r, 0.8 + x.r * 0.012, 0.8 + x.r * 0.012);
           H.s('path', { d: hr, class: 'ag-heart-rings' }, hub);
           H.s('circle', { cx: C, cy: C, r: R.hub, class: 'ag-heart-edge' }, hub);
-          H.label(hub, C, C - 15, m.title, { maxWidth: 92, size: 16.5, minSize: 10, cls: 'ag-title', maxLines: 1 });
-          H.label(hub, C, C + 5, m.file, {
+          const dy = m.key ? 0 : 9;
+          H.label(hub, C, C - 15 + dy, m.title, {
+            maxWidth: 92,
+            size: 16.5,
+            minSize: 10,
+            cls: 'ag-title',
+            maxLines: 1,
+          });
+          H.label(hub, C, C + 5 + dy, m.file, {
             maxWidth: 84,
             size: 11.5,
             minSize: 8.5,
@@ -337,9 +353,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.6;
-          H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 2.5, class: 'ag-key' }, hub);
-          H.text(hub, C, C + 26.3, m.key, { class: 'ag-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.6;
+            H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 2.5, class: 'ag-key' }, hub);
+            H.text(hub, C, C + 26.3, m.key, { class: 'ag-keytext' });
+          }
 
           H.s('g', { class: 'ag-fx', 'aria-hidden': 'true' }, root);
         },
@@ -358,6 +376,7 @@ export default function register(Board) {
           if (t == null && reducedMotion()) return;
           const sl = m.slices[i];
           const [bx, by] = H.polar(R.label, sl.mid);
+          const edge = fit(sl).ring - 8;
           for (let k = 0; k < 3; k++) {
             const x = bx + (k - 1) * 15;
             const y = by - 30 + Math.abs(k - 1) * 8;
@@ -376,7 +395,7 @@ export default function register(Board) {
           // A puff of fine dust, then chips thrown out of the brand's edge.
           for (let k = 0; k < 4; k++) {
             const a = sl.mid + (k - 1.5) * 50;
-            const [px, py] = [bx + Math.sin(rad(a)) * 36, by - Math.cos(rad(a)) * 36];
+            const [px, py] = [bx + Math.sin(rad(a)) * edge, by - Math.cos(rad(a)) * edge];
             H.s(
               'circle',
               {
@@ -391,7 +410,7 @@ export default function register(Board) {
           }
           for (let k = 0; k < 18; k++) {
             const a = g() * 360;
-            const [sx, sy] = [bx + Math.sin(rad(a)) * 36, by - Math.cos(rad(a)) * 36];
+            const [sx, sy] = [bx + Math.sin(rad(a)) * edge, by - Math.cos(rad(a)) * edge];
             const dist = 24 + g() * 40;
             const dx = Math.sin(rad(a)) * dist;
             const dy = -Math.cos(rad(a)) * dist - 12;
