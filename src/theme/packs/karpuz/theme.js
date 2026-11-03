@@ -397,6 +397,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: an open chevron near the rind, unlike the seeds on the borders.
+            H.ringMark(chomp, sl, m, { r: R.flesh1 - 4, size: 7.5, offset: 13, shape: 'chevron', cls: 'kz-ring-mark' });
             H.s('g', { class: 'kz-fx' }, g);
           }
 

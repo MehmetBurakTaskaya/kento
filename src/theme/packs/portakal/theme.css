@@ -309,3 +309,9 @@
     transform: scale(1.4);
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead near the rind, edged in pith. */
+[data-concept='portakal'] .pk-ring-mark {
+  --ring-mark-halo: var(--pk-pith);
+  --ring-mark-rest: 0.85;
+}

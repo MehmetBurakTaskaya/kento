@@ -10,6 +10,8 @@ export default function register(Board) {
     const ID = 'baklava';
     // Radii in the 400 x 400 view box: cream, pastry, flaky edge, tray floor, copper rim.
     const R = { hub: 46, p0: 50, flake: 166, p1: 174, floor: 181, rim: 195, lbl: 112 };
+    // The mark of a slice that opens a ring of choices: its point's radius and its length.
+    const MARK = { r: 157.5, size: 8.5 };
     const CUT = 2.2;
     const LAT = { s: 27, th: 32 }; // diamond lattice: spacing and angle from the vertical
 
@@ -457,9 +459,12 @@ export default function register(Board) {
             let nA = '',
               nB = '',
               nC = '';
+            // The pistachio also leaves the mark of a slice that opens a ring of choices clear.
+            const mark = sl.ring ? H.polar(MARK.r - MARK.size / 2, sl.mark) : null;
             for (const [x, y] of nuts) {
               if (!within(angleOf(x, y), sl.a0, sl.a1, 5) || Math.hypot(x - 200, y - 200) < R.p0 + 9) continue;
               if (Math.abs(x - box.cx) < box.hw && Math.abs(y - box.cy) < box.hh) continue;
+              if (mark && Math.hypot(x - mark[0], y - mark[1]) < 13) continue;
               for (let q = 0; q < 7; q++) {
                 const qa = rand() * Math.PI * 2,
                   qr = rand() * 4.4;
@@ -501,6 +506,8 @@ export default function register(Board) {
             H.s('path', { d: streaks, class: 'bk-streak' }, glaze);
             if (sl.off) lift.insertBefore(H.s('path', { d: shape, class: 'bk-off' }), c);
             H.s('path', { d: H.arc(R.flake - 4, sl.a0 + 4, sl.a1 - 4), class: 'bk-glint' }, lift);
+            // More choices: an arrowhead near the flaky rim, on a patch the pistachio leaves clear.
+            H.ringMark(lift, sl, m, { ...MARK, halo: 1.4, cls: 'bk-ring-mark' });
           }
 
           // A dollop of clotted cream in the middle carries the name, the file and the key.

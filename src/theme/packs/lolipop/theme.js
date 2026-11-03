@@ -388,6 +388,15 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: an arrowhead on the arm just inside the crack, so it stays on the piece that
+            // keeps its place when the candy breaks, following the swirl.
+            H.ringMark(lift, sl, m, {
+              r: R.crack - 7,
+              size: 9,
+              offset: 11,
+              turn: tw(R.crack - 11.5),
+              cls: 'lp-ring-mark',
+            });
             H.s('g', { class: 'lp-fx' }, g);
           }
 

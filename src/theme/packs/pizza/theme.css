@@ -314,3 +314,13 @@
     opacity: 0;
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead scored into its crust, charred, red as
+   the sauce when aimed at. */
+[data-concept='pizza'] .pz-ring-mark {
+  --ring-mark-color: var(--pz-char);
+  --ring-mark-hover: var(--pz-sauce-dark);
+  --ring-mark-selected: var(--pz-char);
+  --ring-mark-halo: var(--pz-crust);
+  --ring-mark-rest: 1;
+}

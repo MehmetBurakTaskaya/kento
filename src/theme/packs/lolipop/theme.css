@@ -367,3 +367,9 @@
     transform: scale(0.2) rotate(90deg);
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead on its arm just inside the crack,
+   following the swirl, in the label's colour. */
+[data-concept='lolipop'] .lp-ring-mark {
+  --ring-mark-rest: 0.85;
+}

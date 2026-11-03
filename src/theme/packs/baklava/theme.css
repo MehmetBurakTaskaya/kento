@@ -365,3 +365,16 @@
     transform: scale(0.42);
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead near its flaky rim, haloed like the
+   label so the scored lattice never cuts through it. */
+[data-concept='baklava'] .bk-ring-mark {
+  --ring-mark-halo: var(--bk-halo);
+  --ring-mark-rest: 0.85;
+}
+[data-concept='baklava'] .slice.is-hover .bk-ring-mark {
+  --ring-mark-halo: var(--bk-halo-h);
+}
+[data-concept='baklava'] .slice.is-selected .bk-ring-mark {
+  --ring-mark-halo: var(--bk-halo-s);
+}

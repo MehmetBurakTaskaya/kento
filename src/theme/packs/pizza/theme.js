@@ -10,6 +10,8 @@ export default function register(Board) {
     const ID = 'pizza';
     // Radii in the 400 x 400 view box: hub (mozzarella), slice, cheese edge, crust, peel.
     const R = { hub: 46, s0: 49, cheese: 158, sauce: 166, crust: 183, peel: 197, lbl: 108 };
+    // The mark of a slice that opens a ring of choices: its point's radius and its length.
+    const MARK = { r: 179.5, size: 9.5 };
     const PULL = 12; // how far the chosen slice stays pulled out
 
     function rng(seed) {
@@ -436,15 +438,20 @@ export default function register(Board) {
               br = '',
               hi = '';
             const share = Math.min(4, (sl.a1 - sl.a0) / 45);
+            // The crust's spots leave the mark of a slice that opens a ring of choices clear.
+            const mark = sl.ring ? H.polar(MARK.r - MARK.size / 2, sl.mark) : null;
+            const onMark = (x, y) => mark && Math.hypot(x - mark[0], y - mark[1]) < MARK.size;
             for (let k = 0; k < 7 * share; k++) {
               const a = sl.a0 + 2 + rand() * (sl.a1 - sl.a0 - 4);
               const [x, y] = H.polar(R.sauce + 3 + rand() * (R.crust - R.sauce - 5), a);
-              ch += dot(x, y, 0.8 + rand() * 1.6);
+              const r = 0.8 + rand() * 1.6;
+              if (!onMark(x, y)) ch += dot(x, y, r);
             }
             for (let k = 0; k < 6 * share; k++) {
               const a = sl.a0 + 2 + rand() * (sl.a1 - sl.a0 - 4);
               const [x, y] = H.polar(R.sauce + 4 + rand() * (R.crust - R.sauce - 6), a);
-              fl += dot(x, y, 0.5 + rand() * 0.6);
+              const r = 0.5 + rand() * 0.6;
+              if (!onMark(x, y)) fl += dot(x, y, r);
             }
             for (let k = 0; k < 4 * share; k++) {
               const a = sl.a0 + 4 + rand() * (sl.a1 - sl.a0 - 8);
@@ -507,6 +514,8 @@ export default function register(Board) {
             H.s('path', { d: tp.basil, class: 'pz-basil' }, tg);
             H.s('path', { d: tp.vein, class: 'pz-vein' }, tg);
             if (sl.off) pie.insertBefore(H.s('path', { d: cheese, class: 'pz-off' }), c);
+            // More choices: an arrowhead scored into the crust, pointing out.
+            H.ringMark(pie, sl, m, { ...MARK, halo: 1.2, cls: 'pz-ring-mark' });
           }
 
           // The hub: a ball of fresh mozzarella with a basil leaf.

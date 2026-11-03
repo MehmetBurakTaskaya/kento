@@ -304,3 +304,9 @@
     transform: scale(0.3) rotate(60deg);
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead near the pith, in a clearing the arils
+   leave it, in the label's ink. */
+[data-concept='nar'] .nr-ring-mark {
+  --ring-mark-rest: 1;
+}

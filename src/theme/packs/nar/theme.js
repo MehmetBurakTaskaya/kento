@@ -82,12 +82,18 @@ export default function register(Board) {
     // Arils packed into a compartment around a clearing that fits the label box `box`: centers are
     // scattered first, then every aril grows until it touches a neighbour, a wall or the clearing,
     // so they sit squeezed together like the real thing.
+    // The mark of a slice that opens a ring of choices: its point's radius and its length.
+    const MARK = { r: 161.5, size: 10.5 };
+
     function pack(H, sl, rand, box) {
       const pts = [];
+      // The arils also leave the mark of a slice that opens a ring a clearing of its own.
+      const mark = sl.ring ? H.polar(MARK.r - MARK.size / 2, sl.mark) : null;
       const boxDist = (x, y) => {
         const dx = Math.max(Math.abs(x - box.cx) - box.hw, 0);
         const dy = Math.max(Math.abs(y - box.cy) - box.hh, 0);
-        return Math.sqrt(dx * dx + dy * dy);
+        const clear = Math.sqrt(dx * dx + dy * dy);
+        return mark ? Math.min(clear, Math.hypot(x - mark[0], y - mark[1]) - 7.5) : clear;
       };
       const wall = (r, a) => {
         const side = Math.min(a - sl.a0, sl.a1 - a);
@@ -387,6 +393,8 @@ export default function register(Board) {
             H.s('path', { d: p.body, class: 'nr-aril' }, ar);
             H.s('path', { d: p.hi, class: 'nr-aril-hi' }, ar);
             if (sl.off) body.insertBefore(H.s('path', { d: shape, class: 'nr-off' }), c);
+            // More choices: an arrowhead near the pith, in a clearing among the arils.
+            H.ringMark(body, sl, m, { ...MARK, cls: 'nr-ring-mark' });
             H.s('g', { class: 'nr-fx' }, g);
           }
 

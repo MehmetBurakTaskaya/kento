@@ -361,6 +361,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: an arrowhead edged in pith near the rind, squeezed with the segment.
+            H.ringMark(squeeze, sl, m, { r: R.seg1 - 9, size: 8, halo: 1.3, cls: 'pk-ring-mark' });
             H.s('g', { class: 'pk-fx' }, g);
           }
 
