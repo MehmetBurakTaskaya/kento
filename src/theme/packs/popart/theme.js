@@ -26,6 +26,107 @@ export default function register(Board) {
       return `M${f2(x2)} ${f2(y2)}A${r} ${r} 0 1 1 ${f2(x1)} ${f2(y1)}Q${f2(C - 92)} ${f2(C + 186)} ${f2(tip[0])} ${f2(tip[1])}Q${f2(C - 150)} ${f2(C + 120)} ${f2(x2)} ${f2(y2)}Z`;
     }
 
+    // Whether a point (relative to the centre) lies m inside a slice, between radii rin and rout.
+    // Tests the slice's own angles, so it holds for any number of slices and any turn.
+    function inSlice(sl, rin, rout, m) {
+      const toRad = (a) => (a * Math.PI) / 180;
+      const step = sl.a1 - sl.a0;
+      const away = (a, rr) => (a < 90 ? rr * Math.sin(toRad(a)) : rr);
+      return (x, y) => {
+        const rr = Math.hypot(x, y);
+        if (rr < rin + m || rr > rout - m) return false;
+        if (step >= 359.9) return true;
+        const rel = ((((Math.atan2(x, -y) * 180) / Math.PI - sl.a0) % 360) + 360) % 360;
+        return rel <= step && away(rel, rr) >= m && away(step - rel, rr) >= m;
+      };
+    }
+
+    // How wide a level label may be: its lines, centred dy below the point at radius r on the slice's
+    // centre line and hh high on each side, must stay inside the slice.
+    function room(sl, r, dy, hh, rin, rout, cap, m = 4) {
+      const inside = inSlice(sl, rin, rout, m);
+      const cx = r * Math.sin((sl.mid * Math.PI) / 180);
+      const cy = -r * Math.cos((sl.mid * Math.PI) / 180) + dy;
+      const fits = (w) => [-1, 0, 1].every((u) => [-1, 0, 1].every((v) => inside(cx + u * w, cy + v * hh)));
+      if (fits(cap / 2)) return cap;
+      let lo = 0;
+      let hi = cap / 2;
+      for (let k = 0; k < 12; k++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      return Math.max(2 * lo, 40);
+    }
+
+    // Draws a slice's label block where it has the most room, at whichever of the given radii lets its
+    // lines be widest (outward where the slice runs up or down, nearer the middle where it runs
+    // across), then checks the lines as drawn and narrows them until they sit inside the slice. A label
+    // is never shortened to fit: if only an ellipsis would make it fit, the last whole one is kept.
+    // A single word too long for the slice goes a size smaller before it is shortened.
+    function fitBlock(H, parent, sl, radii, o, rin, rout, cap, m = 2) {
+      const inside = inSlice(sl, rin, rout, m);
+      const iconH = o.icon ? o.iconSize + o.gap : 0;
+      const sub = o.sub === undefined ? sl.sub : o.sub;
+      const subH = sub ? o.gap + o.subSize * 1.1 : 0;
+      const best = (lines) =>
+        radii
+          .map((r) => [r, room(sl, r, iconH / 2, (lines * o.size * 1.1 + subH) / 2, rin, rout, cap, m + 2)])
+          .reduce((a, b) => (b[1] > a[1] + 1 ? b : a));
+      const draw = (r, width) => {
+        parent.textContent = '';
+        return H.block(parent, sl, r, { ...o, maxWidth: width });
+      };
+      // How wide each line as drawn may be where it sits, and whether every line is within that.
+      const lines = (parts) => {
+        const spans = [...parts.label.querySelectorAll('tspan')];
+        const list = (spans.length ? spans : [parts.label]).map((line) => [line, parts.label]);
+        if (parts.sub) list.push([parts.sub, parts.sub]);
+        return list.map(([line, text]) => {
+          const hh = +text.getAttribute('font-size') * 0.42;
+          const cx = +text.getAttribute('x') - 200;
+          const cy = line.getStartPositionOfChar(0).y - 200;
+          const ok = (half) => [-1, 0, 1].every((u) => [-1, 1].every((v) => inside(cx + u * half, cy + v * hh)));
+          let allowed = cap;
+          if (!ok(cap / 2)) {
+            let lo = 0;
+            let hi = cap / 2;
+            for (let k = 0; k < 10; k++) {
+              const half = (lo + hi) / 2;
+              if (ok(half)) lo = half;
+              else hi = half;
+            }
+            allowed = 2 * lo;
+          }
+          return { width: line.getComputedTextLength(), allowed };
+        });
+      };
+      const shortened = () => !!parent.querySelector('[data-fit="shortened"]');
+      let [r, width] = best(1);
+      let parts = draw(r, width);
+      // A single long word that would need an ellipsis may go a size smaller first.
+      if (shortened()) {
+        o = { ...o, minSize: Math.max(8.5, o.minSize - 1.5) };
+        parts = draw(r, width);
+      }
+      for (let k = 0; k < 4 && !shortened(); k++) {
+        const drawn = lines(parts);
+        const over = drawn.filter((line) => line.width > line.allowed + 0.5);
+        if (!over.length) break;
+        const last = [r, width];
+        r = best(drawn.length - (parts.sub ? 1 : 0))[0];
+        width = Math.max(30, Math.min(width * 0.96, ...over.map((line) => line.allowed)));
+        parts = draw(r, width);
+        if (shortened()) {
+          [r, width] = last;
+          parts = draw(r, width);
+          break;
+        }
+      }
+      parts.r = r;
+      return parts;
+    }
+
     // Ben-Day dots on a 45-degree screen, growing from nothing near the label to full at the rim.
     function dots(sl) {
       const step = 8.4;
@@ -67,13 +168,16 @@ export default function register(Board) {
 
     Board.define({
       id: 'popart',
+      // Lettering: Bangers for the big words, Playpen Sans for the small ones (both with every Turkish
+      // letter); Bangers has no Cyrillic, so Sofia Sans Condensed draws those letters.
       fonts: {
-        brand: "'Comic Neue'",
-        display: "'Bangers'",
-        load: ["'Comic Neue'", "'Bangers'"],
+        brand: "'Playpen Sans'",
+        display: "'Bangers', 'Sofia Sans Condensed'",
+        load: ["'Playpen Sans'", "'Bangers', 'Sofia Sans Condensed'"],
         credits: [
-          { family: 'Comic Neue', license: 'SIL Open Font License 1.1' },
+          { family: 'Playpen Sans', license: 'SIL Open Font License 1.1' },
           { family: 'Bangers', license: 'SIL Open Font License 1.1' },
+          { family: 'Sofia Sans Condensed', license: 'SIL Open Font License 1.1' },
         ],
       },
       motion: { open: 170, close: 110, stagger: 12, apply: 600 },
@@ -225,8 +329,7 @@ export default function register(Board) {
             s('path', { d: dots(sl), class: 'pa-dots' }, lift);
             s('path', { d: panel, class: 'pa-ink-edge' }, lift);
             // The burst and its impact lines, centered on the label.
-            const [bx, by] = H.polar(R.lbl, sl.mid);
-            const fx = s('g', { class: 'pa-fx', transform: `translate(${f2(bx)} ${f2(by)})` }, lift);
+            const fx = s('g', { class: 'pa-fx' }, lift);
             const lines = s('g', { class: 'pa-impact' }, fx);
             let ld = '';
             for (let k = 0; k < 10; k++) {
@@ -237,45 +340,60 @@ export default function register(Board) {
             const b = s('g', { class: 'pa-burst' }, fx);
             s('path', { d: burst(56, 46, 11, sl.i * 97 + 11), class: 'pa-burst-shape' }, b);
             const ink = s('g', { class: 'pa-ink' }, lift);
-            const lab = Object.assign({}, sl, { label: caps(sl.label, m.lang) });
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(ink, lab, R.lbl, {
-                size: 27,
-                subSize: 13.5,
-                gap: 0,
-                maxWidth: 76,
-                minSize: 12,
-                cls: 'pa-lbl pa-fmt',
-                subCls: 'pa-sub',
-              });
-            } else {
-              H.block(ink, sl, R.lbl, {
-                icon: true,
-                iconSize: 24,
-                size: 15,
-                gap: 4,
-                maxWidth: 76,
-                minSize: 10,
-                cls: 'pa-lbl pa-word',
-                sub: null,
-              });
-            }
+            const wide = sl.step >= 70;
+            const radii = [R.lbl, R.lbl + 6, R.lbl - 6, R.lbl - 12];
+            const o = sl.format
+              ? { size: sl.sub ? 27 : 32, subSize: 13.5, gap: 0, minSize: 12, cls: 'pa-lbl pa-fmt', subCls: 'pa-sub' }
+              : {
+                  icon: true,
+                  iconSize: wide ? 28 : 23,
+                  size: wide ? 16 : 14,
+                  gap: 4,
+                  minSize: 9.5,
+                  cls: 'pa-lbl pa-word',
+                  sub: null,
+                };
+            // The ink border and the gutter take about seven units off each side of a panel.
+            const fitted = fitBlock(
+              H,
+              ink,
+              sl.format ? { ...sl, label: caps(sl.label, m.lang) } : sl,
+              radii,
+              o,
+              R.inner,
+              R.panel,
+              112,
+              7,
+            );
+            const [bx, by] = H.polar(fitted.r, sl.mid);
+            fx.setAttribute('transform', `translate(${f2(bx)} ${f2(by)})`);
           }
 
           // Hub: a small round caption with the wheel's name, the file and the key.
           const hub = s('g', { class: 'pa-hubg' }, root);
           s('circle', { cx: C, cy: C, r: R.hub, class: 'pa-hub' }, hub);
           H.label(hub, C, C - 16, caps(m.title, m.lang), {
-            maxWidth: 88,
+            // As wide as the disc allows: a long title (Russian "Convert") shrinks rather than shortens.
+            maxWidth: 94,
             size: 19,
-            minSize: 11,
+            minSize: 9,
             cls: 'pa-title',
             maxLines: 1,
           });
-          H.label(hub, C, C + 4, m.file, { maxWidth: 84, size: 12.5, minSize: 9, cls: 'pa-file', maxLines: 1 });
-          const kw = 16 + m.key.length * 7.2;
-          s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, class: 'pa-key' }, hub);
-          H.text(hub, C, C + 26, caps(m.key, m.lang), { class: 'pa-keytext' });
+          H.label(hub, C, C + (m.key ? 4 : 9), m.file, {
+            maxWidth: 84,
+            size: 12.5,
+            minSize: 9,
+            cls: 'pa-file',
+            maxLines: 1,
+          });
+          if (m.key) {
+            const tag = s('rect', { y: C + 17, height: 17, class: 'pa-key' }, hub);
+            const text = H.text(hub, C, C + 26, caps(m.key, m.lang), { class: 'pa-keytext' });
+            const kw = Math.min(92, Math.ceil(text.getComputedTextLength()) + 16);
+            tag.setAttribute('x', f2(C - kw / 2));
+            tag.setAttribute('width', f2(kw));
+          }
         },
 
         // The pointed and the applied panel come to the front, so the burst can spill over its neighbors.
