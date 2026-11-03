@@ -598,7 +598,7 @@ Only the newest release stays on GitHub:
 
 **macOS**
 
-- Build: universal, macOS 12+ (`LSMinimumSystemVersion` 12.0; the release workflow fails when a bundled program needs a newer macOS). Newer APIs are used behind version checks; the feature is hidden on older versions. Signed with the hardened runtime and two entitlements: Apple Events (the Finder selection) and no library validation (the bundled PDFium and the downloaded ONNX Runtime).
+- Build: universal, macOS 13+ (`LSMinimumSystemVersion` 13.0, the oldest the bundled PDFium runs on; the release workflow fails when a bundled program needs a newer macOS). Newer APIs are used behind version checks; the feature is hidden on older versions. Signed with the hardened runtime and two entitlements: Apple Events (the Finder selection) and no library validation (the bundled PDFium and the downloaded ONNX Runtime).
 - Interface: a menu bar icon; the Dock icon is optional.
 - Quit: ⌘Q, with a confirmation while jobs run.
 - Transparency: transparent windows need `macOSPrivateApi`; fine, since the app is not in the Mac App Store.

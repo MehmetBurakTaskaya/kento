@@ -28,7 +28,7 @@ is uploaded anywhere, and the original stays as it was.
 | --- | --- |
 | Windows 10 (1809 or later) and Windows 11, x64: installer | [Kento-Windows-x64-Setup.exe](https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-Windows-x64-Setup.exe) |
 | Windows, portable | [Kento-Windows-x64-Portable.zip](https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-Windows-x64-Portable.zip) |
-| macOS 12 or later, Apple silicon and Intel | [Kento-macOS-Universal.dmg](https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-macOS-Universal.dmg) |
+| macOS 13 or later, Apple silicon and Intel | [Kento-macOS-Universal.dmg](https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-macOS-Universal.dmg) |
 
 These links always lead to the newest release. Each release lists the SHA-256 of every file in
 `SHA256SUMS.txt`; to compare a download, run `Get-FileHash .\Kento-Windows-x64-Setup.exe` in

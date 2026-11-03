@@ -28,7 +28,7 @@ orijinalin yanına yeni bir kopya olarak dönüştürür. **Ctrl** (Mac'te ⌘) 
 | --- | --- |
 | Windows 10 (1809 ya da sonrası) ve Windows 11, x64: kurulum dosyası | [Kento-Windows-x64-Setup.exe](https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-Windows-x64-Setup.exe) |
 | Windows, taşınabilir | [Kento-Windows-x64-Portable.zip](https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-Windows-x64-Portable.zip) |
-| macOS 12 ya da sonrası, Apple silicon ve Intel | [Kento-macOS-Universal.dmg](https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-macOS-Universal.dmg) |
+| macOS 13 ya da sonrası, Apple silicon ve Intel | [Kento-macOS-Universal.dmg](https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-macOS-Universal.dmg) |
 
 Bu bağlantılar her zaman en yeni sürüme gider. Her sürüm, dosyalarının SHA-256 değerlerini
 `SHA256SUMS.txt` içinde listeler; indirdiğin dosyayı karşılaştırmak için PowerShell'de
