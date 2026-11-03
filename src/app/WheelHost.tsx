@@ -10,6 +10,7 @@ import { isImagePanel, isMediaPanel } from '../editors';
 import { isolate } from '../i18n/format';
 import { api, type FileEntry } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
+import { useLook } from '../theme/registry';
 import { Wheel } from '../wheel/Wheel';
 import { PANEL_TOOLS, slicesFor, subtitleFor, type Plan, type Ring } from './slices';
 
@@ -32,6 +33,7 @@ function jobIds(result: unknown): number[] {
 export function WheelHost() {
   const { t, i18n } = useTranslation();
   const { wheel, settings, boot, closeWheel, openPanel, openSetup, started, toast } = useApp();
+  const look = useLook(settings?.theme ?? 'steel', settings?.appearance ?? 'system');
   // The ring belongs to the wheel it was made for, so a new wheel starts clean.
   const [loaded, setLoaded] = useState<Loaded | null>(null);
 
@@ -108,6 +110,8 @@ export function WheelHost() {
       sound={settings.sound}
       reducedMotion={document.documentElement.classList.contains('reduce-motion')}
       size={settings.wheelSize}
+      look={look}
+      keyName={t(`key.${settings.wheels[wheel.kind]}.${mac ? 'mac' : 'windows'}`)}
       onClose={closeWheel}
       onTick={mac ? () => void api.haptic() : undefined}
       onApply={(id, trail) => carry(view.choose(id, trail))}

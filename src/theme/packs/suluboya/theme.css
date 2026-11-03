@@ -1,0 +1,306 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Suluboya (watercolor). Translucent washes on paper, dried edges, a bloom on apply. */
+
+[data-concept='suluboya'] {
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+[data-concept='suluboya'] .wheel {
+  font-family: var(--font-brand);
+}
+
+/* Pencil under-drawing */
+[data-concept='suluboya'] .su-pencil {
+  pointer-events: none;
+}
+[data-concept='suluboya'] .su-pencil-line {
+  fill: none;
+  stroke: var(--su-pencil);
+  stroke-width: 1.1;
+  stroke-opacity: 0.6;
+  stroke-linecap: round;
+}
+[data-concept='suluboya'] .su-pencil-2 {
+  stroke-opacity: 0.32;
+  stroke-width: 0.8;
+}
+
+/* Washes: eight pigments. Pointing adds pigment; applying adds more and a bloom. */
+[data-concept='suluboya'] .slice {
+  --su-tide: color-mix(in srgb, var(--su-c) 70%, var(--su-tide-mix));
+}
+[data-concept='suluboya'] .su-p1 {
+  --su-c: var(--su-1);
+}
+[data-concept='suluboya'] .su-p2 {
+  --su-c: var(--su-2);
+}
+[data-concept='suluboya'] .su-p3 {
+  --su-c: var(--su-3);
+}
+[data-concept='suluboya'] .su-p4 {
+  --su-c: var(--su-4);
+}
+[data-concept='suluboya'] .su-p5 {
+  --su-c: var(--su-5);
+}
+[data-concept='suluboya'] .su-p6 {
+  --su-c: var(--su-6);
+}
+[data-concept='suluboya'] .su-p7 {
+  --su-c: var(--su-7);
+}
+[data-concept='suluboya'] .su-p8 {
+  --su-c: var(--su-8);
+}
+[data-concept='suluboya'] .su-hit {
+  fill: transparent;
+}
+[data-concept='suluboya'] .su-wash {
+  fill-opacity: var(--su-idle);
+  transition: fill-opacity 220ms ease-out;
+}
+[data-concept='suluboya'] .su-pool {
+  fill: var(--su-c);
+  fill-opacity: 0.12;
+}
+[data-concept='suluboya'] .su-granules {
+  fill: var(--su-c);
+  opacity: var(--su-granule);
+}
+[data-concept='suluboya'] .su-edge {
+  fill: none;
+  stroke: var(--su-c);
+  stroke-opacity: var(--su-edge);
+  stroke-width: 1.1;
+  transition: stroke-width 220ms;
+}
+[data-concept='suluboya'] .su-edge-2 {
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+[data-concept='suluboya'] .su-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='suluboya'] .su-fmt {
+  font-weight: 700;
+}
+[data-concept='suluboya'] .su-word {
+  font-weight: 700;
+}
+[data-concept='suluboya'] .su-sub {
+  fill: var(--su-sub);
+  font-weight: 600;
+}
+[data-concept='suluboya'] .slice .ico {
+  stroke-width: 1.8;
+}
+
+[data-concept='suluboya'] .slice.is-hover .su-wash {
+  fill-opacity: var(--su-hover);
+}
+[data-concept='suluboya'] .slice.is-hover .su-edge {
+  stroke-width: 2;
+}
+[data-concept='suluboya'] .slice.is-selected .su-wash {
+  fill-opacity: var(--su-sel);
+  transition-duration: 520ms;
+}
+[data-concept='suluboya'] .slice.is-selected .su-edge {
+  stroke-width: 2.2;
+}
+[data-concept='suluboya'] .slice.is-selected .su-ink,
+[data-concept='suluboya'] .slice.is-selected .su-sub {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='suluboya'] .slice.is-off .su-ink {
+  opacity: 0.45;
+}
+
+/* The bloom: hidden until applied, then it stays as a richer patch with a dark tide line. */
+[data-concept='suluboya'] .su-bloom {
+  opacity: 0;
+  pointer-events: none;
+}
+[data-concept='suluboya'] .su-bloom-fill {
+  fill: var(--su-c);
+  fill-opacity: 0.34;
+}
+[data-concept='suluboya'] .su-tide {
+  fill: none;
+  stroke: var(--su-tide);
+  stroke-opacity: 0.8;
+  stroke-width: 2.2;
+}
+[data-concept='suluboya'] .su-backrun {
+  fill: none;
+  stroke: var(--su-c);
+  stroke-opacity: 0.4;
+  stroke-width: 1.2;
+}
+[data-concept='suluboya'] .slice.is-selected .su-bloom {
+  opacity: 1;
+}
+[data-concept='suluboya'] .su-drop {
+  opacity: 0;
+  pointer-events: none;
+}
+[data-concept='suluboya'] .su-drop-ring {
+  fill: var(--su-c);
+  fill-opacity: 0.35;
+  stroke: var(--su-c);
+  stroke-width: 2;
+}
+
+/* Hub */
+[data-concept='suluboya'] .su-hub {
+  fill: var(--su-hub);
+  fill-opacity: var(--su-hub-wash);
+}
+[data-concept='suluboya'] .su-hub-edge {
+  fill: none;
+  stroke: var(--su-hub);
+  stroke-opacity: 0.35;
+  stroke-width: 1.2;
+}
+[data-concept='suluboya'] .su-title {
+  fill: var(--su-hub-text);
+  font-weight: 700;
+}
+[data-concept='suluboya'] .su-file {
+  fill: var(--su-hub-muted);
+  font-weight: 600;
+}
+[data-concept='suluboya'] .su-key {
+  fill: none;
+  stroke: var(--su-pencil);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+[data-concept='suluboya'] .su-keytext {
+  fill: var(--su-hub-muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+/* Open: each wash spreads a little as it appears, one after another. */
+[data-concept='suluboya'] .su-washg,
+[data-concept='suluboya'] .su-ink {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+[data-concept='suluboya'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='suluboya'] .wheel.is-opening .wheel-svg {
+  animation: suluboya-fade calc(var(--dur-open) * 0.6) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='suluboya'] .wheel.is-opening .su-washg {
+  animation: suluboya-spread var(--dur-open) cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='suluboya'] .wheel.is-opening .su-ink {
+  animation: suluboya-fade var(--dur-open) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) + 40ms - var(--t, 0ms));
+}
+[data-concept='suluboya'] .wheel.is-closing .wheel-svg {
+  animation: suluboya-close var(--dur-close) ease-in both;
+}
+@keyframes suluboya-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes suluboya-spread {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes suluboya-close {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Apply: a drop lands, a bloom spreads from it and slows, its edge darkens as it dries. */
+[data-concept='suluboya'] .wheel.is-applying .slice.is-selected .su-drop {
+  animation: suluboya-drop 300ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='suluboya'] .wheel.is-applying .slice.is-selected .su-spread {
+  animation: suluboya-bloom 640ms cubic-bezier(0.12, 0.7, 0.3, 1) both;
+  animation-delay: calc(50ms - var(--t, 0ms));
+}
+[data-concept='suluboya'] .wheel.is-applying .slice.is-selected .su-bloom-fill {
+  animation: suluboya-wet 640ms ease-out both;
+  animation-delay: calc(50ms - var(--t, 0ms));
+}
+[data-concept='suluboya'] .wheel.is-applying .slice.is-selected .su-tide {
+  animation: suluboya-dry 640ms ease-in both;
+  animation-delay: calc(50ms - var(--t, 0ms));
+}
+[data-concept='suluboya'] .wheel.is-applying .slice.is-selected .su-ink,
+[data-concept='suluboya'] .wheel.is-applying .slice.is-selected .su-sub {
+  animation: suluboya-ink 260ms steps(1, jump-end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes suluboya-drop {
+  0% {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+  60% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+@keyframes suluboya-bloom {
+  from {
+    transform: scale(0.06);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes suluboya-wet {
+  from {
+    fill-opacity: 0.75;
+  }
+  to {
+    fill-opacity: 0.34;
+  }
+}
+@keyframes suluboya-dry {
+  from {
+    stroke-opacity: 0.2;
+    stroke-width: 5;
+  }
+  to {
+    stroke-opacity: 0.8;
+    stroke-width: 2.2;
+  }
+}
+@keyframes suluboya-ink {
+  from {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  to {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}

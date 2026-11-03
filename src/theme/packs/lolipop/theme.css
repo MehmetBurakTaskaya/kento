@@ -1,0 +1,369 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Lolipop. A swirl lollipop on a stick; the chosen arm cracks. */
+
+[data-concept='lolipop'] {
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+[data-concept='lolipop'] .lp-back,
+[data-concept='lolipop'] .lp-top,
+[data-concept='lolipop'] .lp-hub,
+[data-concept='lolipop'] .lp-fx {
+  pointer-events: none;
+}
+
+/* Stick and bow. */
+[data-concept='lolipop'] .lp-stick-edge {
+  stroke: var(--lp-stick-edge);
+  stroke-width: 18;
+  stroke-linecap: round;
+}
+[data-concept='lolipop'] .lp-stick {
+  stroke: var(--lp-stick);
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+[data-concept='lolipop'] .lp-stick-line {
+  fill: none;
+  stroke: var(--lp-stick-line);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+[data-concept='lolipop'] .lp-bow-loop,
+[data-concept='lolipop'] .lp-bow-tail {
+  fill: var(--lp-bow);
+  stroke: var(--lp-bow-dark);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+[data-concept='lolipop'] .lp-bow-knot {
+  fill: var(--lp-bow-dark);
+}
+[data-concept='lolipop'] .lp-base {
+  fill: var(--lp-core);
+}
+
+/* Arms: a pastel each; hover deepens it, selection cracks it. */
+[data-concept='lolipop'] .lp-lift {
+  transition: transform 150ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+[data-concept='lolipop'] .slice.is-hover .lp-lift {
+  transform: translate(calc(var(--ux) * 4px), calc(var(--uy) * 4px));
+}
+[data-concept='lolipop'] .lp-arm {
+  fill: var(--arm);
+}
+[data-concept='lolipop'] .slice.is-hover .lp-arm {
+  fill: var(--arm-h);
+}
+[data-concept='lolipop'] .lp-broken {
+  display: none;
+}
+[data-concept='lolipop'] .slice.is-selected .lp-arm {
+  display: none;
+}
+[data-concept='lolipop'] .slice.is-selected .lp-broken {
+  display: inline;
+}
+[data-concept='lolipop'] .lp-piece {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='lolipop'] .lp-shard {
+  transform: translate(calc(var(--ux) * 4px), calc(var(--uy) * 4px)) rotate(0deg);
+}
+[data-concept='lolipop'] .lp-crack {
+  fill: none;
+  stroke: var(--lp-crack);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+[data-concept='lolipop'] .lp-off {
+  fill: var(--lp-core);
+  opacity: 0.55;
+}
+[data-concept='lolipop'] .lp-sheen {
+  pointer-events: none;
+}
+[data-concept='lolipop'] .lp-rimlight {
+  fill: none;
+  stroke: var(--lp-gloss);
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 120ms;
+  pointer-events: none;
+}
+[data-concept='lolipop'] .slice.is-hover .lp-rimlight {
+  opacity: 0.85;
+}
+
+[data-concept='lolipop'] .lp-content {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='lolipop'] .slice.is-selected .lp-content {
+  color: var(--wheel-text-selected);
+  fill: var(--wheel-text-selected);
+}
+[data-concept='lolipop'] .slice.is-off .lp-content {
+  opacity: 0.45;
+}
+[data-concept='lolipop'] .slice .ico {
+  stroke-width: 2.2;
+}
+[data-concept='lolipop'] .lp-lbl {
+  font-family: var(--font-brand);
+  font-weight: 700;
+}
+[data-concept='lolipop'] .lp-fmt {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+[data-concept='lolipop'] .lp-sub {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  fill: var(--lp-sub);
+}
+[data-concept='lolipop'] .slice.is-selected .lp-sub {
+  fill: var(--lp-sub-sel);
+}
+
+/* Sugar stripes, shine and sparkle on top of everything. */
+[data-concept='lolipop'] .lp-stripes {
+  fill: none;
+  stroke: var(--lp-stripe);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='lolipop'] .lp-gloss {
+  fill: none;
+  stroke: var(--lp-gloss);
+  stroke-width: 9;
+  stroke-linecap: round;
+  opacity: var(--lp-gloss-op);
+}
+[data-concept='lolipop'] .lp-sugar {
+  fill: var(--lp-sugar);
+  opacity: var(--lp-sugar-op);
+}
+[data-concept='lolipop'] .lp-spark {
+  fill: var(--lp-sugar);
+  opacity: var(--lp-sugar-op);
+}
+[data-concept='lolipop'] .lp-rim {
+  fill: none;
+  stroke: var(--lp-rim);
+  stroke-width: 2;
+}
+
+/* Hub. */
+[data-concept='lolipop'] .lp-core {
+  fill: var(--lp-core);
+  stroke: var(--lp-ring);
+  stroke-width: 5;
+}
+[data-concept='lolipop'] .lp-title {
+  font-family: var(--font-brand);
+  font-weight: 800;
+  fill: var(--lp-hub-text);
+}
+[data-concept='lolipop'] .lp-file {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  fill: var(--lp-hub-sub);
+}
+[data-concept='lolipop'] .lp-key {
+  fill: var(--lp-key);
+}
+[data-concept='lolipop'] .lp-keytext {
+  font: 700 10px var(--font-brand);
+  fill: var(--lp-key-text);
+  letter-spacing: 0.04em;
+}
+
+/* Open: a quarter turn with a bounce while each arm fills with color. */
+[data-concept='lolipop'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='lolipop'] .wheel.is-opening .wheel-svg {
+  animation: lolipop-open var(--dur-open) cubic-bezier(0.25, 1.35, 0.45, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='lolipop'] .wheel.is-opening .lp-arm {
+  animation: lolipop-fill calc(var(--dur-open) * 1.1) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='lolipop'] .wheel.is-closing .wheel-svg {
+  animation: lolipop-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes lolipop-open {
+  from {
+    opacity: 0;
+    transform: rotate(-80deg) scale(0.8);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lolipop-fill {
+  from {
+    fill: var(--lp-core);
+  }
+}
+@keyframes lolipop-close {
+  to {
+    opacity: 0;
+    transform: rotate(40deg) scale(0.86);
+  }
+}
+
+/* Apply: a tap, the crack runs, the shard jumps and settles, the arm blushes; crystals sparkle. */
+[data-concept='lolipop'] .wheel.is-applying .slice.is-selected .lp-lift {
+  animation: lolipop-tap 180ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='lolipop'] .wheel.is-applying .slice.is-selected .lp-piece {
+  animation: lolipop-blush 320ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='lolipop'] .wheel.is-applying .slice.is-selected .lp-content {
+  animation: lolipop-ink 320ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='lolipop'] .wheel.is-applying .slice.is-selected .lp-sub {
+  animation: lolipop-subink 320ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='lolipop'] .wheel.is-applying .slice.is-selected .lp-crack {
+  stroke-dasharray: 1 1;
+  animation: lolipop-crack 160ms linear both;
+  animation-delay: calc(80ms - var(--t, 0ms));
+}
+[data-concept='lolipop'] .wheel.is-applying .slice.is-selected .lp-shard {
+  animation: lolipop-shard 520ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(110ms - var(--t, 0ms));
+}
+[data-concept='lolipop'] .lp-crystal {
+  opacity: 0;
+  animation: lolipop-fly 480ms cubic-bezier(0.15, 0.7, 0.35, 1) both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='lolipop'] .lp-crystal-a {
+  fill: var(--lp-crystal-a);
+  stroke: var(--lp-crystal-b);
+  stroke-width: 0.6;
+}
+[data-concept='lolipop'] .lp-crystal-b {
+  fill: var(--lp-crystal-b);
+}
+[data-concept='lolipop'] .lp-crystal-c {
+  fill: var(--lp-crystal-c);
+}
+[data-concept='lolipop'] .lp-twinkle {
+  fill: var(--lp-crystal-a);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lolipop-twinkle 300ms ease-out both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+@keyframes lolipop-tap {
+  0% {
+    transform: none;
+  }
+  30% {
+    transform: translate(calc(var(--ux) * -3px), calc(var(--uy) * -3px)) scale(0.99);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes lolipop-blush {
+  0%,
+  30% {
+    fill: var(--arm-h);
+  }
+  100% {
+    fill: var(--wheel-slice-selected);
+  }
+}
+@keyframes lolipop-ink {
+  0%,
+  40% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes lolipop-subink {
+  0%,
+  40% {
+    fill: var(--lp-sub);
+  }
+  100% {
+    fill: var(--lp-sub-sel);
+  }
+}
+@keyframes lolipop-crack {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes lolipop-shard {
+  0% {
+    transform: none;
+  }
+  30% {
+    transform: translate(calc(var(--ux) * 11px), calc(var(--uy) * 11px)) rotate(3deg);
+  }
+  65% {
+    transform: translate(calc(var(--ux) * 3px), calc(var(--uy) * 3px)) rotate(-1deg);
+  }
+  100% {
+    transform: translate(calc(var(--ux) * 4px), calc(var(--uy) * 4px)) rotate(0deg);
+  }
+}
+@keyframes lolipop-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.3);
+  }
+  12% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.9);
+  }
+}
+@keyframes lolipop-twinkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.1) rotate(0deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.1) rotate(45deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(90deg);
+  }
+}

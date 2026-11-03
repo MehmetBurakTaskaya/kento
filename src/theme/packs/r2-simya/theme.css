@@ -1,0 +1,1069 @@
+/* SPDX-License-Identifier: MIT */
+/* Simya: three variants of the alchemical circle.
+   simya-a Lapis & gold leaf · simya-b Verdigris & copper · simya-c Obsidian & moonsilver.
+   Shared rules use [data-concept^='simya-']; theme differences live in palette tokens only. */
+
+[data-concept^='simya-'] {
+  --radius: 8px;
+  --radius-sm: 5px;
+  --icon-stroke: 1.6;
+  --s2-sans: var(--font-brand-face), 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --s2-serif: var(--font-display-face), var(--s2-sans);
+}
+
+/* ---------------------------------------------------------------- wheel: frame and face */
+[data-concept^='simya-'] .wheel {
+  --s2-turn: -24deg;
+  --s2-script: var(--s2-sans);
+}
+[data-concept^='simya-'] .wheel[dir='rtl'] {
+  --s2-turn: 24deg;
+}
+[data-concept='simya-b'] .wheel {
+  --s2-turn: 18deg;
+}
+[data-concept='simya-b'] .wheel[dir='rtl'] {
+  --s2-turn: -18deg;
+}
+[data-concept='simya-c'] .wheel {
+  --s2-turn: -12deg;
+  isolation: isolate;
+}
+[data-concept='simya-c'] .wheel[dir='rtl'] {
+  --s2-turn: 12deg;
+}
+[data-concept^='simya-'] .wheel:lang(ja) {
+  --s2-script: 'Yu Gothic UI', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+}
+[data-concept^='simya-'] .wheel:lang(ar) {
+  --s2-script: 'Segoe UI', 'SF Arabic', 'Geeza Pro', sans-serif;
+}
+[data-concept='simya-a'] .wheel {
+  --s2-glyph-hi: var(--s2-gold-hi);
+  --s2-dust-fill: var(--s2-gold);
+}
+[data-concept='simya-b'] .wheel {
+  --s2-glyph-hi: var(--s2-band-ink);
+}
+[data-concept='simya-c'] .wheel {
+  --s2-glyph-hi: var(--wheel-ink-hi);
+  --s2-dust-fill: var(--wheel-line);
+}
+
+/* A and B: a round face with a soft light from above, a hairline edge and a deep shadow. */
+[data-concept='simya-a'] .wheel::before,
+[data-concept='simya-b'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0.5%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 36%, var(--s2-face-hi) 0%, var(--wheel-face) 56%, var(--s2-face-lo) 100%);
+  box-shadow:
+    0 0 0 1px var(--s2-face-edge),
+    0 2px 6px var(--wheel-shadow),
+    0 18px 46px var(--wheel-shadow);
+}
+[data-concept='simya-b'] .wheel::before {
+  background: radial-gradient(circle at 50% 30%, var(--s2-face-hi) 0%, var(--wheel-face) 52%, var(--s2-face-lo) 100%);
+}
+/* C: the stone. ::before carries the round shadow, ::after the faceted face (clipped to the rim polygon,
+   set per wheel as --s2-facets): a cold sheen, iridescence and a calm center. Both sit under the SVG. */
+[data-concept='simya-c'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 3.5%;
+  border-radius: 50%;
+  z-index: -2;
+  background: var(--s2-face-lo);
+  box-shadow:
+    0 2px 6px var(--wheel-shadow),
+    0 18px 46px var(--wheel-shadow),
+    0 0 36px var(--s2-hub-glow);
+}
+[data-concept='simya-c'] .wheel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: var(--s2-facets, circle(48%));
+  background:
+    radial-gradient(70% 42% at 50% 14%, var(--s2-sheen-top), transparent 72%),
+    radial-gradient(circle at 50% 50%, var(--s2-calm) 0%, var(--s2-calm) 28%, transparent 64%),
+    conic-gradient(
+      from 200deg,
+      var(--s2-irid-1),
+      var(--s2-irid-2) 20%,
+      var(--s2-irid-3) 38%,
+      var(--s2-irid-4) 55%,
+      var(--s2-irid-1) 72%,
+      var(--s2-irid-2) 88%,
+      var(--s2-irid-1)
+    ),
+    radial-gradient(circle at 50% 34%, var(--s2-face-hi) 0%, var(--wheel-face) 56%, var(--s2-face-lo) 100%);
+}
+
+[data-concept^='simya-']
+  .wheel-svg
+  :is(
+    .s2-tex,
+    .s2-ink,
+    .s2-hubc,
+    .s2-fx,
+    .s2-fxl,
+    .s2-seg,
+    .s2-sel,
+    .s2-seams,
+    .s2-sheen,
+    .s2-bandfill,
+    .s2-hatch,
+    .s2-edge,
+    .s2-edge-glow,
+    .s2-glyph,
+    .s2-node,
+    .s2-node-halo,
+    .s2-node-core,
+    .s2-content
+  ) {
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- textures */
+[data-concept^='simya-'] .s2-dust {
+  fill: var(--s2-dust-fill, var(--wheel-line));
+  opacity: var(--s2-dust-opacity, 0.5);
+}
+[data-concept^='simya-'] .s2-dust-1 {
+  opacity: 0.62;
+}
+[data-concept^='simya-'] .s2-dust-2 {
+  opacity: 0.34;
+}
+[data-concept^='simya-'] .s2-dust-glint {
+  fill: var(--wheel-ink-hi);
+}
+[data-concept='simya-a'] .s2-dust-glint {
+  fill: var(--s2-gold-hi);
+}
+[data-concept^='simya-'] .s2-vein {
+  fill: var(--s2-vein);
+  stroke: none;
+}
+[data-concept^='simya-'] .s2-veins {
+  opacity: var(--s2-vein-opacity, 0);
+}
+[data-concept^='simya-'] .s2-patina {
+  opacity: var(--s2-patina-opacity, 0.4);
+}
+[data-concept^='simya-'] .s2-pat-0 {
+  stop-color: var(--s2-patina);
+  stop-opacity: 0.9;
+}
+[data-concept^='simya-'] .s2-pat-1 {
+  stop-color: var(--s2-patina);
+  stop-opacity: 0;
+}
+[data-concept^='simya-'] .s2-crackle {
+  fill: none;
+  stroke: var(--s2-crackle);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+  opacity: var(--s2-crackle-opacity, 0);
+}
+[data-concept^='simya-'] .s2-sel-0 {
+  stop-color: var(--s2-sel-0);
+}
+[data-concept^='simya-'] .s2-sel-1 {
+  stop-color: var(--s2-sel-1);
+}
+[data-concept^='simya-'] .s2-sel-2 {
+  stop-color: var(--s2-sel-2);
+}
+
+/* ---------------------------------------------------------------- ink: rings, band, dividers */
+[data-concept^='simya-'] .s2-ink {
+  fill: none;
+  stroke: var(--wheel-line);
+}
+[data-concept^='simya-'] .s2-ring {
+  stroke-width: 1;
+  opacity: var(--s2-ring-opacity, 1);
+}
+[data-concept^='simya-'] .s2-rim {
+  stroke-width: 1.7;
+}
+[data-concept^='simya-'] .s2-ticks {
+  stroke-width: 0.8;
+  opacity: 0.65;
+}
+[data-concept^='simya-'] .s2-div {
+  stroke-width: 0.9;
+  opacity: var(--s2-line-opacity);
+}
+
+[data-concept='simya-a'] .s2-band {
+  fill: var(--s2-band);
+  stroke: none;
+}
+[data-concept='simya-a'] .s2-band-gloss {
+  stroke: none;
+}
+[data-concept='simya-a'] :is(.s2-rim, .s2-ring-gold, .s2-ticks) {
+  stroke: var(--s2-gold);
+}
+[data-concept='simya-a'] .s2-band-marks {
+  fill: var(--s2-band-ink);
+  stroke: none;
+  opacity: 0.9;
+}
+
+[data-concept='simya-b'] .s2-collar {
+  stroke: none;
+}
+[data-concept='simya-b'] .s2-collar-hi {
+  fill: none;
+  stroke: #fff;
+  stroke-opacity: 0.5;
+  stroke-width: 0.8;
+}
+[data-concept='simya-b'] .s2-collar-edge {
+  fill: none;
+  stroke: var(--s2-collar-edge);
+  stroke-opacity: 0.75;
+  stroke-width: 1;
+}
+[data-concept='simya-b'] .s2-rivet {
+  stroke: var(--s2-collar-edge);
+  stroke-width: 0.7;
+  stroke-opacity: 0.8;
+}
+[data-concept='simya-b'] .s2-rivet-hi {
+  fill: #fff;
+  stroke: none;
+  opacity: 0.75;
+}
+[data-concept='simya-b'] .s2-rim {
+  stroke: var(--s2-copper-line);
+  stroke-width: 1.2;
+}
+[data-concept='simya-b'] .s2-div {
+  stroke-width: 0.8;
+}
+
+[data-concept='simya-c'] .s2-rim {
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+[data-concept='simya-c'] .s2-crown {
+  stroke-width: 0.8;
+  opacity: 0.5;
+  stroke-linejoin: round;
+}
+[data-concept='simya-c'] .s2-ring-in {
+  opacity: 0.6;
+}
+[data-concept='simya-c'] .s2-vert {
+  fill: var(--wheel-ink-hi);
+  stroke: none;
+  opacity: 0.9;
+}
+
+/* ---------------------------------------------------------------- hub */
+[data-concept^='simya-'] .s2-hub {
+  fill: var(--s2-hub);
+  stroke: none;
+}
+[data-concept^='simya-'] .s2-gloss {
+  stroke: none;
+}
+[data-concept^='simya-'] .s2-hub-ring {
+  fill: none;
+  stroke: var(--s2-hub-line);
+  stroke-width: 1.3;
+  transition: stroke-width 120ms;
+}
+[data-concept^='simya-'] .wheel.has-selected .s2-hub-ring {
+  stroke-width: 2.2;
+}
+[data-concept='simya-a'] .s2-hub-dots {
+  fill: none;
+  stroke: var(--s2-hub-line);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 0 4.712;
+  opacity: 0.6;
+}
+[data-concept='simya-b'] .s2-hub-ring {
+  stroke-width: 2.2;
+}
+[data-concept='simya-b'] .s2-lathe {
+  fill: none;
+  stroke: var(--s2-hub-line);
+  stroke-width: 0.7;
+  opacity: 0.75;
+}
+[data-concept='simya-b'] .s2-lathe-2 {
+  stroke-dasharray: 1 2.2;
+  opacity: 0.55;
+}
+[data-concept='simya-c'] .s2-hub-glow {
+  fill: none;
+  stroke: var(--s2-hub-glow);
+  stroke-width: 11;
+}
+[data-concept='simya-c'] .s2-hub-inner {
+  fill: none;
+  stroke: var(--s2-hub-line);
+  stroke-width: 0.6;
+  opacity: 0.45;
+}
+
+[data-concept^='simya-'] .s2-hub-text {
+  transition: opacity 200ms;
+}
+[data-concept^='simya-'] .wheel.has-selected .s2-hub-text {
+  opacity: 0;
+}
+[data-concept^='simya-'] .s2-title {
+  font-family: var(--font-display-face), var(--s2-script);
+  font-weight: 650;
+  fill: var(--s2-hub-text);
+}
+[data-concept='simya-b'] .s2-title {
+  font-weight: 600;
+}
+[data-concept='simya-c'] .s2-title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+[data-concept^='simya-'] .s2-file {
+  font-family: var(--font-brand-face), var(--s2-script);
+  font-weight: 500;
+  fill: var(--s2-hub-sub);
+}
+[data-concept^='simya-'] .s2-keycap {
+  fill: none;
+  stroke: var(--s2-hub-line);
+  stroke-opacity: 0.8;
+}
+[data-concept^='simya-'] .s2-keytext {
+  font: 700 10.5px var(--s2-sans);
+  fill: var(--s2-hub-sub);
+  letter-spacing: 0.04em;
+}
+[data-concept^='simya-'] :is(.s2-key, .s2-result) {
+  transition: opacity 110ms;
+}
+[data-concept^='simya-'] .s2-result {
+  opacity: 0;
+}
+[data-concept^='simya-'] .s2-hubc.has-result .s2-result {
+  opacity: 1;
+}
+[data-concept^='simya-'] .s2-hubc.has-result .s2-key {
+  opacity: 0;
+}
+[data-concept^='simya-'] .s2-pill {
+  fill: var(--s2-pill);
+  stroke: var(--s2-hub-line);
+  stroke-width: 1;
+}
+[data-concept^='simya-'] .s2-result-text {
+  font-family: var(--font-brand-face), var(--s2-script);
+  font-weight: 700;
+  fill: var(--s2-hub-text);
+}
+
+/* ---------------------------------------------------------------- the seal (the lasting result of an apply) */
+[data-concept^='simya-'] .s2-seal {
+  opacity: 0;
+  transition: opacity 160ms;
+}
+[data-concept^='simya-'] .wheel.has-selected .s2-seal {
+  opacity: 1;
+}
+[data-concept^='simya-'] .wheel.s2-fx :is(.s2-seal, .s2-hub-text, .s2-cap) {
+  transition: none;
+}
+[data-concept^='simya-'] .s2-seal-halo {
+  fill: var(--wheel-halo);
+}
+[data-concept^='simya-'] .s2-seal-content {
+  fill: var(--s2-seal-ink);
+  color: var(--s2-seal-ink);
+}
+[data-concept^='simya-'] .s2-seal-fmt {
+  font-family: var(--font-display-face), var(--s2-script);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+[data-concept^='simya-'] .s2-seal-ico {
+  stroke-width: 1.9;
+}
+[data-concept^='simya-'] .s2-seal-glint {
+  opacity: 0;
+}
+[data-concept^='simya-'] .s2-cap {
+  opacity: 0;
+  font: 700 12.5px var(--s2-sans);
+  fill: var(--s2-hub-text);
+  letter-spacing: 0.01em;
+  transition: opacity 160ms;
+}
+[data-concept^='simya-'] .wheel:lang(ja) .s2-cap,
+[data-concept^='simya-'] .wheel:lang(ar) .s2-cap {
+  font-family: var(--s2-script);
+}
+[data-concept^='simya-'] .wheel.has-selected .s2-cap {
+  opacity: 1;
+}
+
+[data-concept='simya-a'] .s2-seal-edge {
+  fill: none;
+  stroke: #9a6d18;
+  stroke-width: 1.2;
+}
+[data-concept='simya-a'] .s2-seal-beads {
+  fill: none;
+  stroke: #13235f;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 0 3.3;
+  opacity: 0.7;
+}
+[data-concept='simya-a'] .s2-seal-ring {
+  fill: none;
+  stroke: #13235f;
+  stroke-width: 0.9;
+  opacity: 0.7;
+}
+[data-concept='simya-b'] .s2-seal-lathe {
+  fill: none;
+  stroke: #5a2410;
+  stroke-opacity: 0.4;
+  stroke-width: 0.6;
+}
+[data-concept='simya-b'] .s2-seal-ring {
+  fill: none;
+  stroke: #ffd2b2;
+  stroke-opacity: 0.55;
+  stroke-width: 0.8;
+}
+[data-concept='simya-b'] .s2-seal-gleam {
+  fill: none;
+  stroke: #fff;
+  stroke-opacity: 0.22;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+[data-concept='simya-b'] .s2-seal-fmt {
+  font-weight: 650;
+}
+[data-concept='simya-c'] .s2-facet-light {
+  fill: #fff;
+  opacity: 0.45;
+}
+[data-concept='simya-c'] .s2-facet-shade {
+  fill: #4b3a78;
+  opacity: 0.16;
+}
+[data-concept='simya-c'] .s2-seal-table {
+  fill: #f2eeff;
+  stroke: #6d5aa8;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+[data-concept='simya-c'] .s2-seal-edge {
+  fill: none;
+  stroke: #6d6588;
+  stroke-width: 1.1;
+}
+[data-concept='simya-c'] .s2-seal-fmt {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+[data-concept='simya-c'] .s2-seal-halo {
+  fill: var(--s2-hub-glow);
+}
+
+/* ---------------------------------------------------------------- slices: idle, hover, selected, not installed */
+[data-concept^='simya-'] .s2-hit {
+  fill: transparent;
+}
+[data-concept^='simya-'] .s2-seg {
+  fill: transparent;
+  transition: fill 100ms;
+}
+[data-concept^='simya-'] .slice.is-hover .s2-seg {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept^='simya-'] :is(.s2-sel, .s2-seams, .s2-sheen) {
+  opacity: 0;
+  transition: opacity 100ms;
+}
+[data-concept^='simya-'] .slice.is-selected :is(.s2-sel, .s2-seams, .s2-sheen) {
+  opacity: 1;
+}
+[data-concept='simya-c'] .slice.is-selected .s2-sheen {
+  opacity: 0.55;
+}
+[data-concept^='simya-'] .s2-bandfill {
+  fill: transparent;
+  transition: fill 100ms;
+}
+[data-concept^='simya-'] .slice:is(.is-hover, .is-selected) .s2-bandfill {
+  fill: var(--s2-band-tint);
+}
+[data-concept^='simya-'] .s2-hatch {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 0.8;
+  opacity: var(--s2-hatch-opacity);
+}
+[data-concept='simya-b'] .s2-hatch {
+  fill: var(--wheel-line);
+  stroke: none;
+}
+[data-concept='simya-c'] .s2-hatch {
+  stroke-width: 0.6;
+}
+
+[data-concept^='simya-'] :is(.s2-edge, .s2-edge-glow) {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity 100ms;
+}
+[data-concept^='simya-'] .s2-edge {
+  stroke: var(--wheel-ink-hi);
+  stroke-width: 2.6;
+}
+[data-concept^='simya-'] .s2-edge-glow {
+  stroke: var(--wheel-halo);
+  stroke-width: 9;
+}
+[data-concept='simya-c'] .s2-edge {
+  stroke-width: 2.2;
+}
+[data-concept^='simya-'] .slice:is(.is-hover, .is-selected) :is(.s2-edge, .s2-edge-glow) {
+  opacity: 1;
+}
+[data-concept^='simya-'] .slice.is-off .s2-edge {
+  stroke-dasharray: 3 4;
+}
+
+[data-concept^='simya-'] .s2-glyph-ink {
+  color: var(--s2-band-ink);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+[data-concept^='simya-'] .s2-glyph-ink .d {
+  fill: currentColor;
+  stroke: none;
+}
+[data-concept^='simya-'] .s2-glyph-glow {
+  fill: none;
+  stroke: var(--wheel-halo);
+  stroke-width: 5.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0;
+}
+[data-concept^='simya-'] .slice:is(.is-hover, .is-selected) .s2-glyph-ink {
+  color: var(--s2-glyph-hi);
+  stroke-width: 1.5;
+}
+[data-concept^='simya-'] .slice:is(.is-hover, .is-selected) .s2-glyph-glow {
+  opacity: 1;
+}
+[data-concept^='simya-'] .slice.is-off .s2-glyph-ink {
+  stroke-dasharray: 1.4 1.7;
+  opacity: 0.6;
+}
+[data-concept='simya-b'] .s2-glyph-ink circle {
+  fill: currentColor;
+  stroke: none;
+}
+[data-concept='simya-b'] .s2-glyph-ink circle.o {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+[data-concept='simya-b'] .s2-glyph-glow {
+  stroke: #fff6ee;
+  stroke-width: 3.2;
+}
+[data-concept='simya-b'] .s2-glyph-glow circle {
+  fill: #fff6ee;
+}
+[data-concept='simya-b'] .slice.is-off .s2-glyph-ink {
+  opacity: 0.45;
+}
+[data-concept='simya-c'] .s2-glyph-ink {
+  stroke-width: 1;
+}
+[data-concept='simya-c'] .slice:is(.is-hover, .is-selected) .s2-glyph-ink {
+  stroke-width: 1.3;
+}
+
+[data-concept^='simya-'] .s2-node {
+  fill: var(--s2-hub);
+  stroke: var(--wheel-line);
+  stroke-width: 1.1;
+}
+[data-concept^='simya-'] .slice.is-hover .s2-node {
+  fill: var(--wheel-line);
+}
+[data-concept^='simya-'] .slice.is-selected .s2-node {
+  fill: var(--wheel-ink-hi);
+  stroke: var(--wheel-ink-hi);
+}
+[data-concept^='simya-'] .slice.is-off .s2-node {
+  stroke-dasharray: 1.6 1.5;
+}
+[data-concept^='simya-'] .s2-node-halo {
+  fill: var(--wheel-halo);
+  opacity: 0;
+}
+[data-concept^='simya-'] .slice.is-selected .s2-node-halo {
+  opacity: 1;
+}
+[data-concept='simya-b'] .s2-node {
+  fill: var(--s2-hub);
+  stroke: var(--s2-hub-line);
+  stroke-width: 1.3;
+}
+[data-concept='simya-b'] .s2-node-core {
+  fill: var(--s2-hub-line);
+}
+[data-concept='simya-b'] .slice.is-selected .s2-node-core {
+  fill: var(--s2-copper-hi);
+}
+
+[data-concept^='simya-'] .s2-content {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept^='simya-'] .slice.is-selected .s2-content {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept^='simya-'] .slice.is-off .s2-content {
+  opacity: 0.5;
+}
+[data-concept^='simya-'] .s2-fmt {
+  font-family: var(--font-display-face), var(--s2-script);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+[data-concept='simya-b'] .s2-fmt {
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+[data-concept='simya-c'] .s2-fmt {
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+[data-concept^='simya-'] .s2-word {
+  font-family: var(--font-brand-face), var(--s2-script);
+  font-weight: 500;
+}
+[data-concept='simya-b'] .s2-word {
+  font-weight: 480;
+}
+[data-concept^='simya-'] .s2-sub {
+  font-family: var(--font-brand-face), var(--s2-script);
+  font-weight: 500;
+  fill: var(--wheel-sub);
+}
+[data-concept^='simya-'] .slice.is-selected .s2-sub {
+  fill: var(--wheel-sub-selected);
+}
+[data-concept^='simya-'] .s2-content .ico {
+  stroke-width: 1.5;
+}
+
+/* ---------------------------------------------------------------- apply effect parts (painted per frame in JS) */
+[data-concept^='simya-'] .s2-fx-flash {
+  fill: var(--wheel-flash);
+  stroke: none;
+  opacity: 0;
+}
+/* While the selected material fills in behind the light, the rest of the slice keeps its lifted idle look. */
+[data-concept^='simya-'] .slice.is-selected.s2-unlit .s2-seg {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept^='simya-'] .slice.is-selected.s2-unlit .s2-content {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept^='simya-'] .slice.is-selected.s2-unlit .s2-sub {
+  fill: var(--wheel-sub);
+}
+[data-concept^='simya-'] :is(.s2-fx-front, .s2-fx-front-halo) {
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0;
+}
+[data-concept^='simya-'] .s2-fx-front {
+  stroke: var(--wheel-glow);
+  stroke-width: 1.6;
+}
+[data-concept^='simya-'] .s2-fx-front-halo {
+  stroke: var(--wheel-halo);
+  stroke-width: 7;
+}
+[data-concept^='simya-'] :is(.s2-fx-resid, .s2-fx-halo, .s2-fx-tail, .s2-fx-core, .s2-fx-stream, .s2-fx-ray) {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0 3;
+}
+[data-concept^='simya-'] .s2-fx-resid {
+  stroke: var(--wheel-glow);
+  stroke-width: 1.2;
+}
+[data-concept^='simya-'] .s2-fx-halo {
+  stroke: var(--wheel-halo);
+  stroke-width: 14;
+}
+[data-concept^='simya-'] .s2-fx-tail {
+  stroke: var(--wheel-glow);
+  stroke-width: 4.6;
+}
+[data-concept^='simya-'] .s2-fx-core {
+  stroke: var(--s2-fx-core);
+  stroke-width: 2.4;
+}
+[data-concept^='simya-'] .s2-fx-head {
+  fill: var(--s2-fx-core);
+  stroke: var(--wheel-glow);
+  stroke-width: 1;
+}
+[data-concept^='simya-'] .s2-fx-head-halo {
+  fill: var(--wheel-halo);
+}
+[data-concept^='simya-'] .s2-fx-flare {
+  fill: none;
+  stroke: var(--wheel-halo);
+  stroke-width: 10;
+  opacity: 0;
+}
+[data-concept='simya-a'] .s2-fx-flake {
+  fill: var(--s2-gold);
+  stroke: var(--s2-gold-deep);
+  stroke-width: 0.4;
+}
+[data-concept='simya-a'] .s2-fx-flake.is-light {
+  fill: var(--s2-gold-hi);
+}
+[data-concept='simya-b'] .s2-fx-heat {
+  fill: #ffd7b0;
+  opacity: 0;
+}
+[data-concept='simya-b'] .s2-fx-stream {
+  stroke: var(--wheel-glow);
+  stroke-width: 2.4;
+}
+[data-concept='simya-b'] .s2-fx-bead {
+  fill: var(--wheel-glow);
+}
+[data-concept='simya-b'] .s2-fx-drop {
+  fill: url(#simya-b-bezel);
+  stroke: var(--s2-copper-deep);
+  stroke-width: 0.6;
+}
+[data-concept='simya-b'] .s2-fx-drop-hi {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+[data-concept='simya-b'] .s2-fx-ripple {
+  fill: none;
+  stroke: var(--wheel-glow);
+  opacity: 0;
+}
+[data-concept='simya-c'] .s2-fx-core {
+  stroke-width: 2.2;
+}
+[data-concept='simya-c'] .s2-fx-halo {
+  stroke-width: 9;
+}
+[data-concept='simya-c'] .s2-fx-star {
+  fill: var(--s2-fx-core);
+  stroke: var(--wheel-glow);
+  stroke-width: 0.5;
+}
+[data-concept='simya-c'] .s2-fx-ray {
+  stroke: var(--wheel-glow);
+  stroke-width: 1.6;
+}
+[data-concept='simya-c'] .s2-fx-ray.is-short {
+  stroke-width: 1.1;
+}
+
+/* ---------------------------------------------------------------- open and close
+   0 ms: the face and the hub are already there (the wheel must show within 100 ms). */
+[data-concept^='simya-'] .wheel.is-opening .wheel-svg {
+  animation: simya2-grow calc(var(--dur-open) * 0.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept^='simya-'] .wheel.is-opening::before {
+  animation: simya2-face calc(var(--dur-open) * 0.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='simya-c'] .wheel.is-opening::after {
+  animation: simya2-cface calc(var(--dur-open) * 0.85) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes simya2-grow {
+  from {
+    transform: scale(0.94);
+  }
+}
+@keyframes simya2-face {
+  from {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+}
+@keyframes simya2-cface {
+  from {
+    opacity: 0.35;
+    transform: scale(0.94);
+  }
+}
+[data-concept^='simya-'] .wheel.is-opening .s2-hub-text {
+  animation: simya2-half-in 100ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes simya2-half-in {
+  from {
+    opacity: 0.7;
+  }
+}
+
+[data-concept^='simya-'] .wheel.is-opening .s2-draw {
+  stroke-dasharray: 1 2;
+  animation: simya2-draw var(--dur-open) cubic-bezier(0.35, 0.05, 0.25, 1) both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept^='simya-'] .wheel.is-opening .s2-div {
+  animation-duration: calc(var(--dur-open) * 0.55);
+}
+@keyframes simya2-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+[data-concept^='simya-'] .wheel.is-opening :is(.s2-ticks, .s2-dust, .s2-veins, .s2-crackle, .s2-patina, .s2-vert) {
+  animation: simya2-fade 140ms linear both;
+  animation-delay: calc(70ms - var(--t, 0ms));
+}
+@keyframes simya2-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+[data-concept^='simya-'] .s2-turn {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept^='simya-'] .wheel.is-opening .s2-turn {
+  animation: simya2-turn var(--dur-open) cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation-delay: calc(30ms - var(--t, 0ms));
+}
+@keyframes simya2-turn {
+  from {
+    transform: rotate(var(--s2-turn));
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+/* B: the collar never disappears while it turns, like a lid screwed on. */
+[data-concept='simya-b'] .wheel.is-opening .s2-turn {
+  animation-name: simya2-screw;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes simya2-screw {
+  from {
+    transform: rotate(var(--s2-turn));
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+[data-concept^='simya-'] :is(.s2-content, .s2-node) {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept^='simya-'] .wheel.is-opening .s2-content {
+  animation: simya2-rise calc(var(--dur-open) * 0.7) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + 45ms - var(--t, 0ms));
+}
+[data-concept='simya-b'] .wheel.is-opening .s2-content {
+  animation-name: simya2-float;
+}
+[data-concept='simya-c'] .wheel.is-opening .s2-content {
+  animation-name: simya2-sharpen;
+}
+@keyframes simya2-rise {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+@keyframes simya2-float {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+}
+@keyframes simya2-sharpen {
+  from {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+[data-concept^='simya-'] .wheel.is-opening .s2-node {
+  animation: simya2-pop 120ms ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) + 20ms - var(--t, 0ms));
+}
+@keyframes simya2-pop {
+  from {
+    transform: scale(0);
+  }
+}
+[data-concept^='simya-'] .wheel.is-opening .s2-glyph-glow {
+  animation: simya2-flare 130ms ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) + 55ms - var(--t, 0ms));
+}
+@keyframes simya2-flare {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+[data-concept^='simya-'] .s2-shimmer {
+  fill: none;
+  stroke: var(--wheel-glow);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.07 0.93;
+  opacity: 0;
+}
+[data-concept^='simya-'] .s2-shimmer-halo {
+  stroke: var(--wheel-halo);
+  stroke-width: 9;
+}
+[data-concept^='simya-'] .wheel.is-opening .s2-shimmer {
+  animation: simya2-shimmer calc(var(--dur-open) + 7 * var(--stagger)) cubic-bezier(0.3, 0.1, 0.35, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes simya2-shimmer {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
+}
+[data-concept='simya-b'] .s2-wave {
+  fill: none;
+  stroke: var(--wheel-glow);
+  stroke-width: 2.2;
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='simya-b'] .wheel.is-opening .s2-wave {
+  animation: simya2-wave calc(var(--dur-open) + 5 * var(--stagger)) cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes simya2-wave {
+  0% {
+    transform: scale(0.47);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+[data-concept^='simya-'] .wheel.is-closing .wheel-svg,
+[data-concept^='simya-'] .wheel.is-closing::before,
+[data-concept='simya-c'] .wheel.is-closing::after {
+  animation: simya2-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes simya2-close {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+[data-concept^='simya-'] .wheel.is-closed::before,
+[data-concept='simya-c'] .wheel.is-closed::after {
+  visibility: hidden;
+}
+[data-concept^='simya-'] .wheel.is-opening-reduced::before,
+[data-concept='simya-c'] .wheel.is-opening-reduced::after {
+  animation: fade-in 90ms linear both;
+}
+[data-concept^='simya-'] .wheel.is-closing-reduced::before,
+[data-concept='simya-c'] .wheel.is-closing-reduced::after {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept^='simya-'] .wheel.is-denied::before,
+[data-concept='simya-c'] .wheel.is-denied::after {
+  animation: deny 260ms ease;
+}
+
+/* ---------------------------------------------------------------- Home window */
+[data-concept^='simya-'] .s2-art-gold {
+  fill: var(--s2-gold);
+}
+[data-concept^='simya-'] .s2-art-copper {
+  fill: url(#simya-b-bezel);
+}
+[data-concept^='simya-'] .s2-art-silver {
+  fill: url(#simya-c-gem);
+  stroke: var(--accent);
+}
+[data-concept^='simya-'] .s2-art-glow {
+  fill: var(--wheel-halo);
+}
+[data-concept^='simya-'] .s2-art-beam {
+  stroke: var(--wheel-glow);
+}

@@ -1,0 +1,523 @@
+/* SPDX-License-Identifier: MIT */
+/* Ebru: ebru-a (wet drop), ebru-b (spray), ebru-c (bloom and comb).
+   Rules shared by the family use [data-concept^='ebru-']. */
+
+[data-concept^='ebru-'] {
+  --radius: 8px;
+  --radius-sm: 5px;
+  --icon-stroke: 1.7;
+}
+
+/* ---------------------------------------------------------------- the tray */
+[data-concept^='ebru-'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 2.5%;
+  border-radius: 50%;
+  background: var(--wheel-face);
+  box-shadow:
+    0 2px 6px var(--wheel-shadow),
+    0 16px 42px var(--wheel-shadow);
+}
+[data-concept^='ebru-'] .eb-face {
+  fill: var(--wheel-face);
+}
+[data-concept^='ebru-'] .eb-rim-line {
+  fill: var(--rim-edge);
+}
+[data-concept^='ebru-'] .eb-gushes,
+[data-concept^='ebru-'] .eb-paint,
+[data-concept^='ebru-'] .eb-hub,
+[data-concept^='ebru-'] .eb-labels,
+[data-concept^='ebru-'] .eb-air,
+[data-concept^='ebru-'] .eb-hov {
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- slices */
+[data-concept^='ebru-'] .eb-hit {
+  fill: transparent;
+}
+[data-concept^='ebru-'] .eb-seg {
+  fill: var(--pw);
+  transition:
+    fill 120ms,
+    opacity 120ms;
+}
+[data-concept^='ebru-'] .slice.is-hover .eb-seg,
+[data-concept^='ebru-'] .slice.is-selected .eb-seg {
+  fill: var(--ph);
+}
+[data-concept^='ebru-'] .wheel.has-hover .slice:not(.is-hover):not(.is-selected) .eb-seg,
+[data-concept^='ebru-'] .wheel.has-selected .slice:not(.is-hover):not(.is-selected) .eb-seg {
+  opacity: var(--dim);
+}
+[data-concept^='ebru-'] .eb-edge {
+  fill: var(--p);
+  opacity: 0;
+  transition: opacity 110ms;
+}
+[data-concept^='ebru-'] .slice.is-hover .eb-edge,
+[data-concept^='ebru-'] .slice.is-selected .eb-edge {
+  opacity: 1;
+}
+[data-concept^='ebru-'] .eb-band {
+  fill: var(--p);
+}
+[data-concept^='ebru-'] .eb-hov {
+  opacity: 0;
+  transition: opacity 150ms;
+}
+[data-concept^='ebru-'] .slice.is-hover .eb-hov {
+  opacity: 1;
+}
+[data-concept^='ebru-'] .wheel.has-selected .eb-hov {
+  opacity: 0;
+}
+
+/* A tool that is not installed: no pigment, a dashed outline, faded content. */
+[data-concept^='ebru-'] .slice.is-off .eb-seg {
+  fill: transparent;
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+[data-concept^='ebru-'] .slice.is-off.is-hover .eb-seg {
+  fill: var(--surface-2);
+}
+[data-concept^='ebru-'] .slice.is-off .eb-edge,
+[data-concept^='ebru-'] .slice.is-off .eb-band {
+  display: none;
+}
+[data-concept^='ebru-'] .eb-lab.is-off {
+  opacity: 0.45;
+}
+/* Labels sit above every stain. A halo in the slice's own color knocks paint out around
+   the letters; on the stain itself the text takes the pigment's text color and halo. */
+[data-concept^='ebru-'] .eb-lab {
+  --halo: var(--pw);
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept^='ebru-'] .eb-lab.is-hover,
+[data-concept^='ebru-'] .eb-lab.is-selected {
+  --halo: var(--ph);
+}
+[data-concept^='ebru-'] .eb-lab text {
+  paint-order: stroke fill;
+  stroke: var(--halo);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
+[data-concept^='ebru-'] .eb-lab .ico {
+  stroke-width: 1.7;
+}
+[data-concept^='ebru-'] .eb-lab .eb-ico-halo {
+  stroke: var(--halo);
+  stroke-width: 4.6;
+}
+[data-concept^='ebru-'] .eb-lbl {
+  font-weight: 650;
+}
+[data-concept^='ebru-'] .eb-fmt {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+[data-concept^='ebru-'] .eb-sub {
+  fill: var(--wheel-sub);
+  font-weight: 550;
+}
+[data-concept^='ebru-'] .eb-lab.is-stained {
+  --halo: var(--p);
+  color: var(--op);
+  fill: var(--op);
+}
+[data-concept^='ebru-'] .eb-lab.is-stained .eb-sub {
+  fill: var(--op);
+}
+
+/* ---------------------------------------------------------------- hub */
+[data-concept^='ebru-'] .eb-hub-bg {
+  fill: var(--wheel-face);
+}
+[data-concept^='ebru-'] .eb-hr {
+  fill: none;
+}
+[data-concept^='ebru-'] .eb-hr-1 {
+  stroke: var(--p1);
+  stroke-width: 2;
+}
+[data-concept^='ebru-'] .eb-hr-2 {
+  stroke: var(--p2);
+  stroke-width: 1.2;
+}
+[data-concept^='ebru-'] .eb-hr-3 {
+  stroke: var(--p3);
+  stroke-width: 1.2;
+}
+[data-concept^='ebru-'] .eb-hr-g {
+  stroke: var(--gold);
+  stroke-width: 1;
+}
+[data-concept^='ebru-'] .eb-hd-1 {
+  fill: var(--p1);
+}
+[data-concept^='ebru-'] .eb-hd-2 {
+  fill: var(--p2);
+}
+[data-concept^='ebru-'] .eb-hd-3 {
+  fill: var(--p3);
+}
+[data-concept^='ebru-'] .eb-hd-4 {
+  fill: var(--p4);
+}
+[data-concept^='ebru-'] .eb-title {
+  fill: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+[data-concept^='ebru-'] .eb-file {
+  fill: var(--text-muted);
+  font-weight: 500;
+}
+[data-concept^='ebru-'] .eb-key {
+  fill: var(--surface-2);
+  stroke: var(--border);
+}
+[data-concept^='ebru-'] .eb-keytext {
+  fill: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+}
+/* Each pigment is squeezed out of its landing point: the blob swells past its slice, over the
+   rim and the edge, then thins into the slice color. Transforms and opacity only. */
+[data-concept^='ebru-'] .wheel-svg,
+[data-concept^='ebru-'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept^='ebru-'] .eb-gush {
+  opacity: 0;
+  transform-box: view-box;
+}
+[data-concept^='ebru-'] .eb-gush-paint {
+  fill: var(--p);
+}
+[data-concept^='ebru-'] .eb-rim,
+[data-concept^='ebru-'] .eb-face,
+[data-concept^='ebru-'] .eb-hub-rings {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept^='ebru-'] .eb-lab,
+[data-concept^='ebru-'] .eb-hub-text {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+[data-concept^='ebru-'] .wheel.is-opening .eb-gush {
+  animation: ebru2-gush var(--dur-open) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept^='ebru-'] .wheel.is-opening .eb-seg,
+[data-concept^='ebru-'] .wheel.is-opening .eb-band {
+  animation: ebru2-wash var(--dur-open) linear both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept^='ebru-'] .wheel.is-opening .eb-lab {
+  animation: ebru2-label var(--dur-open) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept^='ebru-'] .wheel.is-opening .eb-face,
+[data-concept^='ebru-'] .wheel.is-opening::before {
+  animation: ebru2-water calc(var(--dur-open) * 0.6) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept^='ebru-'] .wheel.is-opening .eb-rim {
+  animation: ebru2-rim calc(var(--dur-open) + 7 * var(--stagger)) cubic-bezier(0.3, 0.5, 0.2, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept^='ebru-'] .wheel.is-opening .eb-hub-rings {
+  animation: ebru2-ring calc(var(--dur-open) * 0.8) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept^='ebru-'] .wheel.is-opening .eb-hub-text,
+[data-concept^='ebru-'] .wheel.is-opening .eb-paint {
+  animation: ebru2-label calc(var(--dur-open) * 0.9) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept^='ebru-'] .wheel.is-closing .wheel-svg,
+[data-concept^='ebru-'] .wheel.is-closing::before {
+  animation: ebru2-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept^='ebru-'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept^='ebru-'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept^='ebru-'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+
+@keyframes ebru2-gush {
+  0% {
+    opacity: 1;
+    transform: scale(0.05);
+    animation-timing-function: cubic-bezier(0.12, 0.75, 0.3, 1);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(1);
+    animation-timing-function: ease-in;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+@keyframes ebru2-wash {
+  0%,
+  38% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes ebru2-label {
+  0%,
+  45% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ebru2-water {
+  from {
+    opacity: 0.5;
+    transform: scale(0.93);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ebru2-rim {
+  from {
+    opacity: 0;
+    transform: rotate(-50deg) scale(0.96);
+  }
+  40% {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ebru2-ring {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ebru2-close {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+/* Hover: rings run over the water from the landing point. */
+[data-concept='ebru-a'] .eb-rip {
+  fill: none;
+  stroke: var(--p);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  transform-box: view-box;
+  opacity: 0;
+}
+[data-concept='ebru-a'] .slice.is-hover .eb-rip {
+  animation: ebru2-ripple 1500ms cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+[data-concept='ebru-a'] .slice.is-hover .eb-rip-2 {
+  animation-delay: 750ms;
+}
+@keyframes ebru2-ripple {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.55);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.7);
+  }
+}
+
+/* The splash and its stain. */
+[data-concept='ebru-a'] .eb-a-paint,
+[data-concept='ebru-a'] .eb-a-bleed {
+  fill: var(--p);
+}
+[data-concept='ebru-a'] .eb-a-rim {
+  fill: none;
+  stroke: var(--pd);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+[data-concept='ebru-a'] .eb-a-sheen {
+  fill: #fff;
+}
+[data-concept='ebru-a'] .eb-a-dry {
+  fill: var(--wheel-face);
+}
+[data-concept='ebru-a'] .eb-a-shadow {
+  fill: #000;
+}
+[data-concept='ebru-a'] .eb-a-ring {
+  fill: none;
+  stroke: var(--p);
+  stroke-width: 1.6;
+}
+/* The slap: the tray gives a little under the drop. */
+[data-concept='ebru-a'] .wheel.is-applying .wheel-svg {
+  animation: ebru2-thump 240ms cubic-bezier(0.3, 0.7, 0.4, 1);
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes ebru2-thump {
+  0% {
+    transform: scale(1);
+  }
+  22% {
+    transform: scale(0.982);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---------------------------------------------------------------- B: spray */
+[data-concept='ebru-b'] .eb-band {
+  opacity: 0.92;
+}
+[data-concept='ebru-b'] .slice.is-hover .eb-band,
+[data-concept='ebru-b'] .slice.is-selected .eb-band {
+  opacity: 1;
+}
+[data-concept='ebru-b'] .eb-edge {
+  display: none;
+}
+/* Hover: a light mist breathes over the slice and a first dusting of paint appears. */
+[data-concept='ebru-b'] .eb-mist {
+  transform-box: view-box;
+}
+[data-concept='ebru-b'] .slice.is-hover .eb-mist {
+  animation: ebru2-breathe 1300ms ease-in-out infinite alternate;
+}
+[data-concept='ebru-b'] .eb-dust {
+  fill: var(--p);
+  opacity: 0.85;
+}
+[data-concept='ebru-b'] .eb-band2 {
+  fill: var(--p);
+}
+[data-concept='ebru-b'] .slice.is-hover .eb-dust {
+  animation: ebru2-dust 420ms ease-out both;
+}
+@keyframes ebru2-breathe {
+  from {
+    transform: scale(0.9);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+@keyframes ebru2-dust {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+[data-concept='ebru-b'] .eb-b-dot0 {
+  fill: var(--p);
+}
+[data-concept='ebru-b'] .eb-b-dot1 {
+  fill: var(--pd);
+}
+[data-concept='ebru-b'] .eb-b-dot2 {
+  fill: color-mix(in srgb, var(--p) 55%, var(--wheel-face));
+}
+
+/* ---------------------------------------------------------------- C: bloom and comb */
+[data-concept='ebru-c'] .eb-gush-q {
+  fill: var(--q);
+}
+[data-concept='ebru-c'] .eb-gush-w {
+  fill: var(--wheel-face);
+}
+[data-concept='ebru-c'] .eb-gush-g {
+  fill: var(--gold);
+}
+/* Hover: faint combed lines sway back and forth across the slice, a preview of the comb. */
+[data-concept='ebru-c'] .eb-sway {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='ebru-c'] .eb-comb-lines {
+  fill: none;
+  stroke: var(--p);
+  stroke-width: 1.1;
+  stroke-opacity: 0.5;
+  stroke-linejoin: round;
+}
+[data-concept='ebru-c'] .slice.is-hover .eb-sway {
+  animation: ebru2-sway 900ms ease-in-out infinite alternate;
+}
+@keyframes ebru2-sway {
+  from {
+    transform: rotate(-1.4deg);
+  }
+  to {
+    transform: rotate(1.4deg);
+  }
+}
+[data-concept='ebru-c'] .eb-c-q {
+  fill: var(--q);
+}
+[data-concept='ebru-c'] .eb-c-w {
+  fill: var(--wheel-face);
+}
+[data-concept='ebru-c'] .eb-c-g {
+  fill: var(--gold);
+}
+[data-concept='ebru-c'] .eb-c-p {
+  fill: var(--p);
+}
+/* A thin marbled edge along the top of the drop zone, like the margin of an ebru panel. */
+[data-concept^='ebru-'] .eb-art-0 {
+  fill: var(--surface);
+}
+[data-concept^='ebru-'] .eb-art-1 {
+  fill: var(--p1);
+}
+[data-concept^='ebru-'] .eb-art-2 {
+  fill: var(--p2);
+}
+[data-concept^='ebru-'] .eb-art-3 {
+  fill: var(--p3);
+}
+[data-concept='ebru-b'] .eb-art-core {
+  fill: var(--p2);
+}
+[data-concept='ebru-c'] .eb-art-3 {
+  fill: var(--gold);
+}

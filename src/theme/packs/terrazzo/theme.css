@@ -1,0 +1,295 @@
+/* SPDX-License-Identifier: MIT */
+/* Terrazzo: a polished slab of cement and stone chips with brass strips. */
+
+[data-concept='terrazzo'] {
+  --tz-face: var(--font-brand-face), 'Segoe UI', system-ui, sans-serif;
+  --radius: 12px;
+}
+[data-concept='terrazzo'] .wheel {
+  font-family: var(--tz-face);
+}
+
+[data-concept='terrazzo'] .tz-st-brass {
+  stop-color: var(--brass);
+}
+[data-concept='terrazzo'] .tz-st-brass-hi {
+  stop-color: var(--brass-hi);
+}
+[data-concept='terrazzo'] .tz-st-brass-lo {
+  stop-color: var(--brass-lo);
+}
+[data-concept='terrazzo'] .tz-st-gloss {
+  stop-color: var(--gloss);
+}
+[data-concept='terrazzo'] .tz-st-gloss0 {
+  stop-color: var(--gloss-end);
+}
+[data-concept='terrazzo'] .tz-st-sh {
+  stop-color: var(--wheel-shadow);
+}
+[data-concept='terrazzo'] .tz-st-sh0 {
+  stop-color: var(--wheel-shadow);
+  stop-opacity: 0;
+}
+[data-concept='terrazzo'] .tz-st-hub-a {
+  stop-color: var(--hub-a);
+}
+[data-concept='terrazzo'] .tz-st-hub-b {
+  stop-color: var(--hub-b);
+}
+
+[data-concept='terrazzo'] .tz-slab,
+[data-concept='terrazzo'] .tz-strips,
+[data-concept='terrazzo'] .tz-hub {
+  pointer-events: none;
+}
+[data-concept='terrazzo'] .tz-rim {
+  stroke: var(--brass-lo);
+  stroke-width: 0.8;
+}
+[data-concept='terrazzo'] .tz-rim-inner {
+  fill: var(--wheel-face);
+  stroke: var(--brass-lo);
+  stroke-width: 1;
+}
+
+/* Fields, specks and chips. */
+[data-concept='terrazzo'] .tz-field-a {
+  fill: var(--field-a);
+}
+[data-concept='terrazzo'] .tz-field-b {
+  fill: var(--field-b);
+}
+[data-concept='terrazzo'] .tz-sel {
+  visibility: hidden;
+}
+[data-concept='terrazzo'] .tz-sel-a {
+  fill: var(--field-sel);
+}
+[data-concept='terrazzo'] .tz-sel-b {
+  fill: var(--field-sel-b);
+}
+[data-concept='terrazzo'] .slice.is-selected .tz-sel {
+  visibility: visible;
+}
+[data-concept='terrazzo'] .tz-speck {
+  fill: var(--speck);
+}
+[data-concept='terrazzo'] .tz-speck-2 {
+  fill: var(--chip-7);
+  opacity: 0.8;
+}
+[data-concept='terrazzo'] .tz-c1 {
+  fill: var(--chip-1);
+}
+[data-concept='terrazzo'] .tz-c2 {
+  fill: var(--chip-2);
+}
+[data-concept='terrazzo'] .tz-c3 {
+  fill: var(--chip-3);
+}
+[data-concept='terrazzo'] .tz-c4 {
+  fill: var(--chip-4);
+}
+[data-concept='terrazzo'] .tz-c5 {
+  fill: var(--chip-5);
+}
+[data-concept='terrazzo'] .tz-c6 {
+  fill: var(--chip-6);
+}
+[data-concept='terrazzo'] .tz-c7 {
+  fill: var(--chip-7);
+}
+[data-concept='terrazzo'] .tz-chip {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='terrazzo'] .slice.is-selected .tz-chip {
+  transform: translate(var(--tx), var(--ty)) rotate(var(--tr));
+}
+[data-concept='terrazzo'] .tz-gloss {
+  opacity: 0;
+  transition: opacity 130ms;
+}
+[data-concept='terrazzo'] .slice.is-hover .tz-gloss {
+  opacity: 1;
+}
+[data-concept='terrazzo'] .slice.is-selected .tz-gloss {
+  opacity: 0.6;
+}
+[data-concept='terrazzo'] .tz-glint {
+  fill: none;
+  stroke: var(--brass-hi);
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+[data-concept='terrazzo'] .slice.is-hover .tz-glint,
+[data-concept='terrazzo'] .slice.is-selected .tz-glint {
+  opacity: 1;
+}
+
+/* Brass strips. */
+[data-concept='terrazzo'] .tz-strip {
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 2.4;
+}
+[data-concept='terrazzo'] .tz-strip-shade {
+  fill: none;
+  stroke: var(--brass-lo);
+  stroke-width: 3.6;
+  opacity: 0.6;
+}
+
+/* Lettering. */
+[data-concept='terrazzo'] .tz-ink {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='terrazzo'] .tz-lbl {
+  fill: var(--wheel-text);
+  font-weight: 700;
+  font-stretch: 92%;
+}
+[data-concept='terrazzo'] .tz-fmt {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+[data-concept='terrazzo'] .tz-sub {
+  fill: var(--wheel-sub);
+  font-weight: 500;
+}
+[data-concept='terrazzo'] .slice .ico {
+  stroke-width: 1.8;
+}
+[data-concept='terrazzo'] .slice.is-selected .tz-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='terrazzo'] .slice.is-selected .tz-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='terrazzo'] .slice.is-selected .tz-sub {
+  fill: var(--wheel-sub-selected);
+}
+[data-concept='terrazzo'] .slice.is-off .tz-ink,
+[data-concept='terrazzo'] .slice.is-off .tz-chips {
+  opacity: 0.42;
+}
+
+/* Hub medallion. */
+[data-concept='terrazzo'] .tz-hub-speck {
+  fill: var(--speck);
+}
+[data-concept='terrazzo'] .tz-title {
+  fill: var(--hub-text);
+  font-weight: 800;
+  font-stretch: 92%;
+}
+[data-concept='terrazzo'] .tz-file {
+  fill: var(--hub-sub);
+  font-weight: 500;
+}
+[data-concept='terrazzo'] .tz-key {
+  fill: none;
+  stroke: var(--hub-sub);
+  stroke-opacity: 0.55;
+  stroke-width: 1;
+}
+[data-concept='terrazzo'] .tz-keytext {
+  fill: var(--hub-sub);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* Open: the slab rises into place, the fields fade up in turn. */
+[data-concept='terrazzo'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='terrazzo'] .wheel.is-opening .wheel-svg {
+  animation: terrazzo-rise var(--dur-open) cubic-bezier(0.2, 0.85, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='terrazzo'] .wheel.is-opening .slice {
+  animation: terrazzo-fade var(--dur-open) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='terrazzo'] .wheel.is-closing .wheel-svg {
+  animation: terrazzo-away var(--dur-close) ease-in both;
+}
+@keyframes terrazzo-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes terrazzo-fade {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes terrazzo-away {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+}
+
+/* Apply: the chips jump and spin, then settle into their new arcs; the field takes its tint. */
+[data-concept='terrazzo'] .wheel.is-applying .slice.is-selected .tz-chip {
+  animation: terrazzo-scatter 560ms cubic-bezier(0.3, 0.6, 0.35, 1) both;
+  animation-delay: calc(var(--d) - var(--t, 0ms));
+}
+[data-concept='terrazzo'] .wheel.is-applying .slice.is-selected .tz-sel {
+  animation: terrazzo-tint 360ms ease-out both;
+  animation-delay: calc(160ms - var(--t, 0ms));
+}
+[data-concept='terrazzo'] .wheel.is-applying .wheel-svg {
+  animation: terrazzo-knock 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes terrazzo-scatter {
+  0% {
+    transform: none;
+  }
+  32% {
+    transform: translate(var(--sx), var(--sy)) rotate(var(--sr));
+  }
+  86% {
+    transform: translate(calc(var(--tx) * 1.04), calc(var(--ty) * 1.04)) rotate(var(--tr));
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) rotate(var(--tr));
+  }
+}
+@keyframes terrazzo-tint {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes terrazzo-knock {
+  0% {
+    transform: none;
+  }
+  4% {
+    transform: translateY(1px);
+  }
+  10%,
+  100% {
+    transform: none;
+  }
+}

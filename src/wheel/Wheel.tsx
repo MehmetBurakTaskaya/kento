@@ -48,10 +48,16 @@ import {
 } from './geometry';
 import { keyAction } from './keys';
 import { canvasMeasure, fitLabel, layoutBlock, type FittedLabel, type Measure } from './labels';
-import { closeDuration, levelDuration, MOTION, openDuration } from './motion';
+import { levelDuration, MOTION, STEEL_TIMINGS } from './motion';
 import { clampPage, PAGE_SIZE, pageCount, pageItems } from './paging';
 import { Arm, Bolts, DialIndex, DialScale, FixedRing, Glint, Handle, HubCap, hubLayout } from './parts';
-import { armWheelAudio, playWheelSound } from './sound';
+import { Menu } from './Menu';
+import { armWheelAudio, playVoice, playWheelSound, type SoundSettings, type WheelSound } from './sound';
+import { buildModel } from '../theme/host/model';
+import type { PackTheme } from '../theme/host/packs';
+import { SFX } from '../theme/host/sfx';
+import { ThemeFace } from '../theme/host/ThemeFace';
+import type { Mode, ThemeDefinition } from '../theme/registry';
 import './wheel.css';
 
 export interface WheelSlice {
@@ -113,9 +119,39 @@ export interface WheelProps {
   /** Called when the dial turns to an available slice, or clicks into a ring of choices or back out
    *  of one (a haptic tap on macOS trackpads). */
   onTick?: () => void;
+  /** The theme that draws the wheel, in light or dark: steel by default, or a theme pack's own wheel,
+   *  timings and sounds. */
+  look?: WheelLook;
+  /** The modifier key that opened the wheel, as the system names it; a theme may show it on the hub. */
+  keyName?: string;
+  /** In a page instead of over it, at exactly `size` pixels: 'live' to try it (it does not take the
+   *  focus until it is used, and Tab leaves it), 'still' for a picture of it at rest. */
+  preview?: 'live' | 'still';
+  /** Whether opening sounds (on by default). */
+  openSound?: boolean;
+}
+
+export interface WheelLook {
+  theme: ThemeDefinition;
+  mode: Mode;
 }
 
 type Phase = 'opening' | 'open' | 'applying' | 'applied' | 'closing' | 'closed';
+
+/** A theme's three voices stand for the wheel's five sounds: every click of the dial is its tick. */
+const THEME_VOICE: Record<WheelSound, 'open' | 'tick' | 'success'> = {
+  open: 'open',
+  tick: 'tick',
+  enter: 'tick',
+  leave: 'tick',
+  apply: 'success',
+};
+
+function playFor(pack: PackTheme | null, name: WheelSound, settings: SoundSettings): void {
+  if (!pack) return playWheelSound(name, settings);
+  const voice = pack.concept.sounds?.[THEME_VOICE[name]];
+  if (voice) playVoice(name, settings, (ac, out, t) => voice(ac, out, t, SFX));
+}
 
 interface Item extends Omit<WheelSlice, 'id' | 'disabled'> {
   key: string;
@@ -237,12 +273,21 @@ export function Wheel({
   overlay = false,
   control,
   onTick,
+  look,
+  keyName = '',
+  preview,
+  openSound = true,
 }: WheelProps): JSX.Element {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const locale = intlLocale(lang);
   const dir: Direction = isRtl(lang) ? 'rtl' : 'ltr';
   const uid = `wheel${useId().replace(/[^\w-]/g, '')}`;
+  // In High Contrast the steel wheel draws itself in the system's colours; a theme's drawing cannot.
+  const forced = typeof matchMedia === 'function' && matchMedia('(forced-colors: active)').matches;
+  const pack = forced ? null : (look?.theme.wheel ?? null);
+  const timings = pack ? pack.timings : STEEL_TIMINGS;
+  const still = preview === 'still';
 
   // The levels opened inside the first ring; they fall back to it when the slices change under them.
   const [trail, setTrail] = useState<Level[]>([]);
@@ -261,7 +306,7 @@ export function Wheel({
 
   const contentKey = keyOf(kind, title, levels, ring);
   const [shownKey, setShownKey] = useState(contentKey);
-  const [phase, setPhase] = useState<Phase>('opening');
+  const [phase, setPhase] = useState<Phase>(still ? 'open' : 'opening');
   const [pageState, setPage] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
@@ -273,6 +318,8 @@ export function Wheel({
   const [lastTip, setLastTip] = useState('');
   const [fontsReady, setFontsReady] = useState(() => !document.fonts || document.fonts.status === 'loaded');
   const [shift, setShift] = useState<Shift | null>(null);
+  // Refusals of a slice that cannot be applied, for a theme's own refusal.
+  const [denied, setDenied] = useState(0);
 
   /** Where slice 1 of a page sits: a ring opened from a slice turns so that its first page unfolds
    *  from there, with its default where the pointer rested. */
@@ -381,6 +428,33 @@ export function Wheel({
     };
   }, [shownTitle, shownSubtitle, above, locale, measures, t]);
 
+  // What a theme draws: the same slices at the same angles, and the hub's title, file and key.
+  const model = useMemo(
+    () =>
+      pack
+        ? buildModel({
+            kind,
+            lang: locale,
+            dir,
+            title: shownTitle,
+            file: shownSubtitle ? isolate(shownSubtitle) : '',
+            key: keyName,
+            geometry,
+            slices: items.map((item) => ({
+              id: item.id ?? (item.key === '\u0001first' ? 'first' : 'more'),
+              label: item.label,
+              sub: item.sublabel,
+              icon: item.icon,
+              tip: item.hint || (item.disabled ? t('wheel.unavailable') : ''),
+              off: item.disabled || !!item.dimmed,
+              ring: opensRing(item),
+              format: kind === 'convert' && !item.paging && (!!item.sublabel || !item.icon),
+            })),
+          })
+        : null,
+    [pack, kind, locale, dir, shownTitle, shownSubtitle, keyName, geometry, items, t],
+  );
+
   const dialogRef = useRef<HTMLDivElement>(null);
   const shakeRef = useRef<HTMLDivElement>(null);
   const discRef = useRef<HTMLDivElement>(null);
@@ -388,6 +462,7 @@ export function Wheel({
   const detentRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(SVGGElement | null)[]>([]);
   const soundRef = useRef(sound);
+  const packRef = useRef(pack);
   const onCloseRef = useRef(onClose);
   const openSoundPlayed = useRef(false);
   const applySoundPlayed = useRef(0);
@@ -395,11 +470,12 @@ export function Wheel({
   const shifts = useRef(0);
 
   useEffect(() => {
-    soundRef.current = sound;
+    soundRef.current = still ? { ...sound, enabled: false } : sound;
+    packRef.current = pack;
     onCloseRef.current = onClose;
   });
 
-  useEffect(() => (sound.enabled ? armWheelAudio() : undefined), [sound.enabled]);
+  useEffect(() => (sound.enabled && !still ? armWheelAudio() : undefined), [sound.enabled, still]);
 
   useEffect(() => {
     if (fontsReady || !document.fonts) return;
@@ -410,20 +486,22 @@ export function Wheel({
     };
   }, [fontsReady]);
 
-  // Focus moves into the wheel and goes back where it was when the wheel leaves.
+  // Focus moves into the wheel and goes back where it was when the wheel leaves. A preview in a page
+  // waits until it is used.
   useEffect(() => {
+    if (preview) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     menuRef.current?.focus({ preventScroll: true });
     return () => {
       if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
-  }, []);
+  }, [preview]);
 
   useEffect(() => {
     if (openSoundPlayed.current) return;
     openSoundPlayed.current = true;
-    playWheelSound('open', soundRef.current);
-  }, []);
+    if (openSound) playFor(packRef.current, 'open', soundRef.current);
+  }, [openSound]);
 
   // The keyboard hover is the pointer hover: the hovered slice holds the focus, so a screen reader
   // reads it and Enter applies the slice the dial points at. When a new ring replaces the focused
@@ -431,15 +509,16 @@ export function Wheel({
   useEffect(() => {
     const slice = hover === null ? null : itemRefs.current[hover];
     const inside = dialogRef.current?.contains(document.activeElement);
+    if (preview && !inside) return;
     const target = slice ?? (inside ? null : menuRef.current);
     if (target && document.activeElement !== target) target.focus({ preventScroll: true });
-  }, [hover, generation]);
+  }, [hover, generation, preview]);
 
   // A new page or ring clicks; opening and closing a ring sound their own detent instead.
   useEffect(() => {
     if (generation === heardGeneration.current) return;
     heardGeneration.current = generation;
-    if (shift?.generation !== generation) playWheelSound('tick', soundRef.current);
+    if (shift?.generation !== generation) playFor(packRef.current, 'tick', soundRef.current);
   }, [generation, shift]);
 
   // The ghost, the sweep and the flight leave the screen once the level change has played.
@@ -475,16 +554,16 @@ export function Wheel({
   useEffect(() => {
     if (applied === applySoundPlayed.current) return;
     applySoundPlayed.current = applied;
-    if (phase === 'applying' || phase === 'applied') playWheelSound('apply', soundRef.current);
+    if (phase === 'applying' || phase === 'applied') playFor(packRef.current, 'apply', soundRef.current);
   }, [applied, phase]);
 
-  // The phases follow the timings of design/DESIGN.md, section 6.
+  // The phases follow the timings of design/DESIGN.md, section 6, or a theme's own.
   useEffect(() => {
     const steps: Partial<Record<Phase, [number, Phase]>> = {
-      opening: [openDuration(count, reducedMotion) + 30, 'open'],
-      applying: [MOTION.apply, 'applied'],
-      applied: [MOTION.hold, 'closing'],
-      closing: [closeDuration(reducedMotion), 'closed'],
+      opening: [timings.open(count, reducedMotion) + 30, 'open'],
+      applying: [timings.apply(reducedMotion), 'applied'],
+      applied: [timings.hold(reducedMotion), 'closing'],
+      closing: [timings.close(reducedMotion), 'closed'],
     };
     const step = steps[phase];
     if (!step) return;
@@ -493,9 +572,9 @@ export function Wheel({
       if (step[1] === 'closed') onCloseRef.current();
     }, step[0]);
     return () => window.clearTimeout(timer);
-  }, [phase, count, reducedMotion]);
+  }, [phase, count, reducedMotion, timings]);
 
-  const interactive = phase === 'opening' || phase === 'open';
+  const interactive = !still && (phase === 'opening' || phase === 'open');
 
   // Resting acts: on a slice with choices it opens them, on the hub it goes back a level, and during
   // a drag (where nothing can be clicked) on "More…" it pages. Once a rest has acted, whatever lies
@@ -517,7 +596,7 @@ export function Wheel({
     if (index === null) return;
     setDial((angle) => turnTo(angle, geometry[index]!.mid));
     if (!items[index]!.disabled) {
-      playWheelSound('tick', sound);
+      playFor(pack, 'tick', sound);
       onTick?.();
     }
   };
@@ -543,7 +622,7 @@ export function Wheel({
     shifts.current += 1;
     setShift({ ...next, id: shifts.current, generation: generation + 1, live: true });
     setGeneration(generation + 1);
-    playWheelSound(next.dir === 'in' ? 'enter' : 'leave', sound);
+    playFor(pack, next.dir === 'in' ? 'enter' : 'leave', sound);
     onTick?.();
   };
 
@@ -605,6 +684,11 @@ export function Wheel({
   };
 
   const deny = () => {
+    // A theme refuses in its own way (a shake unless it says otherwise).
+    if (pack) {
+      if (!reducedMotion) setDenied((n) => n + 1);
+      return;
+    }
     const element = shakeRef.current;
     if (reducedMotion || !element || typeof element.animate !== 'function') return;
     const unit = element.getBoundingClientRect().width / VIEW;
@@ -620,7 +704,7 @@ export function Wheel({
     setHover(index);
     setSelected(index);
     setDial((angle) => turnTo(angle, geometry[index]!.mid));
-    setPhase(reducedMotion ? 'applied' : 'applying');
+    setPhase(timings.apply(reducedMotion) > 0 ? 'applying' : 'applied');
     setApplied((n) => n + 1);
   };
 
@@ -783,12 +867,17 @@ export function Wheel({
   if (keyboard) classes.push('is-keyboard');
 
   const side = Math.min(440, Math.max(300, size));
+  const mode: Mode = look?.mode ?? (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
   const style = {
-    '--wheel-size': `min(${side}px, calc(100vw - 48px), calc(100vh - 112px))`,
-    '--wheel-open': `${openDuration(1, reducedMotion)}ms`,
+    // A preview takes its own colours: Settings shows every theme, whatever the app wears.
+    ...(preview && look
+      ? Object.fromEntries(Object.entries(look.theme.tokens[mode]).map(([name, value]) => [`--${name}`, value]))
+      : {}),
+    '--wheel-size': preview ? `${size}px` : `min(${side}px, calc(100vw - 48px), calc(100vh - 112px))`,
+    '--wheel-open': `${timings.open(1, reducedMotion)}ms`,
     '--wheel-stagger': `${MOTION.stagger}ms`,
     '--wheel-apply': `${MOTION.apply}ms`,
-    '--wheel-close': `${closeDuration(reducedMotion)}ms`,
+    '--wheel-close': `${timings.close(reducedMotion)}ms`,
     '--wheel-level': `${levelDuration(reducedMotion)}ms`,
   } as CSSProperties;
 
@@ -798,20 +887,104 @@ export function Wheel({
   const titleAt: [number, number] = [C, hubLayout(!!hub.subtitle, true).titleY];
   // Going in, the slice flies from its old ring; coming back, into its place in this one.
   const flyer = change ? (change.dir === 'in' ? change.parent : (faceSlices[change.origin] ?? null)) : null;
+  const itemRef = (index: number, element: SVGGElement | null) => {
+    itemRefs.current[index] = element;
+  };
 
   if (phase === 'closed') return <></>;
 
-  return createPortal(
+  const steel = (
+    <>
+      <div className="wheel-cast" />
+      <Bolts uid={uid} />
+      <div className="wheel-steel" />
+      <Face
+        uid={uid}
+        slices={faceSlices}
+        hover={hover}
+        selected={selected}
+        generation={generation}
+        entrance={entered?.dir ?? null}
+        origin={entered ? entered.origin : null}
+        wash={entered?.wash ? entered.origin : null}
+        label={shownTitle}
+        describedBy={`${uid}-help`}
+        menuRef={menuRef}
+        itemRef={itemRef}
+      />
+      {change && (
+        <Ghost key={`ghost:${change.id}`} slices={change.ghost} entrance={change.dir} origin={change.ghostOrigin} />
+      )}
+      {change &&
+        !reducedMotion &&
+        // The two halves of the slice's keyline part to the far side, or come back from it.
+        [1, -1].map((way) => (
+          <Arm
+            key={`arm:${change.id}:${way}`}
+            entrance={change.dir}
+            from={change.dir === 'in' ? change.at : change.at + way * 170}
+            to={change.dir === 'in' ? change.at + way * 170 : change.at}
+          />
+        ))}
+      <div className="wheel-layer wheel-spin">
+        <div className="wheel-layer wheel-turn" style={{ transform: `rotate(${fx(dial)}deg)` }}>
+          <div ref={detentRef} className="wheel-layer">
+            <div className="wheel-layer wheel-snap">
+              <DialScale numbers={dialNumbers} />
+              <DialIndex />
+            </div>
+          </div>
+        </div>
+      </div>
+      <FixedRing uid={uid} />
+      <Glint />
+      <Handle uid={uid} />
+      <HubCap
+        uid={uid}
+        title={hub.title}
+        subtitle={hub.subtitle}
+        trail={hub.trail}
+        raised={depth > 0}
+        entrance={shift?.dir ?? null}
+        textKey={shift?.id ?? 0}
+      />
+      {change && flyer && !reducedMotion && (
+        <Flyer key={`flyer:${change.id}`} slice={flyer} hub={titleAt} size={hub.title.size} entrance={change.dir} />
+      )}
+    </>
+  );
+
+  // A theme draws the wheel in its own way; the menu over it is the app's.
+  const themed = pack && model && (
+    <>
+      <ThemeFace
+        theme={pack}
+        mode={mode}
+        model={model}
+        phase={still ? 'still' : phase}
+        hover={hover}
+        selected={selected}
+        generation={generation}
+        applied={applied}
+        denied={denied}
+        reduced={reducedMotion}
+      />
+      <Menu slices={faceSlices} label={shownTitle} describedBy={`${uid}-help`} menuRef={menuRef} itemRef={itemRef} />
+    </>
+  );
+
+  const wheel = (
     <div
-      className={`wheel-scrim is-${phase}${overlay ? ' is-overlay' : ''}`}
+      className={`wheel-scrim is-${phase}${overlay ? ' is-overlay' : ''}${preview ? ` is-inline is-${preview}` : ''}`}
       style={style}
-      onClick={(event) => event.target === event.currentTarget && close()}
+      onClick={(event) => !preview && event.target === event.currentTarget && close()}
+      inert={still}
     >
       <div
         ref={dialogRef}
         className={classes.join(' ')}
-        role="dialog"
-        aria-modal="true"
+        role={preview ? 'group' : 'dialog'}
+        aria-modal={preview ? undefined : 'true'}
         aria-label={title}
         aria-describedby={subtitle ? `${uid}-subtitle` : undefined}
         dir={dir}
@@ -819,6 +992,7 @@ export function Wheel({
         data-kind={kind}
         data-depth={depth}
         data-level={change?.dir}
+        data-look={pack ? pack.id : undefined}
         onKeyDown={onKeyDown}
         onMouseDown={(event) => event.preventDefault()}
       >
@@ -830,79 +1004,11 @@ export function Wheel({
             onPointerLeave={onPointerLeave}
             onClick={onDiscClick}
           >
-            <div className="wheel-cast" />
-            <Bolts uid={uid} />
-            <div className="wheel-steel" />
-            <Face
-              uid={uid}
-              slices={faceSlices}
-              hover={hover}
-              selected={selected}
-              generation={generation}
-              entrance={entered?.dir ?? null}
-              origin={entered ? entered.origin : null}
-              wash={entered?.wash ? entered.origin : null}
-              label={shownTitle}
-              describedBy={`${uid}-help`}
-              menuRef={menuRef}
-              itemRef={(index, element) => {
-                itemRefs.current[index] = element;
-              }}
-            />
-            {change && (
-              <Ghost
-                key={`ghost:${change.id}`}
-                slices={change.ghost}
-                entrance={change.dir}
-                origin={change.ghostOrigin}
-              />
-            )}
-            {change &&
-              !reducedMotion &&
-              // The two halves of the slice's keyline part to the far side, or come back from it.
-              [1, -1].map((way) => (
-                <Arm
-                  key={`arm:${change.id}:${way}`}
-                  entrance={change.dir}
-                  from={change.dir === 'in' ? change.at : change.at + way * 170}
-                  to={change.dir === 'in' ? change.at + way * 170 : change.at}
-                />
-              ))}
-            <div className="wheel-layer wheel-spin">
-              <div className="wheel-layer wheel-turn" style={{ transform: `rotate(${fx(dial)}deg)` }}>
-                <div ref={detentRef} className="wheel-layer">
-                  <div className="wheel-layer wheel-snap">
-                    <DialScale numbers={dialNumbers} />
-                    <DialIndex />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <FixedRing uid={uid} />
-            <Glint />
-            <Handle uid={uid} />
-            <HubCap
-              uid={uid}
-              title={hub.title}
-              subtitle={hub.subtitle}
-              trail={hub.trail}
-              raised={depth > 0}
-              entrance={shift?.dir ?? null}
-              textKey={shift?.id ?? 0}
-            />
-            {change && flyer && !reducedMotion && (
-              <Flyer
-                key={`flyer:${change.id}`}
-                slice={flyer}
-                hub={titleAt}
-                size={hub.title.size}
-                entrance={change.dir}
-              />
-            )}
+            {themed || steel}
             {depth > 0 && (
               <button
                 type="button"
-                className="wheel-back"
+                className={pack ? 'wheel-back is-corner' : 'wheel-back'}
                 tabIndex={-1}
                 aria-keyshortcuts="Escape Backspace"
                 disabled={!interactive}
@@ -934,7 +1040,8 @@ export function Wheel({
           {announcement}
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
+
+  return preview ? wheel : createPortal(wheel, document.body);
 }

@@ -1,0 +1,326 @@
+/* SPDX-License-Identifier: MIT */
+/* Retro technology: Çevirmeli telefon (rotary phone dial). */
+
+[data-concept='telefon'] {
+  --radius: 12px;
+  --radius-sm: 8px;
+  --icon-stroke: 1.7;
+}
+[data-concept='telefon'] .wheel {
+  font-family: var(--font-brand);
+}
+/* The shadow the phone casts on the table. */
+[data-concept='telefon'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 1%;
+  border-radius: 50%;
+  box-shadow:
+    0 2px 3px var(--tl-shade),
+    0 16px 36px var(--wheel-shadow);
+}
+[data-concept='telefon']
+  :is(.tl-body, .tl-fw-open, .tl-spec, .tl-stop, .tl-stop-shade, .tl-hub, .tl-ink, .tl-disc, .tl-ring) {
+  pointer-events: none;
+}
+[data-concept='telefon'] :is(.tl-fw-open, .tl-fw, .tl-card, .tl-ink) {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='telefon'] .tl-body-edge {
+  fill: none;
+  stroke: var(--tl-body-lo);
+  stroke-width: 1.4;
+  stroke-opacity: 0.7;
+}
+[data-concept='telefon'] .tl-plate {
+  fill: var(--wheel-face);
+}
+[data-concept='telefon'] .tl-hit {
+  fill: transparent;
+}
+
+/* The printed disc under each hole: tinted on hover, red once dialed. */
+[data-concept='telefon'] .tl-disc {
+  fill: var(--wheel-slice);
+  transition: fill 90ms;
+}
+[data-concept='telefon'] .tl-ring {
+  fill: none;
+  stroke: var(--tl-ring);
+  stroke-width: 2.6;
+  opacity: 0;
+  transition: opacity 90ms;
+}
+[data-concept='telefon'] .slice.is-hover .tl-disc {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='telefon'] .slice.is-hover:not(.is-off) .tl-ring {
+  opacity: 1;
+}
+[data-concept='telefon'] .slice.is-selected .tl-disc {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='telefon'] .slice.is-selected .tl-ring {
+  opacity: 0;
+}
+[data-concept='telefon'] .tl-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='telefon'] .slice.is-selected .tl-ink {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='telefon'] .slice.is-off .tl-ink {
+  opacity: 0.4;
+}
+[data-concept='telefon'] .tl-lbl {
+  font-weight: 560;
+}
+[data-concept='telefon'] .tl-fmt {
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+[data-concept='telefon'] .tl-sub {
+  fill: var(--tl-sub);
+  font-weight: 500;
+}
+[data-concept='telefon'] .slice.is-selected .tl-sub {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='telefon'] .slice .ico {
+  stroke-width: 1.7;
+}
+
+/* Finger wheel */
+[data-concept='telefon'] .tl-bevel {
+  fill: none;
+  stroke: var(--tl-bevel);
+  stroke-width: 1.8;
+  stroke-opacity: 0.55;
+}
+[data-concept='telefon'] .tl-dot {
+  fill: var(--tl-dot);
+  opacity: 0.85;
+}
+[data-concept='telefon'] .tl-fw-edge {
+  fill: none;
+  stroke: var(--tl-bevel);
+  stroke-width: 1.2;
+  stroke-opacity: 0.45;
+}
+[data-concept='telefon'] .tl-spec-hi {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: var(--tl-spec-opacity);
+}
+[data-concept='telefon'] .tl-spec-lo {
+  fill: none;
+  stroke: var(--tl-bevel);
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0.18;
+}
+
+/* Finger stop */
+[data-concept='telefon'] .tl-stop-shade path {
+  fill: none;
+  stroke: var(--tl-shade);
+  stroke-width: 11;
+  stroke-linecap: round;
+}
+[data-concept='telefon'] .tl-stop-edge {
+  fill: none;
+  stroke: var(--tl-chrome-edge);
+  stroke-width: 12.5;
+  stroke-linecap: round;
+}
+[data-concept='telefon'] .tl-stop-metal {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+[data-concept='telefon'] .tl-stop-hi {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-opacity: 0.75;
+}
+[data-concept='telefon'] .tl-screw {
+  stroke: var(--tl-chrome-edge);
+  stroke-width: 1;
+}
+[data-concept='telefon'] .tl-screw-slot {
+  stroke: var(--tl-chrome-edge);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+/* Hub: retaining ring, number card, clear cover */
+[data-concept='telefon'] .tl-ret-edge {
+  fill: none;
+  stroke: var(--tl-chrome-edge);
+  stroke-width: 1.1;
+}
+[data-concept='telefon'] .tl-card-paper {
+  fill: var(--tl-card);
+  stroke: var(--tl-chrome-edge);
+  stroke-width: 1;
+}
+[data-concept='telefon'] .tl-card-frame {
+  fill: none;
+  stroke: var(--tl-print);
+  stroke-width: 0.7;
+  stroke-opacity: 0.55;
+}
+[data-concept='telefon'] .tl-card-rule {
+  stroke: var(--tl-rule);
+  stroke-width: 1.1;
+}
+[data-concept='telefon'] .tl-title {
+  fill: var(--tl-print);
+  font-weight: 650;
+  letter-spacing: 0.03em;
+}
+[data-concept='telefon'] .tl-file {
+  fill: var(--tl-ink);
+  font-family: var(--font-accent-face), cursive;
+  font-weight: 600;
+}
+[data-concept='telefon'] .tl-key {
+  fill: var(--tl-key);
+  stroke: var(--tl-print);
+  stroke-width: 0.8;
+  stroke-opacity: 0.6;
+}
+[data-concept='telefon'] .tl-keytext {
+  fill: var(--tl-print);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+[data-concept='telefon'] .tl-cover {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+[data-concept='telefon'] .tl-cover-lo {
+  stroke-width: 1.6;
+  opacity: 0.45;
+}
+[data-concept='telefon'] .tl-bell {
+  opacity: 0;
+}
+[data-concept='telefon'] .tl-bell-arc {
+  fill: none;
+  stroke: var(--tl-chrome-hi);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+/* Open: the body settles from 94 % while the finger wheel swings in from a quarter turn back. */
+[data-concept='telefon'] .wheel-svg,
+[data-concept='telefon'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept='telefon'] .wheel.is-opening .wheel-svg,
+[data-concept='telefon'] .wheel.is-opening::before {
+  animation: telefon-in var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='telefon'] .wheel.is-opening .tl-fw-open {
+  animation: telefon-swing calc(var(--dur-open) + 6 * var(--stagger)) cubic-bezier(0.25, 1.35, 0.45, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='telefon'] .wheel.is-opening :is(.tl-disc, .tl-ink) {
+  animation: telefon-fade calc(var(--dur-open) * 0.7) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='telefon'] .wheel.is-closing .wheel-svg,
+[data-concept='telefon'] .wheel.is-closing::before {
+  animation: telefon-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='telefon'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='telefon'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='telefon'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept='telefon'] .wheel.is-open.is-denied::before {
+  animation: deny 260ms ease;
+}
+@keyframes telefon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes telefon-swing {
+  from {
+    transform: rotate(-80deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes telefon-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes telefon-out {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+/* The finger wheel's turn and the bell are drawn by the concept's script; here the chosen disc is
+   pressed: it darkens under the finger, then settles into the dialed red. */
+[data-concept='telefon'] .wheel.is-applying .slice.is-selected .tl-disc {
+  animation: telefon-press 700ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='telefon'] .wheel.is-applying .slice.is-selected .tl-ink {
+  animation: telefon-ink 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+@keyframes telefon-press {
+  0% {
+    fill: var(--wheel-slice-hover);
+  }
+  8% {
+    fill: var(--tl-sub);
+  }
+  30%,
+  100% {
+    fill: var(--wheel-slice-selected);
+  }
+}
+@keyframes telefon-ink {
+  0%,
+  7% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  9%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}

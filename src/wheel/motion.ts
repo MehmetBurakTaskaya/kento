@@ -38,3 +38,21 @@ export function levelDuration(reduced: boolean): number {
 export function applyDuration(reduced: boolean): number {
   return (reduced ? 0 : MOTION.apply) + MOTION.hold;
 }
+
+/** The phases of a wheel in milliseconds: each theme times its own. */
+export interface WheelTimings {
+  /** From the start of the open animation until the wheel is fully open. */
+  open(slices: number, reduced: boolean): number;
+  /** The apply effect; 0 skips it. */
+  apply(reduced: boolean): number;
+  /** From the end of the apply effect until the wheel starts to close. */
+  hold(reduced: boolean): number;
+  close(reduced: boolean): number;
+}
+
+export const STEEL_TIMINGS: WheelTimings = {
+  open: openDuration,
+  apply: (reduced) => (reduced ? 0 : MOTION.apply),
+  hold: () => MOTION.hold,
+  close: closeDuration,
+};

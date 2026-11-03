@@ -1,0 +1,298 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Pop-art comic. Thick ink, flat primaries, Ben-Day dots and a jagged burst. */
+
+[data-concept='popart'] {
+  --radius: 4px;
+  --radius-sm: 3px;
+}
+[data-concept='popart'] .wheel {
+  font-family: var(--font-brand);
+}
+
+[data-concept='popart'] .pa-drop {
+  fill: var(--wheel-shadow);
+}
+[data-concept='popart'] .pa-balloon {
+  fill: var(--pa-paper);
+  stroke: var(--pa-ink);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+/* Panels: each owns a primary; dots in that primary, a flat flood when pointed at. */
+[data-concept='popart'] .pa-red {
+  --pa-c: var(--pa-red);
+  --pa-dot: var(--pa-red-dot);
+  --pa-dot-dark: var(--pa-red-dark);
+  --pa-on: var(--pa-on-red);
+  --pa-on-halo: var(--pa-red-halo);
+}
+[data-concept='popart'] .pa-yellow {
+  --pa-c: var(--pa-yellow);
+  --pa-dot: var(--pa-yellow-dot);
+  --pa-dot-dark: var(--pa-yellow-dark);
+  --pa-on: var(--pa-on-yellow);
+  --pa-on-halo: var(--pa-yellow-halo);
+}
+[data-concept='popart'] .pa-blue {
+  --pa-c: var(--pa-blue);
+  --pa-dot: var(--pa-blue-dot);
+  --pa-dot-dark: var(--pa-blue-dark);
+  --pa-on: var(--pa-on-blue);
+  --pa-on-halo: var(--pa-blue-halo);
+}
+/* Lettering keeps a halo in the panel's color, so dots never touch it; white lettering on a
+   flooded panel gets a black comic outline instead. */
+[data-concept='popart'] .slice {
+  --pa-halo: var(--pa-panel);
+}
+[data-concept='popart'] .slice.is-hover {
+  --pa-halo: var(--pa-on-halo);
+}
+[data-concept='popart'] .slice.is-selected {
+  --pa-halo: var(--pa-burst);
+}
+[data-concept='popart'] .pa-hit {
+  fill: transparent;
+}
+[data-concept='popart'] .pa-panel {
+  fill: var(--pa-panel);
+}
+[data-concept='popart'] .pa-dots {
+  fill: var(--pa-dot);
+}
+[data-concept='popart'] .pa-ink-edge {
+  fill: none;
+  stroke: var(--pa-ink);
+  stroke-width: 4.5;
+  stroke-linejoin: round;
+}
+[data-concept='popart'] .pa-lift {
+  transition: transform 110ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+[data-concept='popart'] .pa-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='popart'] .pa-lbl,
+[data-concept='popart'] .pa-sub {
+  paint-order: stroke;
+  stroke: var(--pa-halo);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+[data-concept='popart'] .pa-fmt {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+[data-concept='popart'] .pa-word {
+  font-weight: 700;
+}
+[data-concept='popart'] .pa-sub {
+  fill: var(--pa-sub);
+  font-weight: 700;
+}
+[data-concept='popart'] .slice .ico {
+  stroke-width: 2.2;
+}
+
+[data-concept='popart'] .slice.is-hover .pa-panel,
+[data-concept='popart'] .slice.is-selected .pa-panel {
+  fill: var(--pa-c);
+}
+[data-concept='popart'] .slice.is-hover .pa-dots,
+[data-concept='popart'] .slice.is-selected .pa-dots {
+  fill: var(--pa-dot-dark);
+}
+[data-concept='popart'] .slice.is-hover .pa-lift,
+[data-concept='popart'] .slice.is-selected .pa-lift {
+  transform: translate(var(--dx), var(--dy));
+}
+[data-concept='popart'] .slice.is-hover .pa-ink,
+[data-concept='popart'] .slice.is-hover .pa-sub {
+  fill: var(--pa-on);
+  color: var(--pa-on);
+}
+[data-concept='popart'] .slice.is-off .pa-ink {
+  opacity: 0.4;
+}
+
+/* The burst: hidden until applied, then it stays behind the label. */
+[data-concept='popart'] .pa-fx {
+  pointer-events: none;
+}
+[data-concept='popart'] .pa-burst {
+  opacity: 0;
+}
+[data-concept='popart'] .pa-burst-shape {
+  fill: var(--pa-burst);
+  stroke: var(--pa-burst-edge);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+[data-concept='popart'] .pa-impact {
+  opacity: 0;
+}
+[data-concept='popart'] .pa-impact-line {
+  fill: none;
+  stroke: var(--pa-impact);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+[data-concept='popart'] .slice.is-selected .pa-burst {
+  opacity: 1;
+}
+[data-concept='popart'] .slice.is-selected .pa-ink,
+[data-concept='popart'] .slice.is-selected .pa-sub {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+
+/* Hub */
+[data-concept='popart'] .pa-hub {
+  fill: var(--pa-hub);
+  stroke: var(--pa-ink);
+  stroke-width: 4.5;
+}
+[data-concept='popart'] .pa-title {
+  fill: var(--pa-hub-text);
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+}
+[data-concept='popart'] .pa-file {
+  fill: var(--pa-hub-muted);
+  font-weight: 700;
+}
+[data-concept='popart'] .pa-key {
+  fill: var(--pa-key);
+  stroke: var(--pa-ink);
+  stroke-width: 2.5;
+}
+[data-concept='popart'] .pa-keytext {
+  fill: var(--pa-key-text);
+  font: 400 12px var(--font-display);
+  letter-spacing: 0.08em;
+}
+/* Open: the balloon pops up with an overshoot, the panels' lettering jumps in. */
+[data-concept='popart'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='popart'] .wheel.is-opening .wheel-svg {
+  animation: popart-pop-in var(--dur-open) cubic-bezier(0.25, 1.6, 0.45, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='popart'] .wheel.is-opening .pa-ink {
+  animation: popart-jump var(--dur-open) cubic-bezier(0.3, 1.8, 0.5, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='popart'] .wheel.is-closing .wheel-svg {
+  animation: popart-close var(--dur-close) cubic-bezier(0.5, 0, 1, 1) both;
+}
+@keyframes popart-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes popart-jump {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes popart-close {
+  to {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+[data-concept='popart'] .pa-ink {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* Apply: the panel jolts, the burst pops with an overshoot, impact lines fly out. */
+[data-concept='popart'] .wheel.is-applying .slice.is-selected .pa-lift {
+  animation: popart-jolt 260ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='popart'] .wheel.is-applying .slice.is-selected .pa-burst {
+  animation: popart-burst 420ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  animation-delay: calc(30ms - var(--t, 0ms));
+}
+[data-concept='popart'] .wheel.is-applying .slice.is-selected .pa-impact {
+  animation: popart-impact 420ms cubic-bezier(0.1, 0.7, 0.3, 1) both;
+  animation-delay: calc(70ms - var(--t, 0ms));
+}
+[data-concept='popart'] .wheel.is-applying .slice.is-selected .pa-ink,
+[data-concept='popart'] .wheel.is-applying .slice.is-selected .pa-sub {
+  animation: popart-ink 120ms steps(1, jump-end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes popart-jolt {
+  0% {
+    transform: translate(var(--dx), var(--dy));
+  }
+  15% {
+    transform: translate(calc(var(--dx) + 4px), calc(var(--dy) - 3px));
+  }
+  32% {
+    transform: translate(calc(var(--dx) - 4px), calc(var(--dy) + 2px));
+  }
+  50% {
+    transform: translate(calc(var(--dx) + 2px), calc(var(--dy) + 2px));
+  }
+  70% {
+    transform: translate(calc(var(--dx) - 1px), var(--dy));
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+@keyframes popart-burst {
+  0% {
+    opacity: 1;
+    transform: scale(0) rotate(-24deg);
+  }
+  55% {
+    transform: scale(1.22) rotate(6deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes popart-impact {
+  0% {
+    opacity: 1;
+    transform: scale(0.65);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+@keyframes popart-ink {
+  from {
+    fill: var(--pa-on);
+    color: var(--pa-on);
+  }
+  to {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}

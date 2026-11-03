@@ -4,7 +4,6 @@ import './styles/global.css';
 import './styles/work.css';
 import './styles/surfaces.css';
 import './styles/web.css';
-import './theme/steel';
 import { isTauri } from '@tauri-apps/api/core';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -15,7 +14,7 @@ import { WheelSurface } from './surfaces/WheelSurface';
 import { initI18n } from './i18n';
 import { api, type Section } from './ipc';
 import { useApp } from './state/store';
-import { applyTheme, getTheme, modeFor } from './theme/registry';
+import { modeFor, showTheme } from './theme/registry';
 
 const SECTIONS: Section[] = ['home', 'library', 'automation', 'settings'];
 // The floating wheel, the shelf and the corner card load this page in windows of their own.
@@ -31,9 +30,10 @@ async function start() {
   // The tray's "Check for updates" and Ctrl+U in another window open Settings › Updates.
   if (section === 'updates') store.showUpdates();
   document.documentElement.dataset.platform = boot.app.platform;
-  // Paint the first frame in the right theme; App keeps it in step afterwards.
+  // Paint the first frame in the right theme, with its pack loaded, so every window (the floating
+  // wheel's too) opens its wheel at once; App and the surfaces keep it in step afterwards.
   const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  applyTheme(document.documentElement, getTheme(boot.settings.theme), modeFor(boot.settings.appearance, dark));
+  await showTheme(document.documentElement, boot.settings.theme, modeFor(boot.settings.appearance, dark));
   const surface = new URLSearchParams(window.location.search).get('surface') as keyof typeof SURFACES | null;
   const Surface = surface ? SURFACES[surface] : undefined;
   if (Surface) document.documentElement.dataset.surface = surface!;

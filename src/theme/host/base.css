@@ -1,0 +1,113 @@
+/* SPDX-License-Identifier: MIT */
+/* What every theme's wheel stands on, inside its shadow root: the faces and sizes a theme's styles
+   expect, the shared states of the wheel and the short fade that replaces every animation when motion
+   is reduced. A theme's own styles come after these and may restyle all of it. */
+
+:host {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+[data-concept] {
+  --font-brand-face: system-ui;
+  --font-display-face: var(--font-brand-face);
+  --font-accent-face: var(--font-display-face);
+  --font-brand: var(--font-brand-face), 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: var(--font-display-face), var(--font-brand);
+  --font-mono: 'Cascadia Mono', 'SF Mono', ui-monospace, Consolas, monospace;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --icon-stroke: 1.75;
+  position: absolute;
+  inset: 0;
+  color: var(--text);
+  font: 15px/1.5 var(--font-brand);
+  -webkit-font-smoothing: antialiased;
+}
+:lang(zh-Hans),
+:lang(zh) {
+  font-family: var(--font-brand-face), 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+:lang(ja) {
+  font-family: var(--font-brand-face), 'Yu Gothic UI', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+}
+:lang(ko) {
+  font-family: var(--font-brand-face), 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+}
+:lang(ar) {
+  font-family: var(--font-brand-face), 'Segoe UI', 'SF Arabic', 'Geeza Pro', sans-serif;
+}
+
+.ico {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wheel {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.wheel-svg {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.wheel .slice {
+  cursor: pointer;
+}
+.wheel .slice.is-off {
+  cursor: not-allowed;
+}
+.wheel.is-closed .wheel-svg {
+  visibility: hidden;
+}
+.wheel.is-denied .wheel-svg {
+  animation: deny 260ms ease;
+}
+@keyframes deny {
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+/* Reduced motion: every theme falls back to a short fade. */
+.wheel.is-opening-reduced .wheel-svg {
+  animation: fade-in 90ms linear both;
+}
+.wheel.is-closing-reduced .wheel-svg {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* A still frame: the theme's animations stop at --t. */
+.wheel.is-frozen,
+.wheel.is-frozen *,
+.wheel.is-frozen::before,
+.wheel.is-frozen::after,
+.wheel.is-frozen *::before,
+.wheel.is-frozen *::after {
+  animation-play-state: paused !important;
+}

@@ -14,6 +14,7 @@ import { isRtl } from '../i18n';
 import { api, type DragOver, type FileEntry, type WheelKey, type WheelSession } from '../ipc';
 import { useApp } from '../state/store';
 import { siteName } from '../web/links';
+import { useLook } from '../theme/registry';
 import { Wheel, type WheelControl } from '../wheel/Wheel';
 import { reducedMotion, useSurface } from './useSurface';
 
@@ -29,6 +30,8 @@ export function WheelSurface() {
   // A web address the drag carries instead of files.
   const [link, setLink] = useState<string | null>(null);
   const [ring, setRing] = useState<Ring | null>(null);
+  // The theme's pack loaded with the window, so the wheel opens at once in any theme.
+  const look = useLook(settings?.theme ?? 'steel', settings?.appearance ?? 'system');
   const control = useRef<WheelControl>(null);
   const sessionRef = useRef<WheelSession | null>(null);
 
@@ -174,6 +177,8 @@ export function WheelSurface() {
       sound={settings.sound}
       reducedMotion={reducedMotion()}
       size={settings.wheelSize}
+      look={look}
+      keyName={session.kind === 'window' ? '' : t(`key.${settings.wheels[session.kind]}.${mac ? 'mac' : 'windows'}`)}
       onTick={mac ? () => void api.haptic() : undefined}
       onClose={finish}
       onApply={(id, trail) => carry(view.choose(id, trail))}

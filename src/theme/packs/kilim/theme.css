@@ -1,0 +1,258 @@
+/* SPDX-License-Identifier: MIT */
+/* Kilim: a round flat-woven medallion on one weave grid. */
+
+[data-concept='kilim'] {
+  --radius: 4px;
+  --radius-sm: 3px;
+  --icon-stroke: 2;
+}
+
+/* The rug lies on the desk with a soft shadow. */
+[data-concept='kilim'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  box-shadow:
+    0 9px 22px var(--wheel-shadow),
+    0 2px 4px var(--wheel-shadow);
+}
+[data-concept='kilim'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+
+[data-concept='kilim'] .kl-fringe,
+[data-concept='kilim'] .kl-base,
+[data-concept='kilim'] .kl-tex,
+[data-concept='kilim'] .kl-rows {
+  pointer-events: none;
+}
+[data-concept='kilim'] .kl-thread {
+  fill: none;
+  stroke: var(--kl-fringe);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='kilim'] .kl-knot {
+  fill: none;
+  stroke: var(--kl-knot);
+  stroke-width: 3;
+  stroke-linecap: butt;
+}
+[data-concept='kilim'] .kl-border {
+  fill: var(--kl-border);
+}
+[data-concept='kilim'] .kl-dot {
+  fill: var(--kl-dot);
+}
+[data-concept='kilim'] .kl-ring {
+  fill: var(--kl-ring);
+}
+[data-concept='kilim'] .kl-div {
+  fill: var(--wheel-line);
+}
+[data-concept='kilim'] .kl-band-div {
+  fill: var(--kl-band-div);
+}
+[data-concept='kilim'] .kl-tex {
+  opacity: var(--kl-weave-opacity);
+}
+
+[data-concept='kilim'] .kl-field {
+  fill: var(--wheel-slice);
+  transition: fill 110ms;
+}
+[data-concept='kilim'] .slice.is-hover .kl-field {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='kilim'] .kl-band {
+  fill: var(--kl-band);
+}
+[data-concept='kilim'] .kl-motif {
+  fill: var(--kl-motif);
+  transition: fill 110ms;
+}
+[data-concept='kilim'] .kl-motif-2 {
+  fill: var(--kl-motif-2);
+}
+[data-concept='kilim'] .slice.is-hover .kl-motif {
+  fill: var(--kl-sel-motif);
+}
+[data-concept='kilim'] .kl-sel-field {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='kilim'] .kl-sel-main {
+  fill: var(--kl-sel-motif);
+}
+[data-concept='kilim'] .kl-sel-second {
+  fill: var(--kl-sel-motif-2);
+}
+
+[data-concept='kilim'] .kl-ink {
+  color: var(--wheel-text);
+}
+[data-concept='kilim'] .kl-lbl {
+  fill: var(--wheel-text);
+  font-weight: 700;
+}
+[data-concept='kilim'] .kl-fmt {
+  letter-spacing: 0.03em;
+}
+[data-concept='kilim'] .kl-sub {
+  fill: var(--kl-sub);
+  font-weight: 600;
+}
+[data-concept='kilim'] .slice.is-selected .kl-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='kilim'] .slice.is-selected .kl-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='kilim'] .slice.is-selected .kl-sub {
+  fill: var(--kl-sub-selected);
+}
+[data-concept='kilim'] .slice.is-off .kl-ink {
+  opacity: 0.4;
+}
+
+[data-concept='kilim'] .kl-hub-edge {
+  fill: var(--kl-hub-edge);
+}
+[data-concept='kilim'] .kl-hub-ring {
+  fill: var(--kl-hub-ring);
+}
+[data-concept='kilim'] .kl-hub-fill {
+  fill: var(--kl-hub);
+}
+[data-concept='kilim'] .kl-title {
+  fill: var(--kl-title);
+  font-weight: 700;
+}
+[data-concept='kilim'] .kl-file {
+  fill: var(--kl-file);
+  font-weight: 500;
+}
+[data-concept='kilim'] .kl-key {
+  fill: var(--kl-key);
+}
+[data-concept='kilim'] .kl-keytext {
+  fill: var(--kl-keytext);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Apply: each weft row shoots in from alternate sides, bottom row first. */
+[data-concept='kilim'] .kl-row {
+  transform-box: fill-box;
+}
+[data-concept='kilim'] .kl-row-l {
+  transform-origin: 0% 50%;
+}
+[data-concept='kilim'] .kl-row-r {
+  transform-origin: 100% 50%;
+}
+[data-concept='kilim'] .wheel.is-applying .kl-row {
+  animation: kilim-weft 110ms cubic-bezier(0.3, 0.6, 0.4, 1) both;
+  animation-delay: calc(var(--k) * var(--per) - var(--t, 0ms));
+}
+[data-concept='kilim'] .wheel.is-applying .slice.is-selected .kl-lbl {
+  animation: kilim-ink 520ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kilim'] .wheel.is-applying .slice.is-selected .kl-sub {
+  animation: kilim-ink-sub 520ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes kilim-weft {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes kilim-ink {
+  0%,
+  38% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  52%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes kilim-ink-sub {
+  0%,
+  34% {
+    fill: var(--kl-sub);
+  }
+  48%,
+  100% {
+    fill: var(--kl-sub-selected);
+  }
+}
+
+/* Open: the kilim unrolls downward; close: it rolls back up. */
+[data-concept='kilim'] .wheel.is-opening .wheel-svg {
+  animation: kilim-unroll var(--dur-open) cubic-bezier(0.25, 0.8, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kilim'] .wheel.is-opening::before {
+  animation: kilim-shadow var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kilim'] .wheel.is-opening .kl-ink {
+  animation: kilim-fade calc(var(--dur-open) * 0.8) ease-out both;
+  animation-delay: calc(60ms + var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='kilim'] .wheel.is-closing .wheel-svg {
+  animation: kilim-rollup var(--dur-close) cubic-bezier(0.5, 0, 0.9, 0.6) both;
+}
+[data-concept='kilim'] .wheel.is-closing::before {
+  animation: kilim-shadow var(--dur-close) ease-in reverse both;
+}
+[data-concept='kilim'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='kilim'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes kilim-unroll {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-6px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+@keyframes kilim-rollup {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-4px);
+  }
+}
+@keyframes kilim-shadow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kilim-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

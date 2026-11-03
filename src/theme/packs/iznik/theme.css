@@ -1,0 +1,377 @@
+/* SPDX-License-Identifier: MIT */
+/* İznik tile rosette. */
+
+[data-concept='iznik'] {
+  --radius: 10px;
+  --radius-sm: 7px;
+  --icon-stroke: 1.8;
+}
+
+/* The tile sits on the desk with a soft shadow. */
+[data-concept='iznik'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 1.3%;
+  border-radius: 50%;
+  box-shadow:
+    0 12px 30px var(--wheel-shadow),
+    0 2px 6px var(--wheel-shadow);
+}
+[data-concept='iznik'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+
+[data-concept='iznik'] .iz-face {
+  fill: var(--wheel-face);
+}
+[data-concept='iznik'] .iz-seg {
+  fill: var(--wheel-slice);
+  transition: fill 120ms;
+}
+[data-concept='iznik'] .slice.is-hover .iz-seg {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='iznik'] .slice.is-selected .iz-seg {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='iznik'] .iz-band {
+  fill: var(--iz-band);
+  transition: fill 120ms;
+}
+[data-concept='iznik'] .slice.is-hover .iz-band,
+[data-concept='iznik'] .slice.is-selected .iz-band {
+  fill: var(--iz-band-hover);
+}
+
+/* Cartouches and flowers. */
+[data-concept='iznik'] .iz-cart-bg {
+  fill: var(--iz-cart);
+  stroke: var(--iz-cart-line);
+  stroke-width: 1.3;
+  transition: fill 120ms;
+}
+[data-concept='iznik'] .slice.is-hover .iz-cart-bg {
+  fill: var(--iz-cart-hover);
+}
+[data-concept='iznik'] .slice.is-selected .iz-cart-bg {
+  fill: var(--iz-cart-selected);
+}
+[data-concept='iznik'] .iz-leaf {
+  fill: var(--iz-green);
+}
+[data-concept='iznik'] .iz-stem {
+  fill: none;
+  stroke: var(--iz-stem);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+[data-concept='iznik'] .iz-red {
+  fill: var(--iz-red);
+  stroke: var(--iz-red-edge);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
+[data-concept='iznik'] .iz-sprig {
+  fill: var(--iz-green);
+}
+[data-concept='iznik'] .iz-bud {
+  fill: var(--iz-turq);
+}
+[data-concept='iznik'] .iz-heart,
+[data-concept='iznik'] .iz-cup {
+  fill: var(--iz-turq);
+}
+[data-concept='iznik'] .iz-stripe {
+  fill: none;
+  stroke: var(--iz-red-edge);
+  stroke-width: 0.6;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+[data-concept='iznik'] .iz-flower {
+  transform-box: fill-box;
+  transform-origin: 50% 85%;
+}
+
+/* Line work. */
+[data-concept='iznik'] .iz-lines {
+  pointer-events: none;
+}
+[data-concept='iznik'] .iz-div {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+[data-concept='iznik'] .iz-ring {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 2.2;
+}
+[data-concept='iznik'] .iz-ring-turq {
+  fill: none;
+  stroke: var(--iz-turq);
+  stroke-width: 3;
+}
+[data-concept='iznik'] .iz-band-edge {
+  fill: none;
+  stroke: var(--iz-band-line);
+  stroke-width: 1;
+  opacity: 0.85;
+}
+[data-concept='iznik'] .iz-rim {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 1.6;
+}
+[data-concept='iznik'] .iz-quat {
+  fill: var(--iz-band-line);
+}
+[data-concept='iznik'] .iz-glaze {
+  opacity: var(--iz-glaze-opacity);
+}
+
+/* Labels. */
+[data-concept='iznik'] .iz-ink {
+  color: var(--wheel-text);
+}
+[data-concept='iznik'] .iz-lbl {
+  fill: var(--wheel-text);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+[data-concept='iznik'] .iz-fmt {
+  letter-spacing: 0.02em;
+}
+[data-concept='iznik'] .iz-word {
+  font-family: var(--font-brand);
+}
+[data-concept='iznik'] .iz-sub {
+  fill: var(--iz-sub);
+  font-family: var(--font-brand);
+  font-weight: 500;
+}
+[data-concept='iznik'] .slice.is-selected .iz-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='iznik'] .slice.is-selected .iz-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='iznik'] .slice.is-selected .iz-sub {
+  fill: var(--iz-sub-selected);
+}
+[data-concept='iznik'] .slice.is-off .iz-ink {
+  opacity: 0.4;
+}
+
+/* Hub rosette. */
+[data-concept='iznik'] .iz-rose-bed {
+  fill: var(--iz-rose-bed);
+  stroke: var(--wheel-line);
+  stroke-width: 1.6;
+}
+[data-concept='iznik'] .iz-petal-a {
+  fill: var(--iz-petal-a);
+}
+[data-concept='iznik'] .iz-petal-b {
+  fill: var(--iz-petal-b);
+}
+[data-concept='iznik'] .iz-rose-dot {
+  fill: var(--iz-rose-dot);
+}
+[data-concept='iznik'] .iz-hub-disc {
+  fill: var(--iz-hub);
+  stroke: var(--wheel-line);
+  stroke-width: 2;
+}
+[data-concept='iznik'] .iz-hub-ring {
+  fill: none;
+  stroke: var(--iz-hub-ring);
+  stroke-width: 1;
+}
+[data-concept='iznik'] .iz-title {
+  fill: var(--iz-title);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+[data-concept='iznik'] .iz-file {
+  fill: var(--iz-file);
+  font-weight: 500;
+}
+[data-concept='iznik'] .iz-key {
+  fill: var(--iz-key);
+  stroke: var(--iz-key-line);
+  stroke-width: 1;
+}
+[data-concept='iznik'] .iz-keytext {
+  fill: var(--iz-keytext);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Apply: cobalt glaze floods the panel from the hub, the flower swells, a shine sweeps across. */
+[data-concept='iznik'] .iz-fx,
+[data-concept='iznik'] .iz-spark {
+  display: none;
+  pointer-events: none;
+}
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-fx,
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-spark {
+  display: inline;
+}
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-seg {
+  fill: var(--wheel-slice-hover);
+  transition: none;
+}
+[data-concept='iznik'] .iz-flood {
+  fill: var(--iz-flood);
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='iznik'] .iz-gloss {
+  opacity: var(--iz-gloss-opacity);
+}
+[data-concept='iznik'] .iz-spark {
+  fill: #ffffff;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-flood {
+  animation: iznik-flood 300ms cubic-bezier(0.25, 0.8, 0.25, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-gloss {
+  animation: iznik-sweep 420ms cubic-bezier(0.45, 0, 0.3, 1) both;
+  animation-delay: calc(190ms - var(--t, 0ms));
+}
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-flower {
+  animation: iznik-bloom 480ms ease-out both;
+  animation-delay: calc(110ms - var(--t, 0ms));
+}
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-spark {
+  animation: iznik-spark 280ms ease-out both;
+  animation-delay: calc(360ms - var(--t, 0ms));
+}
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-lbl {
+  animation: iznik-ink 300ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='iznik'] .wheel.is-applying .slice.is-selected .iz-sub {
+  animation: iznik-ink-sub 300ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes iznik-flood {
+  from {
+    transform: scale(0.5);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes iznik-sweep {
+  from {
+    transform: translateX(-140px);
+  }
+  to {
+    transform: translateX(140px);
+  }
+}
+@keyframes iznik-bloom {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.24);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes iznik-spark {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.15) rotate(20deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.2) rotate(45deg);
+    opacity: 0;
+  }
+}
+@keyframes iznik-ink {
+  0%,
+  35% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  70%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes iznik-ink-sub {
+  0%,
+  35% {
+    fill: var(--iz-sub);
+  }
+  70%,
+  100% {
+    fill: var(--iz-sub-selected);
+  }
+}
+
+/* Open: the rosette turns a few degrees into place; panels fade in round the ring. */
+[data-concept='iznik'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='iznik'] .wheel.is-opening .wheel-svg,
+[data-concept='iznik'] .wheel.is-opening::before {
+  animation: iznik-open var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1.08) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='iznik'] .wheel.is-opening .iz-ink {
+  animation: iznik-fade var(--dur-open) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='iznik'] .wheel.is-closing .wheel-svg,
+[data-concept='iznik'] .wheel.is-closing::before {
+  animation: iznik-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='iznik'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='iznik'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes iznik-open {
+  from {
+    opacity: 0;
+    transform: scale(0.88) rotate(-9deg);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes iznik-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes iznik-close {
+  to {
+    opacity: 0;
+    transform: scale(0.94) rotate(4deg);
+  }
+}

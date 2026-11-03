@@ -1,0 +1,912 @@
+/* SPDX-License-Identifier: MIT */
+/* Astronomy: astro-a (Star atlas), astro-b (Galaxy and black hole), astro-c (Orrery).
+   Shared rules use [data-concept^='astro-']; each variant styles its own parts under its id.
+   Light and dark come only from tokens, never from [data-theme] selectors. */
+
+[data-concept^='astro-'] {
+  --radius: 8px;
+  --radius-sm: 5px;
+  --icon-stroke: 1.6;
+  --ast-ui: var(--font-brand-face), 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --ast-disp: var(--font-display-face), var(--ast-ui);
+}
+
+/* ---------------------------------------------------------------- wheel, shared */
+[data-concept^='astro-'] .wheel {
+  --ast-script: var(--ast-ui);
+  --ast-turn: -12deg;
+  --gal-turn: 40deg;
+  --orr-swing: -40deg;
+}
+[data-concept^='astro-'] .wheel[dir='rtl'] {
+  --ast-turn: 12deg;
+  --gal-turn: -40deg;
+  --orr-swing: 40deg;
+}
+[data-concept^='astro-'] .wheel:lang(ja) {
+  --ast-script: 'Yu Gothic UI', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+}
+[data-concept^='astro-'] .wheel:lang(ar) {
+  --ast-script: 'Segoe UI', 'SF Arabic', 'Geeza Pro', sans-serif;
+}
+
+/* The face: a disc with a soft light, a hairline edge and a deep shadow (box-shadow, no SVG filter). */
+[data-concept^='astro-'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0.6%;
+  border-radius: 50%;
+  background: var(--ast-face);
+  box-shadow:
+    0 0 0 1px var(--ast-face-edge),
+    0 2px 6px var(--wheel-shadow),
+    0 18px 46px var(--wheel-shadow);
+}
+/* Only the hit areas take the pointer; everything else is drawing. */
+[data-concept^='astro-'] .wheel-svg * {
+  pointer-events: none;
+}
+[data-concept^='astro-'] .wheel-svg .ast-hit {
+  pointer-events: auto;
+  fill: transparent;
+}
+
+[data-concept^='astro-'] .ast-seg {
+  fill: transparent;
+  transition: fill 90ms;
+}
+[data-concept^='astro-'] .slice.is-hover .ast-seg {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept^='astro-'] .slice.is-selected .ast-seg {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept^='astro-'] .ast-flash {
+  fill: var(--ast-flash);
+  opacity: 0;
+}
+
+/* Labels carry a halo in the color under them, so stars and lines never touch a letter. */
+[data-concept^='astro-'] .ast-content {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+  --ast-halo: var(--ast-halo-idle);
+}
+[data-concept^='astro-'] .slice.is-hover .ast-content {
+  --ast-halo: var(--ast-halo-hover);
+}
+[data-concept^='astro-'] .slice.is-selected .ast-content {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+  --ast-halo: var(--ast-halo-selected);
+}
+[data-concept^='astro-'] .ast-lbl {
+  paint-order: stroke fill;
+  stroke: var(--ast-halo);
+  stroke-width: 3.4px;
+  stroke-linejoin: round;
+}
+[data-concept^='astro-'] .ast-fmt {
+  font-family: var(--font-display-face), var(--ast-script);
+  font-weight: 600;
+}
+[data-concept^='astro-'] .ast-word {
+  font-family: var(--font-brand-face), var(--ast-script);
+  font-weight: 600;
+}
+[data-concept^='astro-'] .ast-sub {
+  font-family: var(--font-brand-face), var(--ast-script);
+  font-weight: 500;
+  fill: var(--wheel-sub);
+}
+[data-concept^='astro-'] .slice.is-selected .ast-sub {
+  fill: var(--wheel-sub-selected);
+}
+[data-concept^='astro-'] .slice.is-off .ast-content {
+  opacity: 0.5;
+}
+[data-concept^='astro-'] .ast-content .ico {
+  stroke-width: 1.6;
+}
+
+/* Hub text */
+[data-concept^='astro-'] .ast-title {
+  font-family: var(--font-display-face), var(--ast-script);
+  font-weight: 600;
+  fill: var(--ast-hub-text);
+}
+[data-concept^='astro-'] .ast-file {
+  font-family: var(--font-brand-face), var(--ast-script);
+  font-weight: 500;
+  fill: var(--ast-hub-sub);
+}
+[data-concept^='astro-'] .ast-keycap {
+  fill: none;
+  stroke: var(--ast-hub-sub);
+  stroke-opacity: 0.7;
+}
+[data-concept^='astro-'] .ast-keytext {
+  font: 600 10.5px var(--ast-ui);
+  fill: var(--ast-hub-sub);
+  letter-spacing: 0.04em;
+}
+[data-concept^='astro-'] :is(.ast-key, .ast-result) {
+  transition: opacity 110ms;
+}
+[data-concept^='astro-'] .ast-result {
+  opacity: 0;
+}
+[data-concept^='astro-'] .ast-hub.has-result .ast-result {
+  opacity: 1;
+}
+[data-concept^='astro-'] .ast-hub.has-result .ast-key {
+  opacity: 0;
+}
+[data-concept^='astro-'] .ast-pill {
+  fill: var(--ast-pill);
+}
+[data-concept^='astro-'] .ast-result-text {
+  font-family: var(--font-brand-face), var(--ast-script);
+  font-weight: 700;
+  fill: var(--ast-pill-text);
+}
+
+/* What the apply effect leaves behind. While .ast-fx is on, the effect draws it itself. */
+[data-concept^='astro-'] .ast-lasting {
+  opacity: 0;
+}
+[data-concept^='astro-'] .wheel.has-selected:not(.ast-fx) .ast-lasting {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------- open and close, shared
+   0 ms: the face and hub are already there (the wheel must show within 100 ms). */
+[data-concept^='astro-'] .wheel-svg,
+[data-concept^='astro-'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept^='astro-'] .wheel.is-opening .wheel-svg {
+  animation: astro-grow calc(var(--dur-open) * 0.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept^='astro-'] .wheel.is-opening::before {
+  animation: astro-face calc(var(--dur-open) * 0.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes astro-grow {
+  from {
+    transform: scale(0.94);
+  }
+}
+@keyframes astro-face {
+  from {
+    opacity: 0.6;
+    transform: scale(0.94);
+  }
+}
+
+[data-concept^='astro-'] .wheel.is-opening .ast-draw {
+  stroke-dasharray: 1 2;
+  animation: astro-draw var(--dur-open) cubic-bezier(0.35, 0.05, 0.25, 1) both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='astro-a'] .wheel.is-opening .atl-div {
+  animation-duration: calc(var(--dur-open) * 0.55);
+}
+@keyframes astro-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+[data-concept^='astro-'] .ast-content {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept^='astro-'] .wheel.is-opening .ast-content {
+  animation: astro-rise calc(var(--dur-open) * 0.7) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + 30ms - var(--t, 0ms));
+}
+@keyframes astro-rise {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+}
+@keyframes astro-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes astro-pop {
+  from {
+    transform: scale(0);
+  }
+}
+
+[data-concept^='astro-'] .wheel.is-closing .wheel-svg,
+[data-concept^='astro-'] .wheel.is-closing::before {
+  animation: astro-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes astro-close {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+[data-concept^='astro-'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept^='astro-'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept^='astro-'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept^='astro-'] .wheel.is-denied::before {
+  animation: deny 260ms ease;
+}
+
+/* ================================================================ A: Star atlas */
+[data-concept='astro-a'] .ast-turn {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='astro-a'] .wheel.is-opening .ast-turn {
+  animation: astro-turn var(--dur-open) cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes astro-turn {
+  from {
+    transform: rotate(var(--ast-turn));
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+}
+
+[data-concept='astro-a'] .atl-s-milky {
+  stop-color: var(--atl-milky);
+}
+[data-concept='astro-a'] .atl-grat {
+  fill: none;
+  stroke: var(--atl-grid);
+  stroke-width: 0.8;
+}
+[data-concept='astro-a'] .atl-grat-dot {
+  stroke-width: 1.1;
+  stroke-dasharray: 0.6 3.4;
+  stroke-linecap: round;
+}
+[data-concept='astro-a'] .atl-field {
+  fill: var(--atl-field);
+  opacity: var(--atl-field-opacity);
+}
+[data-concept='astro-a'] .atl-field-0 {
+  opacity: 1;
+}
+
+[data-concept='astro-a'] .atl-ink {
+  fill: none;
+  stroke: var(--atl-scale);
+}
+[data-concept='astro-a'] .atl-ring {
+  stroke-width: 0.9;
+}
+[data-concept='astro-a'] .atl-ring-out {
+  stroke-width: 1.7;
+}
+[data-concept='astro-a'] .atl-ticks {
+  stroke-width: 0.7;
+  opacity: 0.8;
+}
+[data-concept='astro-a'] .atl-div {
+  stroke-width: 0.8;
+  opacity: 0.5;
+}
+[data-concept='astro-a'] .wheel.is-opening .atl-ticks {
+  animation: astro-fade 120ms linear both;
+  animation-delay: calc(50ms - var(--t, 0ms));
+}
+
+/* Slices: tint and a lit sector on the scale on hover; on select the region prints solid. */
+[data-concept='astro-a'] .atl-scaleband {
+  fill: var(--atl-scale-hi);
+  opacity: 0;
+  transition: opacity 90ms;
+}
+[data-concept='astro-a'] .slice.is-hover .atl-scaleband {
+  opacity: 0.65;
+}
+[data-concept='astro-a'] .slice.is-selected .atl-scaleband {
+  opacity: 1;
+}
+[data-concept='astro-a'] .atl-con-lines {
+  fill: none;
+  stroke: var(--atl-con);
+  stroke-width: 0.95;
+  stroke-linecap: round;
+}
+[data-concept='astro-a'] .atl-cstar {
+  fill: var(--atl-star);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 120ms;
+}
+[data-concept='astro-a'] .atl-con-spark {
+  fill: var(--atl-star);
+  opacity: 0;
+}
+[data-concept='astro-a'] .slice.is-hover .atl-con-lines {
+  stroke-width: 1.5;
+}
+[data-concept='astro-a'] .slice.is-hover .atl-cstar {
+  transform: scale(1.3);
+}
+[data-concept='astro-a'] .slice:is(.is-hover, .is-selected) .atl-con-spark {
+  opacity: 1;
+}
+[data-concept='astro-a'] .slice.is-selected .atl-con-lines {
+  stroke: var(--atl-sel-con);
+  stroke-width: 1.3;
+}
+[data-concept='astro-a'] .slice.is-selected :is(.atl-cstar, .atl-con-spark) {
+  fill: var(--atl-sel-star);
+}
+[data-concept='astro-a'] .slice.is-off .atl-con-lines {
+  stroke-dasharray: 2 3;
+  opacity: 0.7;
+}
+[data-concept='astro-a'] .slice.is-off .atl-cstar {
+  fill: none;
+  stroke: var(--atl-star);
+  stroke-width: 0.8;
+}
+[data-concept='astro-a'] .slice.is-off .atl-con-spark {
+  display: none;
+}
+[data-concept='astro-a'] .wheel.is-opening .atl-cstar {
+  animation: astro-pop 120ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + 40ms - var(--t, 0ms));
+}
+[data-concept='astro-a'] .wheel.is-opening .slice:not(.is-off) .atl-con-lines {
+  stroke-dasharray: 1 2;
+  animation: astro-draw 110ms ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) + 70ms - var(--t, 0ms));
+}
+
+/* Hub: the pole of the chart. */
+[data-concept='astro-a'] .atl-hubdisc {
+  fill: var(--ast-hub);
+}
+[data-concept='astro-a'] .atl-hubring {
+  fill: none;
+  stroke: var(--atl-hub-ring);
+  stroke-width: 1.2;
+}
+[data-concept='astro-a'] .wheel.has-selected .atl-hubring {
+  stroke: var(--atl-nova-ring);
+  stroke-width: 2.2;
+}
+[data-concept='astro-a'] .atl-hubdots {
+  fill: none;
+  stroke: var(--atl-hub-ring);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-dasharray: 0 4.71;
+  opacity: 0.5;
+}
+[data-concept='astro-a'] .atl-equator {
+  fill: none;
+  stroke: var(--atl-grid);
+  stroke-width: 1;
+}
+[data-concept='astro-a'] .atl-pole-ring {
+  fill: none;
+  stroke: var(--atl-hub-ring);
+  stroke-width: 1;
+}
+[data-concept='astro-a'] .wheel.has-selected .atl-pole {
+  opacity: 0;
+}
+[data-concept='astro-a'] .atl-nova-halo {
+  fill: var(--atl-nova-halo);
+}
+[data-concept='astro-a'] .atl-nova-ring {
+  fill: none;
+  stroke: var(--atl-nova-ring);
+  stroke-width: 1.1;
+  stroke-opacity: 0.75;
+}
+[data-concept='astro-a'] .atl-nova-star {
+  fill: var(--atl-nova);
+}
+[data-concept='astro-a'] .atl-nova-diag {
+  fill-opacity: 0.55;
+}
+[data-concept='astro-a'] .atl-nova-core {
+  fill: var(--atl-nova-core);
+}
+
+/* Apply effect */
+[data-concept='astro-a'] .atl-streak {
+  stroke: var(--atl-streak);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+[data-concept='astro-a'] .atl-streak-halo {
+  stroke: var(--atl-streak-halo);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+[data-concept='astro-a'] .atl-streak-head {
+  fill: var(--atl-streak);
+  stroke: var(--atl-streak-line);
+  stroke-width: 1.4;
+}
+[data-concept='astro-a'] .atl-pulse {
+  fill: none;
+  stroke: var(--atl-pulse);
+}
+
+/* ================================================================ B: Galaxy and black hole */
+[data-concept='astro-b'] .gal-s-core {
+  stop-color: var(--gal-core);
+}
+[data-concept='astro-b'] .gal-s-arm {
+  stop-color: var(--gal-arm);
+}
+[data-concept='astro-b'] .gal-s-arm2 {
+  stop-color: var(--gal-arm-2);
+}
+[data-concept='astro-b'] .gal-s-hot {
+  stop-color: var(--gal-ring-hot);
+}
+[data-concept='astro-b'] .gal-s-mid {
+  stop-color: var(--gal-ring-mid);
+}
+[data-concept='astro-b'] .gal-s-cool {
+  stop-color: var(--gal-ring-cool);
+}
+[data-concept='astro-b'] .gal-s-sel0 {
+  stop-color: var(--gal-sel-0);
+}
+[data-concept='astro-b'] .gal-s-sel1 {
+  stop-color: var(--gal-sel-1);
+}
+
+[data-concept='astro-b'] .gal-galaxy {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='astro-b'] .gal-arms {
+  opacity: var(--gal-arm-opacity);
+}
+[data-concept='astro-b'] .gal-arm-0 {
+  opacity: 0.17;
+}
+[data-concept='astro-b'] .gal-arm-1 {
+  opacity: 0.24;
+}
+[data-concept='astro-b'] .gal-arm-2 {
+  opacity: 0.36;
+}
+[data-concept='astro-b'] .gal-field {
+  opacity: var(--gal-field-opacity);
+}
+[data-concept='astro-b'] .gal-star {
+  fill: var(--gal-star);
+}
+[data-concept='astro-b'] .gal-star-1 {
+  opacity: 0.8;
+}
+[data-concept='astro-b'] .gal-star-2 {
+  opacity: 0.55;
+}
+[data-concept='astro-b'] .gal-star-bright {
+  fill: var(--gal-star-bright);
+}
+[data-concept='astro-b'] .gal-rim {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+[data-concept='astro-b'] .gal-div {
+  fill: none;
+  stroke: var(--gal-div);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+[data-concept='astro-b'] .gal-rimdots {
+  fill: var(--wheel-line);
+}
+
+/* Slices: a translucent glow on hover; on select a nebula gradient and a bright outer edge. */
+[data-concept='astro-b'] .slice.is-hover .ast-seg {
+  fill: var(--gal-hover);
+  stroke: var(--gal-edge);
+  stroke-opacity: 0.4;
+  stroke-width: 1;
+}
+[data-concept='astro-b'] .slice.is-selected .ast-seg {
+  fill: transparent;
+}
+[data-concept='astro-b'] .gal-selfill {
+  opacity: 0;
+  transition: opacity 90ms;
+}
+[data-concept='astro-b'] .slice.is-selected .gal-selfill {
+  opacity: 1;
+}
+[data-concept='astro-b'] .gal-edge {
+  fill: none;
+  stroke: var(--gal-edge);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+[data-concept='astro-b'] .slice:is(.is-hover, .is-selected) .gal-edge {
+  opacity: 1;
+}
+[data-concept='astro-b'] .gal-offline {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.75;
+}
+[data-concept='astro-b'] .ast-fmt {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* The black hole */
+[data-concept='astro-b'] .gal-holegroup {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='astro-b'] .gal-hole {
+  fill: var(--gal-hole);
+}
+[data-concept='astro-b'] .gal-photon {
+  fill: none;
+  stroke: var(--gal-photon);
+  stroke-width: 1.6;
+}
+[data-concept='astro-b'] .wheel.has-selected .gal-photon {
+  stroke-width: 2.4;
+}
+[data-concept='astro-b'] .gal-acc-lit {
+  fill: var(--gal-ring-hot);
+  fill-opacity: 0.4;
+}
+[data-concept='astro-b'] .gal-lensring {
+  fill: none;
+  stroke: var(--gal-lens);
+  stroke-width: 1.3;
+  stroke-opacity: 0.75;
+}
+[data-concept='astro-b'] .gal-title,
+[data-concept='astro-b'] .ast-title {
+  font-family: var(--font-brand-face), var(--ast-script);
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
+[data-concept='astro-b'] .ast-keycap {
+  stroke-opacity: 0.55;
+}
+
+[data-concept='astro-b'] .wheel.is-opening .gal-galaxy {
+  animation: astro-galaxy var(--dur-open) cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes astro-galaxy {
+  from {
+    transform: rotate(var(--gal-turn)) scale(0.84);
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+[data-concept='astro-b'] .wheel.is-opening :is(.gal-acc, .gal-glow) {
+  animation: astro-ignite 160ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes astro-ignite {
+  from {
+    opacity: 0.25;
+  }
+}
+[data-concept='astro-b'] .wheel.is-opening .gal-deco {
+  animation: astro-fade 140ms linear both;
+  animation-delay: calc(40ms - var(--t, 0ms));
+}
+
+/* Apply effect */
+[data-concept='astro-b'] .gal-photon-fx {
+  fill: none;
+  stroke: var(--gal-photon);
+  stroke-width: 4.5;
+}
+[data-concept='astro-b'] .gal-lens-fx {
+  fill: none;
+  stroke: var(--gal-lens);
+}
+[data-concept='astro-b'] .gal-trail {
+  fill: none;
+  stroke: var(--gal-mote);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='astro-b'] .gal-trail-halo {
+  fill: none;
+  stroke: var(--gal-mote-halo);
+  stroke-width: 6.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='astro-b'] .gal-mote {
+  fill: var(--gal-mote);
+}
+
+/* ================================================================ C: Orrery */
+[data-concept='astro-c'] .orr-s-0 {
+  stop-color: var(--orr-sun-0);
+}
+[data-concept='astro-c'] .orr-s-1 {
+  stop-color: var(--orr-sun-1);
+}
+[data-concept='astro-c'] .orr-s-2 {
+  stop-color: var(--orr-sun-2);
+}
+[data-concept='astro-c'] .orr-s-cor {
+  stop-color: var(--orr-corona);
+}
+[data-concept='astro-c'] .orr-s-plhi {
+  stop-color: var(--orr-pl-hi);
+}
+[data-concept='astro-c'] .orr-s-pl {
+  stop-color: var(--orr-pl);
+}
+[data-concept='astro-c'] .orr-s-pllo {
+  stop-color: var(--orr-pl-lo);
+}
+
+[data-concept='astro-c'] .orr-rim {
+  fill: none;
+  stroke: var(--orr-rim);
+  stroke-width: 0.9;
+}
+[data-concept='astro-c'] .orr-rim-out {
+  stroke-width: 1.6;
+}
+[data-concept='astro-c'] .orr-ticks {
+  fill: none;
+  stroke: var(--orr-tick);
+  stroke-width: 0.7;
+}
+[data-concept='astro-c'] .orr-div {
+  fill: none;
+  stroke: var(--orr-orbit);
+  stroke-width: 0.9;
+  stroke-dasharray: 0.5 3.5;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+[data-concept='astro-c'] .orr-orbits {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='astro-c'] .orr-orbit {
+  fill: none;
+  stroke: var(--orr-orbit);
+  stroke-width: 0.8;
+  opacity: 0.55;
+}
+[data-concept='astro-c'] .orr-orbit-dot {
+  stroke-dasharray: 0.5 3.2;
+  stroke-linecap: round;
+  stroke-width: 1.1;
+  opacity: 0.5;
+}
+[data-concept='astro-c'] .orr-field {
+  fill: var(--orr-orbit);
+  opacity: 0.55;
+}
+
+[data-concept='astro-c'] .orr-sun {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='astro-c'] .orr-limb {
+  fill: none;
+  stroke: var(--orr-sun-2);
+  stroke-width: 1;
+  stroke-opacity: 0.6;
+}
+[data-concept='astro-c'] .orr-bright {
+  fill: var(--orr-bright);
+}
+[data-concept='astro-c'] .orr-crown {
+  fill: none;
+  stroke: var(--orr-ray);
+  stroke-width: 1.6;
+  stroke-opacity: 0.9;
+}
+[data-concept='astro-c'] .orr-rays {
+  fill: none;
+  stroke: var(--orr-ray);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+/* Slices: tint, lit orbit arc and scale band on hover; on select the region fills and the planet is gone. */
+[data-concept='astro-c'] .orr-band {
+  fill: var(--orr-orbit-hi);
+  opacity: 0;
+  transition: opacity 90ms;
+}
+[data-concept='astro-c'] .slice.is-hover .orr-band {
+  opacity: 0.45;
+}
+[data-concept='astro-c'] .slice.is-selected .orr-band {
+  opacity: 1;
+}
+[data-concept='astro-c'] .orr-arc {
+  fill: none;
+  stroke: var(--orr-orbit-hi);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  opacity: 0;
+}
+[data-concept='astro-c'] .slice.is-hover .orr-arc {
+  opacity: 1;
+}
+[data-concept='astro-c'] .slice.is-selected .orr-arc {
+  opacity: 1;
+  stroke: var(--orr-ghost);
+  stroke-width: 1.4;
+}
+[data-concept='astro-c'] .orr-ghost {
+  fill: none;
+  stroke: var(--orr-ghost);
+  stroke-width: 1.3;
+  stroke-dasharray: 2 2.4;
+  opacity: 0;
+}
+[data-concept='astro-c'] .slice.is-selected .orr-ghost {
+  opacity: 1;
+}
+[data-concept='astro-c'] .slice.is-selected .orr-planet {
+  opacity: 0;
+}
+[data-concept='astro-c'] .orr-body {
+  transform-origin: 0 0;
+  transition: transform 120ms;
+}
+[data-concept='astro-c'] .slice.is-hover .orr-body {
+  transform: scale(1.32);
+}
+[data-concept='astro-c'] .orr-shade {
+  fill: var(--orr-pl-shade);
+}
+[data-concept='astro-c'] .orr-mark {
+  fill: none;
+  stroke: var(--orr-pl-shade);
+  stroke-width: 1.1;
+}
+[data-concept='astro-c'] .orr-crater {
+  fill: var(--orr-pl-shade);
+}
+[data-concept='astro-c'] :is(.orr-ringback, .orr-ringfront) {
+  fill: none;
+  stroke: var(--orr-pl-line);
+  stroke-width: 1.1;
+}
+[data-concept='astro-c'] .orr-ringback {
+  stroke-opacity: 0.4;
+}
+[data-concept='astro-c'] .orr-moon {
+  fill: var(--orr-pl);
+}
+[data-concept='astro-c'] .slice.is-off .orr-ball {
+  fill: none;
+  stroke: var(--orr-orbit);
+  stroke-width: 1;
+  stroke-dasharray: 1.6 1.6;
+}
+[data-concept='astro-c']
+  .slice.is-off
+  :is(.orr-shade, .orr-mark, .orr-crater, .orr-ringback, .orr-ringfront, .orr-moon) {
+  display: none;
+}
+
+[data-concept='astro-c'] .wheel.is-opening .orr-orbits {
+  animation: astro-orbits calc(var(--dur-open) * 0.8) cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes astro-orbits {
+  from {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+[data-concept='astro-c'] .orr-swing {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='astro-c'] .wheel.is-opening .orr-swing {
+  animation: astro-swing calc(var(--dur-open) * 0.85) cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + 20ms - var(--t, 0ms));
+}
+@keyframes astro-swing {
+  from {
+    transform: rotate(var(--orr-swing));
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+[data-concept='astro-c'] .wheel.is-opening .orr-sun {
+  animation: astro-sun 140ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes astro-sun {
+  from {
+    transform: scale(0.9);
+  }
+}
+[data-concept='astro-c'] .wheel.is-opening :is(.orr-field, .orr-ticks, .orr-div) {
+  animation: astro-fade 130ms linear both;
+  animation-delay: calc(60ms - var(--t, 0ms));
+}
+
+/* Apply effect */
+[data-concept='astro-c'] .orr-corona-fx {
+  fill: none;
+  stroke: var(--orr-corona);
+}
+[data-concept='astro-c'] .orr-trail {
+  fill: none;
+  stroke: var(--orr-trail);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='astro-c'] .orr-trail-halo {
+  fill: none;
+  stroke: var(--orr-trail-halo);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------------------------------------------------------------- B: nebula */
+[data-concept='astro-b'] .gal-art-ring {
+  stroke: var(--gal-ring-mid);
+}
+[data-concept='astro-b'] .gal-art-photon {
+  fill: var(--gal-photon);
+}
+[data-concept='astro-b'] .gal-art-hole {
+  fill: var(--gal-hole);
+}
+
+/* ---------------------------------------------------------------- C: instrument */
+[data-concept='astro-c'] .orr-art-sun {
+  fill: var(--orr-sun-1);
+}
+[data-concept='astro-c'] .orr-art-glow {
+  fill: var(--orr-sun-glow);
+}

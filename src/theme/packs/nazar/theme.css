@@ -1,0 +1,347 @@
+/* SPDX-License-Identifier: MIT */
+/* Nazar: a handmade glass eye bead. */
+
+[data-concept='nazar'] {
+  --radius: 14px;
+  --radius-sm: 9px;
+  --icon-stroke: 2;
+}
+
+/* A drop shadow in daylight, a blue glow when backlit at night. */
+[data-concept='nazar'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  box-shadow:
+    0 var(--nz-shadow-y) var(--nz-shadow-blur) var(--wheel-shadow),
+    0 2px 5px var(--wheel-shadow);
+}
+[data-concept='nazar'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+
+[data-concept='nazar'] .nz-st-in {
+  stop-color: var(--nz-glass-in);
+}
+[data-concept='nazar'] .nz-st-mid {
+  stop-color: var(--nz-glass-mid);
+}
+[data-concept='nazar'] .nz-st-out {
+  stop-color: var(--nz-glass-out);
+}
+[data-concept='nazar'] .nz-st-pin {
+  stop-color: var(--nz-pupil-in);
+}
+[data-concept='nazar'] .nz-st-pout {
+  stop-color: var(--nz-pupil);
+}
+
+[data-concept='nazar'] .nz-cord,
+[data-concept='nazar'] .nz-over,
+[data-concept='nazar'] .nz-pulse {
+  pointer-events: none;
+}
+[data-concept='nazar'] .nz-cord-line {
+  fill: none;
+  stroke: var(--nz-cord);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+[data-concept='nazar'] .nz-cord-hi {
+  fill: none;
+  stroke: var(--nz-cord-hi);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+[data-concept='nazar'] .nz-crimp {
+  fill: var(--nz-white);
+  stroke: var(--nz-white-edge);
+  stroke-width: 0.8;
+}
+
+/* Idle slices are clear glass over the body; hover and selection tint it. */
+[data-concept='nazar'] .nz-seg {
+  fill: var(--wheel-slice-hover);
+  fill-opacity: 0;
+  transition: fill-opacity 120ms;
+}
+[data-concept='nazar'] .slice.is-hover .nz-seg {
+  fill-opacity: 0.85;
+}
+[data-concept='nazar'] .slice.is-selected .nz-seg {
+  fill: var(--wheel-slice-selected);
+  fill-opacity: 1;
+}
+[data-concept='nazar'] .nz-bubbles {
+  fill: var(--nz-bubble);
+  fill-opacity: 0.16;
+  stroke: var(--nz-bubble);
+  stroke-opacity: 0.6;
+  stroke-width: 0.8;
+  opacity: var(--nz-bubble-opacity);
+}
+[data-concept='nazar'] .nz-crescent {
+  fill: #ffffff;
+  opacity: var(--nz-hi-opacity);
+}
+[data-concept='nazar'] .nz-window {
+  fill: #ffffff;
+  opacity: 0.85;
+}
+[data-concept='nazar'] .nz-rim {
+  fill: none;
+  stroke: var(--nz-glass-out);
+  stroke-width: 1.5;
+}
+
+[data-concept='nazar'] .nz-ink {
+  color: var(--wheel-text);
+}
+[data-concept='nazar'] .nz-lbl {
+  fill: var(--wheel-text);
+  font-weight: 700;
+}
+[data-concept='nazar'] .nz-fmt {
+  letter-spacing: 0.02em;
+}
+[data-concept='nazar'] .nz-sub {
+  fill: var(--nz-sub);
+  font-weight: 700;
+}
+[data-concept='nazar'] .slice.is-selected .nz-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='nazar'] .slice.is-selected .nz-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='nazar'] .slice.is-selected .nz-sub {
+  fill: var(--nz-sub-selected);
+}
+[data-concept='nazar'] .slice.is-off .nz-ink {
+  opacity: 0.4;
+}
+
+/* The eye. */
+[data-concept='nazar'] .nz-halo {
+  fill: none;
+  stroke: var(--nz-halo);
+  stroke-width: 9;
+  opacity: var(--nz-halo-opacity);
+}
+[data-concept='nazar'] .nz-white {
+  fill: var(--nz-white);
+  stroke: var(--nz-white-edge);
+  stroke-width: 0.8;
+}
+[data-concept='nazar'] .nz-blue {
+  fill: var(--nz-blue);
+}
+[data-concept='nazar'] .nz-pupil {
+  fill: var(--nz-pupil);
+}
+[data-concept='nazar'] .nz-pupil-hi {
+  fill: #ffffff;
+  opacity: 0.7;
+}
+[data-concept='nazar'] .nz-title {
+  fill: var(--nz-title);
+  font-weight: 700;
+}
+[data-concept='nazar'] .nz-file {
+  fill: var(--nz-file);
+  font-weight: 400;
+}
+[data-concept='nazar'] .nz-key {
+  fill: var(--nz-key);
+}
+[data-concept='nazar'] .nz-keytext {
+  fill: var(--nz-keytext);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* The glint that stays on the selected slice. */
+[data-concept='nazar'] .nz-spark {
+  display: none;
+  fill: #ffffff;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+[data-concept='nazar'] .slice.is-selected .nz-spark {
+  display: inline;
+}
+
+/* Apply: a ring of light leaves the pupil, the slice flashes as it passes, the glint lights up. */
+[data-concept='nazar'] .nz-pulse {
+  display: none;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='nazar'] .nz-pulse circle {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+[data-concept='nazar'] .nz-pulse-glow {
+  stroke: var(--nz-light);
+  stroke-width: 9;
+  stroke-opacity: 0.45;
+}
+[data-concept='nazar'] .nz-pulse-core {
+  stroke: #ffffff;
+  stroke-width: 2.2;
+}
+[data-concept='nazar'] .wheel.is-applying .nz-pulse {
+  display: inline;
+  animation: nazar-pulse 520ms cubic-bezier(0.2, 0.6, 0.35, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nazar'] .wheel.is-applying .nz-echo {
+  animation-delay: calc(130ms - var(--t, 0ms));
+}
+[data-concept='nazar'] .wheel.is-applying .nz-blue {
+  animation: nazar-iris 360ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nazar'] .wheel.is-applying .slice.is-selected .nz-seg {
+  animation: nazar-catch 600ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nazar'] .wheel.is-applying .slice.is-selected .nz-lbl,
+[data-concept='nazar'] .wheel.is-applying .slice.is-selected .nz-ink {
+  animation: nazar-ink 600ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nazar'] .wheel.is-applying .slice.is-selected .nz-sub {
+  animation: nazar-ink-sub 600ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nazar'] .wheel.is-applying .slice.is-selected .nz-spark {
+  animation: nazar-glint 340ms ease-out both;
+  animation-delay: calc(240ms - var(--t, 0ms));
+}
+@keyframes nazar-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.96);
+    opacity: 0;
+  }
+}
+@keyframes nazar-iris {
+  0% {
+    fill: var(--nz-blue);
+  }
+  25% {
+    fill: var(--nz-flash);
+  }
+  100% {
+    fill: var(--nz-blue);
+  }
+}
+@keyframes nazar-catch {
+  0%,
+  22% {
+    fill: var(--wheel-slice-hover);
+    fill-opacity: 0.85;
+  }
+  38% {
+    fill: var(--nz-flash);
+    fill-opacity: 1;
+  }
+  100% {
+    fill: var(--wheel-slice-selected);
+    fill-opacity: 1;
+  }
+}
+@keyframes nazar-ink {
+  0%,
+  24% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  36%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes nazar-ink-sub {
+  0%,
+  24% {
+    fill: var(--nz-sub);
+  }
+  36%,
+  100% {
+    fill: var(--nz-sub-selected);
+  }
+}
+@keyframes nazar-glint {
+  0% {
+    transform: scale(0) rotate(-30deg);
+  }
+  45% {
+    transform: scale(1.6) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Open: the bead swells from the pupil. */
+[data-concept='nazar'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='nazar'] .wheel.is-opening .wheel-svg,
+[data-concept='nazar'] .wheel.is-opening::before {
+  animation: nazar-open var(--dur-open) cubic-bezier(0.2, 1.25, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nazar'] .wheel.is-opening .nz-ink {
+  animation: nazar-fade var(--dur-open) ease-out both;
+  animation-delay: calc(40ms + var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='nazar'] .wheel.is-closing .wheel-svg,
+[data-concept='nazar'] .wheel.is-closing::before {
+  animation: nazar-close var(--dur-close) ease-in both;
+}
+[data-concept='nazar'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='nazar'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes nazar-open {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nazar-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nazar-close {
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}

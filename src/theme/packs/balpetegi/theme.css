@@ -1,0 +1,355 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Bal peteği (honeycomb). */
+
+[data-concept='balpetegi'] {
+  --radius: 10px;
+  --radius-sm: 6px;
+  --icon-stroke: 1.9;
+}
+[data-concept='balpetegi'] .wheel {
+  font-family: var(--font-display);
+}
+
+[data-concept='balpetegi'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 5% 5% 1%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--wheel-shadow) 50%, transparent);
+  transform: translateY(3%);
+}
+
+[data-concept='balpetegi'] .bp-rim {
+  fill: var(--wax-edge);
+}
+[data-concept='balpetegi'] .bp-wax {
+  fill: var(--wax);
+}
+[data-concept='balpetegi'] .bp-hit {
+  fill: transparent;
+}
+
+/* Cells: empty wax at rest, warmer on hover, brimming with glossy honey when chosen. */
+[data-concept='balpetegi'] .bp-cell {
+  fill: var(--cell);
+  transition: fill 110ms;
+}
+[data-concept='balpetegi'] .bp-deep {
+  fill: var(--cell-deep);
+  opacity: 0.6;
+  transition: fill 110ms;
+}
+[data-concept='balpetegi'] .bp-gloss {
+  fill: none;
+  stroke: var(--gloss);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  opacity: 0;
+}
+[data-concept='balpetegi'] .bp-cap {
+  fill: var(--cap);
+  transition: fill 110ms;
+}
+[data-concept='balpetegi'] .bp-cap-seam {
+  fill: none;
+  stroke: var(--cap-seam);
+  stroke-width: 1;
+}
+[data-concept='balpetegi'] .slice.is-hover .bp-cell {
+  fill: var(--cell-hover);
+}
+[data-concept='balpetegi'] .slice.is-hover .bp-deep {
+  fill: var(--cell-hover-deep);
+}
+[data-concept='balpetegi'] .slice.is-hover .bp-cap {
+  fill: var(--cap-hover);
+}
+[data-concept='balpetegi'] .slice.is-selected .bp-cell {
+  fill: var(--honey);
+}
+[data-concept='balpetegi'] .slice.is-selected .bp-deep {
+  fill: var(--honey-deep);
+}
+[data-concept='balpetegi'] .slice.is-selected .bp-gloss {
+  opacity: 0.85;
+}
+[data-concept='balpetegi'] .slice.is-selected .bp-cap {
+  fill: var(--honey-cap);
+}
+[data-concept='balpetegi'] .slice.is-off .bp-ink {
+  opacity: 0.4;
+}
+[data-concept='balpetegi'] .bp-fill {
+  pointer-events: none;
+}
+
+[data-concept='balpetegi'] .bp-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='balpetegi'] .bp-lbl {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+[data-concept='balpetegi'] .bp-lbl-s {
+  font-weight: 700;
+  letter-spacing: 0;
+}
+[data-concept='balpetegi'] .bp-sub {
+  fill: var(--wheel-sub);
+  font-weight: 600;
+}
+[data-concept='balpetegi'] .slice.is-selected .bp-ink,
+[data-concept='balpetegi'] .slice.is-selected .bp-sub {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='balpetegi'] .slice .ico {
+  stroke-width: 2;
+}
+
+[data-concept='balpetegi'] .bp-hub {
+  pointer-events: none;
+}
+[data-concept='balpetegi'] .bp-plate-rim {
+  fill: var(--wax-edge);
+}
+[data-concept='balpetegi'] .bp-plate {
+  fill: var(--plate);
+}
+[data-concept='balpetegi'] .bp-plate-line {
+  fill: none;
+  stroke: var(--plate-line);
+  stroke-width: 1.2;
+  stroke-opacity: 0.55;
+}
+[data-concept='balpetegi'] .bp-title {
+  fill: var(--hub-text);
+  font-weight: 700;
+}
+[data-concept='balpetegi'] .bp-file {
+  fill: var(--hub-muted);
+  font-weight: 500;
+}
+[data-concept='balpetegi'] .bp-key {
+  fill: var(--key-bg);
+  stroke: var(--key-line);
+  stroke-width: 1;
+}
+[data-concept='balpetegi'] .bp-keytext {
+  fill: var(--hub-text);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* Open: the comb grows out of the wax plate, slice by slice. */
+[data-concept='balpetegi'] .bp-comb,
+[data-concept='balpetegi'] .bp-cells,
+[data-concept='balpetegi'] .bp-ink,
+[data-concept='balpetegi'] .bp-hub {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='balpetegi'] .wheel.is-opening .bp-comb {
+  animation: balpetegi-grow var(--dur-open) cubic-bezier(0.2, 1.2, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .wheel.is-opening .bp-cells,
+[data-concept='balpetegi'] .wheel.is-opening .bp-ink {
+  animation: balpetegi-grow var(--dur-open) cubic-bezier(0.2, 1.25, 0.4, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .wheel.is-opening .bp-hub {
+  animation: balpetegi-plate var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .wheel.is-opening::before {
+  animation: fade-in var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .wheel.is-closing .wheel-svg,
+[data-concept='balpetegi'] .wheel.is-closing::before {
+  animation: balpetegi-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='balpetegi'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='balpetegi'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='balpetegi'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes balpetegi-grow {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes balpetegi-plate {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-30deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes balpetegi-close {
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* Apply: honey wells up cell by cell, the caps glaze over, gloss lights the full cells, a drop falls. */
+[data-concept='balpetegi'] .bp-fx {
+  display: none;
+  pointer-events: none;
+}
+[data-concept='balpetegi'] .wheel.is-applying .bp-fx {
+  display: inline;
+}
+[data-concept='balpetegi'] .wheel.is-applying .slice.is-selected .bp-cell {
+  fill: var(--cell-hover);
+}
+[data-concept='balpetegi'] .wheel.is-applying .slice.is-selected .bp-deep {
+  animation: balpetegi-deep 700ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .wheel.is-applying .slice.is-selected .bp-gloss {
+  animation: balpetegi-gloss 700ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .wheel.is-applying .slice.is-selected .bp-cap {
+  animation: balpetegi-glaze 700ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .wheel.is-applying .slice.is-selected .bp-ink,
+[data-concept='balpetegi'] .wheel.is-applying .slice.is-selected .bp-sub {
+  animation: balpetegi-ink 700ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .bp-fill-cell {
+  fill: var(--honey);
+  transform-box: view-box;
+  animation: balpetegi-fill 240ms cubic-bezier(0.3, 1.45, 0.5, 1) both;
+  animation-delay: calc(var(--d) - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .bp-drop {
+  transform-box: view-box;
+  animation: balpetegi-drop 700ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='balpetegi'] .bp-drop-body {
+  fill: var(--honey);
+  stroke: var(--honey-deep);
+  stroke-width: 0.8;
+}
+[data-concept='balpetegi'] .bp-drop-hi {
+  fill: none;
+  stroke: var(--gloss);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+@keyframes balpetegi-fill {
+  from {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes balpetegi-deep {
+  0%,
+  45% {
+    fill: var(--cell-hover-deep);
+  }
+  80%,
+  100% {
+    fill: var(--honey-deep);
+  }
+}
+@keyframes balpetegi-gloss {
+  0%,
+  58% {
+    opacity: 0;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.85;
+  }
+}
+@keyframes balpetegi-glaze {
+  0%,
+  22% {
+    fill: var(--cap-hover);
+  }
+  48%,
+  100% {
+    fill: var(--honey-cap);
+  }
+}
+@keyframes balpetegi-ink {
+  0%,
+  26% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  36%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes balpetegi-drop {
+  0%,
+  46% {
+    opacity: 0;
+    transform: scale(0.2, 0.1);
+  }
+  56% {
+    opacity: 1;
+    transform: scale(0.75, 0.55);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1, 1.15);
+  }
+  78% {
+    opacity: 1;
+    transform: translateY(5px) scale(0.92, 1.35);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(46px) scale(0.8, 1.15);
+  }
+}
+
+.reduce-motion [data-concept='balpetegi'] .bp-cell,
+.reduce-motion [data-concept='balpetegi'] .bp-cap {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-concept='balpetegi'] .bp-cell,
+  [data-concept='balpetegi'] .bp-cap {
+    transition: none;
+  }
+}

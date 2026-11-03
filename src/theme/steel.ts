@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 // The default theme: brushed steel, white enamel, black engraving and one tempered-blue accent.
 // Values from design/DESIGN.md (section 4).
-import { registerTheme, type ThemeDefinition } from './registry';
-
-export const steel: ThemeDefinition = {
+export const steel: { id: 'steel'; tokens: Record<'light' | 'dark', Record<string, string>> } = {
   id: 'steel',
-  nameKey: 'theme.steel',
   tokens: {
     light: {
       bg: '#f2f3f5',
@@ -172,5 +169,3 @@ export const steel: ThemeDefinition = {
     },
   },
 };
-
-registerTheme(steel);

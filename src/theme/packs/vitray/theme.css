@@ -1,0 +1,438 @@
+/* SPDX-License-Identifier: MIT */
+/* Vitray: a rose window of coloured glass in lead and stone. */
+
+[data-concept='vitray'] {
+  --vt-caps: var(--font-display-face), 'Times New Roman', serif;
+  --vt-book: var(--font-brand-face), Georgia, serif;
+  --radius: 8px;
+}
+[data-concept='vitray'] .wheel {
+  font-family: var(--vt-book);
+}
+
+/* Gradient stops take the palette. */
+[data-concept='vitray'] .vt-s-ruby {
+  stop-color: var(--g-ruby);
+}
+[data-concept='vitray'] .vt-s-ruby-hi {
+  stop-color: var(--g-ruby-hi);
+}
+[data-concept='vitray'] .vt-s-ruby-lo {
+  stop-color: var(--g-ruby-lo);
+}
+[data-concept='vitray'] .vt-s-cobalt {
+  stop-color: var(--g-cobalt);
+}
+[data-concept='vitray'] .vt-s-cobalt-hi {
+  stop-color: var(--g-cobalt-hi);
+}
+[data-concept='vitray'] .vt-s-cobalt-lo {
+  stop-color: var(--g-cobalt-lo);
+}
+[data-concept='vitray'] .vt-s-emerald {
+  stop-color: var(--g-emerald);
+}
+[data-concept='vitray'] .vt-s-emerald-hi {
+  stop-color: var(--g-emerald-hi);
+}
+[data-concept='vitray'] .vt-s-emerald-lo {
+  stop-color: var(--g-emerald-lo);
+}
+[data-concept='vitray'] .vt-s-violet {
+  stop-color: var(--g-violet);
+}
+[data-concept='vitray'] .vt-s-violet-hi {
+  stop-color: var(--g-violet-hi);
+}
+[data-concept='vitray'] .vt-s-violet-lo {
+  stop-color: var(--g-violet-lo);
+}
+[data-concept='vitray'] .vt-s-gold {
+  stop-color: var(--g-gold);
+}
+[data-concept='vitray'] .vt-s-gold-hi {
+  stop-color: var(--g-gold-hi);
+}
+[data-concept='vitray'] .vt-s-gold-lo {
+  stop-color: var(--g-gold-lo);
+}
+[data-concept='vitray'] .vt-s-teal {
+  stop-color: var(--g-teal);
+}
+[data-concept='vitray'] .vt-s-teal-hi {
+  stop-color: var(--g-teal-hi);
+}
+[data-concept='vitray'] .vt-s-teal-lo {
+  stop-color: var(--g-teal);
+}
+[data-concept='vitray'] .vt-s-ruby-beam {
+  stop-color: var(--g-ruby-beam);
+}
+[data-concept='vitray'] .vt-s-cobalt-beam {
+  stop-color: var(--g-cobalt-beam);
+}
+[data-concept='vitray'] .vt-s-emerald-beam {
+  stop-color: var(--g-emerald-beam);
+}
+[data-concept='vitray'] .vt-s-violet-beam {
+  stop-color: var(--g-violet-beam);
+}
+[data-concept='vitray'] .vt-s-hub {
+  stop-color: var(--g-hub);
+}
+[data-concept='vitray'] .vt-s-hub-hi {
+  stop-color: var(--g-hub-hi);
+}
+[data-concept='vitray'] .vt-s-stone {
+  stop-color: var(--stone);
+}
+[data-concept='vitray'] .vt-s-stone-hi {
+  stop-color: var(--stone-hi);
+}
+[data-concept='vitray'] .vt-s-shadow {
+  stop-color: var(--wheel-shadow);
+}
+[data-concept='vitray'] .vt-s-shadow0 {
+  stop-color: var(--wheel-shadow);
+  stop-opacity: 0;
+}
+
+/* Stone. */
+[data-concept='vitray'] .vt-stone,
+[data-concept='vitray'] .vt-hub,
+[data-concept='vitray'] .vt-fx-under,
+[data-concept='vitray'] .vt-fx-over {
+  pointer-events: none;
+}
+[data-concept='vitray'] .vt-stone-face {
+  stroke: var(--stone-lo);
+  stroke-width: 1.2;
+}
+[data-concept='vitray'] .vt-moulding {
+  fill: none;
+  stroke: var(--stone-lo);
+  stroke-width: 1.3;
+}
+[data-concept='vitray'] .vt-roundel {
+  stroke: var(--lead);
+  stroke-width: 2;
+}
+[data-concept='vitray'] .vt-roundel-eye {
+  stroke: var(--lead);
+  stroke-width: 1.2;
+}
+
+/* Glass, lead and cames. */
+[data-concept='vitray'] .vt-hit {
+  fill: transparent;
+}
+[data-concept='vitray'] .vt-lead {
+  fill: none;
+  stroke: var(--lead);
+  stroke-width: 2.8;
+  stroke-linejoin: round;
+}
+[data-concept='vitray'] .vt-came {
+  fill: none;
+  stroke: var(--lead);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+[data-concept='vitray'] .vt-med-ring {
+  stroke-width: 2.3;
+}
+[data-concept='vitray'] .vt-gilt {
+  fill: none;
+  stroke: var(--came);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+[data-concept='vitray'] .vt-shade {
+  fill: var(--other-shade);
+  opacity: 0;
+  transition: opacity 280ms;
+}
+[data-concept='vitray'] .vt-glow {
+  fill: var(--hover-glow);
+  opacity: 0;
+  transition: opacity 110ms;
+}
+[data-concept='vitray'] .vt-medglow {
+  fill: var(--hover-glow);
+  opacity: 0;
+  transition: opacity 110ms;
+}
+[data-concept='vitray'] .slice.is-hover .vt-glow,
+[data-concept='vitray'] .slice.is-hover .vt-medglow {
+  opacity: 1;
+}
+[data-concept='vitray'] .slice.is-selected .vt-medglow {
+  opacity: 0;
+}
+[data-concept='vitray'] .vt-halo {
+  fill: none;
+  stroke: var(--ray);
+  stroke-width: 3.2;
+  filter: url(#vitray-soft);
+  visibility: hidden;
+}
+[data-concept='vitray'] .slice.is-selected .vt-halo {
+  visibility: visible;
+}
+[data-concept='vitray'] .slice.is-hover .vt-gilt,
+[data-concept='vitray'] .slice.is-selected .vt-gilt {
+  opacity: 1;
+}
+[data-concept='vitray'] .slice.is-selected .vt-glow {
+  fill: var(--sel-glow);
+  opacity: 1;
+}
+[data-concept='vitray'] .wheel.has-selected .slice:not(.is-selected) .vt-shade {
+  opacity: 1;
+}
+
+/* Lettering. */
+[data-concept='vitray'] .vt-ink {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='vitray'] .vt-lbl {
+  font-family: var(--vt-caps);
+  fill: var(--wheel-text);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+[data-concept='vitray'] .vt-word {
+  font-family: var(--vt-book);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+[data-concept='vitray'] .vt-sub {
+  font-family: var(--vt-book);
+  fill: var(--wheel-sub);
+  font-weight: 600;
+}
+[data-concept='vitray'] .slice .ico {
+  stroke-width: 1.8;
+}
+[data-concept='vitray'] .slice.is-selected .vt-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='vitray'] .slice.is-selected .vt-lbl,
+[data-concept='vitray'] .slice.is-selected .vt-sub {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='vitray'] .slice.is-off .vt-ink {
+  opacity: 0.45;
+}
+[data-concept='vitray'] .slice.is-off .vt-glass {
+  opacity: 0.55;
+}
+
+/* Hub roundel. */
+[data-concept='vitray'] .vt-pool {
+  fill: var(--pool, transparent);
+  opacity: 0;
+  transition: opacity 200ms;
+}
+[data-concept='vitray'] .wheel.has-selected .vt-pool {
+  opacity: 0.45;
+}
+[data-concept='vitray'] .vt-hub-inner {
+  stroke-width: 1.4;
+}
+[data-concept='vitray'] .vt-title {
+  font-family: var(--vt-caps);
+  fill: var(--wheel-text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+[data-concept='vitray'] .vt-file {
+  font-family: var(--vt-book);
+  fill: var(--wheel-sub);
+  font-weight: 500;
+}
+[data-concept='vitray'] .vt-key {
+  fill: none;
+  stroke: var(--wheel-sub);
+  stroke-opacity: 0.55;
+  stroke-width: 1;
+}
+[data-concept='vitray'] .vt-keytext {
+  font-family: var(--vt-book);
+  fill: var(--wheel-sub);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* Light through the chosen pane: a faint beam and its pool stay while the slice is selected. */
+[data-concept='vitray'] .vt-fxs {
+  visibility: hidden;
+}
+[data-concept='vitray'] .vt-fxs.is-on {
+  visibility: visible;
+}
+[data-concept='vitray'] .vt-b0 {
+  --rest: 0.75;
+  stop-opacity: var(--rest);
+}
+[data-concept='vitray'] .vt-b1 {
+  --rest: 0.5;
+  stop-opacity: var(--rest);
+}
+[data-concept='vitray'] .vt-b2 {
+  --rest: 0.22;
+  stop-opacity: var(--rest);
+}
+[data-concept='vitray'] .vt-rays {
+  fill: none;
+  stroke: var(--ray);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='vitray'] .vt-beam {
+  filter: url(#vitray-soft);
+}
+
+/* Open: the window fades up and the petals light one after another. */
+[data-concept='vitray'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='vitray'] .wheel.is-opening .wheel-svg {
+  animation: vitray-up var(--dur-open) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='vitray'] .wheel.is-opening .vt-glass,
+[data-concept='vitray'] .wheel.is-opening .vt-ink {
+  animation: vitray-light var(--dur-open) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='vitray'] .wheel.is-closing .wheel-svg {
+  animation: vitray-away var(--dur-close) ease-in both;
+}
+@keyframes vitray-up {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes vitray-light {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vitray-away {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/* Apply: the pane flares, rays burst round its medallion, the beam runs down to the centre. */
+[data-concept='vitray'] .wheel.is-applying .slice.is-selected .vt-halo {
+  animation: vitray-halo 600ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='vitray'] .wheel.is-applying .vt-fxs.is-on .vt-rays {
+  animation: vitray-rays 560ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(40ms - var(--t, 0ms));
+}
+[data-concept='vitray'] .wheel.is-applying .vt-fxs.is-on .vt-b {
+  animation: vitray-beam 640ms ease-out both;
+}
+[data-concept='vitray'] .wheel.is-applying .vt-fxs.is-on .vt-b0 {
+  animation-delay: calc(60ms - var(--t, 0ms));
+}
+[data-concept='vitray'] .wheel.is-applying .vt-fxs.is-on .vt-b1 {
+  animation-delay: calc(140ms - var(--t, 0ms));
+}
+[data-concept='vitray'] .wheel.is-applying .vt-fxs.is-on .vt-b2 {
+  animation-delay: calc(220ms - var(--t, 0ms));
+}
+[data-concept='vitray'] .wheel.is-applying .vt-pool {
+  animation: vitray-pool 680ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='vitray'] .wheel.is-applying .slice.is-selected .vt-glow {
+  animation: vitray-pane 600ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes vitray-halo {
+  0% {
+    opacity: 0;
+    stroke-width: 2;
+  }
+  16% {
+    opacity: 1;
+    stroke-width: 9;
+  }
+  100% {
+    opacity: 1;
+    stroke-width: 3.2;
+  }
+}
+@keyframes vitray-rays {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) rotate(-8deg);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3) rotate(6deg);
+  }
+}
+@keyframes vitray-beam {
+  0% {
+    stop-opacity: 0;
+  }
+  35% {
+    stop-opacity: 1;
+  }
+  100% {
+    stop-opacity: var(--rest);
+  }
+}
+@keyframes vitray-pool {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  70% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0.45;
+  }
+}
+@keyframes vitray-pane {
+  0% {
+    opacity: 0.2;
+    fill: var(--ray);
+  }
+  16% {
+    opacity: 1;
+    fill: var(--ray);
+  }
+  100% {
+    opacity: 1;
+    fill: var(--sel-glow);
+  }
+}

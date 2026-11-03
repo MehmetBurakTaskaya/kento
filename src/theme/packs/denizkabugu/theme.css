@@ -1,0 +1,355 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Deniz kabuğu (seashell). */
+
+[data-concept='denizkabugu'] {
+  --radius: 14px;
+  --radius-sm: 9px;
+  --icon-stroke: 1.7;
+}
+[data-concept='denizkabugu'] .wheel {
+  font-family: var(--font-display);
+}
+
+[data-concept='denizkabugu'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 4% 4% 1%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--wheel-shadow) 50%, transparent);
+  transform: translateY(3%);
+}
+
+[data-concept='denizkabugu'] .dk-wall {
+  fill: var(--wall-fill);
+  stroke: var(--wall-line);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+[data-concept='denizkabugu'] .dk-stripes {
+  fill: var(--stripe);
+  opacity: 0.6;
+}
+
+/* Chambers: mother-of-pearl at rest, a stronger sheen on hover, abalone (or glowing pearl) when chosen. */
+[data-concept='denizkabugu'] .dk-hov {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+[data-concept='denizkabugu'] .dk-sel {
+  opacity: 0;
+}
+[data-concept='denizkabugu'] .slice.is-hover .dk-hov {
+  opacity: 0.95;
+}
+[data-concept='denizkabugu'] .slice.is-selected .dk-sel {
+  opacity: 1;
+}
+[data-concept='denizkabugu'] .slice.is-off .dk-ink {
+  opacity: 0.4;
+}
+
+[data-concept='denizkabugu'] .dk-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='denizkabugu'] .dk-lbl {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+[data-concept='denizkabugu'] .dk-lbl-s {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+[data-concept='denizkabugu'] .dk-sub {
+  fill: var(--wheel-sub);
+  font-weight: 500;
+}
+[data-concept='denizkabugu'] .slice.is-selected .dk-ink,
+[data-concept='denizkabugu'] .slice.is-selected .dk-sub {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='denizkabugu'] .slice .ico {
+  stroke-width: 1.8;
+}
+
+[data-concept='denizkabugu'] .dk-lines {
+  pointer-events: none;
+}
+[data-concept='denizkabugu'] .dk-septa {
+  fill: none;
+  stroke: var(--septum);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+[data-concept='denizkabugu'] .dk-septa-hi {
+  fill: none;
+  stroke: var(--septum-hi);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+[data-concept='denizkabugu'] .dk-beads {
+  fill: var(--hub-in);
+  stroke: var(--septum);
+  stroke-width: 1.3;
+}
+[data-concept='denizkabugu'] .dk-lip {
+  fill: none;
+  stroke: var(--wall-line);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+[data-concept='denizkabugu'] .dk-hub {
+  pointer-events: none;
+}
+[data-concept='denizkabugu'] .dk-coil {
+  fill: none;
+  stroke: var(--coil);
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+[data-concept='denizkabugu'] .dk-coil-septa {
+  fill: none;
+  stroke: var(--coil);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+[data-concept='denizkabugu'] .dk-hubrim {
+  fill: none;
+  stroke: var(--septum);
+  stroke-width: 2.4;
+}
+[data-concept='denizkabugu'] .dk-title,
+[data-concept='denizkabugu'] .dk-file {
+  paint-order: stroke;
+  stroke: var(--hub-in);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+[data-concept='denizkabugu'] .dk-title {
+  fill: var(--hub-text);
+  font-weight: 700;
+}
+[data-concept='denizkabugu'] .dk-file {
+  fill: var(--hub-muted);
+  font-weight: 500;
+}
+[data-concept='denizkabugu'] .dk-key {
+  fill: var(--key-bg);
+  stroke: var(--key-line);
+  stroke-width: 1;
+}
+[data-concept='denizkabugu'] .dk-keytext {
+  fill: var(--hub-text);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Open: the shell uncurls a quarter turn; the chambers fill in one after another. */
+[data-concept='denizkabugu'] .dk-shell,
+[data-concept='denizkabugu'] .dk-lines,
+[data-concept='denizkabugu'] .dk-body,
+[data-concept='denizkabugu'] .dk-hub,
+[data-concept='denizkabugu'] .dk-pearl,
+[data-concept='denizkabugu'] .dk-ripple {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='denizkabugu'] .wheel.is-opening .dk-shell,
+[data-concept='denizkabugu'] .wheel.is-opening .dk-lines,
+[data-concept='denizkabugu'] .wheel.is-opening .dk-body {
+  animation: denizkabugu-uncurl var(--dur-open) cubic-bezier(0.2, 1.1, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .wheel.is-opening .dk-hub {
+  animation: denizkabugu-coil-in var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .wheel.is-opening .dk-ink {
+  animation: fade-in var(--dur-open) ease-out both;
+  animation-delay: calc(30ms + var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .wheel.is-opening::before {
+  animation: fade-in var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .wheel.is-closing .wheel-svg,
+[data-concept='denizkabugu'] .wheel.is-closing::before {
+  animation: denizkabugu-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='denizkabugu'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='denizkabugu'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='denizkabugu'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes denizkabugu-uncurl {
+  from {
+    opacity: 0;
+    transform: rotate(-55deg) scale(0.72);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes denizkabugu-coil-in {
+  from {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes denizkabugu-close {
+  to {
+    opacity: 0;
+    transform: rotate(-20deg) scale(0.9);
+  }
+}
+
+/* Apply: a shimmer crosses the chamber, a pearl rolls the spiral into the center, light ripples out. */
+[data-concept='denizkabugu'] .dk-fx {
+  display: none;
+  pointer-events: none;
+}
+[data-concept='denizkabugu'] .wheel.is-applying .dk-fx {
+  display: inline;
+}
+[data-concept='denizkabugu'] .wheel.is-applying .slice.is-selected .dk-sel {
+  animation: denizkabugu-sel 700ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .wheel.is-applying .slice.is-selected .dk-ink,
+[data-concept='denizkabugu'] .wheel.is-applying .slice.is-selected .dk-sub {
+  animation: denizkabugu-ink 700ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .wheel.is-applying .dk-coil {
+  animation: denizkabugu-coil 700ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .dk-band {
+  transform-box: view-box;
+  animation: denizkabugu-shimmer 420ms ease-in-out both;
+  animation-delay: calc(30ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .dk-pearl {
+  animation: denizkabugu-roll 540ms cubic-bezier(0.42, 0.02, 0.62, 0.98) both;
+  animation-delay: calc(110ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .dk-pearl-shadow {
+  fill: rgb(20 20 40 / 0.18);
+  transform: translate(1.4px, 1.8px);
+}
+[data-concept='denizkabugu'] .dk-pearl-body {
+  stroke: var(--septum);
+  stroke-width: 0.6;
+}
+[data-concept='denizkabugu'] .dk-pearl-spec {
+  fill: #ffffff;
+}
+[data-concept='denizkabugu'] .dk-ripple {
+  fill: none;
+  stroke: var(--ripple);
+  stroke-width: 2.4;
+  animation: denizkabugu-ripple 200ms ease-out both;
+  animation-delay: calc(560ms - var(--t, 0ms));
+}
+[data-concept='denizkabugu'] .dk-ripple-2 {
+  stroke-width: 1.4;
+  animation-delay: calc(600ms - var(--t, 0ms));
+}
+@keyframes denizkabugu-sel {
+  0% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes denizkabugu-ink {
+  0%,
+  22% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  32%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes denizkabugu-shimmer {
+  from {
+    transform: rotate(24deg) translateX(-130px);
+  }
+  to {
+    transform: rotate(24deg) translateX(130px);
+  }
+}
+@keyframes denizkabugu-roll {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--a0)) translateY(-158px) rotate(var(--na0)) scale(0.2);
+  }
+  10% {
+    opacity: 1;
+    transform: rotate(var(--a0)) translateY(-158px) rotate(var(--na0)) scale(1);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a1)) translateY(0px) rotate(var(--na1)) scale(0.75);
+  }
+}
+@keyframes denizkabugu-ripple {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.9);
+  }
+}
+@keyframes denizkabugu-coil {
+  0%,
+  74% {
+    stroke: var(--coil);
+    opacity: 0.6;
+  }
+  86% {
+    stroke: var(--glow);
+    opacity: 1;
+  }
+  100% {
+    stroke: var(--coil);
+    opacity: 0.6;
+  }
+}
+
+.reduce-motion [data-concept='denizkabugu'] .dk-hov {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-concept='denizkabugu'] .dk-hov {
+    transition: none;
+  }
+}

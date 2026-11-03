@@ -4,6 +4,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +14,27 @@ use crate::i18n;
 pub const VERSION: u32 = 1;
 pub const WHEEL_SIZES: std::ops::RangeInclusive<u16> = 300..=440;
 pub const MAX_JOBS: u8 = 16;
-pub const THEMES: [&str; 1] = ["steel"];
+/// The theme a new or unknown choice falls back to.
+pub const DEFAULT_THEME: &str = "steel";
+
+/// The themes, in the order Settings shows them: the list the page draws them from.
+const CATALOG: &str = include_str!("../../src/theme/catalog.json");
+
+#[derive(Deserialize)]
+struct CatalogTheme {
+    id: String,
+}
+
+/// The ids of every theme the app knows.
+pub fn themes() -> &'static [String] {
+    static THEMES: OnceLock<Vec<String>> = OnceLock::new();
+    THEMES.get_or_init(
+        || match serde_json::from_str::<Vec<CatalogTheme>>(CATALOG) {
+            Ok(list) => list.into_iter().map(|theme| theme.id).collect(),
+            Err(_) => vec![DEFAULT_THEME.to_string()],
+        },
+    )
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "kebab-case")]
@@ -192,7 +213,7 @@ impl Default for Settings {
         Self {
             version: VERSION,
             appearance: Appearance::System,
-            theme: THEMES[0].to_string(),
+            theme: DEFAULT_THEME.to_string(),
             language: "system".to_string(),
             sound: Sound::default(),
             haptics: true,
@@ -243,8 +264,8 @@ impl Settings {
     /// Brings every value into its allowed range.
     pub fn normalized(mut self) -> Self {
         self.version = VERSION;
-        if !THEMES.contains(&self.theme.as_str()) {
-            self.theme = THEMES[0].to_string();
+        if !themes().contains(&self.theme) {
+            self.theme = DEFAULT_THEME.to_string();
         }
         let known = i18n::is_pseudo(&self.language)
             || i18n::available()
@@ -342,6 +363,33 @@ mod tests {
         fs::write(&path, "{ not json").unwrap();
         assert_eq!(load(&path), Settings::default());
         assert!(dir.path().join("settings.invalid.json").exists());
+    }
+
+    #[test]
+    fn themes_come_from_the_catalog_with_steel_first() {
+        let themes = themes();
+        assert_eq!(themes.len(), 51);
+        assert_eq!(themes[0], DEFAULT_THEME);
+        let unique: std::collections::HashSet<_> = themes.iter().collect();
+        assert_eq!(unique.len(), themes.len());
+        assert!(themes.iter().any(|theme| theme == "telefon"));
+    }
+
+    #[test]
+    fn a_known_theme_is_kept_and_an_unknown_one_falls_back_to_steel() {
+        let pick = |theme: &str| {
+            Settings {
+                theme: theme.to_string(),
+                ..Settings::default()
+            }
+            .normalized()
+            .theme
+        };
+        assert_eq!(pick("kadran-b"), "kadran-b");
+        assert_eq!(pick("hologram"), "hologram");
+        assert_eq!(pick("simya-b"), DEFAULT_THEME);
+        assert_eq!(pick(""), DEFAULT_THEME);
+        assert_eq!(Settings::default().theme, DEFAULT_THEME);
     }
 
     #[test]

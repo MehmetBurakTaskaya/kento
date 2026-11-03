@@ -9,7 +9,7 @@ import { Icon, type IconName } from '../components/Icon';
 import { Toasts } from '../components/Toasts';
 import { api, type Section } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
-import { applyTheme, getTheme, modeFor } from '../theme/registry';
+import { modeFor, showTheme } from '../theme/registry';
 import { ToolPanel } from '../tools/ToolPanel';
 import { WebDialog } from '../web/WebDialog';
 import { WheelDemo, wheelDemoRequested } from '../wheel';
@@ -39,7 +39,7 @@ export function App() {
     const dark = window.matchMedia('(prefers-color-scheme: dark)');
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const apply = () => {
-      applyTheme(document.documentElement, getTheme(settings.theme), modeFor(settings.appearance, dark.matches));
+      void showTheme(document.documentElement, settings.theme, modeFor(settings.appearance, dark.matches));
       const reduce = settings.reducedMotion === 'on' || (settings.reducedMotion === 'system' && motion.matches);
       document.documentElement.classList.toggle('reduce-motion', reduce);
     };

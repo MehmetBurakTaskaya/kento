@@ -1,0 +1,272 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Bauhaus. Flat primaries, black rules, lowercase geometric type; shapes that slide and lock. */
+
+[data-concept='bauhaus'] {
+  --radius: 0px;
+  --radius-sm: 0px;
+}
+[data-concept='bauhaus'] .wheel {
+  font-family: var(--font-brand);
+}
+
+[data-concept='bauhaus'] .bh-drop {
+  fill: var(--bh-shadow);
+}
+[data-concept='bauhaus'] .bh-face {
+  fill: var(--wheel-face);
+}
+[data-concept='bauhaus'] .bh-sq {
+  fill: var(--bh-blue);
+}
+[data-concept='bauhaus'] .bh-disc {
+  fill: var(--bh-red);
+}
+[data-concept='bauhaus'] .bh-tri {
+  fill: var(--bh-yellow);
+}
+[data-concept='bauhaus'] .bh-comp {
+  pointer-events: none;
+}
+
+/* Each slice owns a primary: its band segment, and its fill while pointed at. */
+[data-concept='bauhaus'] .bh-red {
+  --bh-c: var(--bh-red);
+  --bh-on: var(--bh-on-red);
+}
+[data-concept='bauhaus'] .bh-yellow {
+  --bh-c: var(--bh-yellow);
+  --bh-on: var(--bh-on-yellow);
+}
+[data-concept='bauhaus'] .bh-blue {
+  --bh-c: var(--bh-blue);
+  --bh-on: var(--bh-on-blue);
+}
+[data-concept='bauhaus'] .bh-hit {
+  fill: transparent;
+}
+[data-concept='bauhaus'] .bh-fill {
+  fill: transparent;
+}
+[data-concept='bauhaus'] .bh-band {
+  fill: var(--bh-c);
+}
+[data-concept='bauhaus'] .bh-selfill {
+  fill: var(--wheel-slice-selected);
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='bauhaus'] .bh-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='bauhaus'] .bh-fmt {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+[data-concept='bauhaus'] .bh-word {
+  font-weight: 600;
+}
+[data-concept='bauhaus'] .bh-sub {
+  fill: var(--bh-sub);
+  font-weight: 500;
+}
+[data-concept='bauhaus'] .slice .ico {
+  stroke-width: 2;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+
+[data-concept='bauhaus'] .slice.is-hover .bh-fill {
+  fill: var(--bh-c);
+}
+[data-concept='bauhaus'] .slice.is-hover .bh-ink,
+[data-concept='bauhaus'] .slice.is-hover .bh-sub {
+  fill: var(--bh-on);
+  color: var(--bh-on);
+}
+[data-concept='bauhaus'] .wheel.is-applying .slice.is-selected .bh-fill {
+  fill: var(--bh-c);
+}
+[data-concept='bauhaus'] .slice.is-selected .bh-selfill {
+  opacity: 1;
+}
+[data-concept='bauhaus'] .slice.is-selected .bh-ink,
+[data-concept='bauhaus'] .slice.is-selected .bh-sub {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='bauhaus'] .slice.is-off .bh-ink {
+  opacity: 0.4;
+}
+[data-concept='bauhaus'] .slice.is-off .bh-band {
+  fill: var(--bh-rule);
+}
+
+/* The grid */
+[data-concept='bauhaus'] .bh-grid {
+  pointer-events: none;
+}
+[data-concept='bauhaus'] .bh-rule {
+  fill: none;
+  stroke: var(--bh-rule);
+  stroke-width: 2.5;
+}
+[data-concept='bauhaus'] .bh-rule-thin {
+  stroke-width: 1.5;
+}
+[data-concept='bauhaus'] .bh-rim {
+  fill: none;
+  stroke: var(--bh-rim);
+  stroke-width: 6;
+}
+
+/* Hub */
+[data-concept='bauhaus'] .bh-hub-disc {
+  fill: var(--bh-hub);
+}
+[data-concept='bauhaus'] .bh-title {
+  fill: var(--bh-hub-text);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+[data-concept='bauhaus'] .bh-file {
+  fill: var(--bh-hub-muted);
+  font-weight: 500;
+}
+[data-concept='bauhaus'] .bh-key {
+  fill: var(--bh-key);
+}
+[data-concept='bauhaus'] .bh-keytext {
+  fill: var(--bh-key-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+/* The shapes travel round the rim on turning groups; each has its own pace, all lock with a small overshoot. */
+[data-concept='bauhaus'] .bh-orbit,
+[data-concept='bauhaus'] .bh-orbit-in {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='bauhaus'] .bh-orbit {
+  transition: transform 500ms cubic-bezier(0.5, 0, 0.25, 1.25);
+}
+[data-concept='bauhaus'] .bh-orbit-sq {
+  transition-duration: 580ms;
+  transition-delay: 30ms;
+}
+[data-concept='bauhaus'] .bh-upright {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: transform 580ms cubic-bezier(0.5, 0, 0.25, 1.25) 30ms;
+}
+[data-concept='bauhaus'] .bh-orbit-disc {
+  transition-duration: 540ms;
+  transition-delay: 60ms;
+}
+[data-concept='bauhaus'] .bh-orbit-tri {
+  --bh-from: -32deg;
+}
+[data-concept='bauhaus'] .bh-orbit-sq {
+  --bh-from: 26deg;
+}
+[data-concept='bauhaus'] .bh-orbit-disc {
+  --bh-from: -22deg;
+}
+
+/* Open: the disc settles, the shapes slide a short way into their places, the labels follow. */
+[data-concept='bauhaus'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='bauhaus'] .wheel.is-opening .wheel-svg {
+  animation: bauhaus-settle var(--dur-open) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='bauhaus'] .wheel.is-opening .bh-orbit-in {
+  animation: bauhaus-slide-in calc(var(--dur-open) + 60ms) cubic-bezier(0.3, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='bauhaus'] .wheel.is-opening .bh-ink {
+  animation: bauhaus-ink var(--dur-open) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='bauhaus'] .wheel.is-closing .wheel-svg {
+  animation: bauhaus-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes bauhaus-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bauhaus-slide-in {
+  from {
+    opacity: 0;
+    transform: rotate(var(--bh-from));
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bauhaus-ink {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bauhaus-close {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Apply: while the shapes travel, the slice fills from under the hub to the band. */
+[data-concept='bauhaus'] .wheel.is-applying .slice.is-selected .bh-selfill {
+  animation: bauhaus-wipe 300ms cubic-bezier(0.7, 0, 0.2, 1) both;
+  animation-delay: calc(140ms - var(--t, 0ms));
+}
+[data-concept='bauhaus'] .wheel.is-applying .slice.is-selected .bh-ink,
+[data-concept='bauhaus'] .wheel.is-applying .slice.is-selected .bh-sub {
+  animation: bauhaus-ink-flip 440ms steps(1, jump-end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes bauhaus-wipe {
+  from {
+    transform: scale(0.3);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes bauhaus-ink-flip {
+  0% {
+    fill: var(--bh-on);
+    color: var(--bh-on);
+  }
+  62%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-concept='bauhaus'] .bh-orbit,
+  [data-concept='bauhaus'] .bh-upright {
+    transition-duration: 60ms;
+    transition-delay: 0ms;
+  }
+}

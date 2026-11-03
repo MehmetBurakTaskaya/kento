@@ -1,0 +1,313 @@
+/* SPDX-License-Identifier: MIT */
+/* Sema: a whirling white skirt seen from above. */
+
+[data-concept='sema'] {
+  --radius: 12px;
+  --radius-sm: 8px;
+  --icon-stroke: 1.6;
+}
+
+/* A soft shadow on the floor by day, a pale glow at night. */
+[data-concept='sema'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 6.5%;
+  border-radius: 50%;
+  box-shadow:
+    0 var(--se-glow-y) var(--se-glow-blur) var(--wheel-shadow),
+    0 2px 6px var(--wheel-shadow);
+}
+[data-concept='sema'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+
+[data-concept='sema'] .se-st-in {
+  stop-color: var(--se-cloth-in);
+}
+[data-concept='sema'] .se-st-out {
+  stop-color: var(--se-cloth-out);
+}
+[data-concept='sema'] .se-st-hat-in {
+  stop-color: var(--se-hat-in);
+}
+[data-concept='sema'] .se-st-hat {
+  stop-color: var(--se-hat);
+}
+
+/* The fabric layer turns as one group under the slices and labels. */
+[data-concept='sema'] .se-turn {
+  pointer-events: none;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='sema'] .se-shade {
+  fill: var(--se-fold);
+  opacity: var(--se-fold-opacity);
+}
+[data-concept='sema'] .se-ridge {
+  fill: none;
+  stroke: var(--se-ridge);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: var(--se-ridge-opacity);
+}
+[data-concept='sema'] .se-crease {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+[data-concept='sema'] .se-hem {
+  fill: none;
+  stroke: var(--se-hem);
+  stroke-width: 1.4;
+}
+[data-concept='sema'] .se-hem-in {
+  fill: none;
+  stroke: var(--se-hem);
+  stroke-width: 0.7;
+  stroke-dasharray: 2 3;
+  opacity: 0.55;
+}
+[data-concept='sema'] .se-streak {
+  display: none;
+  fill: none;
+  stroke: var(--se-streak);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+/* Slices tint the cloth; multiply keeps the folds visible through the colour. */
+[data-concept='sema'] .se-seg {
+  fill: var(--wheel-slice-hover);
+  fill-opacity: 0;
+  transition: fill-opacity 130ms;
+}
+[data-concept='sema'] .slice.is-hover .se-seg {
+  fill-opacity: 1;
+  mix-blend-mode: multiply;
+}
+[data-concept='sema'] .slice.is-selected .se-seg {
+  fill: var(--wheel-slice-selected);
+  fill-opacity: 1;
+  mix-blend-mode: multiply;
+}
+
+[data-concept='sema'] .se-ink {
+  color: var(--wheel-text);
+}
+[data-concept='sema'] .se-lbl {
+  fill: var(--wheel-text);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+[data-concept='sema'] .se-word {
+  font-family: var(--font-brand);
+}
+[data-concept='sema'] .se-sub {
+  fill: var(--se-sub);
+  font-family: var(--font-brand);
+  font-weight: 600;
+}
+[data-concept='sema'] .slice.is-selected .se-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='sema'] .slice.is-selected .se-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='sema'] .slice.is-selected .se-sub {
+  fill: var(--se-sub-selected);
+}
+[data-concept='sema'] .slice.is-off .se-ink {
+  opacity: 0.4;
+}
+
+/* The waist and the felt crown. */
+[data-concept='sema'] .se-collar {
+  fill: var(--se-collar);
+}
+[data-concept='sema'] .se-belt {
+  fill: var(--se-belt);
+}
+[data-concept='sema'] .se-hat-shadow {
+  fill: #000000;
+  opacity: 0.22;
+}
+[data-concept='sema'] .se-hat-crown {
+  fill: none;
+  stroke: var(--se-hat-edge);
+  stroke-width: 0.9;
+  stroke-dasharray: 1.6 2.6;
+  opacity: 0.8;
+}
+[data-concept='sema'] .se-title {
+  fill: var(--se-title);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+[data-concept='sema'] .se-file {
+  fill: var(--se-file);
+  font-weight: 500;
+}
+[data-concept='sema'] .se-key {
+  fill: var(--se-key);
+  stroke: var(--se-key-line);
+  stroke-width: 0.8;
+}
+[data-concept='sema'] .se-keytext {
+  fill: var(--se-keytext);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Apply: the skirt turns a quarter round to the left and its hem flares, then settles. */
+[data-concept='sema'] .wheel.is-applying .se-turn {
+  animation: sema-whirl 680ms cubic-bezier(0.22, 0.62, 0.25, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='sema'] .wheel.is-applying .se-streak {
+  display: inline;
+  animation: sema-streak 680ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='sema'] .wheel.is-applying .slice.is-selected .se-seg {
+  animation: sema-dye 680ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='sema'] .wheel.is-applying .slice.is-selected .se-lbl,
+[data-concept='sema'] .wheel.is-applying .slice.is-selected .se-ink {
+  animation: sema-ink 680ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='sema'] .wheel.is-applying .slice.is-selected .se-sub {
+  animation: sema-ink-sub 680ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes sema-whirl {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  42% {
+    transform: rotate(-64deg) scale(1.06);
+  }
+  100% {
+    transform: rotate(-90deg) scale(1);
+  }
+}
+@keyframes sema-streak {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes sema-dye {
+  0%,
+  8% {
+    fill: var(--wheel-slice-hover);
+  }
+  36%,
+  100% {
+    fill: var(--wheel-slice-selected);
+  }
+}
+@keyframes sema-ink {
+  0%,
+  20% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  28%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes sema-ink-sub {
+  0%,
+  20% {
+    fill: var(--se-sub);
+  }
+  28%,
+  100% {
+    fill: var(--se-sub-selected);
+  }
+}
+
+/* Open: the skirt spins into place and swells; the labels follow. */
+[data-concept='sema'] .se-hub {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='sema'] .wheel.is-opening .se-turn {
+  animation: sema-unfurl var(--dur-open) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='sema'] .wheel.is-opening .se-hub {
+  animation: sema-pop var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='sema'] .wheel.is-opening .se-ink {
+  animation: sema-fade var(--dur-open) ease-out both;
+  animation-delay: calc(50ms + var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='sema'] .wheel.is-opening::before {
+  animation: sema-fade var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='sema'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='sema'] .wheel.is-closing .wheel-svg,
+[data-concept='sema'] .wheel.is-closing::before {
+  animation: sema-close var(--dur-close) ease-in both;
+}
+[data-concept='sema'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='sema'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes sema-unfurl {
+  from {
+    opacity: 0;
+    transform: rotate(32deg) scale(0.8);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sema-pop {
+  from {
+    transform: scale(0.88);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes sema-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sema-close {
+  to {
+    opacity: 0;
+    transform: scale(0.92) rotate(-10deg);
+  }
+}

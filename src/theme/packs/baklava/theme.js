@@ -1,0 +1,530 @@
+// SPDX-License-Identifier: MIT
+// Theme: Baklava. A round copper tray of baklava cut into diamonds: a hammered copper rim, golden
+// flaky pastry scored in a diamond lattice with a pinch of pistachio on every piece, and a dollop
+// of clotted cream in the middle. Applying drizzles glistening syrup over the slice; it stays glazed.
+export default function register(Board) {
+  (function () {
+    'use strict';
+
+    const f2 = (n) => Math.round(n * 100) / 100;
+    const ID = 'baklava';
+    // Radii in the 400 x 400 view box: cream, pastry, flaky edge, tray floor, copper rim.
+    const R = { hub: 46, p0: 50, flake: 166, p1: 174, floor: 181, rim: 195, lbl: 112 };
+    const CUT = 2.2;
+    const LAT = { s: 27, th: 32 }; // diamond lattice: spacing and angle from the vertical
+
+    function rng(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    const dot = (x, y, r) =>
+      `M${f2(x - r)} ${f2(y)}a${f2(r)} ${f2(r)} 0 1 0 ${f2(2 * r)} 0a${f2(r)} ${f2(r)} 0 1 0 ${f2(-2 * r)} 0Z`;
+    function stop(grad, H, offset, token, op) {
+      H.s('stop', { offset, style: `stop-color: var(${token})${op != null ? `; stop-opacity: ${op}` : ''}` }, grad);
+    }
+
+    // The two families of scoring lines across the whole tray (clipped to each slice later).
+    function lattice() {
+      const t = (LAT.th * Math.PI) / 180;
+      const fams = [
+        [Math.cos(t), -Math.sin(t)],
+        [Math.cos(t), Math.sin(t)],
+      ];
+      const lines = [];
+      for (const [nx, ny] of fams) {
+        for (let k = -8; k <= 8; k++) {
+          const c = k * LAT.s + LAT.s / 2;
+          // Points on n.p = c inside the pastry circle (center 200, 200).
+          const dx = -ny,
+            dy = nx;
+          const h2 = R.p1 * R.p1 - c * c;
+          if (h2 <= 0) continue;
+          const h = Math.sqrt(h2);
+          const px = 200 + nx * c,
+            py = 200 + ny * c;
+          lines.push([px - dx * h, py - dy * h, px + dx * h, py + dy * h]);
+        }
+      }
+      return lines;
+    }
+    // The centers of the diamonds.
+    function centers() {
+      const t = (LAT.th * Math.PI) / 180;
+      const [a1, b1] = [Math.cos(t), -Math.sin(t)];
+      const [a2, b2] = [Math.cos(t), Math.sin(t)];
+      const det = a1 * b2 - a2 * b1;
+      const out = [];
+      for (let i = -8; i <= 8; i++) {
+        for (let j = -8; j <= 8; j++) {
+          const c1 = (i + 1) * LAT.s,
+            c2 = (j + 1) * LAT.s;
+          const x = (c1 * b2 - c2 * b1) / det;
+          const y = (a1 * c2 - a2 * c1) / det;
+          if (Math.hypot(x, y) < R.flake - 10) out.push([200 + x, 200 + y]);
+        }
+      }
+      return out;
+    }
+    const angleOf = (x, y) => ((Math.atan2(x - 200, 200 - y) * 180) / Math.PI + 360) % 360;
+    const within = (a, a0, a1, pad) => {
+      const d = (((a - a0) % 360) + 360) % 360;
+      return d > pad && d < a1 - a0 - pad;
+    };
+    // The syrup drizzle: a zigzag poured across the slice from the rim toward the center.
+    function drizzle(H, sl) {
+      let d = '';
+      const n = 7;
+      for (let k = 0; k <= n; k++) {
+        const r = R.flake - 4 - (k * (R.flake - 72)) / n;
+        const side = k % 2 ? 1 : -1;
+        const half = ((((r * Math.sin(H.rad((sl.a1 - sl.a0) / 2)) - 10) / r) * 180) / Math.PI) * 0.92;
+        const [x, y] = H.polar(r, sl.mid + side * half);
+        if (!k) d += `M${f2(x)} ${f2(y)}`;
+        else {
+          const [cx, cy] = H.polar(r + (R.flake - 72) / n / 2, sl.mid);
+          d += `Q${f2(cx)} ${f2(cy)} ${f2(x)} ${f2(y)}`;
+        }
+      }
+      return d;
+    }
+
+    Board.define({
+      id: ID,
+      fonts: {
+        brand: "'El Messiri'",
+        display: "'Yeseva One'",
+        load: ["'El Messiri'", "'Yeseva One'"],
+        credits: [
+          { family: 'Yeseva One', license: 'SIL Open Font License 1.1' },
+          { family: 'El Messiri', license: 'SIL Open Font License 1.1' },
+        ],
+      },
+      motion: { open: 180, close: 120, stagger: 14, apply: 700 },
+      palette: {
+        light: {
+          bg: '#f8f8f3',
+          surface: '#ffffff',
+          'surface-2': '#f2f3ec',
+          border: '#dfe2d3',
+          'border-strong': '#b9bf9f',
+          text: '#1c2a17',
+          'text-muted': '#56604c',
+          accent: '#2f6b22',
+          'on-accent': '#ffffff',
+          focus: '#2f6b22',
+          success: '#2f7d3a',
+          'on-success': '#ffffff',
+          'success-text': '#256830',
+          warning: '#b86e00',
+          'warning-text': '#7a4800',
+          danger: '#b3261e',
+          desk: 'radial-gradient(120% 100% at 30% 15%, #ffffff 0%, #eef4ec 45%, #d6e7dc 100%)',
+          'wheel-face': '#f6d07e',
+          'wheel-slice': '#f6d07e',
+          'wheel-slice-hover': '#fbdc94',
+          'wheel-slice-selected': '#e8a030',
+          'wheel-text': '#173511',
+          'wheel-text-selected': '#11260b',
+          'wheel-line': '#c58a2e',
+          'wheel-shadow': 'rgba(60, 80, 50, 0.28)',
+          'bk-top-in': '#fbe4a6',
+          'bk-top-out': '#f1c262',
+          'bk-hov-in': '#fff7de',
+          'bk-hov-out': '#fbd98c',
+          'bk-sel-in': '#f5b444',
+          'bk-sel-out': '#de8f1a',
+          'bk-halo': '#f6d07e',
+          'bk-halo-h': '#fde6ae',
+          'bk-halo-s': '#eba236',
+          'bk-cut': '#c58a2e',
+          'bk-cut-hi': '#fff6d8',
+          'bk-flake-a': '#fff1c9',
+          'bk-flake-b': '#d9a248',
+          'bk-floor': '#e9b54e',
+          'bk-syrup': '#ffd45e',
+          'bk-syrup-hi': '#fffbea',
+          'bk-nut-a': '#62ad35',
+          'bk-nut-b': '#a6da66',
+          'bk-nut-c': '#3b8526',
+          'bk-cu-hi': '#ffe3d2',
+          'bk-cu': '#efab86',
+          'bk-cu-mid': '#da8c61',
+          'bk-cu-edge': '#b0663e',
+          'bk-dimple': '#fff4ec',
+          'bk-dimple-dark': '#c27a52',
+          'bk-dimple-op': '0.5',
+          'bk-cream': '#fffdf6',
+          'bk-cream-edge': '#efe4c9',
+          'bk-sub': '#1b3e12',
+          'bk-sub-sel': '#11260b',
+          'bk-hub-text': '#173511',
+          'bk-hub-sub': '#4f5a36',
+          'bk-key': '#2f6b22',
+          'bk-key-text': '#ffffff',
+          'bk-glow': 'rgba(255, 210, 120, 0)',
+        },
+        dark: {
+          bg: '#0c1412',
+          surface: '#15201d',
+          'surface-2': '#1c2a26',
+          border: '#2a3d37',
+          'border-strong': '#466259',
+          text: '#f2f1e8',
+          'text-muted': '#b2baae',
+          accent: '#9bcf5e',
+          'on-accent': '#10200a',
+          focus: '#b9e07e',
+          success: '#7fd38c',
+          'on-success': '#06210f',
+          'success-text': '#95e0a2',
+          warning: '#ffbf5a',
+          'warning-text': '#ffd080',
+          danger: '#ff7a6b',
+          desk: 'radial-gradient(70% 62% at 50% 55%, #26443a 0%, #142520 55%, #09110f 100%)',
+          'wheel-face': '#eebe5e',
+          'wheel-slice': '#eebe5e',
+          'wheel-slice-hover': '#f8d27e',
+          'wheel-slice-selected': '#e09420',
+          'wheel-text': '#132b0e',
+          'wheel-text-selected': '#0e2008',
+          'wheel-line': '#a8701e',
+          'wheel-shadow': 'rgba(0, 0, 0, 0.6)',
+          'bk-top-in': '#fbdc8c',
+          'bk-top-out': '#d99a36',
+          'bk-hov-in': '#fff0c4',
+          'bk-hov-out': '#f0c066',
+          'bk-sel-in': '#f2ac36',
+          'bk-sel-out': '#d6870f',
+          'bk-halo': '#eebe5e',
+          'bk-halo-h': '#f8d488',
+          'bk-halo-s': '#e49a26',
+          'bk-cut': '#a8701e',
+          'bk-cut-hi': '#ffe9aa',
+          'bk-flake-a': '#fbe2a6',
+          'bk-flake-b': '#b77e2a',
+          'bk-floor': '#cf952e',
+          'bk-syrup': '#ffce4a',
+          'bk-syrup-hi': '#fff7d8',
+          'bk-nut-a': '#6cba3c',
+          'bk-nut-b': '#b2e274',
+          'bk-nut-c': '#3f8a28',
+          'bk-cu-hi': '#ffd9c0',
+          'bk-cu': '#d9875a',
+          'bk-cu-mid': '#a65d34',
+          'bk-cu-edge': '#62301a',
+          'bk-dimple': '#ffe1cc',
+          'bk-dimple-dark': '#834628',
+          'bk-dimple-op': '0.5',
+          'bk-cream': '#fff8e6',
+          'bk-cream-edge': '#e6d3a8',
+          'bk-sub': '#163910',
+          'bk-sub-sel': '#0e2008',
+          'bk-hub-text': '#132b0e',
+          'bk-hub-sub': '#4c4a26',
+          'bk-key': '#2f6b22',
+          'bk-key-text': '#ffffff',
+          'bk-glow': 'rgba(255, 196, 100, 0.34)',
+        },
+      },
+      contrast: [
+        ...Board.DEFAULT_PAIRS,
+        ['wheel-text', 'bk-top-in', 'text'],
+        ['wheel-text', 'bk-top-out', 'text'],
+        ['wheel-text', 'bk-hov-in', 'text'],
+        ['wheel-text', 'bk-hov-out', 'text'],
+        ['wheel-text-selected', 'bk-sel-in', 'text'],
+        ['wheel-text-selected', 'bk-sel-out', 'text'],
+        ['bk-sub', 'bk-top-out', 'text'],
+        ['bk-sub', 'bk-hov-out', 'text'],
+        ['bk-sub-sel', 'bk-sel-out', 'text'],
+        ['bk-hub-text', 'bk-cream', 'text'],
+        ['bk-hub-sub', 'bk-cream', 'text'],
+        ['bk-key-text', 'bk-key', 'text'],
+      ],
+
+      // Gradients are built per wheel in render(): they read the palette tokens of their own card.
+      defs: '',
+
+      wheel: {
+        render(root, m, H) {
+          const uid = H.uid(ID);
+          root.dataset.bkUid = uid;
+          const rand = rng(1453 + m.n);
+          const defs = H.s('defs', {}, root);
+          for (const [name, a, b] of [
+            ['top', '--bk-top-in', '--bk-top-out'],
+            ['hov', '--bk-hov-in', '--bk-hov-out'],
+            ['sel', '--bk-sel-in', '--bk-sel-out'],
+          ]) {
+            const g = H.s(
+              'radialGradient',
+              { id: `${uid}-${name}`, gradientUnits: 'userSpaceOnUse', cx: 186, cy: 180, r: R.p1 + 10 },
+              defs,
+            );
+            stop(g, H, 0.15, a);
+            stop(g, H, 1, b);
+          }
+          const cu = H.s(
+            'linearGradient',
+            { id: `${uid}-cu`, gradientUnits: 'userSpaceOnUse', x1: 60, y1: 20, x2: 340, y2: 380 },
+            defs,
+          );
+          stop(cu, H, 0, '--bk-cu-hi');
+          stop(cu, H, 0.35, '--bk-cu');
+          stop(cu, H, 0.7, '--bk-cu-mid');
+          stop(cu, H, 1, '--bk-cu-edge');
+          const sh = H.s(
+            'radialGradient',
+            { id: `${uid}-shadow`, gradientUnits: 'userSpaceOnUse', cx: 205, cy: 212, r: R.rim + 12 },
+            defs,
+          );
+          stop(sh, H, 0.86, '--wheel-shadow');
+          stop(sh, H, 1, '--wheel-shadow', 0);
+          const gw = H.s(
+            'radialGradient',
+            { id: `${uid}-glow`, gradientUnits: 'userSpaceOnUse', cx: 200, cy: 200, r: 200 },
+            defs,
+          );
+          stop(gw, H, 0.7, '--bk-glow');
+          stop(gw, H, 1, '--bk-glow', 0);
+
+          // The copper tray: shadow, hammered rim, its bright lip and the syrupy floor.
+          const tray = H.s('g', { class: 'bk-tray', 'aria-hidden': 'true' }, root);
+          H.s('circle', { cx: 200, cy: 200, r: 200, fill: `url(#${uid}-glow)` }, tray);
+          H.s('circle', { cx: 205, cy: 212, r: R.rim + 12, fill: `url(#${uid}-shadow)` }, tray);
+          H.s('circle', { cx: 200, cy: 200, r: R.rim, fill: `url(#${uid}-cu)`, class: 'bk-rim' }, tray);
+          // Hammer marks: soft dents, lit on the side away from the light, shaded on the other.
+          let dim = '',
+            dimDark = '';
+          for (let row = 0; row < 3; row++) {
+            const n = 46 + row * 5;
+            for (let k = 0; k < n; k++) {
+              const a = (k + rand() * 0.7 + row * 0.45) * (360 / n);
+              const r = R.floor + 2.6 + row * 4.4 + rand() * 1.4;
+              const [x, y] = H.polar(r, a);
+              const sz = 1.9 + rand() * 1.3;
+              dimDark += dot(x - 0.8, y - 0.9, sz);
+              dim += dot(x + 0.6, y + 0.7, sz * 0.85);
+            }
+          }
+          H.s('path', { d: dimDark, class: 'bk-dimple-dark' }, tray);
+          H.s('path', { d: dim, class: 'bk-dimple' }, tray);
+          const [l0x, l0y] = H.polar(R.rim - 3, 292);
+          const [l1x, l1y] = H.polar(R.rim - 3, 352);
+          H.s(
+            'path',
+            { d: `M${f2(l0x)} ${f2(l0y)}A${R.rim - 3} ${R.rim - 3} 0 0 1 ${f2(l1x)} ${f2(l1y)}`, class: 'bk-lip' },
+            tray,
+          );
+          H.s('circle', { cx: 200, cy: 200, r: R.floor, class: 'bk-floor' }, tray);
+
+          const lines = lattice();
+          const nuts = centers();
+          for (const sl of m.slices) {
+            const g = H.slice(root, sl, m);
+            const t = H.rad(sl.mid);
+            g.style.setProperty('--ux', f2(Math.sin(t)));
+            g.style.setProperty('--uy', f2(-Math.cos(t)));
+            H.s('path', { d: H.sector(R.hub, R.floor, sl.a0, sl.a1), class: 'bk-hit' }, g);
+            const lift = H.s('g', { class: 'bk-lift' }, g);
+            const shape = H.sector(R.p0, R.p1, sl.a0, sl.a1, CUT);
+            H.s('path', { d: shape, class: 'bk-lift-shadow' }, lift);
+            const top = H.s('path', { d: shape, class: 'bk-top', fill: `url(#${uid}-top)` }, lift);
+            top.dataset.f = 'top';
+            // The unglazed pastry over a freshly chosen slice, faded out as the syrup soaks in.
+            H.s('path', { d: shape, class: 'bk-unsoak', fill: `url(#${uid}-top)` }, lift);
+            // Flaky layers along the outer edge of the pastry.
+            let flA = '',
+              flB = '';
+            for (let k = 0; k < 4; k++) {
+              const r = R.flake + 1.2 + k * 2;
+              if (k % 2) flB += H.arc(r, sl.a0 + 1.2, sl.a1 - 1.2);
+              else flA += H.arc(r, sl.a0 + 1.2, sl.a1 - 1.2);
+            }
+            H.s('path', { d: flA, class: 'bk-flake-a' }, lift);
+            H.s('path', { d: flB, class: 'bk-flake-b' }, lift);
+            // The diamond scoring, clipped to the slice.
+            const clipId = `${uid}-c${sl.i}`;
+            const clip = H.s('clipPath', { id: clipId }, lift);
+            H.s('path', { d: H.sector(R.p0, R.flake, sl.a0, sl.a1, CUT) }, clip);
+            // Only the part of each line over this slice (the clip trims the last pixel), so the
+            // slice's own box stays the size of the slice.
+            let cut = '';
+            for (const [x0, y0, x1, y1] of lines) {
+              let first = -1;
+              let last = -1;
+              for (let k = 0; k <= 160; k++) {
+                const x = x0 + ((x1 - x0) * k) / 160;
+                const y = y0 + ((y1 - y0) * k) / 160;
+                if (Math.hypot(x - 200, y - 200) > R.p0 - 2 && within(angleOf(x, y), sl.a0, sl.a1, -1.5)) {
+                  if (first < 0) first = k;
+                  last = k;
+                }
+              }
+              if (first < 0 || last === first) continue;
+              const p = (k) => `${f2(x0 + ((x1 - x0) * k) / 160)} ${f2(y0 + ((y1 - y0) * k) / 160)}`;
+              cut += `M${p(Math.max(0, first - 1))}L${p(Math.min(160, last + 1))}`;
+            }
+            const sc = H.s('g', { 'clip-path': `url(#${clipId})`, class: 'bk-score' }, lift);
+            H.s('path', { d: cut, class: 'bk-cut-hi', transform: 'translate(0.9 0.9)' }, sc);
+            H.s('path', { d: cut, class: 'bk-cut' }, sc);
+            // The label, then pistachio on every diamond that stays clear of it.
+            const c = H.s('g', { class: 'bk-content' }, lift);
+            if (m.kind === 'convert' && sl.sub) {
+              H.block(c, sl, R.lbl, {
+                size: 25,
+                subSize: 14,
+                gap: -1,
+                maxWidth: 76,
+                minSize: 11,
+                cls: 'bk-lbl bk-fmt',
+                subCls: 'bk-sub',
+              });
+            } else {
+              H.block(c, sl, R.lbl, {
+                icon: true,
+                iconSize: 22,
+                size: 15,
+                gap: 2,
+                maxWidth: 76,
+                minSize: 9.5,
+                cls: 'bk-lbl bk-word',
+                sub: null,
+              });
+            }
+            let bb = null;
+            try {
+              bb = c.getBBox();
+            } catch (e) {
+              bb = null;
+            }
+            const [lx, ly] = H.polar(R.lbl, sl.mid);
+            const box =
+              bb && bb.width
+                ? { cx: bb.x + bb.width / 2, cy: bb.y + bb.height / 2, hw: bb.width / 2 + 5, hh: bb.height / 2 + 2 }
+                : { cx: lx, cy: ly, hw: 42, hh: 26 };
+            let nA = '',
+              nB = '',
+              nC = '';
+            for (const [x, y] of nuts) {
+              if (!within(angleOf(x, y), sl.a0, sl.a1, 5) || Math.hypot(x - 200, y - 200) < R.p0 + 9) continue;
+              if (Math.abs(x - box.cx) < box.hw && Math.abs(y - box.cy) < box.hh) continue;
+              for (let q = 0; q < 7; q++) {
+                const qa = rand() * Math.PI * 2,
+                  qr = rand() * 4.4;
+                const d = dot(x + Math.cos(qa) * qr, y + Math.sin(qa) * qr, 1.1 + rand() * 1.3);
+                if (q % 3 === 0) nA += d;
+                else if (q % 3 === 1) nB += d;
+                else nC += d;
+              }
+            }
+            const ng = H.s('g', { class: 'bk-nuts' });
+            lift.insertBefore(ng, c);
+            H.s('path', { d: nC, class: 'bk-nut-c' }, ng);
+            H.s('path', { d: nA, class: 'bk-nut-a' }, ng);
+            H.s('path', { d: nB, class: 'bk-nut-b' }, ng);
+            // The glaze: a syrup line and glossy streaks, shown once the slice is chosen.
+            const glaze = H.s('g', { class: 'bk-glaze' });
+            lift.insertBefore(glaze, c);
+            const dz = drizzle(H, sl);
+            // The pour: a thin stream falling onto the rim where the drizzle starts.
+            const [px, py] = H.polar(
+              R.flake - 4,
+              sl.mid -
+                (((((R.flake - 4) * Math.sin(H.rad((sl.a1 - sl.a0) / 2)) - 10) / (R.flake - 4)) * 180) / Math.PI) *
+                  0.92,
+            );
+            const pour = H.s('path', { d: `M${f2(px)} ${f2(py - 70)}L${f2(px)} ${f2(py)}`, class: 'bk-pour' }, glaze);
+            pour.style.setProperty('--px', f2(px) + 'px');
+            pour.style.setProperty('--py', f2(py) + 'px');
+            H.s('path', { d: dz, class: 'bk-drizzle-edge', pathLength: 1 }, glaze);
+            H.s('path', { d: dz, class: 'bk-drizzle', pathLength: 1 }, glaze);
+            H.s('path', { d: dz, class: 'bk-drizzle-hi', pathLength: 1 }, glaze);
+            let streaks = '';
+            for (const [r, da, len] of [
+              [R.flake - 14, -8, 12],
+              [R.flake - 22, 5, 9],
+              [R.p0 + 22, 2, 6],
+            ])
+              streaks += H.arc(r, sl.mid + da - len / 2, sl.mid + da + len / 2);
+            H.s('path', { d: streaks, class: 'bk-streak' }, glaze);
+            if (sl.off) lift.insertBefore(H.s('path', { d: shape, class: 'bk-off' }), c);
+            H.s('path', { d: H.arc(R.flake - 4, sl.a0 + 4, sl.a1 - 4), class: 'bk-glint' }, lift);
+          }
+
+          // A dollop of clotted cream in the middle carries the name, the file and the key.
+          const hub = H.s('g', { class: 'bk-hub' }, root);
+          let cream = '';
+          for (let k = 0; k <= 48; k++) {
+            const a = k * 7.5;
+            const r = R.hub + 1.6 * Math.sin(H.rad(a * 5)) + 0.8 * Math.sin(H.rad(a * 11));
+            const [x, y] = H.polar(r, a);
+            cream += (k ? 'L' : 'M') + f2(x) + ' ' + f2(y);
+          }
+          H.s('path', { d: cream + 'Z', class: 'bk-cream' }, hub);
+          H.s('path', { d: `M${f2(176)} ${f2(176)}C185 168 199 166 210 169`, class: 'bk-cream-hi' }, hub);
+          H.label(hub, 200, 184, m.title, { maxWidth: 82, size: 17, minSize: 11, cls: 'bk-title', maxLines: 1 });
+          H.label(hub, 200, 201, m.file, {
+            maxWidth: 78,
+            size: 12.5,
+            minSize: 9,
+            cls: 'bk-file',
+            maxLines: 1,
+            attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
+          });
+          const kw = 14 + m.key.length * 6.3;
+          H.s('rect', { x: f2(200 - kw / 2), y: 210, width: f2(kw), height: 16, rx: 8, class: 'bk-key' }, hub);
+          H.text(hub, 200, 218.5, m.key, { class: 'bk-keytext' });
+        },
+
+        update(root, m, st) {
+          const uid = root.dataset.bkUid;
+          root.querySelectorAll('.slice').forEach((g) => {
+            const i = +g.dataset.slice;
+            const fill = i === st.selected ? 'sel' : i === st.hover ? 'hov' : 'top';
+            const top = g.querySelector('.bk-top');
+            if (top.dataset.f !== fill) {
+              top.dataset.f = fill;
+              top.setAttribute('fill', `url(#${uid}-${fill})`);
+            }
+          });
+        },
+      },
+
+      sounds: {
+        // A soft ring of the copper tray.
+        open(ac, out, t, X) {
+          X.tone(ac, out, t, { type: 'sine', f: 523, dur: 0.38, gain: 0.04, a: 0.004 });
+          X.tone(ac, out, t, { type: 'sine', f: 1341, dur: 0.24, gain: 0.022, a: 0.003 });
+          X.tone(ac, out, t, { type: 'sine', f: 2287, dur: 0.16, gain: 0.012, a: 0.002 });
+          X.burst(ac, out, t, { type: 'bandpass', f: 3200, q: 3, dur: 0.012, gain: 0.05 });
+        },
+        // A light tap on metal.
+        tick(ac, out, t, X) {
+          X.tone(ac, out, t, { type: 'sine', f: 2380, dur: 0.035, gain: 0.04, a: 0.001 });
+          X.tone(ac, out, t, { type: 'sine', f: 3710, dur: 0.02, gain: 0.018, a: 0.001 });
+        },
+        // A gentle pour with syrupy bubbles, then a small chime.
+        success(ac, out, t, X) {
+          X.burst(ac, out, t, { type: 'lowpass', f: 900, f2: 600, q: 0.8, dur: 0.38, gain: 0.05, a: 0.06 });
+          [
+            [0.05, 300, 470],
+            [0.15, 340, 520],
+            [0.25, 280, 430],
+            [0.33, 360, 560],
+          ].forEach(([d, f, f3]) =>
+            X.tone(ac, out, t + d, { type: 'sine', f, f2: f3, dur: 0.06, gain: 0.045, a: 0.006 }),
+          );
+          X.tone(ac, out, t + 0.42, { type: 'sine', f: 1568, dur: 0.3, gain: 0.022, a: 0.004 });
+          X.tone(ac, out, t + 0.42, { type: 'sine', f: 2349, dur: 0.22, gain: 0.012, a: 0.004 });
+        },
+      },
+    });
+  })();
+}

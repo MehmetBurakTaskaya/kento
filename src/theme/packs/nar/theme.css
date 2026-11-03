@@ -1,0 +1,306 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Nar. A pomegranate cut open: compartments of glossy arils around pale clearings. */
+
+[data-concept='nar'] {
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+[data-concept='nar'] .nr-hit {
+  fill: transparent;
+}
+[data-concept='nar'] .nr-fruit,
+[data-concept='nar'] .nr-crown,
+[data-concept='nar'] .nr-hub,
+[data-concept='nar'] .nr-fx {
+  pointer-events: none;
+}
+[data-concept='nar'] .nr-speck {
+  fill: var(--nr-speck);
+  opacity: 0.5;
+}
+[data-concept='nar'] .nr-speck-dark {
+  fill: var(--nr-speck-dark);
+  opacity: 0.45;
+}
+[data-concept='nar'] .nr-membrane {
+  fill: var(--nr-membrane);
+}
+
+/* Compartments: a pale clearing among the arils; hover blushes it, selection empties it. */
+[data-concept='nar'] .nr-body {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+  transition: transform 150ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-concept='nar'] .slice.is-hover .nr-body {
+  transform: rotate(var(--mid)) translateY(-4px) rotate(calc(-1 * var(--mid)));
+}
+[data-concept='nar'] .nr-cell {
+  fill: var(--wheel-slice);
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+}
+[data-concept='nar'] .slice.is-hover .nr-cell {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='nar'] .slice.is-selected .nr-cell {
+  fill: var(--wheel-slice-selected);
+  stroke: none;
+}
+[data-concept='nar'] .nr-socket {
+  fill: none;
+  stroke: var(--nr-socket);
+  stroke-width: 0.9;
+  opacity: 0;
+}
+[data-concept='nar'] .slice.is-selected .nr-socket {
+  opacity: 0.6;
+}
+[data-concept='nar'] .slice.is-selected .nr-arils {
+  visibility: hidden;
+}
+[data-concept='nar'] .nr-aril {
+  fill: var(--nr-aril);
+}
+[data-concept='nar'] .slice.is-hover .nr-aril {
+  fill: var(--nr-aril-hov);
+}
+[data-concept='nar'] .nr-aril-shade {
+  fill: var(--nr-aril-shade);
+}
+[data-concept='nar'] .nr-aril-hi {
+  fill: var(--nr-aril-hi);
+  opacity: var(--nr-hi-op);
+}
+[data-concept='nar'] .nr-off {
+  fill: var(--wheel-slice);
+  opacity: 0.6;
+}
+
+[data-concept='nar'] .nr-content {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='nar'] .slice.is-selected .nr-content {
+  color: var(--wheel-text-selected);
+  fill: var(--wheel-text-selected);
+}
+[data-concept='nar'] .slice.is-off .nr-content {
+  opacity: 0.45;
+}
+[data-concept='nar'] .slice .ico {
+  stroke-width: 2;
+}
+[data-concept='nar'] .nr-lbl {
+  font-family: var(--font-brand);
+  font-weight: 800;
+}
+[data-concept='nar'] .nr-fmt {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+[data-concept='nar'] .nr-sub {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  fill: var(--nr-sub);
+}
+[data-concept='nar'] .slice.is-selected .nr-sub {
+  fill: var(--nr-sub-sel);
+}
+
+/* Crown and core. */
+[data-concept='nar'] .nr-crown-body {
+  stroke: var(--nr-skin-edge);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+[data-concept='nar'] .nr-crown-in {
+  fill: var(--nr-crown-in);
+}
+[data-concept='nar'] .nr-core {
+  fill: var(--nr-hub);
+  stroke: var(--nr-hub-edge);
+  stroke-width: 2;
+}
+[data-concept='nar'] .nr-title {
+  font-family: var(--font-display);
+  fill: var(--nr-hub-text);
+}
+[data-concept='nar'] .nr-file {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  fill: var(--nr-hub-sub);
+}
+[data-concept='nar'] .nr-key {
+  fill: var(--nr-key);
+}
+[data-concept='nar'] .nr-keytext {
+  font: 800 9.5px var(--font-brand);
+  fill: var(--nr-key-text);
+  letter-spacing: 0.04em;
+}
+
+/* Open: the fruit springs from a squeeze, the arils swell into their compartments. */
+[data-concept='nar'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='nar'] .wheel.is-opening .wheel-svg {
+  animation: nar-open var(--dur-open) cubic-bezier(0.2, 1.2, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nar'] .wheel.is-opening .nr-arils {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+  animation: nar-swell calc(var(--dur-open) * 1.1) cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='nar'] .wheel.is-closing .wheel-svg {
+  animation: nar-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes nar-open {
+  from {
+    opacity: 0;
+    transform: scale(0.94, 0.86);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nar-swell {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nar-close {
+  to {
+    opacity: 0;
+    transform: scale(0.92, 0.88);
+  }
+}
+
+/* Apply: the compartment stains ruby while its arils tumble out and roll away; glints flash. */
+[data-concept='nar'] .wheel.is-applying .slice.is-selected .nr-cell {
+  animation: nar-stain 380ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nar'] .wheel.is-applying .slice.is-selected .nr-content {
+  animation: nar-ink 380ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nar'] .wheel.is-applying .slice.is-selected .nr-sub {
+  animation: nar-subink 380ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='nar'] .nr-roll {
+  animation: nar-roll 540ms cubic-bezier(0.25, 0.6, 0.4, 1) both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='nar'] .nr-drop {
+  animation: nar-fall 540ms cubic-bezier(0.55, 0, 0.9, 0.5) both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='nar'] .nr-spin {
+  animation: nar-spin 540ms linear both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='nar'] .nr-glint {
+  fill: var(--nr-glint);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nar-glint 280ms ease-out both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+@keyframes nar-stain {
+  from {
+    fill: var(--wheel-slice);
+  }
+  30% {
+    fill: var(--wheel-slice-hover);
+  }
+  to {
+    fill: var(--wheel-slice-selected);
+  }
+}
+@keyframes nar-ink {
+  from {
+    fill: var(--wheel-text);
+  }
+  45% {
+    fill: var(--wheel-text);
+  }
+  to {
+    fill: var(--wheel-text-selected);
+  }
+}
+@keyframes nar-subink {
+  from {
+    fill: var(--nr-sub);
+  }
+  45% {
+    fill: var(--nr-sub);
+  }
+  to {
+    fill: var(--nr-sub-sel);
+  }
+}
+@keyframes nar-roll {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  12% {
+    transform: translate(calc(var(--dx) * 0.06), calc(var(--dy) * 0.06)) scale(1.18);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.92);
+  }
+}
+@keyframes nar-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--fall));
+  }
+}
+@keyframes nar-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(var(--spin));
+  }
+}
+@keyframes nar-glint {
+  0% {
+    opacity: 0;
+    transform: scale(0.1) rotate(0deg);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.15) rotate(30deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(60deg);
+  }
+}

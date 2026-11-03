@@ -1,0 +1,379 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Ayçiçeği (sunflower). */
+
+[data-concept='aycicegi'] {
+  --radius: 12px;
+  --radius-sm: 8px;
+  --icon-stroke: 1.8;
+}
+[data-concept='aycicegi'] .wheel {
+  font-family: var(--font-display);
+}
+
+/* A soft round shadow under the flower head. */
+[data-concept='aycicegi'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 6% 6% 2%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--wheel-shadow), transparent);
+  transform: translateY(4%);
+}
+
+[data-concept='aycicegi'] .ay-hit {
+  fill: transparent;
+}
+[data-concept='aycicegi'] .ay-bp {
+  stroke: var(--petal-edge);
+  stroke-width: 0.8;
+  stroke-opacity: 0.6;
+}
+[data-concept='aycicegi'] .ay-petal {
+  stroke: var(--petal-edge);
+  stroke-width: 1.1;
+}
+[data-concept='aycicegi'] .ay-tint {
+  fill: var(--wheel-slice-hover);
+  opacity: 0;
+  transition:
+    opacity 110ms,
+    fill 110ms;
+}
+[data-concept='aycicegi'] .ay-glow {
+  fill: var(--glow);
+  opacity: 0;
+  transition: opacity 160ms;
+}
+[data-concept='aycicegi'] .ay-vein {
+  fill: none;
+  stroke: var(--petal-edge);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+[data-concept='aycicegi'] .ay-unfurl,
+[data-concept='aycicegi'] .ay-lift,
+[data-concept='aycicegi'] .ay-back,
+[data-concept='aycicegi'] .ay-disc,
+[data-concept='aycicegi'] .ay-hub,
+[data-concept='aycicegi'] .ay-fly {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='aycicegi'] .ay-lift {
+  transition: transform 140ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+/* Hover: the petal brightens and leans out; selected: it stays lifted, sun-orange, with a halo. */
+[data-concept='aycicegi'] .slice.is-hover .ay-tint {
+  opacity: 0.8;
+}
+[data-concept='aycicegi'] .slice.is-hover .ay-lift {
+  transform: translate(calc(var(--ux) * 5px), calc(var(--uy) * 5px));
+}
+[data-concept='aycicegi'] .slice.is-hover .ay-petal {
+  stroke-width: 1.8;
+}
+[data-concept='aycicegi'] .slice.is-selected .ay-tint {
+  fill: var(--wheel-slice-selected);
+  opacity: 1;
+}
+[data-concept='aycicegi'] .slice.is-selected .ay-glow {
+  opacity: 0.75;
+}
+[data-concept='aycicegi'] .slice.is-selected .ay-lift {
+  transform: translate(calc(var(--ux) * 8px), calc(var(--uy) * 8px));
+}
+[data-concept='aycicegi'] .slice.is-off .ay-unfurl {
+  opacity: 0.45;
+}
+
+[data-concept='aycicegi'] .ay-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='aycicegi'] .ay-lbl {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+[data-concept='aycicegi'] .ay-lbl-s {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+[data-concept='aycicegi'] .ay-sub {
+  fill: var(--wheel-sub);
+  font-weight: 500;
+}
+[data-concept='aycicegi'] .slice.is-selected .ay-ink,
+[data-concept='aycicegi'] .slice.is-selected .ay-sub {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='aycicegi'] .slice .ico {
+  stroke-width: 1.9;
+}
+
+/* Seed head and hub. */
+[data-concept='aycicegi'] .ay-seeds-in {
+  fill: var(--seed);
+  opacity: 0.32;
+}
+[data-concept='aycicegi'] .ay-seeds {
+  fill: var(--seed);
+}
+[data-concept='aycicegi'] .ay-florets {
+  fill: var(--floret);
+}
+[data-concept='aycicegi'] .ay-rim {
+  fill: none;
+  stroke: var(--disc-out);
+  stroke-width: 1.5;
+}
+[data-concept='aycicegi'] .ay-hub {
+  pointer-events: none;
+}
+[data-concept='aycicegi'] .ay-title {
+  fill: var(--hub-text);
+  font-weight: 700;
+}
+[data-concept='aycicegi'] .ay-file {
+  fill: var(--hub-muted);
+  font-weight: 500;
+}
+[data-concept='aycicegi'] .ay-key {
+  fill: var(--key-bg);
+  stroke: var(--key-line);
+  stroke-width: 1;
+}
+[data-concept='aycicegi'] .ay-keytext {
+  fill: var(--hub-text);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Open: petals unfurl one after another, then the back row and the head. */
+[data-concept='aycicegi'] .wheel.is-opening .ay-unfurl {
+  animation: aycicegi-unfurl var(--dur-open) cubic-bezier(0.2, 1.25, 0.4, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .wheel.is-opening .ay-back {
+  animation: aycicegi-grow var(--dur-open) ease-out both;
+  animation-delay: calc(30ms - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .wheel.is-opening .ay-disc,
+[data-concept='aycicegi'] .wheel.is-opening .ay-hub {
+  animation: aycicegi-head var(--dur-open) cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .wheel.is-opening::before {
+  animation: fade-in var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .wheel.is-closing .wheel-svg,
+[data-concept='aycicegi'] .wheel.is-closing::before {
+  animation: aycicegi-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='aycicegi'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='aycicegi'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='aycicegi'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes aycicegi-unfurl {
+  from {
+    opacity: 0;
+    transform: rotate(-16deg) scale(0.5);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes aycicegi-grow {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(10deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes aycicegi-head {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes aycicegi-close {
+  to {
+    opacity: 0;
+    transform: scale(0.9) rotate(-6deg);
+  }
+}
+
+/* Apply: the petal rises toward the light, rays flare at its tip, seeds spiral into the head. */
+[data-concept='aycicegi'] .ay-fx {
+  display: none;
+  pointer-events: none;
+}
+[data-concept='aycicegi'] .wheel.is-applying .ay-fx {
+  display: inline;
+}
+[data-concept='aycicegi'] .wheel.is-applying .slice.is-selected .ay-lift {
+  animation: aycicegi-lift 680ms cubic-bezier(0.25, 0.9, 0.35, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .wheel.is-applying .slice.is-selected .ay-tint {
+  animation: aycicegi-flash 680ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .wheel.is-applying .slice.is-selected .ay-glow {
+  animation: aycicegi-halo 680ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .ay-ray {
+  fill: var(--flash);
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: aycicegi-ray 460ms ease-out both;
+  animation-delay: calc(70ms + var(--k) * 35ms - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .ay-fly-shell {
+  fill: var(--disc-out);
+  stroke: var(--floret);
+  stroke-width: 1.1;
+}
+[data-concept='aycicegi'] .ay-fly-stripe {
+  fill: none;
+  stroke: var(--flash);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+[data-concept='aycicegi'] .ay-fly {
+  animation: aycicegi-spiral 420ms cubic-bezier(0.45, 0.05, 0.6, 1) both;
+  animation-delay: calc(var(--d) - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .wheel.is-applying .ay-disc {
+  animation: aycicegi-land 680ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='aycicegi'] .wheel.is-applying .ay-florets {
+  animation: aycicegi-florets 680ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes aycicegi-lift {
+  0% {
+    transform: translate(calc(var(--ux) * 4px), calc(var(--uy) * 4px)) scale(1);
+  }
+  32% {
+    transform: translate(calc(var(--ux) * 16px), calc(var(--uy) * 16px)) scale(1.06);
+  }
+  100% {
+    transform: translate(calc(var(--ux) * 8px), calc(var(--uy) * 8px)) scale(1);
+  }
+}
+@keyframes aycicegi-flash {
+  0% {
+    fill: var(--wheel-slice-hover);
+    opacity: 0.8;
+  }
+  22% {
+    fill: var(--flash);
+    opacity: 1;
+  }
+  100% {
+    fill: var(--wheel-slice-selected);
+    opacity: 1;
+  }
+}
+@keyframes aycicegi-halo {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.75;
+  }
+}
+@keyframes aycicegi-ray {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  35% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(1.15);
+  }
+}
+@keyframes aycicegi-spiral {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--a0)) translateY(calc(-1px * var(--r0))) scale(0.7);
+  }
+  40% {
+    transform: rotate(calc(var(--a0) * 0.6 + var(--a1) * 0.4)) translateY(calc(-0.75px * var(--r0) - 15px)) scale(1.45);
+  }
+  15% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a1)) translateY(-60px) scale(1.25);
+  }
+}
+@keyframes aycicegi-land {
+  0%,
+  55% {
+    transform: none;
+  }
+  74% {
+    transform: scale(1.055) rotate(4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes aycicegi-florets {
+  0%,
+  58% {
+    fill: var(--floret);
+  }
+  76% {
+    fill: var(--flash);
+  }
+  100% {
+    fill: var(--floret);
+  }
+}
+
+.reduce-motion [data-concept='aycicegi'] .ay-lift {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-concept='aycicegi'] .ay-lift {
+    transition: none;
+  }
+}

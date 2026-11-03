@@ -1,0 +1,388 @@
+/* SPDX-License-Identifier: MIT */
+/* Retro technology: Arcade neon (a neon sign at night, cabinet side art by day). */
+
+[data-concept='arcade'] {
+  --radius: 12px;
+  --radius-sm: 8px;
+  --icon-stroke: 1.8;
+}
+[data-concept='arcade'] .wheel {
+  font-family: var(--font-brand);
+}
+
+/* ---------------------------------------------------------------- wheel */
+[data-concept='arcade'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0.6%;
+  border-radius: 50%;
+  box-shadow:
+    0 2px 3px rgb(0 0 0 / 0.22),
+    0 16px 38px var(--wheel-shadow);
+}
+[data-concept='arcade'] :is(.ar-rim, .ar-face, .ar-rays, .ar-sign, .ar-fx, .ar-hub) {
+  pointer-events: none;
+}
+
+/* Marquee ring */
+[data-concept='arcade'] .ar-band {
+  fill: var(--ar-band);
+}
+[data-concept='arcade'] .ar-bulb {
+  fill: var(--ar-bulb);
+  stroke: var(--ar-bulb-edge);
+  stroke-width: 0.9;
+}
+[data-concept='arcade'] .ar-bulb-b {
+  fill: var(--ar-bulb-b);
+  opacity: var(--ar-bulb-dim);
+}
+[data-concept='arcade'] .ar-face-edge {
+  fill: none;
+  stroke: var(--ar-outline);
+  stroke-width: 2.6;
+}
+[data-concept='arcade'] .ar-rays {
+  fill: var(--ar-rays);
+  opacity: var(--ar-rays-opacity);
+}
+
+/* Slices: flood, tube glow (a black outline by day), tube, bright core */
+[data-concept='arcade'] .ar-hit {
+  fill: transparent;
+}
+[data-concept='arcade'] .ar-fill {
+  fill: transparent;
+  transition: fill 90ms;
+}
+[data-concept='arcade'] :is(.ar-tube-glow, .ar-tube, .ar-tube-core) {
+  fill: none;
+  stroke-linejoin: round;
+}
+[data-concept='arcade'] .ar-tube-glow {
+  stroke: color-mix(in srgb, var(--tube) var(--ar-glow-tube), var(--ar-outline));
+  stroke-width: calc(var(--ar-glow-width) * 1px);
+  opacity: var(--ar-glow-opacity);
+  transition: opacity 90ms;
+}
+[data-concept='arcade'] .ar-tube {
+  stroke: var(--tube);
+  stroke-width: calc(var(--ar-tube-width) * 1px);
+}
+[data-concept='arcade'] .ar-tube-core {
+  stroke: #fff;
+  stroke-width: 1.1;
+  opacity: calc(var(--ar-core-opacity) * 0.7);
+  transition: opacity 90ms;
+}
+[data-concept='arcade'] .slice.is-hover .ar-fill {
+  fill: var(--tube-soft);
+}
+[data-concept='arcade'] .slice.is-hover .ar-tube-glow {
+  opacity: calc(var(--ar-glow-opacity) * 1.9);
+}
+[data-concept='arcade'] .slice.is-hover .ar-tube-core {
+  opacity: var(--ar-core-opacity);
+}
+[data-concept='arcade'] .slice.is-selected .ar-fill {
+  fill: var(--tube);
+}
+[data-concept='arcade'] .slice.is-selected .ar-tube-glow {
+  opacity: calc(var(--ar-glow-opacity) * 2.2);
+}
+
+/* Labels: neon white with a glow in the tube's color at night, black by day. */
+[data-concept='arcade'] .ar-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='arcade'] :is(.ar-lbl, .ar-sub) {
+  paint-order: stroke;
+  stroke: var(--tube);
+  stroke-opacity: var(--ar-text-glow);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+[data-concept='arcade'] .ar-lbl {
+  font-weight: 400;
+}
+[data-concept='arcade'] .ar-fmt {
+  letter-spacing: 0.04em;
+}
+[data-concept='arcade'] .ar-sub {
+  fill: color-mix(in srgb, var(--tube) var(--ar-sub-tube), var(--ar-sub));
+  stroke-opacity: calc(var(--ar-text-glow) * 0.5);
+  letter-spacing: 0.02em;
+}
+[data-concept='arcade'] .slice.is-selected .ar-ink {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='arcade'] .slice.is-selected :is(.ar-lbl, .ar-sub) {
+  fill: var(--wheel-text-selected);
+  stroke-opacity: 0;
+}
+[data-concept='arcade'] .slice.is-off .ar-ink {
+  opacity: 0.4;
+}
+[data-concept='arcade'] .slice .ico {
+  stroke-width: 1.8;
+}
+
+/* Hub: the start button */
+[data-concept='arcade'] .ar-hub-ring-glow {
+  fill: none;
+  stroke: var(--ar-hub-ring);
+  stroke-width: 10;
+  opacity: calc(var(--ar-glow-opacity) * var(--ar-flicker));
+}
+[data-concept='arcade'] .ar-hub-ring {
+  fill: var(--ar-band);
+  stroke: var(--ar-hub-ring);
+  stroke-width: 3.4;
+}
+[data-concept='arcade'] .ar-btn {
+  stroke: var(--ar-outline);
+  stroke-width: 2;
+}
+[data-concept='arcade'] .ar-btn-shine {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0.45;
+}
+[data-concept='arcade'] .ar-title {
+  fill: var(--ar-hub-ink);
+}
+[data-concept='arcade'] .ar-file {
+  fill: var(--ar-hub-ink);
+  opacity: 0.85;
+}
+[data-concept='arcade'] .ar-key {
+  fill: var(--ar-key);
+  stroke: var(--ar-hub-ring);
+  stroke-width: 1.2;
+}
+[data-concept='arcade'] .ar-keytext {
+  fill: var(--ar-key-ink);
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+}
+
+/* The apply burst (hidden at rest) */
+[data-concept='arcade'] .ar-fx {
+  opacity: 0;
+}
+[data-concept='arcade'] .ar-burst {
+  fill: var(--tube);
+  fill-opacity: 0.25;
+  stroke: var(--tube);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='arcade'] .ar-spark {
+  fill: var(--tube);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='arcade'] .ar-spark-b {
+  fill: var(--ar-score);
+}
+[data-concept='arcade'] .ar-score {
+  font-family: var(--font-display);
+  font-size: 17px;
+  fill: var(--ar-score);
+  paint-order: stroke;
+  stroke: var(--ar-score-edge);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* Open: the tubes strike one after another with the stutter of neon starting (by day a plain fade). */
+[data-concept='arcade'] .wheel-svg,
+[data-concept='arcade'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept='arcade'] .wheel.is-opening .wheel-svg,
+[data-concept='arcade'] .wheel.is-opening::before {
+  animation: arcade-in var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='arcade'] .wheel.is-opening .ar-sign {
+  animation: arcade-strike var(--dur-open) linear both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='arcade'] .wheel.is-closing .wheel-svg,
+[data-concept='arcade'] .wheel.is-closing::before {
+  animation: arcade-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='arcade'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='arcade'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='arcade'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept='arcade'] .wheel.is-open.is-denied::before {
+  animation: deny 260ms ease;
+}
+@keyframes arcade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes arcade-strike {
+  0% {
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.9;
+  }
+  34% {
+    opacity: calc(1 - 0.85 * var(--ar-flicker));
+  }
+  52% {
+    opacity: 1;
+  }
+  64% {
+    opacity: calc(1 - 0.5 * var(--ar-flicker));
+  }
+  78%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes arcade-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+/* 680 ms. The tube flashes and the slice floods; a starburst pops, +100 flies out with pixel sparks; the
+   marquee bulbs chase once round the rim. */
+[data-concept='arcade'] .wheel.is-applying .slice.is-selected .ar-fill {
+  animation: arcade-flood 680ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='arcade'] .wheel.is-applying .slice.is-selected .ar-tube-core {
+  animation: arcade-core 680ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='arcade'] .wheel.is-applying .ar-fx {
+  animation: arcade-fx 680ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='arcade'] .wheel.is-applying .ar-burst {
+  animation: arcade-burst 680ms cubic-bezier(0.2, 0.8, 0.3, 1) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='arcade'] .wheel.is-applying .ar-spark {
+  animation: arcade-spark 680ms cubic-bezier(0.15, 0.7, 0.3, 1) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='arcade'] .wheel.is-applying .ar-score {
+  animation: arcade-score 680ms cubic-bezier(0.2, 0.8, 0.3, 1) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='arcade'] .wheel.is-applying .ar-bulb {
+  animation: arcade-chase 230ms ease-out calc(var(--b) * 15ms - var(--t, 0ms)) forwards;
+}
+@keyframes arcade-flood {
+  0% {
+    fill: var(--tube-soft);
+  }
+  6% {
+    fill: #fff;
+  }
+  16%,
+  100% {
+    fill: var(--tube);
+  }
+}
+@keyframes arcade-core {
+  0%,
+  4% {
+    opacity: 1;
+    stroke-width: 2.4;
+  }
+  30%,
+  100% {
+    opacity: calc(var(--ar-core-opacity) * 0.7);
+    stroke-width: 1.1;
+  }
+}
+@keyframes arcade-fx {
+  0% {
+    opacity: 1;
+  }
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes arcade-burst {
+  0% {
+    opacity: 1;
+    transform: scale(0.3) rotate(0deg);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.3) rotate(16deg);
+  }
+  64%,
+  100% {
+    opacity: 0;
+    transform: scale(1.5) rotate(22deg);
+  }
+}
+@keyframes arcade-spark {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.4);
+  }
+  62% {
+    opacity: 1;
+    transform: translate(var(--sx), var(--sy)) rotate(90deg) scale(1);
+  }
+  82%,
+  100% {
+    opacity: 0;
+    transform: translate(var(--sx), var(--sy)) rotate(120deg) scale(0.6);
+  }
+}
+@keyframes arcade-score {
+  0% {
+    opacity: 0;
+    transform: translate(var(--dx0), var(--dy0)) scale(0.4);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(var(--dx0), var(--dy0)) scale(1.2);
+  }
+  66% {
+    opacity: 1;
+    transform: translate(var(--dx), var(--dy)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), calc(var(--dy) - 8px)) scale(1);
+  }
+}
+@keyframes arcade-chase {
+  30% {
+    fill: var(--ar-bulb-lit);
+    opacity: 1;
+    r: 4.6px;
+  }
+}

@@ -1,0 +1,375 @@
+/* SPDX-License-Identifier: MIT */
+/* Dart tahtası: a dartboard of our own design. */
+
+[data-concept='dart'] {
+  --radius: 6px;
+  --radius-sm: 4px;
+  --icon-stroke: 2;
+}
+
+[data-concept='dart'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 1.2%;
+  border-radius: 50%;
+  box-shadow:
+    0 12px 28px var(--wheel-shadow),
+    0 3px 6px var(--wheel-shadow);
+}
+[data-concept='dart'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+
+[data-concept='dart'] .dt-base,
+[data-concept='dart'] .dt-sisal,
+[data-concept='dart'] .dt-spot,
+[data-concept='dart'] .dt-wires,
+[data-concept='dart'] .dt-hub,
+[data-concept='dart'] .dt-darts {
+  pointer-events: none;
+}
+[data-concept='dart'] .dt-ring {
+  fill: var(--dt-ring);
+}
+[data-concept='dart'] .dt-chevron {
+  fill: var(--dt-chevron);
+}
+
+/* Sectors alternate chalk and navy; rings alternate teal and coral the other way round. */
+[data-concept='dart'] .dt-single {
+  fill: var(--wheel-slice);
+  transition: fill 100ms;
+}
+[data-concept='dart'] .dt-odd .dt-single {
+  fill: var(--dt-alt);
+}
+[data-concept='dart'] .dt-even.is-hover .dt-single {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='dart'] .dt-odd.is-hover .dt-single {
+  fill: var(--dt-alt-hover);
+}
+[data-concept='dart'] .slice.is-selected .dt-single {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='dart'] .dt-red {
+  fill: var(--dt-red);
+}
+[data-concept='dart'] .dt-green {
+  fill: var(--dt-green);
+}
+[data-concept='dart'] .dt-sisal {
+  opacity: var(--dt-sisal-opacity);
+}
+[data-concept='dart'] .dt-spot {
+  opacity: var(--dt-spot-opacity);
+}
+
+/* The wire spider. */
+[data-concept='dart'] .dt-wire {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+[data-concept='dart'] .dt-wire-c {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 1.25;
+}
+[data-concept='dart'] .dt-catch {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 2.2;
+}
+
+/* Labels: two text colours, one per sector colour. */
+[data-concept='dart'] .dt-ink {
+  color: var(--wheel-text);
+}
+[data-concept='dart'] .dt-lbl {
+  fill: var(--wheel-text);
+  font-weight: 700;
+}
+[data-concept='dart'] .dt-fmt {
+  letter-spacing: 0.04em;
+}
+[data-concept='dart'] .dt-sub {
+  fill: var(--dt-sub);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+[data-concept='dart'] .dt-odd .dt-ink {
+  color: var(--dt-text-alt);
+}
+[data-concept='dart'] .dt-odd .dt-lbl {
+  fill: var(--dt-text-alt);
+}
+[data-concept='dart'] .dt-odd .dt-sub {
+  fill: var(--dt-sub-alt);
+}
+[data-concept='dart'] .slice.is-selected .dt-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='dart'] .slice.is-selected .dt-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='dart'] .slice.is-selected .dt-sub {
+  fill: var(--dt-sub-selected);
+}
+[data-concept='dart'] .slice.is-off .dt-ink {
+  opacity: 0.4;
+}
+
+/* Bullseye hub. */
+[data-concept='dart'] .dt-bull-out {
+  fill: var(--dt-bull-out);
+}
+[data-concept='dart'] .dt-bull {
+  fill: var(--dt-bull);
+}
+[data-concept='dart'] .dt-bull-ring {
+  fill: none;
+  stroke: var(--dt-bull-ring);
+  stroke-width: 2.4;
+}
+[data-concept='dart'] .dt-title {
+  fill: var(--dt-title);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+[data-concept='dart'] .dt-file {
+  fill: var(--dt-file);
+  font-weight: 600;
+}
+[data-concept='dart'] .dt-key {
+  fill: var(--dt-key);
+}
+[data-concept='dart'] .dt-keytext {
+  fill: var(--dt-keytext);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* The dart: hidden until its sector is chosen, then it stays. */
+[data-concept='dart'] .dt-dart {
+  display: none;
+}
+/* Fly-in, wobble and puff all turn round the dart's tip, the bottom centre of its box. */
+[data-concept='dart'] .dt-fly,
+[data-concept='dart'] .dt-wob {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+[data-concept='dart'] .dt-dart.is-on {
+  display: inline;
+}
+[data-concept='dart'] .dt-point {
+  fill: var(--dt-steel-dark);
+}
+[data-concept='dart'] .dt-barrel {
+  fill: var(--dt-steel);
+  stroke: var(--dt-steel-dark);
+  stroke-width: 0.5;
+}
+[data-concept='dart'] .dt-knurl {
+  fill: none;
+  stroke: var(--dt-steel-dark);
+  stroke-width: 0.7;
+}
+[data-concept='dart'] .dt-shaft {
+  fill: var(--dt-shaft);
+}
+[data-concept='dart'] .dt-flight-a {
+  fill: var(--dt-flight);
+  stroke: var(--dt-shaft);
+  stroke-width: 0.5;
+}
+[data-concept='dart'] .dt-flight-b {
+  fill: var(--dt-flight-2);
+  stroke: var(--dt-shaft);
+  stroke-width: 0.5;
+}
+[data-concept='dart'] .dt-flight-c {
+  fill: var(--dt-flight-2);
+}
+[data-concept='dart'] .dt-shadow {
+  fill: none;
+  stroke: #000000;
+  stroke-opacity: 0.3;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+[data-concept='dart'] .dt-puff {
+  display: none;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  fill: none;
+  stroke: var(--dt-chevron);
+  stroke-width: 2.2;
+  stroke-dasharray: 1.4 3;
+}
+
+/* Apply: the dart flies in along its own axis, thuds, the board jolts and the dart wobbles still. */
+[data-concept='dart'] .wheel.is-applying .dt-dart.is-on .dt-fly {
+  animation: dart-fly 170ms cubic-bezier(0.55, 0, 0.9, 0.55) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='dart'] .wheel.is-applying .dt-dart.is-on .dt-wob {
+  animation: dart-wobble 470ms ease-out both;
+  animation-delay: calc(170ms - var(--t, 0ms));
+}
+[data-concept='dart'] .wheel.is-applying .dt-dart.is-on .dt-shadow {
+  animation: dart-shade 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='dart'] .wheel.is-applying .dt-dart.is-on .dt-puff {
+  display: inline;
+  animation: dart-puff 330ms ease-out both;
+  animation-delay: calc(165ms - var(--t, 0ms));
+}
+[data-concept='dart'] .wheel.is-applying .wheel-svg {
+  animation: dart-jolt 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='dart'] .wheel.is-applying .slice.is-selected .dt-single {
+  animation: dart-hit 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes dart-fly {
+  from {
+    opacity: 0;
+    transform: translate(-10px, -70px) scale(2.4);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dart-wobble {
+  0% {
+    transform: rotate(0deg);
+  }
+  12% {
+    transform: rotate(10deg);
+  }
+  28% {
+    transform: rotate(-7.5deg);
+  }
+  44% {
+    transform: rotate(5deg);
+  }
+  60% {
+    transform: rotate(-3deg);
+  }
+  78% {
+    transform: rotate(1.4deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes dart-shade {
+  0%,
+  25% {
+    opacity: 0;
+  }
+  30%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes dart-puff {
+  from {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+@keyframes dart-jolt {
+  0%,
+  26% {
+    transform: none;
+  }
+  30% {
+    transform: translate(1.6px, -1.2px) rotate(0.7deg);
+  }
+  40% {
+    transform: translate(-1px, 0.7px) rotate(-0.4deg);
+  }
+  52%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes dart-hit {
+  0%,
+  25% {
+    fill: var(--wheel-slice-hover);
+  }
+  30% {
+    fill: #ffffff;
+  }
+  48%,
+  100% {
+    fill: var(--wheel-slice-selected);
+  }
+}
+
+/* Open: the board swings up from a slight tilt. */
+[data-concept='dart'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='dart'] .wheel.is-opening .wheel-svg,
+[data-concept='dart'] .wheel.is-opening::before {
+  animation: dart-open var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='dart'] .wheel.is-opening .dt-ink {
+  animation: dart-fade var(--dur-open) ease-out both;
+  animation-delay: calc(30ms + var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='dart'] .wheel.is-closing .wheel-svg,
+[data-concept='dart'] .wheel.is-closing::before {
+  animation: dart-close var(--dur-close) ease-in both;
+}
+[data-concept='dart'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='dart'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes dart-open {
+  from {
+    opacity: 0;
+    transform: perspective(700px) rotateX(24deg) scale(0.9);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dart-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dart-close {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}

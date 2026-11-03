@@ -1,0 +1,257 @@
+[
+  {
+    "id": "steel",
+    "name": "Kasa",
+    "pack": null
+  },
+  {
+    "id": "kadran-a",
+    "name": "Ayar",
+    "pack": "r2-kadran"
+  },
+  {
+    "id": "kadran-b",
+    "name": "Beton",
+    "pack": "r2-kadran"
+  },
+  {
+    "id": "kadran-c",
+    "name": "Titan",
+    "pack": "r2-kadran"
+  },
+  {
+    "id": "simya-a",
+    "name": "Varak",
+    "pack": "r2-simya"
+  },
+  {
+    "id": "simya-c",
+    "name": "Obsidyen",
+    "pack": "r2-simya"
+  },
+  {
+    "id": "ebru-a",
+    "name": "Damla",
+    "pack": "r2-ebru"
+  },
+  {
+    "id": "ebru-b",
+    "name": "Serpinti",
+    "pack": "r2-ebru"
+  },
+  {
+    "id": "astro-a",
+    "name": "Atlas",
+    "pack": "r2-astro"
+  },
+  {
+    "id": "astro-b",
+    "name": "Girdap",
+    "pack": "r2-astro"
+  },
+  {
+    "id": "astro-c",
+    "name": "Yörünge",
+    "pack": "r2-astro"
+  },
+  {
+    "id": "minimal",
+    "name": "Halka",
+    "pack": "minimal"
+  },
+  {
+    "id": "pusula",
+    "name": "Pusula",
+    "pack": "pusula"
+  },
+  {
+    "id": "tezgah",
+    "name": "Tezgâh",
+    "pack": "tezgah"
+  },
+  {
+    "id": "portakal",
+    "name": "Portakal",
+    "pack": "portakal"
+  },
+  {
+    "id": "karpuz",
+    "name": "Karpuz",
+    "pack": "karpuz"
+  },
+  {
+    "id": "nar",
+    "name": "Nar",
+    "pack": "nar"
+  },
+  {
+    "id": "pizza",
+    "name": "Fırın",
+    "pack": "pizza"
+  },
+  {
+    "id": "lolipop",
+    "name": "Akide",
+    "pack": "lolipop"
+  },
+  {
+    "id": "baklava",
+    "name": "Baklava",
+    "pack": "baklava"
+  },
+  {
+    "id": "aycicegi",
+    "name": "Gündöndü",
+    "pack": "aycicegi"
+  },
+  {
+    "id": "kartanesi",
+    "name": "Ayaz",
+    "pack": "kartanesi"
+  },
+  {
+    "id": "agachalkasi",
+    "name": "Kütük",
+    "pack": "agachalkasi"
+  },
+  {
+    "id": "balpetegi",
+    "name": "Petek",
+    "pack": "balpetegi"
+  },
+  {
+    "id": "denizkabugu",
+    "name": "Helezon",
+    "pack": "denizkabugu"
+  },
+  {
+    "id": "dalga",
+    "name": "Dalga",
+    "pack": "dalga"
+  },
+  {
+    "id": "iznik",
+    "name": "Çini",
+    "pack": "iznik"
+  },
+  {
+    "id": "kilim",
+    "name": "Kilim",
+    "pack": "kilim"
+  },
+  {
+    "id": "nazar",
+    "name": "Nazar",
+    "pack": "nazar"
+  },
+  {
+    "id": "sema",
+    "name": "Sema",
+    "pack": "sema"
+  },
+  {
+    "id": "kahve",
+    "name": "Telve",
+    "pack": "kahve"
+  },
+  {
+    "id": "dart",
+    "name": "Hedef",
+    "pack": "dart"
+  },
+  {
+    "id": "telefon",
+    "name": "Ahize",
+    "pack": "telefon"
+  },
+  {
+    "id": "pikap",
+    "name": "Plak",
+    "pack": "pikap"
+  },
+  {
+    "id": "radar",
+    "name": "Radar",
+    "pack": "radar"
+  },
+  {
+    "id": "radyo",
+    "name": "Frekans",
+    "pack": "radyo"
+  },
+  {
+    "id": "kronograf",
+    "name": "Saniye",
+    "pack": "kronograf"
+  },
+  {
+    "id": "arcade",
+    "name": "Jeton",
+    "pack": "arcade"
+  },
+  {
+    "id": "piksel",
+    "name": "Piksel",
+    "pack": "piksel"
+  },
+  {
+    "id": "bauhaus",
+    "name": "Kare",
+    "pack": "bauhaus"
+  },
+  {
+    "id": "memphis",
+    "name": "Konfeti",
+    "pack": "memphis"
+  },
+  {
+    "id": "artdeco",
+    "name": "Yaldız",
+    "pack": "artdeco"
+  },
+  {
+    "id": "popart",
+    "name": "Bom",
+    "pack": "popart"
+  },
+  {
+    "id": "suluboya",
+    "name": "Fırça",
+    "pack": "suluboya"
+  },
+  {
+    "id": "karatahta",
+    "name": "Tebeşir",
+    "pack": "karatahta"
+  },
+  {
+    "id": "blueprint",
+    "name": "Ozalit",
+    "pack": "blueprint"
+  },
+  {
+    "id": "vitray",
+    "name": "Revzen",
+    "pack": "vitray"
+  },
+  {
+    "id": "origami",
+    "name": "Kıvrım",
+    "pack": "origami"
+  },
+  {
+    "id": "kakma",
+    "name": "Sedef",
+    "pack": "kakma"
+  },
+  {
+    "id": "terrazzo",
+    "name": "Mozaik",
+    "pack": "terrazzo"
+  },
+  {
+    "id": "hologram",
+    "name": "Serap",
+    "pack": "hologram"
+  }
+]

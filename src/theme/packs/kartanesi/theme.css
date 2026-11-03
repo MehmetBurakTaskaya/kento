@@ -1,0 +1,387 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Kar tanesi (snowflake). */
+
+[data-concept='kartanesi'] {
+  --radius: 6px;
+  --radius-sm: 4px;
+  --icon-stroke: 1.7;
+}
+[data-concept='kartanesi'] .wheel {
+  font-family: var(--font-display);
+}
+
+/* A cold, soft shadow under the glass disc. */
+[data-concept='kartanesi'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 5%;
+  border-radius: 50%;
+  box-shadow:
+    0 10px 34px var(--wheel-shadow),
+    0 0 0 1px var(--wheel-line);
+}
+
+[data-concept='kartanesi'] .ka-halo {
+  fill: none;
+  stroke: var(--glass-edge);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+}
+[data-concept='kartanesi'] .ka-specks {
+  opacity: 0.6;
+}
+[data-concept='kartanesi'] .ka-speck {
+  fill: var(--frost-dot);
+}
+[data-concept='kartanesi'] .ka-rimfrost {
+  fill: none;
+  stroke: var(--frost-dot);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+[data-concept='kartanesi'] .ka-edge {
+  fill: none;
+  stroke: var(--glass-edge);
+  stroke-width: 1.6;
+}
+[data-concept='kartanesi'] .ka-edge-in {
+  fill: none;
+  stroke: var(--arm-hi);
+  stroke-opacity: 0.45;
+  stroke-width: 1;
+}
+
+/* Panes: clear glass at rest, blue ice on hover, frozen (with frost ferns) when chosen. */
+[data-concept='kartanesi'] .ka-pane {
+  fill: var(--wheel-slice-hover);
+  fill-opacity: 0;
+  transition:
+    fill-opacity 120ms,
+    fill 120ms;
+}
+[data-concept='kartanesi'] .slice.is-hover .ka-pane {
+  fill-opacity: 0.9;
+}
+[data-concept='kartanesi'] .slice.is-selected .ka-pane {
+  fill: var(--wheel-slice-selected);
+  fill-opacity: 1;
+}
+[data-concept='kartanesi'] .ka-rimlight {
+  fill: none;
+  stroke: var(--arm-lit);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+[data-concept='kartanesi'] .slice.is-hover .ka-rimlight,
+[data-concept='kartanesi'] .slice.is-selected .ka-rimlight {
+  opacity: 1;
+}
+[data-concept='kartanesi'] .ka-frost {
+  opacity: 0;
+}
+[data-concept='kartanesi'] .slice.is-selected .ka-frost {
+  opacity: 0.7;
+}
+[data-concept='kartanesi'] .ka-fern {
+  fill: none;
+  stroke: var(--frost);
+  stroke-width: 1.15;
+  stroke-linecap: round;
+}
+[data-concept='kartanesi'] .ka-glint {
+  fill: var(--glint);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='kartanesi'] .slice.is-off .ka-ink {
+  opacity: 0.4;
+}
+
+[data-concept='kartanesi'] .ka-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='kartanesi'] .ka-lbl {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+[data-concept='kartanesi'] .ka-lbl-s {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+[data-concept='kartanesi'] .ka-sub {
+  fill: var(--wheel-sub);
+  font-weight: 600;
+}
+[data-concept='kartanesi'] .slice.is-selected .ka-ink,
+[data-concept='kartanesi'] .slice.is-selected .ka-sub {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='kartanesi'] .slice .ico {
+  stroke-width: 1.7;
+}
+
+/* The crystal. */
+[data-concept='kartanesi'] .ka-crystal {
+  pointer-events: none;
+}
+[data-concept='kartanesi'] .ka-arm {
+  fill: none;
+  stroke: var(--arm);
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='kartanesi'] .ka-plate-tip {
+  fill: var(--arm);
+  stroke: var(--arm-hi);
+  stroke-width: 0.8;
+  stroke-opacity: 0.7;
+}
+[data-concept='kartanesi'] .ka-arm-hi {
+  fill: none;
+  stroke: var(--arm-hi);
+  stroke-width: 1;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+[data-concept='kartanesi'] .ka-lit {
+  fill: none;
+  stroke: var(--arm-lit);
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 140ms;
+}
+[data-concept='kartanesi'] .ka-lit.is-near {
+  opacity: 0.5;
+}
+[data-concept='kartanesi'] .ka-lit.is-on {
+  opacity: 1;
+}
+
+[data-concept='kartanesi'] .ka-hub {
+  pointer-events: none;
+}
+[data-concept='kartanesi'] .ka-hubplate {
+  fill: var(--plate);
+  stroke: var(--arm);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+[data-concept='kartanesi'] .ka-hubfacet {
+  fill: none;
+  stroke: var(--plate-line);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+[data-concept='kartanesi'] .ka-title {
+  fill: var(--hub-text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+[data-concept='kartanesi'] .ka-file {
+  fill: var(--hub-muted);
+  font-weight: 600;
+}
+[data-concept='kartanesi'] .ka-key {
+  fill: var(--key-bg);
+  stroke: var(--key-line);
+  stroke-width: 1;
+}
+[data-concept='kartanesi'] .ka-keytext {
+  fill: var(--hub-text);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Open: the crystal grows out of the hub with a slight turn; the panes clear one by one. */
+[data-concept='kartanesi'] .ka-crystal,
+[data-concept='kartanesi'] .ka-glass,
+[data-concept='kartanesi'] .ka-hub {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='kartanesi'] .wheel.is-opening .ka-crystal {
+  animation: kartanesi-grow-in var(--dur-open) cubic-bezier(0.2, 1.15, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-opening .ka-glass,
+[data-concept='kartanesi'] .wheel.is-opening .ka-hub {
+  animation: kartanesi-pop var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-opening .ka-ink {
+  animation: fade-in var(--dur-open) ease-out both;
+  animation-delay: calc(40ms + var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-opening::before {
+  animation: fade-in var(--dur-open) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-closing .wheel-svg,
+[data-concept='kartanesi'] .wheel.is-closing::before {
+  animation: kartanesi-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='kartanesi'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='kartanesi'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='kartanesi'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+@keyframes kartanesi-grow-in {
+  from {
+    opacity: 0;
+    transform: rotate(-30deg) scale(0.45);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kartanesi-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kartanesi-close {
+  to {
+    opacity: 0;
+    transform: scale(0.94) rotate(8deg);
+  }
+}
+
+/* Apply: frost ferns draw in, the pane flashes and freezes, glints twinkle, the arms beside it light. */
+[data-concept='kartanesi'] .wheel.is-applying .slice.is-selected .ka-pane {
+  animation: kartanesi-freeze 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-applying .slice.is-selected .ka-ink,
+[data-concept='kartanesi'] .wheel.is-applying .slice.is-selected .ka-sub {
+  animation: kartanesi-ink 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-applying .slice.is-selected .ka-frost {
+  animation: kartanesi-frost 640ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-applying .slice.is-selected .ka-fern {
+  stroke-dasharray: 1 1;
+  animation: kartanesi-draw 380ms cubic-bezier(0.3, 0.6, 0.4, 1) both;
+  animation-delay: calc(var(--k) * 30ms - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-applying .slice.is-selected .ka-glint {
+  animation: kartanesi-glint 300ms ease-out both;
+  animation-delay: calc(260ms + var(--k) * 85ms - var(--t, 0ms));
+}
+[data-concept='kartanesi'] .wheel.is-applying .ka-lit.is-on {
+  animation: kartanesi-lit 640ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes kartanesi-freeze {
+  0% {
+    fill: var(--wheel-slice-hover);
+    fill-opacity: 0.9;
+  }
+  10%,
+  21% {
+    fill: var(--flash);
+    fill-opacity: 1;
+  }
+  31%,
+  100% {
+    fill: var(--wheel-slice-selected);
+    fill-opacity: 1;
+  }
+}
+@keyframes kartanesi-ink {
+  0% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  7%,
+  24% {
+    fill: var(--flash-ink);
+    color: var(--flash-ink);
+  }
+  28%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes kartanesi-frost {
+  0% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
+}
+@keyframes kartanesi-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes kartanesi-glint {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(0deg);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.25) rotate(30deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(60deg);
+  }
+}
+@keyframes kartanesi-lit {
+  0% {
+    stroke: var(--flash);
+    opacity: 0.4;
+  }
+  30% {
+    stroke: var(--flash);
+    opacity: 1;
+  }
+  100% {
+    stroke: var(--arm-lit);
+    opacity: 1;
+  }
+}
+
+.reduce-motion [data-concept='kartanesi'] .ka-pane,
+.reduce-motion [data-concept='kartanesi'] .ka-lit {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-concept='kartanesi'] .ka-pane,
+  [data-concept='kartanesi'] .ka-lit {
+    transition: none;
+  }
+}

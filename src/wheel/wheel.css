@@ -670,6 +670,49 @@ svg.wheel-layer {
   animation: wheel-wash 600ms linear backwards !important;
 }
 
+/* ---------------------------------------------------------------- other themes */
+/* A theme pack draws the wheel in a shadow root of its own (src/theme/host/ThemeFace.tsx); over it lie
+   the app's invisible menu, the back control and the focus ring. */
+.wheel-theme {
+  position: absolute;
+  inset: 0;
+}
+.wheel-menu {
+  outline: none;
+}
+.wheel-menu path {
+  fill: none;
+}
+/* The hub belongs to the theme, so the way back waits in the corner, clear of the ring. */
+.wheel-back.is-corner {
+  animation: wheel-fade-in var(--wheel-level) linear both;
+  inset-block-start: 1%;
+  inset-inline: 1% auto;
+  margin-inline: 0;
+  border-color: var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.wheel-back.is-corner:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+/* ---------------------------------------------------------------- in a page */
+/* Settings shows the wheels in place: no scrim, nothing fixed, at the size it is given. */
+.wheel-scrim.is-inline {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  display: block;
+  inline-size: var(--wheel-size);
+  background: none;
+  animation: none;
+}
+.wheel-scrim.is-still {
+  pointer-events: none;
+}
+
 /* ---------------------------------------------------------------- Windows High Contrast */
 /* System colors, no steel textures and no shadows; the wheel keeps its structure as plain outlines. */
 @media (forced-colors: active) {

@@ -1,0 +1,315 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Pizza. A pizza on a peel; the chosen slice is pulled out with strings of cheese. */
+
+[data-concept='pizza'] {
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+[data-concept='pizza'] .pz-hit {
+  fill: transparent;
+}
+[data-concept='pizza'] .pz-peel,
+[data-concept='pizza'] .pz-hub,
+[data-concept='pizza'] .pz-strings {
+  pointer-events: none;
+}
+
+/* The peel. */
+[data-concept='pizza'] .pz-board {
+  stroke: var(--pz-peel-edge);
+  stroke-width: 1.2;
+}
+[data-concept='pizza'] .pz-grain {
+  fill: none;
+  stroke: var(--pz-grain);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: var(--pz-grain-op);
+}
+[data-concept='pizza'] .pz-holes {
+  fill: var(--pz-hole);
+  opacity: var(--pz-hole-op);
+}
+[data-concept='pizza'] .pz-handle-hole {
+  fill: var(--wheel-shadow);
+}
+
+/* The pie. */
+[data-concept='pizza'] .pz-sauce {
+  fill: var(--pz-sauce);
+}
+[data-concept='pizza'] .pz-base {
+  fill: var(--pz-sauce-dark);
+}
+[data-concept='pizza'] .pz-cheese {
+  fill: var(--wheel-slice);
+}
+[data-concept='pizza'] .slice.is-hover .pz-cheese {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='pizza'] .slice.is-selected .pz-cheese {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='pizza'] .pz-char {
+  fill: var(--pz-char);
+  opacity: 0.55;
+}
+[data-concept='pizza'] .pz-flour {
+  fill: var(--pz-flour);
+  opacity: 0.7;
+}
+[data-concept='pizza'] .pz-brown {
+  fill: var(--pz-cheese-brown);
+  opacity: 0.6;
+}
+[data-concept='pizza'] .pz-cheese-hi {
+  fill: var(--pz-cheese-hi);
+  opacity: 0.8;
+}
+[data-concept='pizza'] .pz-pep {
+  fill: var(--pz-pep);
+}
+[data-concept='pizza'] .pz-pep-dot {
+  fill: var(--pz-pep-dot);
+  opacity: 0.55;
+}
+[data-concept='pizza'] .pz-basil {
+  fill: var(--pz-basil);
+}
+[data-concept='pizza'] .pz-vein {
+  fill: none;
+  stroke: var(--pz-vein);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+[data-concept='pizza'] .pz-olive {
+  fill: none;
+  stroke: var(--pz-olive);
+  stroke-width: 2.6;
+}
+[data-concept='pizza'] .pz-pepper {
+  fill: none;
+  stroke: var(--pz-pepper);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+[data-concept='pizza'] .pz-herb {
+  fill: var(--pz-herb);
+  opacity: 0.8;
+}
+[data-concept='pizza'] .pz-off {
+  fill: var(--pz-peel);
+  opacity: 0.55;
+}
+
+/* Hover lifts the slice off the pie; the selected one stays pulled out. */
+[data-concept='pizza'] .pz-body {
+  transition: transform 150ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-concept='pizza'] .pz-lift-shadow {
+  fill: var(--wheel-shadow);
+  opacity: 0;
+  transition:
+    opacity 150ms,
+    transform 150ms;
+}
+[data-concept='pizza'] .slice.is-hover .pz-body {
+  transform: translate(calc(var(--ux) * 6px), calc(var(--uy) * 6px));
+}
+[data-concept='pizza'] .slice.is-hover .pz-lift-shadow {
+  opacity: 0.8;
+  transform: translate(calc(var(--ux) * -4px + 2px), calc(var(--uy) * -4px + 4px));
+}
+[data-concept='pizza'] .slice.is-selected .pz-body {
+  transform: translate(var(--px), var(--py));
+}
+[data-concept='pizza'] .slice.is-selected .pz-lift-shadow {
+  opacity: 0.8;
+  transform: translate(calc(var(--ux) * -6px + 2px), calc(var(--uy) * -6px + 4px));
+}
+
+/* Cheese strings: hidden until a slice is pulled; two sagging strands stay with it. */
+[data-concept='pizza'] .pz-strand {
+  fill: none;
+  stroke: var(--pz-string);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+[data-concept='pizza'] .pz-strand-edge {
+  fill: none;
+  stroke: var(--pz-string-edge);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+[data-concept='pizza'] .pz-str {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 200px 156px;
+}
+[data-concept='pizza'] .slice.is-selected .pz-str {
+  opacity: 1;
+  transform: scaleY(5.67);
+}
+[data-concept='pizza'] .slice.is-selected .pz-snap {
+  opacity: 0;
+}
+
+[data-concept='pizza'] .pz-content {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='pizza'] .slice.is-selected .pz-content {
+  color: var(--wheel-text-selected);
+  fill: var(--wheel-text-selected);
+}
+[data-concept='pizza'] .slice.is-off .pz-content {
+  opacity: 0.45;
+}
+[data-concept='pizza'] .slice .ico {
+  stroke-width: 2.2;
+}
+[data-concept='pizza'] .pz-lbl {
+  font-family: var(--font-brand);
+  font-weight: 700;
+}
+[data-concept='pizza'] .pz-fmt {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+[data-concept='pizza'] .pz-sub {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  fill: var(--pz-sub);
+}
+[data-concept='pizza'] .slice.is-selected .pz-sub {
+  fill: var(--wheel-text-selected);
+}
+
+/* Hub. */
+[data-concept='pizza'] .pz-mozz {
+  stroke: var(--pz-hub-edge);
+  stroke-width: 1.5;
+}
+[data-concept='pizza'] .pz-title {
+  font-family: var(--font-display);
+  fill: var(--pz-hub-text);
+}
+[data-concept='pizza'] .pz-file {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  fill: var(--pz-hub-sub);
+}
+[data-concept='pizza'] .pz-key {
+  fill: var(--pz-key);
+}
+[data-concept='pizza'] .pz-keytext {
+  font: 700 10px var(--font-brand);
+  fill: var(--pz-key-text);
+  letter-spacing: 0.05em;
+}
+
+/* Open: the pie slides onto the peel with a little turn; the slices settle in. */
+[data-concept='pizza'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='pizza'] .wheel.is-opening .wheel-svg {
+  animation: pizza-open var(--dur-open) cubic-bezier(0.2, 1.1, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pizza'] .wheel.is-opening .pz-pie {
+  animation: pizza-settle calc(var(--dur-open) * 1.1) cubic-bezier(0.25, 1.2, 0.4, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='pizza'] .wheel.is-closing .wheel-svg {
+  animation: pizza-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes pizza-open {
+  from {
+    opacity: 0;
+    transform: translateX(-18px) rotate(-14deg) scale(0.94);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pizza-settle {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--ux) * 10px), calc(var(--uy) * 10px));
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pizza-close {
+  to {
+    opacity: 0;
+    transform: translateX(14px) rotate(8deg) scale(0.94);
+  }
+}
+
+/* Apply: the slice slides out and springs back half way; strings stretch, three snap. */
+[data-concept='pizza'] .wheel.is-applying .slice.is-selected .pz-body {
+  animation: pizza-pull 640ms cubic-bezier(0.3, 0.6, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pizza'] .wheel.is-applying .slice.is-selected .pz-str {
+  animation: pizza-stretch 640ms cubic-bezier(0.3, 0.6, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pizza'] .wheel.is-applying .slice.is-selected .pz-snap {
+  animation: pizza-snap 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes pizza-pull {
+  0% {
+    transform: translate(0, 0);
+  }
+  42% {
+    transform: translate(calc(var(--ux) * 28px), calc(var(--uy) * 28px));
+  }
+  72% {
+    transform: translate(calc(var(--ux) * 9px), calc(var(--uy) * 9px));
+  }
+  100% {
+    transform: translate(var(--px), var(--py));
+  }
+}
+@keyframes pizza-stretch {
+  0% {
+    opacity: 1;
+    transform: scaleY(1.67);
+  }
+  42% {
+    opacity: 1;
+    transform: scaleY(11);
+  }
+  72% {
+    opacity: 1;
+    transform: scaleY(4.67);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(5.67);
+  }
+}
+@keyframes pizza-snap {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}

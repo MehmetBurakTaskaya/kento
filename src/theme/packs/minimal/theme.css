@@ -1,0 +1,169 @@
+/* SPDX-License-Identifier: MIT */
+/* Minimal ring. */
+
+[data-concept='minimal'] {
+  --radius: 8px;
+  --radius-sm: 5px;
+  --icon-stroke: 1.6;
+}
+
+/* Acrylic face behind the ring: a blurred, tinted disc. */
+[data-concept='minimal'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 1.5%;
+  border-radius: 50%;
+  background: var(--wheel-face);
+  backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.4) inset,
+    0 12px 40px var(--wheel-shadow),
+    0 0 0 1px var(--wheel-line);
+}
+[data-concept='minimal'] .mn-rim {
+  fill: none;
+}
+[data-concept='minimal'] .mn-seg {
+  fill: transparent;
+  transition: fill 90ms;
+}
+[data-concept='minimal'] .slice.is-hover .mn-seg {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='minimal'] .slice.is-selected .mn-seg {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='minimal'] .mn-ind {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 90ms;
+}
+[data-concept='minimal'] .slice.is-hover .mn-ind,
+[data-concept='minimal'] .slice.is-selected .mn-ind {
+  opacity: 1;
+}
+[data-concept='minimal'] .mn-content {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='minimal'] .slice.is-selected .mn-content {
+  color: var(--wheel-text-selected);
+  fill: var(--wheel-text-selected);
+}
+[data-concept='minimal'] .slice.is-off .mn-content {
+  opacity: 0.38;
+}
+[data-concept='minimal'] .slice .ico {
+  stroke-width: 1.6;
+}
+[data-concept='minimal'] .mn-lbl {
+  font-weight: 550;
+}
+[data-concept='minimal'] .mn-fmt {
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+[data-concept='minimal'] .mn-sub {
+  fill: var(--text-muted);
+  font-weight: 450;
+}
+[data-concept='minimal'] .slice.is-selected .mn-sub {
+  fill: var(--wheel-text-selected);
+  opacity: 0.85;
+}
+[data-concept='minimal'] .mn-hub {
+  fill: var(--surface);
+  fill-opacity: 0.55;
+  stroke: var(--wheel-line);
+}
+[data-concept='minimal'] .mn-title {
+  fill: var(--text);
+  font-weight: 650;
+}
+[data-concept='minimal'] .mn-file {
+  fill: var(--text-muted);
+}
+[data-concept='minimal'] .mn-key {
+  fill: var(--surface-2);
+  stroke: var(--border);
+}
+[data-concept='minimal'] .mn-keytext {
+  fill: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* Open: the ring pops from 84 % with a slight overshoot; slices slide out from the center. */
+[data-concept='minimal'] .wheel-svg,
+[data-concept='minimal'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept='minimal'] .mn-content {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='minimal'] .wheel.is-opening .wheel-svg,
+[data-concept='minimal'] .wheel.is-opening::before {
+  animation: mn-pop var(--dur-open) cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='minimal'] .wheel.is-opening .mn-content {
+  animation: mn-out-from-center calc(var(--dur-open) * 1.1) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='minimal'] .wheel.is-closing .wheel-svg,
+[data-concept='minimal'] .wheel.is-closing::before {
+  animation: mn-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='minimal'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='minimal'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='minimal'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept='minimal'] .slice.is-selected .mn-seg {
+  animation: mn-press 260ms ease-out;
+}
+@keyframes mn-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.84);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes mn-out-from-center {
+  from {
+    opacity: 0;
+    transform: rotate(var(--mid)) translateY(14px) rotate(calc(-1 * var(--mid)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mn-close {
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+@keyframes mn-press {
+  0% {
+    fill: var(--wheel-slice-hover);
+  }
+  40% {
+    fill: var(--accent);
+  }
+}

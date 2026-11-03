@@ -1,0 +1,435 @@
+/* SPDX-License-Identifier: MIT */
+/* Hologram: a projected HUD with iridescent rings, chamfered cells and scanlines. */
+
+[data-concept='hologram'] {
+  --hg-face: var(--font-brand-face), 'Segoe UI', system-ui, sans-serif;
+  --radius: 4px;
+  --radius-sm: 3px;
+}
+[data-concept='hologram'] .wheel {
+  font-family: var(--hg-face);
+}
+
+[data-concept='hologram'] .hg-i1 {
+  stop-color: var(--ir-1);
+}
+[data-concept='hologram'] .hg-i2 {
+  stop-color: var(--ir-2);
+}
+[data-concept='hologram'] .hg-i3 {
+  stop-color: var(--ir-3);
+}
+[data-concept='hologram'] .hg-i4 {
+  stop-color: var(--ir-4);
+}
+[data-concept='hologram'] .hg-fa {
+  stop-color: var(--face-a);
+}
+[data-concept='hologram'] .hg-fb {
+  stop-color: var(--face-b);
+}
+[data-concept='hologram'] .hg-s1 {
+  stop-color: var(--sheen-1);
+}
+[data-concept='hologram'] .hg-s2 {
+  stop-color: var(--sheen-2);
+}
+[data-concept='hologram'] .hg-s3 {
+  stop-color: var(--sheen-3);
+}
+[data-concept='hologram'] .hg-beam {
+  stop-color: var(--beam);
+}
+[data-concept='hologram'] .hg-beam0 {
+  stop-color: var(--beam-0);
+}
+
+/* Projector, disc, rings. */
+[data-concept='hologram'] .hg-proj,
+[data-concept='hologram'] .hg-disc,
+[data-concept='hologram'] .hg-hub,
+[data-concept='hologram'] .hg-glitch {
+  pointer-events: none;
+}
+[data-concept='hologram'] .hg-emitter {
+  fill: var(--beam);
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+  stroke-opacity: 0.55;
+}
+[data-concept='hologram'] .hg-scanline {
+  fill: var(--scan);
+}
+[data-concept='hologram'] .hg-ring {
+  fill: none;
+  stroke-width: 3.2;
+}
+[data-concept='hologram'] .hg-ring-thin {
+  fill: none;
+  stroke-width: 0.9;
+  opacity: 0.8;
+}
+[data-concept='hologram'] .hg-ticks {
+  fill: none;
+  stroke-width: 1.1;
+}
+[data-concept='hologram'] .hg-bars {
+  fill: none;
+  stroke: var(--ir-3);
+  stroke-width: 1.8;
+}
+
+/* Cells. */
+[data-concept='hologram'] .hg-hit {
+  fill: transparent;
+}
+[data-concept='hologram'] .hg-cell {
+  fill: var(--cell);
+  transition: fill 90ms;
+}
+[data-concept='hologram'] .slice.is-hover .hg-cell {
+  fill: var(--cell-hover);
+}
+[data-concept='hologram'] .slice.is-selected .hg-cell,
+[data-concept='hologram'] .hg-copy .hg-cell {
+  fill: var(--cell-sel);
+}
+[data-concept='hologram'] .hg-cell-line {
+  fill: none;
+  stroke: var(--cell-line);
+  stroke-width: 1;
+}
+[data-concept='hologram'] .hg-br {
+  fill: none;
+  stroke: var(--bracket);
+  stroke-width: 2.4;
+  stroke-linecap: square;
+  opacity: 0;
+}
+[data-concept='hologram'] .slice.is-hover .hg-br {
+  opacity: 1;
+}
+[data-concept='hologram'] .slice.is-selected .hg-br,
+[data-concept='hologram'] .hg-copy .hg-br {
+  opacity: 1;
+  stroke: var(--bracket-sel);
+}
+[data-concept='hologram'] .hg-lock {
+  fill: var(--bracket-sel);
+  opacity: 0;
+}
+[data-concept='hologram'] .slice.is-selected .hg-lock,
+[data-concept='hologram'] .hg-copy .hg-lock {
+  opacity: 1;
+}
+
+/* Lettering, with colour-split ghosts on hover. */
+[data-concept='hologram'] .hg-ink {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+  filter: var(--text-glow);
+}
+[data-concept='hologram'] .hg-lbl {
+  fill: var(--wheel-text);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+[data-concept='hologram'] .hg-word {
+  letter-spacing: 0.02em;
+}
+[data-concept='hologram'] .hg-sub {
+  fill: var(--wheel-sub);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+[data-concept='hologram'] .slice .ico {
+  stroke-width: 1.6;
+  stroke-linecap: square;
+}
+[data-concept='hologram'] .slice.is-selected .hg-ink,
+[data-concept='hologram'] .hg-copy .hg-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='hologram'] .slice.is-selected .hg-lbl,
+[data-concept='hologram'] .hg-copy .hg-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='hologram'] .slice.is-selected .hg-sub,
+[data-concept='hologram'] .hg-copy .hg-sub {
+  fill: var(--wheel-sub-selected);
+}
+[data-concept='hologram'] .slice.is-off .hg-ink {
+  opacity: 0.4;
+}
+[data-concept='hologram'] .hg-ghost {
+  display: none;
+}
+[data-concept='hologram'] .slice.is-hover .hg-ghost {
+  display: inline;
+}
+[data-concept='hologram'] .slice.is-selected .hg-ghost,
+[data-concept='hologram'] .hg-copy .hg-ghost {
+  display: none;
+}
+[data-concept='hologram'] .hg-ghost-c {
+  transform: translate(-1.8px, 0.4px);
+  color: var(--ghost-c);
+}
+[data-concept='hologram'] .hg-ghost-m {
+  transform: translate(1.8px, -0.4px);
+  color: var(--ghost-m);
+}
+[data-concept='hologram'] .hg-ghost-c .hg-lbl,
+[data-concept='hologram'] .hg-ghost-c .hg-sub {
+  fill: var(--ghost-c);
+}
+[data-concept='hologram'] .hg-ghost-m .hg-lbl,
+[data-concept='hologram'] .hg-ghost-m .hg-sub {
+  fill: var(--ghost-m);
+}
+
+/* Hub. */
+[data-concept='hologram'] .hg-hub-fill {
+  fill: var(--hub-fill);
+}
+[data-concept='hologram'] .hg-hub-dash {
+  fill: none;
+  stroke-width: 1.8;
+  stroke-dasharray: 5 3.5;
+}
+[data-concept='hologram'] .hg-hub-ring {
+  fill: none;
+  stroke: var(--cell-line);
+  stroke-width: 1;
+}
+[data-concept='hologram'] .hg-hub-ink {
+  filter: var(--text-glow);
+}
+[data-concept='hologram'] .hg-title {
+  fill: var(--wheel-text);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+[data-concept='hologram'] .hg-file {
+  fill: var(--wheel-sub);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+[data-concept='hologram'] .hg-key {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+  stroke-opacity: 0.7;
+}
+[data-concept='hologram'] .hg-keytext {
+  fill: var(--wheel-sub);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+/* Open: the projection flickers on and the cells come up one after another. */
+[data-concept='hologram'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='hologram'] .wheel.is-opening .wheel-svg {
+  animation: hologram-on var(--dur-open) linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='hologram'] .wheel.is-opening .hg-vis {
+  animation: hologram-flicker var(--dur-open) steps(4, end) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='hologram'] .wheel.is-closing .wheel-svg {
+  animation: hologram-off var(--dur-close) ease-in both;
+}
+@keyframes hologram-on {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.04);
+  }
+  35% {
+    opacity: 0.8;
+    transform: scaleY(1.02);
+  }
+  50% {
+    opacity: 0.45;
+  }
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hologram-flicker {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes hologram-off {
+  60% {
+    opacity: 1;
+    transform: scaleY(0.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.2, 0.02);
+  }
+}
+
+/* Apply: the cell is hidden while its copies tear into jumping strips with colour ghosts,
+   then it snaps back as a scan line sweeps down over it. */
+[data-concept='hologram'] .wheel.is-applying .slice.is-selected > .hg-vis {
+  animation: hologram-hide 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='hologram'] .hg-tear {
+  animation: hologram-out 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='hologram'] .hg-strip-move {
+  animation: hologram-tear 420ms steps(1, end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='hologram'] .hg-split {
+  mix-blend-mode: var(--split-blend);
+  animation: hologram-split 420ms steps(1, end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='hologram'] .hg-split-cyan {
+  filter: url(#hologram-cyan);
+  --sx: -5px;
+}
+[data-concept='hologram'] .hg-split-pink {
+  filter: url(#hologram-pink);
+  --sx: 5px;
+}
+[data-concept='hologram'] .hg-scanbar {
+  fill: var(--scan-bright);
+  opacity: 0;
+  animation: hologram-scan 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='hologram'] .wheel.is-applying .wheel-svg {
+  animation: hologram-jolt 640ms steps(1, end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes hologram-hide {
+  0%,
+  63% {
+    opacity: 0;
+  }
+  64% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.6;
+  }
+  74%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes hologram-out {
+  0%,
+  63% {
+    opacity: 1;
+  }
+  64%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes hologram-tear {
+  0% {
+    transform: none;
+  }
+  8% {
+    transform: translate(var(--gx), var(--gy));
+  }
+  20% {
+    transform: translate(calc(var(--gx) * -0.5), 0);
+  }
+  32% {
+    transform: translate(var(--gx2), calc(var(--gy) * -1));
+  }
+  46% {
+    transform: translate(calc(var(--gx) * 0.8), 0);
+  }
+  60% {
+    transform: translate(calc(var(--gx2) * -0.6), var(--gy));
+  }
+  76% {
+    transform: translate(calc(var(--gx) * 0.25), 0);
+  }
+  90%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes hologram-split {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  6% {
+    opacity: 0.9;
+    transform: translateX(var(--sx));
+  }
+  30% {
+    opacity: 0.5;
+    transform: translateX(calc(var(--sx) * -1.4));
+  }
+  55% {
+    opacity: 0.85;
+    transform: translateX(calc(var(--sx) * 1.8));
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+@keyframes hologram-scan {
+  0%,
+  58% {
+    opacity: 0;
+    transform: none;
+  }
+  62% {
+    opacity: 1;
+    transform: none;
+  }
+  92% {
+    opacity: 0.8;
+    transform: translateY(var(--h));
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(var(--h));
+  }
+}
+@keyframes hologram-jolt {
+  0% {
+    transform: translateX(1px);
+  }
+  6% {
+    transform: translateX(-1px);
+  }
+  12%,
+  100% {
+    transform: none;
+  }
+}

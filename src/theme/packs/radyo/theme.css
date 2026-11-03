@@ -1,0 +1,522 @@
+/* SPDX-License-Identifier: MIT */
+/* Retro technology: Radyo kadranı (the tuning dial of a valve radio). */
+
+[data-concept='radyo'] {
+  --radius: 10px;
+  --radius-sm: 6px;
+  --icon-stroke: 1.7;
+}
+[data-concept='radyo'] .wheel {
+  font-family: var(--font-brand);
+}
+
+/* ---------------------------------------------------------------- wheel */
+[data-concept='radyo'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0.6%;
+  border-radius: 50%;
+  box-shadow:
+    0 2px 3px rgb(0 0 0 / 0.2),
+    0 16px 36px var(--wheel-shadow);
+}
+[data-concept='radyo'] :is(.ry-cab, .ry-glass, .ry-lamp, .ry-needle, .ry-print, .ry-hub, .ry-glint) {
+  pointer-events: none;
+}
+[data-concept='radyo'] :is(.ry-needle, .ry-hunt) {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+
+/* Cabinet and trim */
+[data-concept='radyo'] .ry-sheen {
+  fill: none;
+  stroke: var(--ry-sheen);
+  stroke-width: 0.8;
+}
+[data-concept='radyo'] .ry-cab-edge {
+  fill: none;
+  stroke: var(--ry-cab-edge);
+  stroke-width: 1.2;
+}
+[data-concept='radyo'] .ry-trim {
+  fill: none;
+  stroke-width: 3;
+}
+[data-concept='radyo'] .ry-lamp {
+  opacity: var(--ry-lamp-opacity);
+}
+[data-concept='radyo'] .ry-glint {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: var(--ry-glint-opacity);
+}
+
+/* Station windows */
+[data-concept='radyo'] .ry-hit {
+  fill: transparent;
+}
+[data-concept='radyo'] .ry-win {
+  fill: transparent;
+  transition: fill 100ms;
+}
+[data-concept='radyo'] .slice.is-hover .ry-win {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='radyo'] .ry-win-lit {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+[data-concept='radyo'] .slice.is-selected .ry-win-lit {
+  opacity: 1;
+}
+
+/* Pointer */
+[data-concept='radyo'] .ry-needle {
+  transition: transform 320ms cubic-bezier(0.3, 1.45, 0.5, 1);
+}
+[data-concept='radyo'].reduce-motion .ry-needle {
+  transition: transform 60ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-concept='radyo'] .ry-needle {
+    transition: transform 60ms linear;
+  }
+}
+[data-concept='radyo'] .ry-n-edge {
+  fill: none;
+  stroke: var(--ry-needle-edge);
+  stroke-width: 3.8;
+  stroke-linecap: round;
+}
+[data-concept='radyo'] .ry-n {
+  fill: none;
+  stroke: var(--ry-needle);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+[data-concept='radyo'] .ry-bead {
+  fill: var(--ry-bead);
+  stroke: var(--ry-needle-edge);
+  stroke-width: 0.8;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='radyo'] .ry-tuned .ry-bead {
+  opacity: 1;
+}
+[data-concept='radyo'] .ry-wave {
+  fill: none;
+  stroke: var(--ry-wave);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  opacity: 0;
+}
+[data-concept='radyo'] .ry-tuned .ry-wave-0 {
+  opacity: 0.6;
+}
+[data-concept='radyo'] .ry-tuned .ry-wave-1 {
+  opacity: 0.4;
+}
+[data-concept='radyo'] .ry-tuned .ry-wave-2 {
+  opacity: 0.22;
+}
+
+/* Print on the glass */
+[data-concept='radyo'] .ry-rule {
+  fill: none;
+  stroke: var(--ry-print);
+  stroke-width: 1;
+}
+[data-concept='radyo'] .ry-rule-thin {
+  stroke-width: 0.6;
+  opacity: 0.7;
+}
+[data-concept='radyo'] .ry-ticks {
+  fill: none;
+  stroke: var(--ry-print);
+  stroke-width: 0.8;
+}
+[data-concept='radyo'] .ry-fig {
+  fill: var(--ry-print);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+[data-concept='radyo'] .ry-band {
+  fill: var(--ry-print);
+  font-size: 6.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  opacity: 0.75;
+}
+[data-concept='radyo'] .ry-name {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='radyo'] .ry-name.is-selected {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='radyo'] .ry-name.is-off {
+  opacity: 0.45;
+}
+/* A halo in the glass color, so the pointer passing behind the print breaks around the words. */
+[data-concept='radyo'] .ry-name {
+  --ry-halo: var(--wheel-face);
+}
+[data-concept='radyo'] .ry-name.is-hover {
+  --ry-halo: var(--wheel-slice-hover);
+}
+[data-concept='radyo'] .ry-name.is-selected {
+  --ry-halo: var(--wheel-slice-selected);
+}
+[data-concept='radyo'] :is(.ry-lbl, .ry-sub) {
+  paint-order: stroke;
+  stroke: var(--ry-halo);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+[data-concept='radyo'] .ry-lbl {
+  font-family: var(--font-display);
+}
+[data-concept='radyo'] .ry-fmt {
+  letter-spacing: 0.05em;
+}
+[data-concept='radyo'] .ry-sub {
+  fill: var(--ry-sub);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+[data-concept='radyo'] .ry-name.is-selected .ry-sub {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='radyo'] .ry-name .ico {
+  stroke-width: 1.7;
+}
+
+/* Hub: speaker cloth and the brass plate */
+[data-concept='radyo'] .ry-cloth-edge {
+  fill: none;
+  stroke: var(--ry-cab-edge);
+  stroke-width: 1.6;
+}
+[data-concept='radyo'] .ry-plate {
+  stroke: var(--ry-plate-edge);
+  stroke-width: 0.9;
+}
+[data-concept='radyo'] .ry-plate-line {
+  fill: none;
+  stroke: var(--ry-plate-edge);
+  stroke-width: 0.6;
+  opacity: 0.6;
+}
+[data-concept='radyo'] .ry-title {
+  fill: var(--ry-plate-ink);
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+}
+[data-concept='radyo'] .ry-file {
+  fill: var(--ry-plate-ink);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+[data-concept='radyo'] .ry-key {
+  fill: var(--ry-key);
+  stroke: var(--ry-plate-edge);
+  stroke-width: 0.9;
+}
+[data-concept='radyo'] .ry-keytext {
+  fill: var(--wheel-text);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+/* Open: the dial lamp warms up from the middle, the print fades in station by station. */
+[data-concept='radyo'] .wheel-svg,
+[data-concept='radyo'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept='radyo'] .wheel.is-opening .wheel-svg,
+[data-concept='radyo'] .wheel.is-opening::before {
+  animation: radyo-in var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='radyo'] .wheel.is-opening .ry-lamp {
+  animation: radyo-warm calc(var(--dur-open) + 6 * var(--stagger)) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='radyo'] .wheel.is-opening .ry-name {
+  animation: radyo-fade calc(var(--dur-open) * 0.7) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='radyo'] .wheel.is-closing .wheel-svg,
+[data-concept='radyo'] .wheel.is-closing::before {
+  animation: radyo-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='radyo'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='radyo'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='radyo'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept='radyo'] .wheel.is-open.is-denied::before {
+  animation: deny 260ms ease;
+}
+@keyframes radyo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes radyo-warm {
+  from {
+    opacity: 0;
+  }
+  60% {
+    opacity: calc(var(--ry-lamp-opacity) * 2);
+  }
+  to {
+    opacity: var(--ry-lamp-opacity);
+  }
+}
+@keyframes radyo-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes radyo-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+/* 650 ms. The pointer hunts across the station while the lamp flickers with static (0–42 %), snaps on; the
+   window flashes and settles into its glow, the bead lights and the signal arcs pulse out. */
+[data-concept='radyo'] .wheel.is-applying .ry-hunt {
+  animation: radyo-hunt 650ms calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .ry-lamp {
+  animation: radyo-static 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .slice.is-selected .ry-win {
+  animation: radyo-win 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .slice.is-selected .ry-win-lit {
+  animation: radyo-lit 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .ry-name.is-selected {
+  --ry-halo: var(--wheel-slice-hover);
+  animation: radyo-ink 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .ry-name.is-selected .ry-sub {
+  animation: radyo-subink 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .ry-bead {
+  animation: radyo-bead 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .ry-wave-0 {
+  animation: radyo-wave-0 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .ry-wave-1 {
+  animation: radyo-wave-1 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radyo'] .wheel.is-applying .ry-wave-2 {
+  animation: radyo-wave-2 650ms linear calc(0ms - var(--t, 0ms)) both;
+}
+@keyframes radyo-hunt {
+  0% {
+    transform: rotate(-10deg);
+    animation-timing-function: ease-in-out;
+  }
+  9% {
+    transform: rotate(8deg);
+    animation-timing-function: ease-in-out;
+  }
+  17% {
+    transform: rotate(-6deg);
+    animation-timing-function: ease-in-out;
+  }
+  25% {
+    transform: rotate(4.5deg);
+    animation-timing-function: ease-in-out;
+  }
+  32% {
+    transform: rotate(-2.5deg);
+    animation-timing-function: ease-in-out;
+  }
+  38% {
+    transform: rotate(1.2deg);
+    animation-timing-function: ease-in;
+  }
+  42%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes radyo-static {
+  0% {
+    opacity: calc(var(--ry-lamp-opacity) * 0.3);
+  }
+  5% {
+    opacity: calc(var(--ry-lamp-opacity) * 1.8);
+  }
+  9% {
+    opacity: calc(var(--ry-lamp-opacity) * 0.5);
+  }
+  14% {
+    opacity: calc(var(--ry-lamp-opacity) * 1.6);
+  }
+  20% {
+    opacity: calc(var(--ry-lamp-opacity) * 0.4);
+  }
+  26% {
+    opacity: calc(var(--ry-lamp-opacity) * 1.9);
+  }
+  32% {
+    opacity: calc(var(--ry-lamp-opacity) * 0.7);
+  }
+  38% {
+    opacity: calc(var(--ry-lamp-opacity) * 1.4);
+  }
+  44% {
+    opacity: calc(var(--ry-lamp-opacity) * 2.4);
+  }
+  70%,
+  100% {
+    opacity: var(--ry-lamp-opacity);
+  }
+}
+@keyframes radyo-win {
+  0%,
+  42% {
+    fill: var(--wheel-slice-hover);
+  }
+  43%,
+  100% {
+    fill: transparent;
+  }
+}
+@keyframes radyo-lit {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  47% {
+    opacity: 1;
+    transform: scale(1.04);
+    filter: brightness(1.25);
+  }
+  62%,
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes radyo-ink {
+  0%,
+  43% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+    --ry-halo: var(--wheel-slice-hover);
+  }
+  45%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+    --ry-halo: var(--wheel-slice-selected);
+  }
+}
+@keyframes radyo-subink {
+  0%,
+  43% {
+    fill: var(--ry-sub);
+  }
+  45%,
+  100% {
+    fill: var(--wheel-text-selected);
+  }
+}
+@keyframes radyo-bead {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  48% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+  60%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes radyo-wave-0 {
+  0%,
+  46% {
+    opacity: 0;
+  }
+  52% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 0.3;
+  }
+  84%,
+  100% {
+    opacity: 0.6;
+  }
+}
+@keyframes radyo-wave-1 {
+  0%,
+  54% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.2;
+  }
+  92%,
+  100% {
+    opacity: 0.4;
+  }
+}
+@keyframes radyo-wave-2 {
+  0%,
+  62% {
+    opacity: 0;
+  }
+  68% {
+    opacity: 0.8;
+  }
+  88% {
+    opacity: 0.1;
+  }
+  100% {
+    opacity: 0.22;
+  }
+}

@@ -1,0 +1,288 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Karpuz. A round slice of watermelon with seeds on the slice borders. */
+
+[data-concept='karpuz'] {
+  --radius: 14px;
+  --radius-sm: 9px;
+}
+
+[data-concept='karpuz'] .kz-hit {
+  fill: transparent;
+}
+[data-concept='karpuz'] .kz-top,
+[data-concept='karpuz'] .kz-fx,
+[data-concept='karpuz'] .kz-hub,
+[data-concept='karpuz'] .kz-shadow {
+  pointer-events: none;
+}
+
+[data-concept='karpuz'] .kz-light {
+  fill: var(--kz-light);
+}
+[data-concept='karpuz'] .kz-skin {
+  fill: var(--kz-skin);
+  stroke: var(--kz-skin-edge);
+  stroke-width: 0.8;
+}
+[data-concept='karpuz'] .kz-stripes {
+  fill: var(--kz-stripe);
+}
+[data-concept='karpuz'] .kz-grain {
+  fill: var(--kz-grain);
+  opacity: var(--kz-grain-op);
+}
+[data-concept='karpuz'] .slice.is-selected .kz-grain {
+  opacity: 0.3;
+}
+[data-concept='karpuz'] .kz-bite-edge {
+  fill: none;
+  stroke: var(--kz-bite);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+[data-concept='karpuz'] .kz-off {
+  fill: var(--kz-white);
+  opacity: 0.6;
+}
+[data-concept='karpuz'] .kz-fibre {
+  fill: none;
+  stroke: var(--kz-fibre);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+/* A slice lifts a little on hover; the bitten one stays put. */
+[data-concept='karpuz'] .kz-body,
+[data-concept='karpuz'] .kz-chomp {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='karpuz'] .kz-body {
+  transition: transform 140ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-concept='karpuz'] .slice.is-hover:not(.is-selected) .kz-body {
+  transform: rotate(var(--mid)) translateY(-5px) rotate(calc(-1 * var(--mid)));
+}
+
+[data-concept='karpuz'] .kz-content {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='karpuz'] .slice.is-selected .kz-content {
+  color: var(--wheel-text-selected);
+  fill: var(--wheel-text-selected);
+}
+[data-concept='karpuz'] .slice.is-off .kz-content {
+  opacity: 0.45;
+}
+[data-concept='karpuz'] .slice .ico {
+  stroke-width: 2.1;
+}
+[data-concept='karpuz'] .kz-lbl {
+  font-family: var(--font-brand);
+  font-weight: 800;
+}
+[data-concept='karpuz'] .kz-fmt {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+[data-concept='karpuz'] .kz-sub {
+  font-family: var(--font-brand);
+  font-weight: 800;
+  fill: var(--kz-sub);
+}
+[data-concept='karpuz'] .slice.is-selected .kz-sub {
+  fill: var(--kz-sub-sel);
+}
+
+/* Seeds. */
+[data-concept='karpuz'] .kz-seed {
+  transform-box: view-box;
+  transform-origin: var(--sx) var(--sy);
+}
+[data-concept='karpuz'] .kz-seed-body {
+  fill: var(--kz-seed);
+}
+[data-concept='karpuz'] .kz-seed-hi {
+  fill: none;
+  stroke: var(--kz-seed-hi);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+/* Hub. */
+[data-concept='karpuz'] .kz-heart {
+  fill: var(--kz-hub);
+  stroke: var(--kz-hub-edge);
+  stroke-width: 2;
+}
+[data-concept='karpuz'] .kz-title {
+  font-family: var(--font-display);
+  fill: var(--kz-hub-text);
+}
+[data-concept='karpuz'] .kz-file {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  fill: var(--kz-hub-sub);
+}
+[data-concept='karpuz'] .kz-key {
+  fill: var(--kz-key);
+}
+[data-concept='karpuz'] .kz-keytext {
+  font: 800 9.5px var(--font-brand);
+  fill: var(--kz-key-text);
+  letter-spacing: 0.04em;
+}
+
+/* Open: the slice drops onto the table with a small bounce; the flesh fills slice by slice. */
+[data-concept='karpuz'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='karpuz'] .wheel.is-opening .wheel-svg {
+  animation: karpuz-open var(--dur-open) cubic-bezier(0.25, 1.3, 0.45, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='karpuz'] .wheel.is-opening .kz-content,
+[data-concept='karpuz'] .wheel.is-opening .kz-grain {
+  animation: karpuz-fill calc(var(--dur-open) * 1.1) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='karpuz'] .wheel.is-closing .wheel-svg {
+  animation: karpuz-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes karpuz-open {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes karpuz-fill {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes karpuz-close {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.92);
+  }
+}
+
+/* Apply: the slice jolts with each chomp, crumbs fly, border seeds hop. */
+[data-concept='karpuz'] .wheel.is-applying .slice.is-selected .kz-chomp {
+  animation: karpuz-chomp 300ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='karpuz'] .wheel.is-applying .slice.is-selected .kz-bite-edge {
+  animation: karpuz-edge 600ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='karpuz'] .kz-border.is-hop .kz-seed {
+  animation: karpuz-hop 420ms cubic-bezier(0.3, 0.6, 0.5, 1) both;
+  animation-delay: calc(90ms + var(--k) * 45ms - var(--t, 0ms));
+}
+[data-concept='karpuz'] .kz-crumb {
+  opacity: 0;
+  animation: karpuz-fly 460ms cubic-bezier(0.15, 0.7, 0.35, 1) both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='karpuz'] .kz-fall {
+  animation: karpuz-fall 460ms cubic-bezier(0.5, 0, 0.9, 0.6) both;
+  animation-delay: calc(var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='karpuz'] .kz-bit {
+  fill: var(--kz-crumb);
+}
+[data-concept='karpuz'] .kz-drop {
+  fill: var(--kz-juice);
+  opacity: 0.9;
+}
+@keyframes karpuz-chomp {
+  0%,
+  12% {
+    transform: none;
+  }
+  18% {
+    transform: rotate(var(--mid)) translateY(3px) rotate(calc(-1 * var(--mid))) scale(0.985);
+  }
+  30% {
+    transform: none;
+  }
+  45% {
+    transform: rotate(var(--mid)) translateY(4px) rotate(calc(-1 * var(--mid))) scale(0.98);
+  }
+  70%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes karpuz-edge {
+  0%,
+  12% {
+    stroke-width: 0;
+  }
+  50% {
+    stroke-width: 4;
+    opacity: 1;
+  }
+  100% {
+    stroke-width: 2.4;
+    opacity: 0.9;
+  }
+}
+@keyframes karpuz-hop {
+  0% {
+    transform: none;
+  }
+  40% {
+    transform: translateY(-11px) rotate(var(--spin));
+  }
+  70% {
+    transform: translateY(0) rotate(calc(var(--spin) * 0.6));
+  }
+  84% {
+    transform: translateY(-2.5px) rotate(calc(var(--spin) * 0.25));
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes karpuz-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  }
+  10% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.9);
+  }
+}
+@keyframes karpuz-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--fall));
+  }
+}

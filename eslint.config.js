@@ -14,6 +14,17 @@ export default tseslint.config(
     rules: { ...reactHooks.configs.recommended.rules },
   },
   {
+    // The themes' wheels: plain JavaScript that runs in the page. Their functions keep the full
+    // signatures of the theme contract, and they read SVG boxes that a hidden wheel may refuse.
+    files: ['src/theme/packs/**/*.js'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: globals.browser },
+    rules: {
+      'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }],
+      'no-useless-assignment': 'off',
+    },
+  },
+  {
     files: ['scripts/**/*.mjs', 'eslint.config.js'],
     extends: [js.configs.recommended],
     // Playwright runs some of the scripts' functions inside a page.

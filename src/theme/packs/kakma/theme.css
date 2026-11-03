@@ -1,0 +1,320 @@
+/* SPDX-License-Identifier: MIT */
+/* Ahşap kakma: a marquetry panel of pale veneers, ebony stringing and mother-of-pearl. */
+
+[data-concept='kakma'] {
+  --kk-caps: var(--font-display-face), Georgia, serif;
+  --kk-sans: var(--font-brand-face), 'Segoe UI', sans-serif;
+  --radius: 6px;
+}
+[data-concept='kakma'] .wheel {
+  font-family: var(--kk-sans);
+}
+
+/* Gradient stops. */
+[data-concept='kakma'] .kk-p1 {
+  stop-color: var(--pearl-1);
+}
+[data-concept='kakma'] .kk-p2 {
+  stop-color: var(--pearl-2);
+}
+[data-concept='kakma'] .kk-p3 {
+  stop-color: var(--pearl-3);
+}
+[data-concept='kakma'] .kk-p4 {
+  stop-color: var(--pearl-4);
+}
+[data-concept='kakma'] .kk-sh {
+  stop-color: var(--sheen);
+}
+[data-concept='kakma'] .kk-sh0 {
+  stop-color: var(--sheen);
+  stop-opacity: 0;
+}
+[data-concept='kakma'] .kk-st-sh {
+  stop-color: var(--wheel-shadow);
+}
+[data-concept='kakma'] .kk-st-sh0 {
+  stop-color: var(--wheel-shadow);
+  stop-opacity: 0;
+}
+
+/* Frame and banding. */
+[data-concept='kakma'] .kk-frame,
+[data-concept='kakma'] .kk-lines,
+[data-concept='kakma'] .kk-hub {
+  pointer-events: none;
+}
+[data-concept='kakma'] .kk-ebony {
+  fill: var(--ebony);
+}
+[data-concept='kakma'] .kk-band-a {
+  fill: var(--band-a);
+}
+[data-concept='kakma'] .kk-band-b {
+  fill: var(--band-b);
+}
+[data-concept='kakma'] .kk-string {
+  fill: none;
+  stroke: var(--ebony);
+  stroke-width: 2;
+}
+[data-concept='kakma'] .kk-holly {
+  fill: none;
+  stroke: var(--holly);
+  stroke-width: 4.4;
+}
+[data-concept='kakma'] .kk-holly-ring {
+  fill: none;
+  stroke: var(--holly);
+  stroke-width: 3;
+}
+[data-concept='kakma'] .kk-holly-thin {
+  fill: none;
+  stroke: var(--holly);
+  stroke-width: 1;
+  opacity: 0.8;
+}
+
+/* Veneers. */
+[data-concept='kakma'] .kk-wood-a {
+  fill: var(--wood-a);
+}
+[data-concept='kakma'] .kk-wood-a2 {
+  fill: var(--wood-a2);
+}
+[data-concept='kakma'] .kk-wood-b {
+  fill: var(--wood-b);
+}
+[data-concept='kakma'] .kk-nacre {
+  fill: none;
+  stroke: var(--nacre);
+  stroke-width: 0.8;
+}
+[data-concept='kakma'] .kk-grain {
+  fill: none;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+[data-concept='kakma'] .kk-grain-a {
+  stroke: var(--grain-a);
+}
+[data-concept='kakma'] .kk-grain-b {
+  stroke: var(--grain-b);
+}
+[data-concept='kakma'] .kk-glow {
+  fill: var(--hover-glow);
+  opacity: 0;
+  transition: opacity 110ms;
+}
+[data-concept='kakma'] .slice.is-hover .kk-glow {
+  opacity: 1;
+}
+/* display, not visibility: hidden layers must not widen the slice's box. */
+[data-concept='kakma'] .kk-pearl {
+  display: none;
+}
+[data-concept='kakma'] .slice.is-selected .kk-pearl {
+  display: inline;
+}
+[data-concept='kakma'] .kk-shine-clip {
+  display: none;
+}
+[data-concept='kakma'] .kk-edge {
+  fill: none;
+  stroke: var(--pearl-edge);
+  stroke-width: 2.4;
+  opacity: 0;
+  transition: opacity 110ms;
+}
+[data-concept='kakma'] .slice.is-hover .kk-edge,
+[data-concept='kakma'] .slice.is-selected .kk-edge {
+  opacity: 1;
+}
+[data-concept='kakma'] .kk-dot {
+  stroke: var(--ebony);
+  stroke-width: 0.9;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 140ms;
+}
+[data-concept='kakma'] .slice.is-hover .kk-dot,
+[data-concept='kakma'] .slice.is-selected .kk-dot {
+  transform: scale(1.4);
+}
+[data-concept='kakma'] .slice.is-hover .kk-edge {
+  stroke-width: 3.2;
+}
+
+[data-concept='kakma'] .kk-ink {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='kakma'] .kk-lbl {
+  font-family: var(--kk-caps);
+  fill: var(--wheel-text);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+[data-concept='kakma'] .kk-word {
+  font-family: var(--kk-sans);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+[data-concept='kakma'] .kk-sub {
+  font-family: var(--kk-sans);
+  fill: var(--wheel-sub);
+  font-weight: 500;
+}
+[data-concept='kakma'] .slice .ico {
+  stroke-width: 1.8;
+}
+[data-concept='kakma'] .slice.is-selected .kk-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='kakma'] .slice.is-selected .kk-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='kakma'] .slice.is-selected .kk-sub {
+  fill: var(--wheel-sub-selected);
+}
+[data-concept='kakma'] .slice.is-off .kk-ink {
+  opacity: 0.42;
+}
+
+/* Hub. */
+[data-concept='kakma'] .kk-hub-wood {
+  fill: var(--hub-wood);
+}
+[data-concept='kakma'] .kk-star {
+  fill: var(--hub-star);
+  stroke: var(--grain-a);
+  stroke-width: 0.8;
+}
+[data-concept='kakma'] .kk-hub-ring {
+  stroke-width: 2.4;
+}
+[data-concept='kakma'] .kk-title {
+  font-family: var(--kk-caps);
+  fill: var(--wheel-text);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+[data-concept='kakma'] .kk-file {
+  font-family: var(--kk-sans);
+  fill: var(--wheel-sub);
+  font-weight: 500;
+}
+[data-concept='kakma'] .kk-key {
+  fill: none;
+  stroke: var(--wheel-sub);
+  stroke-opacity: 0.5;
+  stroke-width: 1;
+}
+[data-concept='kakma'] .kk-keytext {
+  font-family: var(--kk-sans);
+  fill: var(--wheel-sub);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Open: the panel settles and the veneers are laid in round the star. */
+[data-concept='kakma'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='kakma'] .wheel.is-opening .wheel-svg {
+  animation: kakma-settle var(--dur-open) cubic-bezier(0.2, 0.85, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kakma'] .wheel.is-opening .slice {
+  animation: kakma-lay var(--dur-open) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='kakma'] .wheel.is-closing .wheel-svg {
+  animation: kakma-away var(--dur-close) ease-in both;
+}
+@keyframes kakma-settle {
+  from {
+    opacity: 0;
+    transform: rotate(-5deg) scale(0.95);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kakma-lay {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kakma-away {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Apply: mother-of-pearl takes the veneer, a shine crosses it, the corner dots twinkle. */
+[data-concept='kakma'] .wheel.is-applying .slice.is-selected .kk-pearl {
+  animation: kakma-pearl 360ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kakma'] .wheel.is-applying .slice.is-selected .kk-shine-clip {
+  display: inline;
+}
+[data-concept='kakma'] .wheel.is-applying .slice.is-selected .kk-shine {
+  animation: kakma-shine 540ms cubic-bezier(0.35, 0.1, 0.45, 1) both;
+  animation-delay: calc(30ms - var(--t, 0ms));
+}
+[data-concept='kakma'] .wheel.is-applying .slice.is-selected .kk-dot {
+  animation: kakma-twinkle 300ms ease-out both;
+  animation-delay: calc(300ms - var(--t, 0ms));
+}
+[data-concept='kakma'] .wheel.is-applying .slice.is-selected .kk-dot:nth-child(2) {
+  animation-delay: calc(380ms - var(--t, 0ms));
+}
+[data-concept='kakma'] .wheel.is-applying .slice.is-selected .kk-dot:nth-child(3) {
+  animation-delay: calc(220ms - var(--t, 0ms));
+}
+[data-concept='kakma'] .wheel.is-applying .slice.is-selected .kk-lbl,
+[data-concept='kakma'] .wheel.is-applying .slice.is-selected .kk-sub {
+  transition: fill 120ms 140ms;
+}
+@keyframes kakma-pearl {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kakma-shine {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(260px);
+    opacity: 0;
+  }
+}
+@keyframes kakma-twinkle {
+  0% {
+    transform: scale(1.4);
+  }
+  40% {
+    transform: scale(2.1);
+  }
+  100% {
+    transform: scale(1.4);
+  }
+}

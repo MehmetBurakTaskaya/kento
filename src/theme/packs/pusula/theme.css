@@ -1,0 +1,499 @@
+/* SPDX-License-Identifier: MIT */
+/* Pusula. */
+
+[data-concept='pusula'] {
+  --radius: 8px;
+  --radius-sm: 5px;
+  --icon-stroke: 1.6;
+  /* Paper grain and mottling: SVG feTurbulence images, rasterized once as backgrounds. */
+  --pu-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g' x='0' y='0' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95 .7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E");
+  --pu-mottle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='m' x='0' y='0' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.009' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='.33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23m)'/%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------- wheel: paper card */
+[data-concept='pusula'] .wheel {
+  isolation: isolate;
+}
+[data-concept='pusula'] .wheel::before,
+[data-concept='pusula'] .wheel::after {
+  content: '';
+  position: absolute;
+  inset: 0.75%;
+  border-radius: 50%;
+  z-index: -1;
+  transform-origin: 50% 50%;
+}
+[data-concept='pusula'] .wheel::before {
+  background:
+    var(--pu-mottle) center / 100% 100%,
+    radial-gradient(circle at 50% 46%, var(--wheel-face) 0 76%, var(--paper-edge) 100%);
+  background-blend-mode: soft-light, normal;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.18),
+    0 14px 38px var(--wheel-shadow);
+}
+[data-concept='pusula'] .wheel::after {
+  background: var(--pu-grain) 0 0 / 150px 150px;
+  mix-blend-mode: soft-light;
+  opacity: var(--grain-opacity, 0.5);
+}
+
+/* Chart lines */
+[data-concept='pusula'] .pu-face,
+[data-concept='pusula'] .pu-rose,
+[data-concept='pusula'] .pu-needle,
+[data-concept='pusula'] .pu-cap,
+[data-concept='pusula'] .pu-ink,
+[data-concept='pusula'] .pu-mark,
+[data-concept='pusula'] .pu-hatch {
+  pointer-events: none;
+}
+[data-concept='pusula'] .pu-rhumbs {
+  fill: none;
+  stroke: var(--rhumb);
+  stroke-width: 0.7;
+}
+[data-concept='pusula'] .pu-ticks {
+  fill: none;
+  stroke: var(--wheel-ink);
+  stroke-width: 0.75;
+  opacity: 0.8;
+}
+[data-concept='pusula'] .pu-rule {
+  fill: none;
+  stroke: var(--wheel-ink);
+  stroke-width: 1.3;
+}
+[data-concept='pusula'] .pu-rule-thin {
+  stroke-width: 0.6;
+  opacity: 0.8;
+}
+[data-concept='pusula'] .pu-rim {
+  stroke-width: 2.4;
+}
+
+/* Slices */
+[data-concept='pusula'] .pu-hit {
+  fill: transparent;
+}
+[data-concept='pusula'] .pu-wedge {
+  fill: transparent;
+  transition: fill 90ms;
+}
+[data-concept='pusula'] .slice.is-hover .pu-wedge {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='pusula'] .slice.is-selected .pu-wedge {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='pusula'] .pu-hatch {
+  fill: none;
+  stroke: var(--hatch);
+  stroke-width: 0.9;
+}
+[data-concept='pusula'] .pu-mark {
+  fill: var(--accent);
+  opacity: 0;
+  transition: opacity 90ms;
+}
+[data-concept='pusula'] .slice.is-hover .pu-mark,
+[data-concept='pusula'] .slice.is-selected .pu-mark {
+  opacity: 1;
+}
+[data-concept='pusula'] .slice.is-off .pu-mark {
+  fill: var(--wheel-muted);
+}
+
+/* Labels: chart lettering with a paper-colored halo, so lines break around the words. */
+[data-concept='pusula'] .slice {
+  --pu-halo: var(--wheel-face);
+}
+[data-concept='pusula'] .slice.is-hover {
+  --pu-halo: var(--wheel-slice-hover);
+}
+[data-concept='pusula'] .slice.is-selected {
+  --pu-halo: var(--wheel-slice-selected);
+}
+[data-concept='pusula'] .pu-ink {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='pusula'] .slice.is-selected .pu-ink {
+  color: var(--wheel-text-selected);
+  fill: var(--wheel-text-selected);
+}
+[data-concept='pusula'] .slice.is-off .pu-ink {
+  color: var(--wheel-muted);
+  fill: var(--wheel-muted);
+}
+[data-concept='pusula'] .pu-type {
+  font-family: var(--font-display);
+}
+[data-concept='pusula'] .pu-lbl,
+[data-concept='pusula'] .pu-sub {
+  paint-order: stroke;
+  stroke: var(--pu-halo);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+[data-concept='pusula'] .pu-lbl {
+  font-weight: 560;
+}
+[data-concept='pusula'] .pu-fmt {
+  font-weight: 640;
+  letter-spacing: 0.03em;
+}
+[data-concept='pusula'] .pu-sub {
+  font-style: italic;
+  font-weight: 450;
+  fill: var(--wheel-sub);
+}
+[data-concept='pusula'] .slice.is-selected .pu-sub {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='pusula'] .slice.is-off .pu-lbl {
+  font-style: italic;
+  font-weight: 480;
+}
+[data-concept='pusula'] .slice .ico {
+  stroke-width: 1.6;
+}
+/* Scripts Vollkorn does not cover keep a system face, upright. */
+[data-concept='pusula'] .wheel:lang(ja) .pu-type {
+  font-family: var(--font-display-face), 'Yu Gothic UI', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+  font-style: normal;
+}
+[data-concept='pusula'] .wheel:lang(zh) .pu-type {
+  font-family: var(--font-display-face), 'Microsoft YaHei UI', 'PingFang SC', sans-serif;
+  font-style: normal;
+}
+[data-concept='pusula'] .wheel:lang(ko) .pu-type {
+  font-family: var(--font-display-face), 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  font-style: normal;
+}
+[data-concept='pusula'] .wheel:lang(ar) .pu-type {
+  font-family: var(--font-display-face), 'Segoe UI', 'SF Arabic', 'Geeza Pro', sans-serif;
+  font-style: normal;
+}
+
+/* Star points between the slices: half ink, half paper. */
+[data-concept='pusula'] .pu-pt-a {
+  fill: var(--wheel-ink);
+}
+[data-concept='pusula'] .pu-pt-b {
+  fill: var(--wheel-face);
+  stroke: var(--wheel-ink);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+/* The north point, where the needle rests, is longer and solid, in the resting needle's colors. */
+[data-concept='pusula'] .pu-north .pu-pt-a {
+  fill: var(--needle-rest-dark);
+}
+[data-concept='pusula'] .pu-north .pu-pt-b {
+  fill: var(--needle-rest);
+  stroke: var(--needle-rest-dark);
+}
+
+/* Needle: ink at rest, red when it points at a slice, gray on a slice that is not installed. */
+[data-concept='pusula'] .pu-needle,
+[data-concept='pusula'] .pu-swing,
+[data-concept='pusula'] .pu-face,
+[data-concept='pusula'] .pu-rose,
+[data-concept='pusula'] .pu-cap,
+[data-concept='pusula'] .pu-ink {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='pusula'] .pu-needle {
+  transition: transform 480ms
+    linear(
+      0,
+      0.09 3.8%,
+      0.3 7.7%,
+      0.549 11.5%,
+      0.782 15.4%,
+      0.965 19.2%,
+      1.087 23.1%,
+      1.149 26.9%,
+      1.163 30.8%,
+      1.144 34.6%,
+      1.109 38.5%,
+      1.068 42.3%,
+      1.031 46.2%,
+      1.002 50%,
+      0.984 53.8%,
+      0.975 57.7%,
+      0.974 61.5%,
+      0.977 65.4%,
+      0.983 69.2%,
+      0.99 73.1%,
+      0.996 76.9%,
+      1
+    );
+}
+[data-concept='pusula'].reduce-motion .pu-needle {
+  transition: transform 60ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-concept='pusula'] .pu-needle {
+    transition: transform 60ms linear;
+  }
+}
+[data-concept='pusula'] .pu-n-a {
+  fill: var(--needle-rest);
+  transition: fill 120ms;
+}
+[data-concept='pusula'] .pu-n-b {
+  fill: var(--needle-rest-dark);
+  transition: fill 120ms;
+}
+[data-concept='pusula'] .pu-aiming .pu-n-a {
+  fill: var(--needle);
+}
+[data-concept='pusula'] .pu-aiming .pu-n-b {
+  fill: var(--needle-dark);
+}
+[data-concept='pusula'] .pu-aim-off .pu-n-a {
+  fill: var(--wheel-muted);
+}
+[data-concept='pusula'] .pu-aim-off .pu-n-b {
+  fill: var(--needle-rest-dark);
+}
+[data-concept='pusula'] .pu-n-c {
+  fill: var(--wheel-ink);
+}
+[data-concept='pusula'] .pu-n-d {
+  fill: var(--wheel-face);
+  stroke: var(--wheel-ink);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+/* Hub */
+[data-concept='pusula'] .pu-cap-disc {
+  fill: var(--wheel-face);
+  stroke: var(--wheel-ink);
+  stroke-width: 1.6;
+}
+[data-concept='pusula'] .pu-cap-ring {
+  fill: none;
+  stroke: var(--wheel-ink);
+  stroke-width: 0.6;
+  opacity: 0.7;
+}
+[data-concept='pusula'] .pu-title {
+  fill: var(--wheel-text);
+  font-weight: 650;
+}
+[data-concept='pusula'] .pu-file {
+  fill: var(--wheel-sub);
+  font-family: var(--font-brand);
+}
+[data-concept='pusula'] .pu-key {
+  fill: none;
+  stroke: var(--wheel-sub);
+  stroke-width: 0.9;
+}
+[data-concept='pusula'] .pu-keytext {
+  fill: var(--wheel-sub);
+  font: 600 9.5px var(--font-brand);
+  letter-spacing: 0.04em;
+}
+/* Open: the paper card turns into place with an overshoot, labels are inked in turn, the needle
+   swings in last. Every animation ends on the plain is-open look. */
+[data-concept='pusula'] .wheel.is-opening::before,
+[data-concept='pusula'] .wheel.is-opening::after,
+[data-concept='pusula'] .wheel.is-opening .pu-face {
+  animation: pusula-paper var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pusula'] .wheel.is-opening .pu-rose {
+  animation: pusula-card calc(var(--dur-open) + 5 * var(--stagger)) cubic-bezier(0.3, 0.7, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pusula'] .wheel.is-opening .pu-cap {
+  animation: pusula-cap calc(var(--dur-open) * 0.8) cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pusula'] .wheel.is-opening .pu-ink {
+  animation: pusula-ink var(--dur-open) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='pusula'] .wheel.is-opening .pu-swing {
+  animation: pusula-swing calc(var(--dur-open) + 7 * var(--stagger)) ease-in-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pusula'] .wheel.is-closing .wheel-svg,
+[data-concept='pusula'] .wheel.is-closing::before,
+[data-concept='pusula'] .wheel.is-closing::after {
+  animation: pusula-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='pusula'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='pusula'] .wheel.is-closed::before,
+[data-concept='pusula'] .wheel.is-closed::after {
+  visibility: hidden;
+}
+[data-concept='pusula'] .wheel.is-opening-reduced::before,
+[data-concept='pusula'] .wheel.is-opening-reduced::after {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='pusula'] .wheel.is-closing-reduced::before,
+[data-concept='pusula'] .wheel.is-closing-reduced::after {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept='pusula'] .wheel.is-denied::before,
+[data-concept='pusula'] .wheel.is-denied::after {
+  animation: deny 260ms ease;
+}
+/* Applying a slice: the wedge is stamped in, the needle locks with a tiny shake. */
+[data-concept='pusula'] .slice.is-selected .pu-wedge {
+  animation: pusula-stamp 280ms ease-out;
+}
+[data-concept='pusula'] .pu-fix .pu-swing {
+  animation: pusula-lock 380ms ease-out;
+}
+
+@keyframes pusula-paper {
+  from {
+    opacity: 0;
+    transform: scale(0.9) rotate(-6deg);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pusula-card {
+  from {
+    opacity: 0;
+    transform: rotate(-38deg) scale(0.72);
+  }
+  55% {
+    opacity: 1;
+    transform: rotate(6deg) scale(1.01);
+  }
+  80% {
+    transform: rotate(-1.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pusula-cap {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pusula-ink {
+  from {
+    opacity: 0;
+    transform: rotate(-14deg);
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pusula-swing {
+  0% {
+    opacity: 0;
+    transform: rotate(-95deg);
+  }
+  30% {
+    opacity: 1;
+    transform: rotate(-95deg);
+  }
+  58% {
+    transform: rotate(16deg);
+  }
+  76% {
+    transform: rotate(-6deg);
+  }
+  90% {
+    transform: rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pusula-close {
+  to {
+    opacity: 0;
+    transform: scale(0.95) rotate(5deg);
+  }
+}
+@keyframes pusula-stamp {
+  0% {
+    fill: var(--wheel-slice-hover);
+  }
+  35% {
+    fill: var(--needle-dark);
+  }
+}
+@keyframes pusula-lock {
+  20% {
+    transform: rotate(3deg);
+  }
+  45% {
+    transform: rotate(-2deg);
+  }
+  70% {
+    transform: rotate(1deg);
+  }
+}
+/* The content sits on a lighter layer with a rounded top corner, as Windows 11 apps do. */
+[data-concept='pusula'] .pu-rhumbfield {
+  position: absolute;
+  z-index: -1;
+  left: calc(50% - 600px);
+  top: calc(14px + 30px - 600px);
+  fill: none;
+  stroke: var(--rhumb);
+  stroke-width: 0.8;
+}
+[data-concept='pusula'] .pu-dr-disc {
+  fill: var(--surface);
+  stroke: var(--text);
+  stroke-width: 1.6;
+}
+[data-concept='pusula'] .pu-dr-ticks {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 0.7;
+}
+[data-concept='pusula'] .pu-dr-ink {
+  fill: var(--text);
+}
+[data-concept='pusula'] .pu-dr-paper {
+  fill: var(--surface);
+  stroke: var(--text);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
+[data-concept='pusula'] .pu-dr-red {
+  fill: var(--accent);
+}
+[data-concept='pusula'] .pu-dr-red2 {
+  fill: var(--needle-dark);
+}
+[data-concept='pusula'] .pu-dr-pin {
+  fill: var(--surface);
+  stroke: var(--text);
+  stroke-width: 1.4;
+}

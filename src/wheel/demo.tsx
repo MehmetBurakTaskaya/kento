@@ -8,7 +8,6 @@ import { Icon, type IconName } from '../components/Icon';
 import { changeLanguage, LOCALE_CODES, PSEUDO_LANGUAGES } from '../i18n';
 import { pseudoLong, pseudoMirror } from '../i18n/pseudo';
 import { applyTheme, getTheme } from '../theme/registry';
-import '../theme/steel';
 import { Wheel, type WheelProps, type WheelSlice } from './Wheel';
 
 type DemoWheel = 'convert' | 'tools' | 'every' | 'mixed' | 'few';

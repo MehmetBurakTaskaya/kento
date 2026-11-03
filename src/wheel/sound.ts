@@ -188,6 +188,17 @@ export function armWheelAudio(): () => void {
 }
 
 export function playWheelSound(name: WheelSound, settings: SoundSettings, now = performance.now()): void {
+  playVoice(name, settings, (ac, out, t) => VOICES[name](new Synth(ac, out), t), now);
+}
+
+/** Schedules a sound of the wheel through the shared AudioContext at the settings' volume: the steel
+ *  wheel's own, or a theme's voice for it. */
+export function playVoice(
+  name: WheelSound,
+  settings: SoundSettings,
+  voice: (ac: AudioContext, out: AudioNode, t: number) => void,
+  now = performance.now(),
+): void {
   if (!settings.enabled || !(settings.volume > 0)) return;
   if (name === 'tick') {
     if (!tickAllowed(now, lastTick)) return;
@@ -199,7 +210,7 @@ export function playWheelSound(name: WheelSound, settings: SoundSettings, now = 
   if (ac.state === 'suspended') void ac.resume();
   master.gain.value = Math.min(1, settings.volume);
   try {
-    VOICES[name](new Synth(ac, master), ac.currentTime + 0.01);
+    voice(ac, master, ac.currentTime + 0.01);
   } catch {
     // A sound that cannot play is skipped; the wheel works the same muted.
   }

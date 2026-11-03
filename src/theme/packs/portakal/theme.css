@@ -1,0 +1,311 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Portakal. A halved orange; the dark palette is a blood orange at night. */
+
+[data-concept='portakal'] {
+  --radius: 14px;
+  --radius-sm: 9px;
+}
+
+[data-concept='portakal'] .pk-hit {
+  fill: transparent;
+}
+[data-concept='portakal'] .pk-fruit,
+[data-concept='portakal'] .pk-fx,
+[data-concept='portakal'] .pk-hub {
+  pointer-events: none;
+}
+[data-concept='portakal'] .pk-pores {
+  fill: var(--pk-pore);
+  opacity: 0.5;
+}
+[data-concept='portakal'] .pk-pores-hi {
+  fill: var(--pk-pore-hi);
+  opacity: 0.55;
+}
+
+/* Segments: lift a little on hover; the selected one stays deeper and wet. */
+[data-concept='portakal'] .pk-body,
+[data-concept='portakal'] .pk-squeeze {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='portakal'] .pk-squeeze {
+  transform-origin: var(--cx) var(--cy);
+}
+[data-concept='portakal'] .pk-body {
+  transition: transform 150ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-concept='portakal'] .slice.is-hover .pk-body {
+  transform: rotate(var(--mid)) translateY(-5px) rotate(calc(-1 * var(--mid)));
+}
+[data-concept='portakal'] .slice.is-selected .pk-body {
+  transform: rotate(var(--mid)) translateY(-3px) rotate(calc(-1 * var(--mid)));
+}
+[data-concept='portakal'] .pk-seg {
+  stroke: var(--pk-pith);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+}
+[data-concept='portakal'] .pk-sac {
+  fill: var(--pk-sac);
+  opacity: var(--pk-sac-op);
+}
+[data-concept='portakal'] .slice.is-selected .pk-sac {
+  fill: var(--pk-sac-sel);
+  opacity: 0.4;
+}
+[data-concept='portakal'] .pk-gloss {
+  fill: none;
+  stroke: var(--pk-gloss);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+[data-concept='portakal'] .slice.is-hover .pk-gloss,
+[data-concept='portakal'] .slice.is-selected .pk-gloss {
+  opacity: var(--pk-gloss-op);
+}
+[data-concept='portakal'] .pk-off {
+  fill: var(--pk-pith);
+  opacity: 0.55;
+}
+
+[data-concept='portakal'] .pk-content {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='portakal'] .slice.is-selected .pk-content {
+  color: var(--wheel-text-selected);
+  fill: var(--wheel-text-selected);
+}
+[data-concept='portakal'] .slice.is-off .pk-content {
+  opacity: 0.45;
+}
+[data-concept='portakal'] .slice .ico {
+  stroke-width: 2;
+}
+[data-concept='portakal'] .pk-lbl {
+  font-family: var(--font-brand);
+  font-weight: 700;
+}
+[data-concept='portakal'] .pk-fmt {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+[data-concept='portakal'] .pk-sub {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  fill: var(--pk-sub);
+}
+[data-concept='portakal'] .slice.is-selected .pk-sub {
+  fill: var(--pk-sub-sel);
+}
+
+/* The core. */
+[data-concept='portakal'] .pk-core {
+  fill: var(--pk-pith);
+  stroke: var(--pk-pith-edge);
+  stroke-width: 1.5;
+}
+[data-concept='portakal'] .pk-core-star {
+  fill: none;
+  stroke: var(--pk-pith-edge);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+[data-concept='portakal'] .pk-title {
+  font-family: var(--font-brand);
+  font-weight: 800;
+  fill: var(--pk-hub-text);
+}
+[data-concept='portakal'] .pk-file {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  fill: var(--pk-hub-sub);
+}
+[data-concept='portakal'] .pk-key {
+  fill: var(--pk-key);
+}
+[data-concept='portakal'] .pk-keytext {
+  font: 700 9.5px var(--font-brand);
+  fill: var(--pk-key-text);
+  letter-spacing: 0.03em;
+}
+
+/* Open: the fruit turns into place while the segments swell out of the core. */
+[data-concept='portakal'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='portakal'] .wheel.is-opening .wheel-svg {
+  animation: portakal-open var(--dur-open) cubic-bezier(0.2, 1.1, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='portakal'] .wheel.is-opening .pk-squeeze {
+  transform-origin: 200px 200px;
+  animation: portakal-swell calc(var(--dur-open) * 1.15) cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='portakal'] .wheel.is-closing .wheel-svg {
+  animation: portakal-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes portakal-open {
+  from {
+    opacity: 0;
+    transform: rotate(-16deg) scale(0.86);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes portakal-swell {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes portakal-close {
+  to {
+    opacity: 0;
+    transform: rotate(10deg) scale(0.9);
+  }
+}
+
+/* Apply: squeeze flat across the segment, spring back; drops fly from the rim, a mist hangs. */
+[data-concept='portakal'] .wheel.is-applying .slice.is-selected .pk-squeeze {
+  animation: portakal-squeeze 560ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='portakal'] .wheel.is-applying .slice.is-selected .pk-gloss {
+  animation: portakal-wet 600ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='portakal'] .pk-drop {
+  opacity: 0;
+  animation: portakal-fly 500ms cubic-bezier(0.15, 0.7, 0.35, 1) both;
+  animation-delay: calc(70ms + var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='portakal'] .pk-fall {
+  animation: portakal-fall 500ms cubic-bezier(0.5, 0, 0.9, 0.6) both;
+  animation-delay: calc(70ms + var(--d, 0ms) - var(--t, 0ms));
+}
+[data-concept='portakal'] .pk-drop-body {
+  fill: var(--pk-juice);
+  stroke: var(--pk-juice-edge);
+  stroke-width: 0.8;
+}
+[data-concept='portakal'] .pk-crown {
+  fill: var(--pk-juice);
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: var(--ox) var(--oy);
+  animation: portakal-crown 360ms cubic-bezier(0.2, 0.8, 0.4, 1) both;
+  animation-delay: calc(50ms - var(--t, 0ms));
+}
+[data-concept='portakal'] .pk-drop-hi {
+  fill: #fff;
+  opacity: 0.85;
+}
+[data-concept='portakal'] .pk-mist {
+  fill: var(--pk-zest);
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: var(--ox) var(--oy);
+  animation: portakal-mist 620ms ease-out both;
+  animation-delay: calc(40ms - var(--t, 0ms));
+}
+@keyframes portakal-squeeze {
+  0% {
+    transform: rotate(var(--mid)) scale(1, 1) rotate(calc(-1 * var(--mid)));
+  }
+  15% {
+    transform: rotate(var(--mid)) scale(1.12, 0.76) rotate(calc(-1 * var(--mid)));
+  }
+  36% {
+    transform: rotate(var(--mid)) scale(0.95, 1.07) rotate(calc(-1 * var(--mid)));
+  }
+  56% {
+    transform: rotate(var(--mid)) scale(1.02, 0.97) rotate(calc(-1 * var(--mid)));
+  }
+  100% {
+    transform: rotate(var(--mid)) scale(1, 1) rotate(calc(-1 * var(--mid)));
+  }
+}
+@keyframes portakal-wet {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    stroke-width: 5;
+  }
+  100% {
+    opacity: var(--pk-gloss-op);
+    stroke-width: 3.2;
+  }
+}
+@keyframes portakal-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3);
+  }
+  10% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.85);
+  }
+}
+@keyframes portakal-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--fall));
+  }
+}
+@keyframes portakal-crown {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  20% {
+    opacity: 0.95;
+  }
+  55% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+@keyframes portakal-mist {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}

@@ -1,0 +1,324 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Memphis. Pastels and black, a zigzag badge, sticker tiles, confetti. */
+
+[data-concept='memphis'] {
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+[data-concept='memphis'] .wheel {
+  font-family: var(--font-brand);
+}
+
+[data-concept='memphis'] .mp-drop {
+  fill: var(--mp-drop);
+}
+[data-concept='memphis'] .mp-zig {
+  fill: var(--mp-zig);
+  stroke: var(--mp-zig);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+[data-concept='memphis'] .mp-band {
+  fill: var(--mp-band);
+}
+[data-concept='memphis'] .mp-stripes {
+  fill: none;
+  stroke: var(--mp-stripe);
+  stroke-width: 3.2;
+}
+[data-concept='memphis'] .mp-rule {
+  fill: none;
+  stroke: var(--mp-line);
+  stroke-width: 3;
+}
+[data-concept='memphis'] .mp-face {
+  fill: var(--mp-line);
+}
+
+/* Tiles: four hues round the wheel. The shadow stays put; the tile lifts off it when pointed at. */
+[data-concept='memphis'] .mp-h1 {
+  --mp-tile: var(--mp-tile-1);
+  --mp-label: var(--mp-label-1);
+  --mp-lift: var(--mp-lift-1);
+  --mp-sel: var(--mp-sel-1);
+}
+[data-concept='memphis'] .mp-h2 {
+  --mp-tile: var(--mp-tile-2);
+  --mp-label: var(--mp-label-2);
+  --mp-lift: var(--mp-lift-2);
+  --mp-sel: var(--mp-sel-2);
+}
+[data-concept='memphis'] .mp-h3 {
+  --mp-tile: var(--mp-tile-3);
+  --mp-label: var(--mp-label-3);
+  --mp-lift: var(--mp-lift-3);
+  --mp-sel: var(--mp-sel-3);
+}
+[data-concept='memphis'] .mp-h4 {
+  --mp-tile: var(--mp-tile-4);
+  --mp-label: var(--mp-label-4);
+  --mp-lift: var(--mp-lift-4);
+  --mp-sel: var(--mp-sel-4);
+}
+[data-concept='memphis'] .mp-shade {
+  fill: var(--mp-tile);
+}
+[data-concept='memphis'] .mp-tile {
+  fill: var(--mp-tile);
+}
+[data-concept='memphis'] .mp-selfill {
+  fill: var(--mp-sel);
+  opacity: 0;
+}
+[data-concept='memphis'] .mp-outline {
+  fill: none;
+  stroke: var(--mp-line);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+[data-concept='memphis'] .mp-lift {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: transform 140ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+[data-concept='memphis'] .mp-ink {
+  fill: var(--mp-label);
+  color: var(--mp-label);
+}
+[data-concept='memphis'] .mp-fmt {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+[data-concept='memphis'] .mp-word {
+  font-weight: 700;
+}
+[data-concept='memphis'] .mp-sub {
+  fill: var(--mp-sub);
+  font-weight: 700;
+}
+[data-concept='memphis'] .slice .ico {
+  stroke-width: 2.2;
+}
+[data-concept='memphis'] .mp-specks {
+  opacity: 0;
+}
+[data-concept='memphis'] .mp-speck {
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+[data-concept='memphis'] .mp-speck-1 {
+  stroke: var(--mp-speck-1);
+}
+[data-concept='memphis'] .mp-speck-2 {
+  stroke: var(--mp-speck-2);
+}
+[data-concept='memphis'] .mp-speck-3 {
+  stroke: var(--mp-speck-3);
+}
+
+[data-concept='memphis'] .slice.is-hover .mp-shade,
+[data-concept='memphis'] .slice.is-selected .mp-shade {
+  fill: var(--mp-lift);
+}
+[data-concept='memphis'] .slice.is-hover .mp-lift,
+[data-concept='memphis'] .slice.is-selected .mp-lift {
+  transform: translate(var(--lx), var(--ly)) scale(1.035);
+}
+[data-concept='memphis'] .slice.is-selected .mp-selfill,
+[data-concept='memphis'] .slice.is-selected .mp-specks {
+  opacity: 1;
+}
+[data-concept='memphis'] .slice.is-selected .mp-ink,
+[data-concept='memphis'] .slice.is-selected .mp-sub {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+/* A halo in the tile's color keeps the terrazzo specks off the lettering. */
+[data-concept='memphis'] .slice.is-selected .mp-lbl,
+[data-concept='memphis'] .slice.is-selected .mp-sub {
+  paint-order: stroke;
+  stroke: var(--mp-sel);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+[data-concept='memphis'] .slice.is-off .mp-ink {
+  opacity: 0.4;
+}
+
+/* Hub */
+[data-concept='memphis'] .mp-hub {
+  fill: var(--mp-hub);
+  stroke: var(--mp-line);
+  stroke-width: 3;
+}
+[data-concept='memphis'] .mp-title {
+  fill: var(--mp-hub-text);
+  font-family: var(--font-display);
+}
+[data-concept='memphis'] .mp-file {
+  fill: var(--mp-hub-muted);
+  font-weight: 600;
+}
+[data-concept='memphis'] .mp-key {
+  fill: var(--mp-key);
+}
+[data-concept='memphis'] .mp-keytext {
+  fill: var(--mp-key-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Confetti: hidden until a slice is applied. */
+[data-concept='memphis'] .mp-fx {
+  pointer-events: none;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='memphis'] .mp-bit {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+[data-concept='memphis'] .mp-bit-fill {
+  stroke: var(--mp-conf-line);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+[data-concept='memphis'] .mp-bit-line {
+  fill: none;
+  stroke: var(--mp-conf-line);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+[data-concept='memphis'] .mp-conf-1 {
+  fill: var(--mp-conf-1);
+}
+[data-concept='memphis'] .mp-conf-2 {
+  fill: var(--mp-conf-2);
+}
+[data-concept='memphis'] .mp-conf-3 {
+  fill: var(--mp-conf-3);
+}
+[data-concept='memphis'] .mp-conf-4 {
+  fill: var(--mp-conf-4);
+}
+/* Open: the badge pops with an overshoot and the tiles bounce up one after another. */
+[data-concept='memphis'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='memphis'] .wheel.is-opening .wheel-svg {
+  animation: memphis-pop var(--dur-open) cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='memphis'] .wheel.is-opening .mp-ink {
+  animation: memphis-hop var(--dur-open) cubic-bezier(0.3, 1.7, 0.5, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='memphis'] .wheel.is-closing .wheel-svg {
+  animation: memphis-close var(--dur-close) cubic-bezier(0.5, 0, 1, 1) both;
+}
+@keyframes memphis-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(-8deg);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes memphis-hop {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes memphis-close {
+  to {
+    opacity: 0;
+    transform: scale(0.85) rotate(6deg);
+  }
+}
+
+/* Apply: the tile springs and wobbles, turns to terrazzo, and confetti pops out of it. */
+[data-concept='memphis'] .wheel.is-applying .slice.is-selected .mp-lift {
+  animation: memphis-boing 600ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='memphis'] .wheel.is-applying .slice.is-selected .mp-selfill,
+[data-concept='memphis'] .wheel.is-applying .slice.is-selected .mp-specks {
+  animation: memphis-ink-in 200ms steps(1, jump-start) both;
+  animation-delay: calc(90ms - var(--t, 0ms));
+}
+[data-concept='memphis'] .wheel.is-applying .slice.is-selected .mp-ink,
+[data-concept='memphis'] .wheel.is-applying .slice.is-selected .mp-sub {
+  animation: memphis-label-flip 200ms steps(1, jump-start) both;
+  animation-delay: calc(90ms - var(--t, 0ms));
+}
+[data-concept='memphis'] .wheel.is-applying .mp-bit {
+  animation: memphis-confetti 620ms cubic-bezier(0.1, 0.75, 0.3, 1) both;
+  animation-delay: calc(var(--d) - var(--t, 0ms));
+}
+@keyframes memphis-boing {
+  0% {
+    transform: translate(var(--lx), var(--ly)) scale(1.035);
+  }
+  14% {
+    transform: translate(calc(var(--lx) * 1.4), calc(var(--ly) * 1.4)) scale(1.16);
+  }
+  30% {
+    transform: translate(var(--lx), var(--ly)) scale(0.93);
+  }
+  46% {
+    transform: translate(calc(var(--lx) * 1.15), calc(var(--ly) * 1.15)) scale(1.07);
+  }
+  62% {
+    transform: translate(var(--lx), var(--ly)) scale(0.97);
+  }
+  78% {
+    transform: translate(var(--lx), var(--ly)) scale(1.05);
+  }
+  100% {
+    transform: translate(var(--lx), var(--ly)) scale(1.035);
+  }
+}
+@keyframes memphis-ink-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes memphis-label-flip {
+  from {
+    fill: var(--mp-label);
+    color: var(--mp-label);
+  }
+  to {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes memphis-confetti {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(0.5);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1.5);
+  }
+}

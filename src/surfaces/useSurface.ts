@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // What every window outside the main one shares: it follows the settings saved in the main window
-// (theme, appearance, motion, language), paints on a transparent background, and takes Ctrl+U
+// (theme, appearance, motion, language; a new theme's pack loads here too), paints on a transparent background, and takes Ctrl+U
 // (⌘U), which looks for a new version and opens Settings › Updates in the main window.
 import { useEffect } from 'react';
 import { isUpdateShortcut } from '../app/UpdateSettings';
 import { changeLanguage } from '../i18n';
 import { api } from '../ipc';
 import { useApp } from '../state/store';
-import { applyTheme, getTheme, modeFor } from '../theme/registry';
+import { modeFor, showTheme } from '../theme/registry';
 
 export function reducedMotion(): boolean {
   const setting = useApp.getState().settings?.reducedMotion ?? 'system';
@@ -21,7 +21,7 @@ export function useSurface() {
     if (!settings) return;
     const dark = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
-      applyTheme(document.documentElement, getTheme(settings.theme), modeFor(settings.appearance, dark.matches));
+      void showTheme(document.documentElement, settings.theme, modeFor(settings.appearance, dark.matches));
       document.documentElement.classList.toggle('reduce-motion', reducedMotion());
     };
     apply();

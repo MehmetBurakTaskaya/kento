@@ -1,0 +1,568 @@
+/* SPDX-License-Identifier: MIT */
+/* Retro technology: Radar (phosphor scope; a paper plotting board in the light theme). */
+
+[data-concept='radar'] {
+  --radius: 6px;
+  --radius-sm: 4px;
+  --icon-stroke: 1.6;
+}
+[data-concept='radar'] .wheel {
+  font-family: var(--font-brand);
+}
+
+/* ---------------------------------------------------------------- wheel */
+[data-concept='radar'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0.6%;
+  border-radius: 50%;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.25),
+    0 14px 36px var(--wheel-shadow);
+}
+[data-concept='radar'] :is(.rd-bezel, .rd-glass, .rd-grid, .rd-contacts, .rd-sweep, .rd-tops, .rd-hub) {
+  pointer-events: none;
+}
+[data-concept='radar'] :is(.rd-sweep, .rd-spin, .rd-grid) {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+
+/* Bezel and bearing scale */
+[data-concept='radar'] .rd-ticks {
+  fill: none;
+  stroke: var(--rd-bezel-ink);
+  stroke-width: 0.9;
+}
+[data-concept='radar'] .rd-deg {
+  fill: var(--rd-bezel-ink);
+  font-size: 7px;
+  font-weight: 500;
+  font-stretch: 80%;
+  letter-spacing: 0.04em;
+}
+[data-concept='radar'] .rd-glass {
+  stroke: var(--rd-edge);
+  stroke-width: 1.6;
+}
+
+/* Grid */
+[data-concept='radar'] .rd-spokes {
+  fill: none;
+  stroke: var(--rd-grid-faint);
+  stroke-width: 0.6;
+}
+[data-concept='radar'] .rd-bounds {
+  fill: none;
+  stroke: var(--rd-grid);
+  stroke-width: 0.9;
+  stroke-dasharray: 2 3;
+}
+[data-concept='radar'] .rd-ring {
+  fill: none;
+  stroke: var(--rd-grid);
+  stroke-width: 0.8;
+  stroke-dasharray: 1.5 3;
+}
+[data-concept='radar'] .rd-ring-out {
+  stroke-dasharray: none;
+  stroke-width: 1;
+}
+
+/* Slices */
+[data-concept='radar'] .rd-hit {
+  fill: transparent;
+}
+[data-concept='radar'] .rd-wedge {
+  fill: transparent;
+  transition: fill 90ms;
+}
+[data-concept='radar'] .slice.is-hover .rd-wedge {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='radar'] .slice.is-selected .rd-wedge {
+  fill: var(--wheel-slice-selected);
+}
+
+/* Contacts: phosphor dots on the scope, pencil crosses on the paper. */
+[data-concept='radar'] .rd-c-glow {
+  fill: var(--rd-ping);
+  opacity: calc(0.2 * var(--rd-scope));
+}
+[data-concept='radar'] .rd-c-dot {
+  fill: var(--rd-target);
+  opacity: var(--rd-scope);
+}
+[data-concept='radar'] .rd-c-mark {
+  fill: none;
+  stroke: var(--rd-lock);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  opacity: calc(0.75 * var(--rd-paper));
+}
+
+/* Sweep: the beam and its afterglow (a ruler and its shadow on paper) */
+[data-concept='radar'] .rd-sweep {
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+[data-concept='radar'].reduce-motion .rd-sweep {
+  transition: transform 60ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-concept='radar'] .rd-sweep {
+    transition: transform 60ms linear;
+  }
+}
+[data-concept='radar'] .rd-trail-fo {
+  pointer-events: none;
+}
+[data-concept='radar'] .rd-trail {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg at 50% 50%, transparent 0deg 286deg, var(--rd-trail) 360deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0 61px, #000 62px 183px, transparent 184px);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0 61px, #000 62px 183px, transparent 184px);
+}
+[data-concept='radar'] .rd-trail-rtl {
+  background: conic-gradient(from 0deg at 50% 50%, var(--rd-trail) 0deg, transparent 74deg 360deg);
+}
+[data-concept='radar'] .rd-trail-fo {
+  opacity: var(--rd-scope);
+}
+[data-concept='radar'] .rd-ruler {
+  opacity: var(--rd-paper);
+}
+[data-concept='radar'] .rd-ruler-body {
+  fill: var(--rd-trail);
+  stroke: var(--rd-grid);
+  stroke-width: 0.8;
+}
+[data-concept='radar'] .rd-ruler-ticks {
+  fill: none;
+  stroke: var(--rd-beam);
+  stroke-width: 0.8;
+  stroke-opacity: 0.7;
+}
+[data-concept='radar'] .rd-beam {
+  fill: none;
+  stroke: var(--rd-beam);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+[data-concept='radar'] .rd-beam-glow {
+  fill: none;
+  stroke: var(--rd-beam-glow);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+/* Labels: a halo in the slice's own color, so the beam and the grid pass under the words. */
+[data-concept='radar'] .rd-top {
+  --rd-halo: var(--wheel-face);
+}
+[data-concept='radar'] .rd-top.is-hover {
+  --rd-halo: var(--wheel-slice-hover);
+}
+[data-concept='radar'] .rd-top.is-selected {
+  --rd-halo: var(--wheel-slice-selected);
+}
+[data-concept='radar'] .rd-ink {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='radar'] .rd-top.is-selected .rd-ink {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='radar'] .rd-top.is-off .rd-ink {
+  opacity: 0.45;
+}
+[data-concept='radar'] :is(.rd-lbl, .rd-sub) {
+  paint-order: stroke;
+  stroke: var(--rd-halo);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+[data-concept='radar'] .rd-lbl {
+  font-weight: 600;
+  font-stretch: 82%;
+}
+[data-concept='radar'] .rd-fmt {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+[data-concept='radar'] .rd-sub {
+  fill: var(--rd-sub);
+  font-weight: 450;
+  font-stretch: 75%;
+}
+[data-concept='radar'] .rd-top.is-selected .rd-sub {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='radar'] .rd-top .ico {
+  stroke-width: 1.6;
+}
+
+/* The lock: brackets on the scope, a grease-pencil loop on paper, a contact on the slice's outer band. */
+[data-concept='radar'] .rd-lock {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='radar'] .rd-lock-line {
+  fill: none;
+  stroke: var(--rd-lock);
+  stroke-width: 2.2;
+  stroke-linecap: square;
+}
+[data-concept='radar'] .rd-lock-halo {
+  fill: none;
+  stroke: var(--rd-lock-halo);
+  stroke-width: 5;
+  stroke-linecap: square;
+  stroke-opacity: 0.55;
+}
+[data-concept='radar'] .rd-pencil {
+  fill: none;
+  stroke: var(--rd-lock);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  opacity: 0;
+}
+[data-concept='radar'] .rd-target {
+  fill: var(--rd-target);
+  stroke: var(--rd-ping);
+  stroke-width: 3;
+  stroke-opacity: 0.4;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='radar'] .rd-target-tri {
+  fill: none;
+  stroke: var(--rd-lock);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+[data-concept='radar'] .rd-top.is-selected .rd-lock {
+  opacity: var(--rd-scope);
+}
+[data-concept='radar'] .rd-top.is-selected .rd-pencil {
+  opacity: var(--rd-paper);
+}
+[data-concept='radar'] .rd-top.is-selected .rd-target {
+  opacity: var(--rd-scope);
+}
+[data-concept='radar'] .rd-top.is-selected .rd-target-tri {
+  opacity: var(--rd-paper);
+}
+[data-concept='radar'] .rd-ping {
+  fill: none;
+  stroke: var(--rd-ping);
+  stroke-width: 1.6;
+  opacity: 0;
+}
+
+/* Hub */
+[data-concept='radar'] .rd-hub-disc {
+  fill: var(--rd-hub);
+  stroke: var(--rd-grid);
+  stroke-width: 1;
+}
+[data-concept='radar'] .rd-hub-ticks {
+  fill: none;
+  stroke: var(--rd-grid);
+  stroke-width: 1.2;
+}
+[data-concept='radar'] .rd-title {
+  fill: var(--rd-hub-ink);
+  font-weight: 700;
+  font-stretch: 85%;
+  letter-spacing: 0.05em;
+}
+[data-concept='radar'] .rd-file {
+  fill: var(--rd-hub-ink);
+  font-weight: 450;
+  font-stretch: 80%;
+  opacity: 0.85;
+}
+[data-concept='radar'] .rd-key {
+  fill: var(--rd-key);
+  stroke: var(--rd-grid);
+  stroke-width: 1;
+}
+[data-concept='radar'] .rd-keytext {
+  fill: var(--rd-hub-ink);
+  font-size: 8px;
+  font-weight: 600;
+  font-stretch: 85%;
+  letter-spacing: 0.06em;
+}
+/* Open: the scope warms up from the center, the grid comes up, the labels light one by one. */
+[data-concept='radar'] .wheel-svg,
+[data-concept='radar'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept='radar'] .wheel.is-opening .wheel-svg,
+[data-concept='radar'] .wheel.is-opening::before {
+  animation: radar-in var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='radar'] .wheel.is-opening :is(.rd-grid, .rd-contacts) {
+  animation: radar-grid calc(var(--dur-open) + 4 * var(--stagger)) ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='radar'] .wheel.is-opening .rd-top {
+  animation: radar-fade calc(var(--dur-open) * 0.7) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='radar'] .wheel.is-closing .wheel-svg,
+[data-concept='radar'] .wheel.is-closing::before {
+  animation: radar-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='radar'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='radar'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='radar'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept='radar'] .wheel.is-open.is-denied::before {
+  animation: deny 260ms ease;
+}
+@keyframes radar-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes radar-grid {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes radar-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes radar-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+/* 700 ms. The sweep runs one full turn from the chosen slice and is back at 52 %; then the wedge lights, the
+   brackets close in and blink (or the pencil loop is drawn), the contact appears and two sonar rings spread. */
+[data-concept='radar'] .wheel.is-applying .rd-spin {
+  animation: radar-scan 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .slice.is-selected .rd-wedge {
+  animation: radar-light 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected {
+  --rd-halo: var(--wheel-slice-hover);
+  animation: radar-halo 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected .rd-ink {
+  animation: radar-ink 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected .rd-sub {
+  animation: radar-subink 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected .rd-lock {
+  animation: radar-lock 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected .rd-pencil {
+  animation: radar-pencil 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected .rd-target {
+  animation: radar-target 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected .rd-target-tri {
+  animation: radar-tri 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected .rd-ping {
+  animation: radar-ping 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='radar'] .wheel.is-applying .rd-top.is-selected .rd-ping-2 {
+  animation-name: radar-ping-2;
+}
+@keyframes radar-scan {
+  0% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.45, 0.05, 0.4, 1);
+  }
+  52%,
+  100% {
+    transform: rotate(calc(var(--rd-dir, 1) * 360deg));
+  }
+}
+@keyframes radar-light {
+  0%,
+  50% {
+    fill: var(--wheel-slice-hover);
+  }
+  54% {
+    fill: var(--rd-flash);
+  }
+  64%,
+  100% {
+    fill: var(--wheel-slice-selected);
+  }
+}
+@keyframes radar-halo {
+  0%,
+  51% {
+    --rd-halo: var(--wheel-slice-hover);
+  }
+  52%,
+  100% {
+    --rd-halo: var(--wheel-slice-selected);
+  }
+}
+@keyframes radar-ink {
+  0%,
+  52% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  54%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes radar-subink {
+  0%,
+  52% {
+    fill: var(--rd-sub);
+  }
+  54%,
+  100% {
+    fill: var(--wheel-text-selected);
+  }
+}
+@keyframes radar-lock {
+  0%,
+  51% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+  53% {
+    opacity: var(--rd-scope);
+    transform: scale(1.8);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  68% {
+    opacity: var(--rd-scope);
+    transform: none;
+  }
+  74% {
+    opacity: calc(0.15 * var(--rd-scope));
+  }
+  80% {
+    opacity: var(--rd-scope);
+  }
+  86% {
+    opacity: calc(0.15 * var(--rd-scope));
+  }
+  92%,
+  100% {
+    opacity: var(--rd-scope);
+    transform: none;
+  }
+}
+@keyframes radar-pencil {
+  0%,
+  50% {
+    opacity: var(--rd-paper);
+    stroke-dashoffset: 100;
+    animation-timing-function: cubic-bezier(0.4, 0.1, 0.4, 1);
+  }
+  82%,
+  100% {
+    opacity: var(--rd-paper);
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes radar-target {
+  0%,
+  52% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  58% {
+    opacity: var(--rd-scope);
+    transform: scale(1.7);
+  }
+  70%,
+  100% {
+    opacity: var(--rd-scope);
+    transform: none;
+  }
+}
+@keyframes radar-tri {
+  0%,
+  78% {
+    opacity: 0;
+  }
+  80%,
+  100% {
+    opacity: var(--rd-paper);
+  }
+}
+@keyframes radar-ping {
+  0%,
+  52% {
+    r: 8px;
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.1, 0.6, 0.3, 1);
+  }
+  53% {
+    r: 10px;
+    opacity: 0.9;
+  }
+  100% {
+    r: 70px;
+    opacity: 0;
+  }
+}
+@keyframes radar-ping-2 {
+  0%,
+  66% {
+    r: 8px;
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.1, 0.6, 0.3, 1);
+  }
+  67% {
+    r: 10px;
+    opacity: 0.7;
+  }
+  100% {
+    r: 52px;
+    opacity: 0;
+  }
+}

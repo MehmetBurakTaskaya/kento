@@ -1,0 +1,396 @@
+/* SPDX-License-Identifier: MIT */
+/* Retro technology: Pikap (a record on a turntable). */
+
+[data-concept='pikap'] {
+  --radius: 10px;
+  --radius-sm: 6px;
+  --icon-stroke: 1.7;
+}
+[data-concept='pikap'] .wheel {
+  font-family: var(--font-brand);
+}
+
+/* ---------------------------------------------------------------- wheel */
+[data-concept='pikap'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0.5%;
+  border-radius: 50%;
+  box-shadow:
+    0 2px 3px var(--pk-arm-shadow),
+    0 16px 38px var(--wheel-shadow);
+}
+[data-concept='pikap']
+  :is(
+    .pk-platter,
+    .pk-disc,
+    .pk-wedges,
+    .pk-vinyl-fo,
+    .pk-gaps,
+    .pk-labels,
+    .pk-hub,
+    .pk-ripple,
+    .pk-arm-shadow,
+    .pk-arm,
+    .pk-base
+  ) {
+  pointer-events: none;
+}
+/* The open animation turns these wrappers; the script turns the groups inside them with transform attributes. */
+[data-concept='pikap'] .pk-turn {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+
+/* Platter rim and strobe dots */
+[data-concept='pikap'] .pk-plat-edge {
+  fill: none;
+  stroke: var(--pk-metal-edge);
+  stroke-width: 1.2;
+}
+[data-concept='pikap'] .pk-plat-step {
+  fill: none;
+  stroke: var(--pk-metal-edge);
+  stroke-width: 2.2;
+  stroke-opacity: 0.6;
+}
+[data-concept='pikap'] .pk-strobe {
+  fill: none;
+  stroke: var(--pk-strobe);
+  stroke-width: 4.2;
+  stroke-dasharray: 2.6 7.464;
+}
+
+/* The disc: grooves, light, track gaps */
+[data-concept='pikap'] .pk-vinyl-fo div {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+[data-concept='pikap'] .pk-grooves {
+  background: repeating-radial-gradient(circle at 50% 50%, var(--pk-groove) 0 0.7px, transparent 1px 2.5px);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0 72px, #000 73px 175px, transparent 176px);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0 72px, #000 73px 175px, transparent 176px);
+}
+[data-concept='pikap'] .pk-sheen {
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg 104deg,
+    var(--pk-sheen) 131deg,
+    transparent 158deg 284deg,
+    var(--pk-sheen) 311deg,
+    transparent 338deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0 60px, #000 61px 182px, transparent 183px);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0 60px, #000 61px 182px, transparent 183px);
+}
+[data-concept='pikap'] .pk-gap {
+  fill: none;
+  stroke: var(--pk-gap);
+  stroke-width: 1.4;
+}
+[data-concept='pikap'] .pk-edge {
+  fill: none;
+  stroke: var(--pk-edge);
+  stroke-width: 1.2;
+}
+
+/* Slices: a wedge of the grooved band, lit on hover, the chosen track glows. */
+[data-concept='pikap'] .pk-hit {
+  fill: transparent;
+}
+[data-concept='pikap'] .pk-wedge {
+  fill: transparent;
+  transition: fill 90ms;
+}
+[data-concept='pikap'] .pk-wedge.is-hover {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='pikap'] .pk-wedge.is-selected {
+  fill: var(--wheel-slice-selected);
+}
+/* A cue mark on the smooth lead-in edge of the hovered and the chosen slice. */
+[data-concept='pikap'] .pk-cue {
+  fill: none;
+  stroke: var(--pk-cue);
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 90ms;
+}
+[data-concept='pikap'] .pk-cue:is(.is-hover, .is-selected) {
+  opacity: 1;
+}
+[data-concept='pikap'] .pk-lbl {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept='pikap'] .pk-lbl.is-selected {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept='pikap'] .pk-name {
+  font-weight: 600;
+}
+[data-concept='pikap'] .pk-fmt {
+  font-weight: 650;
+  font-stretch: 88%;
+  letter-spacing: 0.03em;
+}
+[data-concept='pikap'] .pk-sub {
+  fill: var(--pk-sub);
+  font-family: var(--font-display);
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+[data-concept='pikap'] .pk-lbl.is-selected .pk-sub {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='pikap'] .pk-lbl .ico {
+  stroke-width: 1.7;
+}
+
+/* The paper label */
+[data-concept='pikap'] .pk-paper {
+  stroke: var(--pk-label-print);
+  stroke-width: 0.6;
+}
+[data-concept='pikap'] .pk-print-ring {
+  fill: none;
+  stroke: var(--pk-label-print);
+  stroke-width: 0.8;
+}
+[data-concept='pikap'] .pk-print-arc {
+  fill: none;
+  stroke: var(--pk-label-print);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+[data-concept='pikap'] .pk-print-thin {
+  stroke-width: 0.9;
+  stroke-dasharray: 1.5 3.2;
+}
+[data-concept='pikap'] .pk-print-dot {
+  fill: var(--pk-label-print);
+}
+[data-concept='pikap'] .pk-title {
+  fill: var(--pk-label-ink);
+  font-family: var(--font-display);
+  font-style: italic;
+}
+[data-concept='pikap'] .pk-file {
+  fill: var(--pk-label-ink);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+[data-concept='pikap'] .pk-key {
+  fill: var(--pk-key);
+  stroke: var(--pk-label-ink);
+  stroke-width: 0.7;
+  stroke-opacity: 0.6;
+}
+[data-concept='pikap'] .pk-keytext {
+  fill: var(--pk-label-ink);
+  font-size: 8.5px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+}
+[data-concept='pikap'] .pk-hole {
+  fill: #0a0a0b;
+}
+[data-concept='pikap'] .pk-spindle {
+  fill: var(--pk-metal-hi);
+  stroke: var(--pk-metal-lo);
+  stroke-width: 0.8;
+}
+
+/* Stylus ripple */
+[data-concept='pikap'] .pk-ripple {
+  opacity: 0;
+}
+[data-concept='pikap'] .pk-ripple-ring {
+  fill: none;
+  stroke: var(--pk-ripple);
+  stroke-width: 1.6;
+}
+
+/* Tonearm */
+[data-concept='pikap'] .pk-sh-tube {
+  fill: none;
+  stroke: var(--pk-arm-shadow);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='pikap'] .pk-sh-shell {
+  fill: var(--pk-arm-shadow);
+}
+[data-concept='pikap'] .pk-weight {
+  fill: none;
+  stroke: var(--pk-metal-edge);
+  stroke-width: 16;
+  stroke-linecap: round;
+}
+[data-concept='pikap'] .pk-weight-hi {
+  fill: none;
+  stroke: var(--pk-metal);
+  stroke-width: 11;
+  stroke-linecap: round;
+}
+[data-concept='pikap'] .pk-tube-edge {
+  fill: none;
+  stroke: var(--pk-metal-edge);
+  stroke-width: 6.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='pikap'] .pk-tube {
+  fill: none;
+  stroke-width: 4.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='pikap'] .pk-lift {
+  fill: none;
+  stroke: var(--pk-metal-edge);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+[data-concept='pikap'] .pk-shell {
+  fill: var(--pk-shell);
+  stroke: var(--pk-metal-edge);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+[data-concept='pikap'] .pk-cart {
+  fill: var(--pk-label);
+}
+[data-concept='pikap'] .pk-stylus {
+  fill: var(--pk-metal-hi);
+}
+[data-concept='pikap'] .pk-bearing {
+  stroke: var(--pk-metal-edge);
+  stroke-width: 1;
+}
+[data-concept='pikap'] .pk-bearing-in {
+  fill: var(--pk-shell);
+  stroke: var(--pk-metal-hi);
+  stroke-width: 0.8;
+  stroke-opacity: 0.5;
+}
+/* Open: the platter settles from 95 %, the record's wedges and the label print turn in from a sixth of a
+   turn back, the labels follow one by one. */
+[data-concept='pikap'] .wheel-svg,
+[data-concept='pikap'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept='pikap'] .wheel.is-opening .wheel-svg,
+[data-concept='pikap'] .wheel.is-opening::before {
+  animation: pikap-in var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pikap'] .wheel.is-opening .pk-turn {
+  animation: pikap-turn calc(var(--dur-open) + 5 * var(--stagger)) cubic-bezier(0.15, 0.8, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='pikap'] .wheel.is-opening .pk-lbl {
+  animation: pikap-fade calc(var(--dur-open) * 0.75) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='pikap'] .wheel.is-closing .wheel-svg,
+[data-concept='pikap'] .wheel.is-closing::before {
+  animation: pikap-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='pikap'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept='pikap'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept='pikap'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept='pikap'] .wheel.is-open.is-denied::before {
+  animation: deny 260ms ease;
+}
+@keyframes pikap-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pikap-turn {
+  from {
+    transform: rotate(-60deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes pikap-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pikap-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+/* The spin, the arm and the ripple are drawn by the concept's script. The chosen wedge stays dark while
+   the record spins and lights up as the needle lands (about 63 % of the effect). */
+[data-concept='pikap'] .wheel.is-applying .pk-wedge.is-selected {
+  animation: pikap-light 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='pikap'] .wheel.is-applying .pk-lbl.is-selected {
+  animation: pikap-ink 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='pikap'] .wheel.is-applying .pk-lbl.is-selected .pk-sub {
+  animation: pikap-subink 700ms linear calc(0ms - var(--t, 0ms)) both;
+}
+@keyframes pikap-light {
+  0%,
+  61% {
+    fill: var(--wheel-slice-hover);
+  }
+  64% {
+    fill: var(--pk-flash);
+  }
+  74%,
+  100% {
+    fill: var(--wheel-slice-selected);
+  }
+}
+@keyframes pikap-ink {
+  0%,
+  62% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  64%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes pikap-subink {
+  0%,
+  62% {
+    fill: var(--pk-sub);
+  }
+  64%,
+  100% {
+    fill: var(--wheel-text-selected);
+  }
+}

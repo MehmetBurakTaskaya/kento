@@ -1,0 +1,367 @@
+/* SPDX-License-Identifier: MIT */
+/* Theme: Baklava. A copper tray of diamond-cut baklava; the chosen slice is glazed with syrup. */
+
+[data-concept='baklava'] {
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+[data-concept='baklava'] .bk-hit {
+  fill: transparent;
+}
+[data-concept='baklava'] .bk-tray,
+[data-concept='baklava'] .bk-hub {
+  pointer-events: none;
+}
+
+/* The copper tray. */
+[data-concept='baklava'] .bk-rim {
+  stroke: var(--bk-cu-edge);
+  stroke-width: 1;
+}
+[data-concept='baklava'] .bk-dimple {
+  fill: var(--bk-dimple);
+  opacity: calc(var(--bk-dimple-op) * 0.7);
+}
+[data-concept='baklava'] .bk-dimple-dark {
+  fill: var(--bk-dimple-dark);
+  opacity: 0.22;
+}
+[data-concept='baklava'] .bk-lip {
+  fill: none;
+  stroke: var(--bk-cu-hi);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+[data-concept='baklava'] .bk-floor {
+  fill: var(--bk-floor);
+}
+
+/* Pastry: golden top, flaky edge, diamond scoring and pistachio. */
+[data-concept='baklava'] .bk-lift {
+  transition: transform 150ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+[data-concept='baklava'] .slice.is-hover .bk-lift {
+  transform: translate(calc(var(--ux) * 5px), calc(var(--uy) * 5px));
+}
+[data-concept='baklava'] .bk-lift-shadow {
+  fill: var(--wheel-shadow);
+  opacity: 0;
+  transition: opacity 150ms;
+  pointer-events: none;
+}
+[data-concept='baklava'] .slice.is-hover .bk-lift-shadow {
+  opacity: 0.55;
+  transform: translate(calc(var(--ux) * -4px + 2px), calc(var(--uy) * -4px + 4px));
+}
+[data-concept='baklava'] .bk-unsoak {
+  opacity: 0;
+  pointer-events: none;
+}
+[data-concept='baklava'] .bk-flake-a {
+  fill: none;
+  stroke: var(--bk-flake-a);
+  stroke-width: 1.2;
+}
+[data-concept='baklava'] .bk-flake-b {
+  fill: none;
+  stroke: var(--bk-flake-b);
+  stroke-width: 1.1;
+  opacity: 0.8;
+}
+[data-concept='baklava'] .bk-cut {
+  fill: none;
+  stroke: var(--bk-cut);
+  stroke-width: 1.3;
+  opacity: 0.75;
+}
+[data-concept='baklava'] .bk-cut-hi {
+  fill: none;
+  stroke: var(--bk-cut-hi);
+  stroke-width: 0.9;
+  opacity: 0.65;
+}
+[data-concept='baklava'] .bk-nut-a {
+  fill: var(--bk-nut-a);
+}
+[data-concept='baklava'] .bk-nut-b {
+  fill: var(--bk-nut-b);
+}
+[data-concept='baklava'] .bk-nut-c {
+  fill: var(--bk-nut-c);
+}
+[data-concept='baklava'] .bk-off {
+  fill: var(--bk-floor);
+  opacity: 0.45;
+}
+[data-concept='baklava'] .bk-glint {
+  fill: none;
+  stroke: var(--bk-syrup-hi);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 120ms;
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='baklava'] .slice.is-hover .bk-glint {
+  opacity: 0.75;
+}
+
+/* The glaze stays on the chosen slice: a syrup line and glossy streaks. */
+[data-concept='baklava'] .bk-glaze {
+  opacity: 0;
+  pointer-events: none;
+}
+[data-concept='baklava'] .slice.is-selected .bk-glaze {
+  opacity: 1;
+}
+[data-concept='baklava'] .bk-drizzle-edge {
+  fill: none;
+  stroke: var(--bk-cut);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.45;
+}
+[data-concept='baklava'] .bk-pour {
+  fill: none;
+  stroke: var(--bk-syrup);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: var(--px) var(--py);
+}
+[data-concept='baklava'] .bk-drizzle {
+  fill: none;
+  stroke: var(--bk-syrup);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.95;
+}
+[data-concept='baklava'] .bk-drizzle-hi {
+  fill: none;
+  stroke: var(--bk-syrup-hi);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.9;
+  transform: translate(-0.8px, -0.8px);
+}
+[data-concept='baklava'] .bk-streak {
+  fill: none;
+  stroke: var(--bk-syrup-hi);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+[data-concept='baklava'] .bk-content {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+}
+[data-concept='baklava'] .slice.is-selected .bk-content {
+  color: var(--wheel-text-selected);
+  fill: var(--wheel-text-selected);
+}
+[data-concept='baklava'] .slice.is-off .bk-content {
+  opacity: 0.45;
+}
+[data-concept='baklava'] .slice .ico {
+  stroke-width: 2;
+}
+/* A halo in the pastry's own color keeps the scoring lines from crossing the letters. */
+[data-concept='baklava'] .bk-content text {
+  paint-order: stroke;
+  stroke: var(--bk-halo);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
+[data-concept='baklava'] .slice.is-hover .bk-content text {
+  stroke: var(--bk-halo-h);
+}
+[data-concept='baklava'] .slice.is-selected .bk-content text {
+  stroke: var(--bk-halo-s);
+}
+[data-concept='baklava'] .bk-lbl {
+  font-family: var(--font-brand);
+  font-weight: 700;
+}
+[data-concept='baklava'] .bk-fmt {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+[data-concept='baklava'] .bk-sub {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  fill: var(--bk-sub);
+}
+[data-concept='baklava'] .slice.is-selected .bk-sub {
+  fill: var(--bk-sub-sel);
+}
+
+/* The cream in the middle. */
+[data-concept='baklava'] .bk-cream {
+  fill: var(--bk-cream);
+  stroke: var(--bk-cream-edge);
+  stroke-width: 1.5;
+}
+[data-concept='baklava'] .bk-cream-hi {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+[data-concept='baklava'] .bk-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  fill: var(--bk-hub-text);
+  letter-spacing: 0.01em;
+}
+[data-concept='baklava'] .bk-file {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  fill: var(--bk-hub-sub);
+}
+[data-concept='baklava'] .bk-key {
+  fill: var(--bk-key);
+}
+[data-concept='baklava'] .bk-keytext {
+  font: 700 10px var(--font-brand);
+  fill: var(--bk-key-text);
+  letter-spacing: 0.04em;
+}
+
+/* Open: the tray settles with a soft wobble; the pieces fill in slice by slice. */
+[data-concept='baklava'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='baklava'] .wheel.is-opening .wheel-svg {
+  animation: baklava-open var(--dur-open) cubic-bezier(0.3, 1, 0.4, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='baklava'] .wheel.is-opening .bk-lift {
+  animation: baklava-fill calc(var(--dur-open) * 1.1) ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='baklava'] .wheel.is-closing .wheel-svg {
+  animation: baklava-close var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes baklava-open {
+  from {
+    opacity: 0;
+    transform: rotate(-7deg) scale(0.9);
+  }
+  55% {
+    opacity: 1;
+    transform: rotate(1.5deg) scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes baklava-fill {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--ux) * -6px), calc(var(--uy) * -6px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes baklava-close {
+  to {
+    opacity: 0;
+    transform: rotate(5deg) scale(0.92);
+  }
+}
+
+/* Apply: the syrup zigzags over the slice, the pastry soaks it up, a glint runs inward. */
+[data-concept='baklava'] .wheel.is-applying .slice.is-selected .bk-drizzle,
+[data-concept='baklava'] .wheel.is-applying .slice.is-selected .bk-drizzle-edge,
+[data-concept='baklava'] .wheel.is-applying .slice.is-selected .bk-drizzle-hi {
+  stroke-dasharray: 1 1;
+  animation: baklava-pour 420ms cubic-bezier(0.4, 0.1, 0.6, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='baklava'] .wheel.is-applying .slice.is-selected .bk-pour {
+  animation: baklava-stream 460ms ease-in both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='baklava'] .wheel.is-applying .slice.is-selected .bk-unsoak {
+  animation: baklava-soak 700ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='baklava'] .wheel.is-applying .slice.is-selected .bk-streak {
+  animation: baklava-streak 700ms ease-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='baklava'] .wheel.is-applying .slice.is-selected .bk-glint {
+  animation: baklava-glint 700ms ease-in-out both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes baklava-pour {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes baklava-soak {
+  0%,
+  12% {
+    opacity: 1;
+  }
+  62%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes baklava-stream {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  12% {
+    opacity: 0.95;
+    transform: scaleY(1);
+  }
+  70% {
+    opacity: 0.95;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(0.05);
+  }
+}
+@keyframes baklava-streak {
+  0%,
+  55% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.85;
+  }
+}
+@keyframes baklava-glint {
+  0%,
+  50% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  62% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.42);
+  }
+}

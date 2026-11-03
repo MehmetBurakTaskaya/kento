@@ -294,7 +294,7 @@ export function Settings() {
           <select id={ids.theme} value={settings.theme} onChange={(e) => set({ theme: e.target.value })}>
             {listThemes().map((theme) => (
               <option key={theme.id} value={theme.id}>
-                {t(theme.nameKey)}
+                {theme.name}
               </option>
             ))}
           </select>

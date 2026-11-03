@@ -1,0 +1,1289 @@
+/* SPDX-License-Identifier: MIT */
+
+/* ================================================================ shared dial anatomy */
+[data-concept^='kadran-']
+  :is(.k2-face, .k2-grad, .k2-fixed, .k2-spin, .k2-glint, .k2-hub, .k2-cast, .k2-bolts, .k2-wave) {
+  pointer-events: none;
+}
+[data-concept^='kadran-'] .k2-hit {
+  fill: transparent;
+}
+[data-concept^='kadran-'] .k2-content {
+  fill: var(--wheel-text);
+  color: var(--wheel-text);
+}
+[data-concept^='kadran-'] .slice.is-selected .k2-content {
+  fill: var(--wheel-text-selected);
+  color: var(--wheel-text-selected);
+}
+[data-concept^='kadran-'] .k2-sub {
+  fill: var(--wheel-text-muted);
+}
+[data-concept^='kadran-'] .slice.is-selected .k2-sub {
+  fill: var(--wheel-text-selected);
+}
+[data-concept^='kadran-'] .slice.is-off .k2-content > * {
+  opacity: 0.42;
+}
+[data-concept^='kadran-']
+  :is(.k2-spin, .k2-bezel, .k2-snap, .k2-glint, .k2-content, .k2-num, .k2-handle, .k2-inlay, .k2-body, .k2-cast) {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept^='kadran-'] .wheel:is(:lang(ar), :lang(ja), :lang(zh), :lang(ko)) .k2-title {
+  letter-spacing: 0;
+}
+[data-concept^='kadran-'] .wheel-svg,
+[data-concept^='kadran-'] .wheel::before {
+  transform-origin: 50% 50%;
+}
+[data-concept^='kadran-'] .wheel.is-closed::before {
+  visibility: hidden;
+}
+[data-concept^='kadran-'] .wheel.is-opening-reduced::before {
+  animation: fade-in 90ms linear both;
+}
+[data-concept^='kadran-'] .wheel.is-closing-reduced::before {
+  animation: fade-in 80ms linear reverse both;
+}
+[data-concept^='kadran-'] .wheel.is-open.is-denied::before {
+  animation: deny 260ms ease;
+}
+[data-concept^='kadran-'].reduce-motion .k2-turn {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-concept^='kadran-'] .k2-turn {
+    transition: none;
+  }
+}
+@keyframes kadran2-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ================================================================ A: brushed steel */
+[data-concept='kadran-a'] {
+  --radius: 6px;
+  --radius-sm: 4px;
+  --icon-stroke: 1.6;
+}
+
+/* The spun-steel bezel and the cast shadow are one CSS layer under the SVG: a conic gradient gives the two
+   bright lobes of circular brushing, fine concentric lines sit on top. Cheaper than any SVG filter. */
+[data-concept='kadran-a'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0.75%;
+  border-radius: 50%;
+  background: var(--bezel-lines), var(--bezel-ring);
+  box-shadow:
+    0 1px 2px var(--wheel-shadow-near),
+    0 14px 34px var(--wheel-shadow);
+}
+[data-concept='kadran-a'] :is(.k2-cell, .k2-win) {
+  fill: transparent;
+  transition: fill 110ms;
+}
+[data-concept='kadran-a'] .k2-inlay {
+  opacity: 0;
+}
+[data-concept='kadran-a'] .k2-keyline {
+  fill: none;
+  stroke: var(--index);
+  stroke-width: 2.6;
+  opacity: 0;
+  transition: opacity 110ms;
+}
+[data-concept='kadran-a'] .slice.is-hover .k2-win {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='kadran-a'] .slice:is(.is-hover, .is-selected) .k2-cell {
+  fill: var(--chapter-hover);
+}
+[data-concept='kadran-a'] .slice.is-hover:not(.is-off) .k2-keyline {
+  opacity: 1;
+}
+[data-concept='kadran-a'] .slice.is-selected .k2-inlay {
+  opacity: 1;
+}
+[data-concept='kadran-a'] .slice.is-selected .k2-keyline {
+  opacity: 0;
+}
+[data-concept='kadran-a'] .slice.is-off.is-hover :is(.k2-win, .k2-cell) {
+  fill: var(--off-hover);
+}
+[data-concept='kadran-a'] .k2-lbl {
+  font-weight: 500;
+}
+[data-concept='kadran-a'] .k2-fmt {
+  font-weight: 600;
+  font-stretch: 92%;
+  letter-spacing: 0.04em;
+}
+[data-concept='kadran-a'] .k2-sub {
+  font-weight: 450;
+  letter-spacing: 0.01em;
+}
+[data-concept='kadran-a'] .slice .ico {
+  stroke-width: 1.55;
+}
+[data-concept='kadran-a'] .k2-num {
+  fill: var(--wheel-num);
+  font-size: 11px;
+  font-weight: 600;
+  font-stretch: 85%;
+  transition: fill 110ms;
+}
+[data-concept='kadran-a'] .slice.is-hover:not(.is-off) .k2-num {
+  fill: var(--index);
+  font-weight: 700;
+}
+[data-concept='kadran-a'] .slice.is-off .k2-num {
+  opacity: 0.45;
+}
+[data-concept='kadran-a'] .k2-disc {
+  fill: var(--index);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-concept='kadran-a'] .k2-lock {
+  fill: none;
+  stroke: var(--index);
+  stroke-width: 1.4;
+  opacity: 0;
+}
+[data-concept='kadran-a'] .slice.is-selected .k2-disc {
+  opacity: 1;
+}
+[data-concept='kadran-a'] .slice.is-selected .k2-num {
+  fill: var(--on-index);
+  font-weight: 700;
+}
+
+[data-concept='kadran-a'] .k2-div {
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+}
+[data-concept='kadran-a'] .k2-chap {
+  fill: none;
+  stroke: var(--wheel-tick);
+  stroke-width: 0.7;
+}
+[data-concept='kadran-a'] .k2-minor {
+  stroke: var(--wheel-tick);
+  stroke-width: 0.8;
+}
+[data-concept='kadran-a'] .k2-major {
+  stroke: var(--wheel-tick);
+  stroke-width: 1.5;
+}
+[data-concept='kadran-a'] .k2-face-shade {
+  fill: none;
+  stroke: var(--face-shade);
+  stroke-width: 3;
+}
+[data-concept='kadran-a'] .k2-edge-in {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 1.1;
+}
+
+[data-concept='kadran-a'] .k2-bt1 {
+  stroke: var(--bezel-tick);
+  stroke-width: 0.7;
+}
+[data-concept='kadran-a'] .k2-bt10 {
+  stroke: var(--bezel-tick);
+  stroke-width: 1.25;
+}
+[data-concept='kadran-a'] .k2-knurl {
+  fill: none;
+  stroke: var(--knurl-dark);
+  stroke-width: 8.5;
+}
+[data-concept='kadran-a'] .k2-knurl-hi {
+  fill: none;
+  stroke: var(--knurl-light);
+  stroke-width: 8.5;
+}
+[data-concept='kadran-a'] .k2-pointer {
+  fill: var(--index-idle);
+  stroke: var(--pointer-edge);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+  transition: fill 120ms;
+}
+[data-concept='kadran-a'] .wheel-root.k2-live .k2-pointer {
+  fill: var(--index);
+}
+[data-concept='kadran-a'] .k2-pointer-hi {
+  fill: #fff;
+  fill-opacity: 0.32;
+}
+[data-concept='kadran-a'] .k2-groove {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 0.8;
+}
+[data-concept='kadran-a'] .k2-edge-out {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 1;
+}
+[data-concept='kadran-a'] .k2-glint {
+  opacity: 0;
+}
+[data-concept='kadran-a'] .k2-turn {
+  transition: transform 170ms cubic-bezier(0.3, 1.5, 0.55, 1);
+}
+
+[data-concept='kadran-a'] .k2-hub-face {
+  fill: var(--hub-face);
+}
+[data-concept='kadran-a'] .k2-hub-edge {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 0.9;
+}
+[data-concept='kadran-a'] .k2-title {
+  fill: var(--wheel-text);
+  font-weight: 600;
+  font-stretch: 85%;
+  letter-spacing: 0.14em;
+}
+[data-concept='kadran-a'] .k2-file {
+  fill: var(--wheel-text-muted);
+  font-weight: 450;
+}
+[data-concept='kadran-a'] .k2-keycap {
+  fill: var(--keycap);
+  stroke: var(--edge-dark);
+  stroke-width: 0.7;
+}
+[data-concept='kadran-a'] .k2-keytext {
+  fill: var(--keycap-text);
+  font-size: 8.5px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+
+/* Open: the dial grows from 90 % while the bezel spins in and settles with a detent overshoot. */
+[data-concept='kadran-a'] .wheel.is-opening :is(.wheel-svg),
+[data-concept='kadran-a'] .wheel.is-opening::before {
+  animation: kadran2-a-in var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kadran-a'] .wheel.is-opening .k2-spin {
+  animation: kadran2-a-spin calc(var(--dur-open) * 1.25) cubic-bezier(0.2, 0.85, 0.3, 1.08) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kadran-a'] .wheel.is-opening :is(.k2-content, .k2-num) {
+  animation: kadran2-fade calc(var(--dur-open) * 0.7) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + 30ms - var(--t, 0ms));
+}
+[data-concept='kadran-a'] .wheel.is-closing :is(.wheel-svg),
+[data-concept='kadran-a'] .wheel.is-closing::before {
+  animation: kadran2-a-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='kadran-a'] .wheel.is-closing .k2-spin {
+  animation: kadran2-a-spin-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes kadran2-a-in {
+  from {
+    opacity: 0.25;
+    transform: scale(0.9);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kadran2-a-spin {
+  from {
+    transform: rotate(-75deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes kadran2-a-out {
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+@keyframes kadran2-a-spin-out {
+  to {
+    transform: rotate(30deg);
+  }
+}
+
+/* Apply (560 ms): detent snap, index drop, the blued inlay spreads from the hub, a ring closes on the
+   numeral and a glint runs once round the steel. The lasting look is the inlay and the numeral disc. */
+[data-concept='kadran-a'] .wheel.is-applying .k2-snap {
+  animation: kadran2-a-snap 560ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying .k2-index {
+  animation: kadran2-a-drop 560ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying .k2-glint {
+  animation: kadran2-a-glint 560ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying::before {
+  animation: kadran2-a-flash 560ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying .slice.is-selected .k2-inlay {
+  animation: kadran2-a-inlay 560ms cubic-bezier(0.2, 0.8, 0.3, 1) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying .slice.is-selected .k2-content {
+  animation: kadran2-a-ink 560ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying .slice.is-selected .k2-sub {
+  animation: kadran2-a-subink 560ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying .slice.is-selected .k2-lock {
+  animation: kadran2-a-lock 560ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying .slice.is-selected .k2-disc {
+  animation: kadran2-a-disc 560ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-a'] .wheel.is-applying .slice.is-selected .k2-num {
+  animation: kadran2-a-num 560ms linear calc(0ms - var(--t, 0ms)) both;
+}
+@keyframes kadran2-a-snap {
+  0% {
+    transform: none;
+  }
+  11% {
+    transform: rotate(4.5deg);
+  }
+  24% {
+    transform: rotate(-1.6deg);
+  }
+  34% {
+    transform: rotate(0.5deg);
+  }
+  42%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes kadran2-a-drop {
+  0%,
+  6% {
+    transform: none;
+  }
+  18% {
+    transform: translateY(4.5px);
+  }
+  34%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes kadran2-a-glint {
+  0%,
+  16% {
+    opacity: 0;
+    transform: rotate(-60deg);
+  }
+  26% {
+    opacity: 1;
+  }
+  76% {
+    opacity: 1;
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: rotate(300deg);
+  }
+}
+@keyframes kadran2-a-flash {
+  0%,
+  12% {
+    filter: none;
+  }
+  24% {
+    filter: brightness(1.12);
+  }
+  46%,
+  100% {
+    filter: none;
+  }
+}
+@keyframes kadran2-a-inlay {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.55);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+  30%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kadran2-a-ink {
+  0%,
+  8% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  11%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes kadran2-a-subink {
+  0%,
+  8% {
+    fill: var(--wheel-text-muted);
+  }
+  11%,
+  100% {
+    fill: var(--wheel-text-selected);
+  }
+}
+@keyframes kadran2-a-lock {
+  0%,
+  14% {
+    r: 24px;
+    opacity: 0;
+  }
+  28% {
+    opacity: 1;
+  }
+  46% {
+    r: 9px;
+    opacity: 1;
+  }
+  66%,
+  100% {
+    r: 9px;
+    opacity: 0;
+  }
+}
+@keyframes kadran2-a-disc {
+  0%,
+  40% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+  64%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kadran2-a-num {
+  0%,
+  42% {
+    fill: var(--index);
+  }
+  48%,
+  100% {
+    fill: var(--on-index);
+  }
+}
+
+/* ================================================================ B: brutalist */
+[data-concept='kadran-b'] {
+  --radius: 0px;
+  --radius-sm: 0px;
+  --icon-stroke: 1.9;
+}
+[data-concept='kadran-b'] .ico {
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+[data-concept='kadran-b'] .k2-shadow,
+[data-concept='kadran-b'] .k2-bolt-sh {
+  fill: var(--hard-shadow);
+}
+[data-concept='kadran-b'] .k2-spin.k2-spin-cast,
+[data-concept='kadran-b'] .k2-shadow {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+[data-concept='kadran-b'] .k2-bolt {
+  fill: var(--bolt);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+[data-concept='kadran-b'] .k2-bolt-line {
+  stroke: var(--bolt-line);
+  stroke-width: 1.5;
+}
+[data-concept='kadran-b'] .wheel.has-selected .k2-throw {
+  transform: translateY(-17px);
+}
+[data-concept='kadran-b'] .k2-concrete {
+  fill: var(--concrete);
+}
+[data-concept='kadran-b'] .k2-pore {
+  fill: var(--pore-dark);
+}
+[data-concept='kadran-b'] .k2-pore-lt {
+  fill: var(--pore-light);
+}
+[data-concept='kadran-b'] :is(.k2-cell, .k2-win) {
+  fill: transparent;
+}
+[data-concept='kadran-b'] .slice.is-hover .k2-win {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='kadran-b'] .slice:is(.is-hover, .is-selected):not(.is-off) .k2-cell {
+  fill: var(--cell-hover);
+}
+[data-concept='kadran-b'] .slice.is-selected .k2-win {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='kadran-b'] .slice.is-off.is-hover :is(.k2-win, .k2-cell) {
+  fill: var(--off-hover);
+}
+[data-concept='kadran-b'] .k2-lbl {
+  font-family: var(--font-display);
+  font-weight: 620;
+  font-stretch: 87.5%;
+  letter-spacing: -0.02em;
+}
+[data-concept='kadran-b'] .k2-fmt {
+  font-weight: 800;
+  font-stretch: 100%;
+  letter-spacing: -0.04em;
+}
+[data-concept='kadran-b'] .k2-sub {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-stretch: 75%;
+  letter-spacing: -0.01em;
+}
+[data-concept='kadran-b'] .slice .ico {
+  stroke-width: 2.1;
+}
+[data-concept='kadran-b'] .k2-num {
+  fill: var(--wheel-num);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+[data-concept='kadran-b'] .slice:is(.is-hover, .is-selected):not(.is-off) .k2-num {
+  fill: var(--num-hover);
+}
+[data-concept='kadran-b'] .slice.is-off .k2-num {
+  opacity: 0.4;
+}
+[data-concept='kadran-b'] .k2-div {
+  stroke: var(--wheel-line);
+  stroke-width: 2.5;
+}
+[data-concept='kadran-b'] .k2-chap {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 2;
+}
+[data-concept='kadran-b'] .k2-minor {
+  stroke: var(--wheel-line);
+  stroke-width: 1.6;
+}
+
+[data-concept='kadran-b'] .k2-iron {
+  fill: var(--iron);
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linejoin: miter;
+}
+[data-concept='kadran-b'] .k2-slot {
+  stroke: var(--iron-slot);
+  stroke-width: 4.5;
+}
+[data-concept='kadran-b'] .k2-bt {
+  stroke: var(--iron-tick);
+  stroke-width: 1.6;
+}
+[data-concept='kadran-b'] .k2-block {
+  fill: var(--index-idle);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+[data-concept='kadran-b'] .wheel-root.k2-live .k2-block {
+  fill: var(--hivis);
+}
+[data-concept='kadran-b'] .k2-block-mark {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+[data-concept='kadran-b'] .k2-turn {
+  transition: transform 120ms steps(3, end);
+}
+
+[data-concept='kadran-b'] .k2-collar {
+  fill: var(--collar);
+}
+[data-concept='kadran-b'] .k2-title {
+  fill: var(--hub-text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+[data-concept='kadran-b'] .k2-file {
+  fill: var(--hub-text);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-stretch: 87.5%;
+  letter-spacing: -0.02em;
+}
+[data-concept='kadran-b'] .k2-keycap {
+  fill: var(--keycap);
+}
+[data-concept='kadran-b'] .k2-keytext {
+  fill: var(--keycap-text);
+  font-family: var(--font-display);
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+/* Open: stepped, like a ratchet. The dial lands in three steps, its shadow drops in, labels pop in. */
+[data-concept='kadran-b'] .wheel.is-opening .k2-body {
+  animation: kadran2-b-land var(--dur-open) steps(1, end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kadran-b'] .wheel.is-opening .k2-cast {
+  animation: kadran2-b-cast var(--dur-open) steps(1, end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kadran-b'] .wheel.is-opening .k2-spin {
+  animation: kadran2-b-ratchet calc(var(--dur-open) * 1.25) steps(1, end) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kadran-b'] .wheel.is-opening :is(.k2-content, .k2-num) {
+  animation: kadran2-fade calc(var(--dur-open) * 0.45) steps(1, end) both;
+  animation-delay: calc(var(--i) * var(--stagger) + 20ms - var(--t, 0ms));
+}
+[data-concept='kadran-b'] .wheel.is-closing .wheel-svg {
+  animation: kadran2-b-out var(--dur-close) steps(2, end) both;
+}
+@keyframes kadran2-b-land {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.88);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(0.93);
+  }
+  45% {
+    transform: scale(0.97);
+  }
+  70% {
+    transform: scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kadran2-b-cast {
+  0% {
+    opacity: 0;
+    transform: translate(-7px, -9px) scale(0.88);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-5px, -6px) scale(0.93);
+  }
+  45% {
+    transform: translate(-3px, -4px) scale(0.97);
+  }
+  70% {
+    transform: translate(-1px, -1.5px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kadran2-b-ratchet {
+  0% {
+    transform: rotate(-48deg);
+  }
+  25% {
+    transform: rotate(-32deg);
+  }
+  50% {
+    transform: rotate(-16deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes kadran2-b-out {
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+/* Apply (520 ms): the slab flashes, the dial is slammed into the wall (its shadow shortens), the index
+   block drops and four bolts are thrown out of the bezel in two hard steps. The bolts stay out. */
+[data-concept='kadran-b'] .wheel.is-applying .k2-body {
+  animation: kadran2-b-slam 520ms steps(1, end) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-b'] .wheel.is-applying .k2-index {
+  animation: kadran2-b-drop 520ms steps(1, end) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-b'] .wheel.is-applying .k2-throw {
+  animation: kadran2-b-bolts 520ms steps(1, end) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-b'] .wheel.is-applying .slice.is-selected .k2-win {
+  animation: kadran2-b-slab 520ms steps(1, end) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-b'] .wheel.is-applying .slice.is-selected .k2-content {
+  animation: kadran2-b-ink 520ms steps(1, end) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-b'] .wheel.is-applying .slice.is-selected .k2-sub {
+  animation: kadran2-b-subink 520ms steps(1, end) calc(0ms - var(--t, 0ms)) both;
+}
+@keyframes kadran2-b-slam {
+  0% {
+    transform: none;
+  }
+  14% {
+    transform: translate(3px, 4px);
+  }
+  38% {
+    transform: none;
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes kadran2-b-drop {
+  0% {
+    transform: none;
+  }
+  14% {
+    transform: translateY(5px);
+  }
+  44% {
+    transform: none;
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes kadran2-b-bolts {
+  0% {
+    transform: none;
+  }
+  16% {
+    transform: translateY(-10px);
+  }
+  28% {
+    transform: translateY(-17px);
+  }
+  100% {
+    transform: translateY(-17px);
+  }
+}
+@keyframes kadran2-b-slab {
+  0% {
+    fill: var(--flash);
+  }
+  30% {
+    fill: var(--wheel-slice-selected);
+  }
+  100% {
+    fill: var(--wheel-slice-selected);
+  }
+}
+@keyframes kadran2-b-ink {
+  0% {
+    fill: var(--flash-ink);
+    color: var(--flash-ink);
+  }
+  30% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes kadran2-b-subink {
+  0% {
+    fill: var(--flash-ink);
+  }
+  30% {
+    fill: var(--wheel-text-selected);
+  }
+  100% {
+    fill: var(--wheel-text-selected);
+  }
+}
+
+/* ================================================================ C: graphite and titanium */
+[data-concept='kadran-c'] {
+  --radius: 10px;
+  --radius-sm: 6px;
+  --icon-stroke: 1.6;
+}
+
+/* Frosted glass: the desk behind the face is blurred; the SVG adds a tint, a frost grain and a sheen. */
+[data-concept='kadran-c'] .wheel::before {
+  content: '';
+  position: absolute;
+  inset: 0.75%;
+  border-radius: 50%;
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow:
+    0 2px 4px var(--wheel-shadow-near),
+    0 18px 44px var(--wheel-shadow);
+}
+[data-concept='kadran-c'] .k2-glass {
+  fill: var(--wheel-face);
+}
+[data-concept='kadran-c'] .k2-frost {
+  opacity: var(--frost);
+}
+[data-concept='kadran-c'] .k2-fr-a {
+  fill: #fff;
+  fill-opacity: 0.2;
+}
+[data-concept='kadran-c'] .k2-fr-b {
+  fill: #000;
+  fill-opacity: 0.16;
+}
+[data-concept='kadran-c'] :is(.k2-cell, .k2-win) {
+  fill: transparent;
+  transition: fill 120ms;
+}
+[data-concept='kadran-c'] :is(.k2-edge, .k2-keyline) {
+  opacity: 0;
+  transition: opacity 140ms;
+}
+[data-concept='kadran-c'] .k2-keyline {
+  fill: none;
+  stroke: var(--lume);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+[data-concept='kadran-c'] .slice.is-hover .k2-win {
+  fill: var(--wheel-slice-hover);
+}
+[data-concept='kadran-c'] .slice:is(.is-hover, .is-selected) .k2-cell {
+  fill: var(--chapter-hover);
+}
+[data-concept='kadran-c'] .slice.is-hover:not(.is-off) :is(.k2-edge, .k2-keyline) {
+  opacity: 1;
+}
+[data-concept='kadran-c'] .slice.is-selected .k2-win {
+  fill: var(--wheel-slice-selected);
+}
+[data-concept='kadran-c'] .slice.is-selected :is(.k2-edge, .k2-keyline) {
+  opacity: 0;
+}
+[data-concept='kadran-c'] .slice.is-off.is-hover :is(.k2-win, .k2-cell) {
+  fill: var(--off-hover);
+}
+[data-concept='kadran-c'] .k2-lbl {
+  font-weight: 560;
+}
+[data-concept='kadran-c'] .k2-fmt {
+  font-weight: 680;
+  letter-spacing: 0.02em;
+}
+[data-concept='kadran-c'] .k2-sub {
+  font-weight: 500;
+}
+[data-concept='kadran-c'] .slice .ico {
+  stroke-width: 1.5;
+}
+[data-concept='kadran-c'] .k2-num {
+  fill: var(--wheel-num);
+  font-size: 11px;
+  font-weight: 600;
+  transition: fill 120ms;
+}
+[data-concept='kadran-c'] .slice:is(.is-hover, .is-selected):not(.is-off) .k2-num {
+  fill: var(--lume-text);
+  font-weight: 800;
+}
+[data-concept='kadran-c'] .slice.is-off .k2-num {
+  opacity: 0.45;
+}
+[data-concept='kadran-c'] .k2-div {
+  stroke: var(--wheel-line);
+  stroke-width: 1;
+}
+[data-concept='kadran-c'] .k2-minor {
+  stroke: var(--wheel-tick);
+  stroke-width: 0.8;
+}
+[data-concept='kadran-c'] .k2-chap {
+  fill: none;
+  stroke: var(--wheel-tick);
+  stroke-width: 0.6;
+}
+
+[data-concept='kadran-c'] .k2-ti-hi {
+  fill: #fff;
+  opacity: var(--ti-sheen);
+}
+[data-concept='kadran-c'] .k2-ti-lo {
+  fill: #000;
+  opacity: var(--ti-shade);
+}
+[data-concept='kadran-c'] .k2-bt1 {
+  stroke: var(--ti-tick);
+  stroke-width: 0.8;
+}
+[data-concept='kadran-c'] .k2-bt5 {
+  stroke: var(--ti-tick);
+  stroke-width: 1.7;
+}
+[data-concept='kadran-c'] .k2-flute {
+  fill: none;
+  stroke: var(--flute-dark);
+  stroke-width: 8.8;
+}
+[data-concept='kadran-c'] .k2-flute-hi {
+  fill: none;
+  stroke: var(--flute-light);
+  stroke-width: 8.8;
+}
+[data-concept='kadran-c'] .k2-tri {
+  fill: var(--tri);
+}
+[data-concept='kadran-c'] .k2-halo {
+  fill: var(--lume);
+  fill-opacity: 0.16;
+  opacity: var(--halo-opacity);
+}
+[data-concept='kadran-c'] .k2-lume {
+  fill: var(--lume-pip);
+  stroke: var(--lume-edge);
+  stroke-width: 0.6;
+  opacity: 0.7;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 140ms;
+}
+[data-concept='kadran-c'] .wheel-root.k2-live .k2-lume {
+  opacity: 1;
+}
+[data-concept='kadran-c'] .wheel-root.k2-live .k2-halo {
+  fill-opacity: 0.32;
+}
+[data-concept='kadran-c'] .k2-groove {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 0.8;
+}
+[data-concept='kadran-c'] .k2-edge-out {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 1;
+}
+[data-concept='kadran-c'] .k2-edge-in {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 1.2;
+}
+[data-concept='kadran-c'] .k2-glint {
+  opacity: 0;
+}
+[data-concept='kadran-c'] .k2-wave {
+  fill: none;
+  stroke: var(--lume);
+  stroke-width: 6;
+  opacity: 0;
+}
+[data-concept='kadran-c'] .k2-turn {
+  transition: transform 210ms cubic-bezier(0.25, 1.2, 0.5, 1);
+}
+
+[data-concept='kadran-c'] .k2-hub-edge {
+  fill: none;
+  stroke: var(--edge-dark);
+  stroke-width: 1;
+}
+[data-concept='kadran-c'] .k2-hub-glow {
+  fill: none;
+  stroke: var(--lume);
+  stroke-width: 2;
+  opacity: 0;
+}
+[data-concept='kadran-c'] .wheel.has-selected .k2-hub-glow {
+  opacity: 0.6;
+}
+[data-concept='kadran-c'] .k2-handle-ring {
+  fill: none;
+  stroke: var(--handle);
+  stroke-width: 1.5;
+  opacity: 0.75;
+}
+[data-concept='kadran-c'] .k2-notch {
+  stroke: var(--handle);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+}
+[data-concept='kadran-c'] .k2-title {
+  fill: var(--hub-text);
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+[data-concept='kadran-c'] .k2-file {
+  fill: var(--hub-muted);
+  font-weight: 500;
+}
+[data-concept='kadran-c'] .k2-keycap {
+  fill: var(--keycap);
+  stroke: var(--handle);
+  stroke-opacity: 0.45;
+  stroke-width: 0.7;
+}
+[data-concept='kadran-c'] .k2-keytext {
+  fill: var(--keycap-text);
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+}
+
+/* Open: soft and damped. The frosted dial fades up, the titanium bezel glides in, labels rise. */
+[data-concept='kadran-c'] .wheel.is-opening .wheel-svg,
+[data-concept='kadran-c'] .wheel.is-opening::before {
+  animation: kadran2-c-in var(--dur-open) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kadran-c'] .wheel.is-opening .k2-spin {
+  animation: kadran2-c-spin calc(var(--dur-open) * 1.2) cubic-bezier(0.15, 0.8, 0.25, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='kadran-c'] .wheel.is-opening :is(.k2-content, .k2-num) {
+  animation: kadran2-c-rise calc(var(--dur-open) * 0.75) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + 40ms - var(--t, 0ms));
+}
+[data-concept='kadran-c'] .wheel.is-opening .k2-index {
+  animation: kadran2-fade 70ms linear both;
+  animation-delay: calc(140ms - var(--t, 0ms));
+}
+[data-concept='kadran-c'] .wheel.is-closing .wheel-svg,
+[data-concept='kadran-c'] .wheel.is-closing::before {
+  animation: kadran2-c-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-concept='kadran-c'] .wheel.is-closing .k2-spin {
+  animation: kadran2-c-spin-out var(--dur-close) cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes kadran2-c-in {
+  from {
+    opacity: 0.2;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kadran2-c-spin {
+  from {
+    transform: rotate(-95deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes kadran2-c-rise {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kadran2-c-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes kadran2-c-spin-out {
+  to {
+    transform: rotate(25deg);
+  }
+}
+
+/* Apply (600 ms): the handle ring turns a quarter, a ring of light runs out through the glass and floods
+   the chosen window, the lume flares and a sheen crosses the titanium. */
+[data-concept='kadran-c'] .wheel.is-applying .k2-handle {
+  animation: kadran2-c-handle 600ms cubic-bezier(0.5, 0, 0.3, 1) calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-c'] .wheel.is-applying .k2-wave {
+  animation: kadran2-c-wave 600ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-c'] .wheel.is-applying .k2-glint {
+  animation: kadran2-c-sheen 600ms ease-in-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-c'] .wheel.is-applying .k2-lume {
+  animation: kadran2-c-lume 600ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-c'] .wheel.is-applying .k2-halo {
+  animation: kadran2-c-halo 600ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-c'] .wheel.is-applying .k2-hub-glow {
+  animation: kadran2-c-hubglow 600ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-c'] .wheel.is-applying .slice.is-selected .k2-win {
+  animation: kadran2-c-flood 600ms ease-out calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-c'] .wheel.is-applying .slice.is-selected .k2-content {
+  animation: kadran2-c-ink 600ms linear calc(0ms - var(--t, 0ms)) both;
+}
+[data-concept='kadran-c'] .wheel.is-applying .slice.is-selected .k2-sub {
+  animation: kadran2-c-subink 600ms linear calc(0ms - var(--t, 0ms)) both;
+}
+@keyframes kadran2-c-handle {
+  0%,
+  4% {
+    transform: none;
+  }
+  44%,
+  100% {
+    transform: rotate(90deg);
+  }
+}
+@keyframes kadran2-c-wave {
+  0%,
+  10% {
+    r: 62px;
+    opacity: 0;
+    stroke-width: 10px;
+  }
+  16% {
+    opacity: 0.85;
+  }
+  58% {
+    r: 166px;
+    opacity: 0.35;
+    stroke-width: 2px;
+  }
+  68%,
+  100% {
+    r: 171px;
+    opacity: 0;
+    stroke-width: 1px;
+  }
+}
+@keyframes kadran2-c-sheen {
+  0%,
+  18% {
+    opacity: 0;
+  }
+  46% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes kadran2-c-lume {
+  0%,
+  40% {
+    transform: none;
+  }
+  54% {
+    transform: scale(1.6);
+  }
+  76%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes kadran2-c-halo {
+  0%,
+  38% {
+    r: 9px;
+    fill-opacity: 0.32;
+  }
+  54% {
+    r: 17px;
+    fill-opacity: 0.6;
+  }
+  80%,
+  100% {
+    r: 9px;
+    fill-opacity: 0.32;
+  }
+}
+@keyframes kadran2-c-hubglow {
+  0%,
+  6% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+@keyframes kadran2-c-flood {
+  0%,
+  14% {
+    fill-opacity: 0;
+  }
+  46%,
+  100% {
+    fill-opacity: 1;
+  }
+}
+@keyframes kadran2-c-ink {
+  0%,
+  26% {
+    fill: var(--wheel-text);
+    color: var(--wheel-text);
+  }
+  32%,
+  100% {
+    fill: var(--wheel-text-selected);
+    color: var(--wheel-text-selected);
+  }
+}
+@keyframes kadran2-c-subink {
+  0%,
+  26% {
+    fill: var(--wheel-text-muted);
+  }
+  32%,
+  100% {
+    fill: var(--wheel-text-selected);
+  }
+}

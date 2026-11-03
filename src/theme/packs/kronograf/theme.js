@@ -1,0 +1,467 @@
+// SPDX-License-Identifier: MIT
+// Retro technology: Kronograf. A mechanical stopwatch held slightly tilted: a polished case with the crown
+// and two pushers, a tachymeter bezel, a fine seconds track, the slices on the dial and a counter subdial as
+// the hub (white dial and black subdial by day, the reverse at night). The chrono hand waits by the crown;
+// applying a slice presses start, the hand sweeps round to the slice and stop clicks it in place.
+export default function register(Board) {
+  (function () {
+    'use strict';
+
+    const C = 200;
+    const R = { case: 197, caseIn: 186, bezIn: 170, track: 168, trackIn: 158, hub: 59, lbl: 111, hand: 171, pop: 157 };
+    const APPLY = 700;
+    const TACHY = [500, 400, 300, 250, 200, 180, 150, 120, 100, 90, 80, 70, 60];
+    const f2 = (n) => Math.round(n * 100) / 100;
+    const rad = (a) => (a * Math.PI) / 180;
+    const pol = (r, a) => [C + r * Math.sin(rad(a)), C - r * Math.cos(rad(a))];
+    const clamp = (x) => Math.max(0, Math.min(1, x));
+    const reducedMotion = () =>
+      document.documentElement.classList.contains('reduce-motion') ||
+      (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    // The watch is held a little turned, so its crown (and the hand at rest) sits on the boundary before the
+    // first slice. Mirrored in right-to-left languages, where the hand also runs the other way.
+    const restAngle = (m) => ((m.dir === 'rtl' ? 1 : -1) * m.step) / 2;
+
+    // One run of the chrono hand: from rest to the slice, the time it takes and when it arrives (ms).
+    function runFor(m, i) {
+      const sgn = m.dir === 'rtl' ? -1 : 1;
+      const rest = restAngle(m);
+      const d = (((sgn * (m.slices[i].mid - rest)) % 360) + 360) % 360 || 360;
+      const dur = 150 + 260 * (d / 337.5);
+      return { sgn, rest, d, start: 50, arrive: 50 + dur };
+    }
+    // The success sound ticks while the hand runs and clicks when it stops, so it reads the last run.
+    let lastRun = { start: 50, arrive: 330 };
+
+    // The hand's angle at time t (ms): eases out of the start, settles into the slice with a small recoil.
+    function handAt(k, t) {
+      if (t <= k.start) return k.rest;
+      if (t < k.arrive) {
+        const u = (t - k.start) / (k.arrive - k.start);
+        const e =
+          u < 0.35 ? (u / 0.35) * (u / 0.35) * 0.35 * 0.6 : 0.21 + 0.79 * (1 - Math.pow(1 - (u - 0.35) / 0.65, 2.4));
+        return k.rest + k.sgn * k.d * e;
+      }
+      const v = (t - k.arrive) / 140;
+      const kick = v < 1 ? 2.2 * Math.sin(Math.PI * v * 1.5) * (1 - v) : 0;
+      return k.rest + k.sgn * (k.d + kick);
+    }
+    const pushAt = (t, t0) => {
+      const v = (t - t0) / 90;
+      return v > 0 && v < 1 ? 4.5 * Math.sin(Math.PI * v) : 0;
+    };
+
+    function paintRun(root, k, t) {
+      const a = handAt(k, t);
+      root.querySelector('.kr-hand').setAttribute('transform', `rotate(${f2(a)} ${C} ${C})`);
+      root.querySelector('.kr-push-start').setAttribute('transform', `translate(0 ${f2(pushAt(t, 0))})`);
+      root.querySelector('.kr-push-stop').setAttribute('transform', `translate(0 ${f2(pushAt(t, k.arrive - 20))})`);
+      const run = root.querySelector('.kr-run');
+      const lo = k.sgn > 0 ? k.rest : Math.min(a, k.rest);
+      const hi = k.sgn > 0 ? Math.max(a, k.rest + 0.01) : k.rest;
+      run.setAttribute('d', hi - lo > 0.5 ? root.__krArc(R.trackIn + 4.5, lo, hi) : '');
+      run.style.opacity = t < k.arrive ? '1' : f2(1 - clamp((t - k.arrive - 60) / 200));
+      root.classList.toggle('kr-arrived', t >= k.arrive);
+    }
+
+    function stopFx(root) {
+      if (root.__krStop) root.__krStop();
+    }
+
+    function render(root, m, H) {
+      const u = H.uid('kronograf');
+      const sgn = m.dir === 'rtl' ? -1 : 1;
+      const rest = restAngle(m);
+      root.__krArc = H.arc;
+      const defs = H.s('defs', {}, root);
+      defs.innerHTML = `
+      <linearGradient id="${u}-steel" gradientUnits="userSpaceOnUse" x1="70" y1="10" x2="330" y2="390">
+        <stop offset="0" style="stop-color:var(--kr-steel-hi)"/><stop offset=".3" style="stop-color:var(--kr-steel)"/><stop offset=".55" style="stop-color:var(--kr-steel-hi)"/><stop offset="1" style="stop-color:var(--kr-steel-lo)"/></linearGradient>
+      <linearGradient id="${u}-knurl" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" style="stop-color:var(--kr-steel-lo)"/><stop offset=".45" style="stop-color:var(--kr-steel-hi)"/><stop offset="1" style="stop-color:var(--kr-steel-lo)"/></linearGradient>
+      <radialGradient id="${u}-dial" gradientUnits="userSpaceOnUse" cx="170" cy="150" r="230">
+        <stop offset="0" style="stop-color:var(--kr-dial-hi)"/><stop offset=".7" style="stop-color:var(--wheel-face)"/><stop offset="1" style="stop-color:var(--kr-dial-lo)"/></radialGradient>`;
+
+      // Crown and pushers stick out of the case; drawn first so the case overlaps their stems.
+      const parts = H.s('g', { class: 'kr-parts' }, root);
+      const crown = H.s('g', { transform: `rotate(${f2(rest)} ${C} ${C})` }, parts);
+      H.s('rect', { x: C - 5.5, y: C - 204, width: 11, height: 10, class: 'kr-stem', fill: `url(#${u}-knurl)` }, crown);
+      H.s(
+        'rect',
+        { x: C - 13, y: C - 219, width: 26, height: 16, rx: 3.5, class: 'kr-crown', fill: `url(#${u}-knurl)` },
+        crown,
+      );
+      let knurl = '';
+      for (let x = -10; x <= 10; x += 2.5) knurl += `M${f2(C + x)} ${C - 217.5}V${C - 204.5}`;
+      H.s('path', { d: knurl, class: 'kr-knurl' }, crown);
+      for (const [side, cls] of [
+        [1, 'kr-push-start'],
+        [-1, 'kr-push-stop'],
+      ]) {
+        const g = H.s('g', { transform: `rotate(${f2(rest + sgn * side * 42)} ${C} ${C})` }, parts);
+        const p = H.s('g', { class: cls }, g);
+        H.s('rect', { x: C - 4, y: C - 204, width: 8, height: 10, class: 'kr-stem', fill: `url(#${u}-knurl)` }, p);
+        H.s(
+          'rect',
+          { x: C - 8, y: C - 211, width: 16, height: 9, rx: 2.5, class: 'kr-pusher', fill: `url(#${u}-knurl)` },
+          p,
+        );
+      }
+
+      // Case and tachymeter bezel.
+      const cs = H.s('g', { class: 'kr-case' }, root);
+      H.s('circle', { cx: C, cy: C, r: R.case, fill: `url(#${u}-steel)` }, cs);
+      H.s('circle', { cx: C, cy: C, r: R.case - 0.6, class: 'kr-case-edge' }, cs);
+      H.s('circle', { cx: C, cy: C, r: R.caseIn + 0.4, class: 'kr-bezel' }, cs);
+      let bt = '';
+      for (let s = 6; s < 60; s += 1) {
+        const a = rest + sgn * s * 6;
+        const [x0, y0] = pol(R.caseIn - 1, a);
+        const [x1, y1] = pol(R.caseIn - (s % 5 === 0 ? 4 : 2.4), a);
+        bt += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
+      }
+      H.s('path', { d: bt, class: 'kr-bez-ticks' }, cs);
+      for (const v of TACHY) {
+        const a = rest + sgn * (3600 / v) * 6;
+        const [x, y] = pol(176.6, a);
+        const up = ((a % 360) + 360) % 360;
+        const turn = up > 95 && up < 265 ? a + 180 : a;
+        H.text(cs, f2(x), f2(y), String(v), { class: 'kr-tachy', transform: `rotate(${f2(turn)} ${f2(x)} ${f2(y)})` });
+      }
+      H.s('circle', { cx: C, cy: C, r: R.bezIn, class: 'kr-bez-in' }, cs);
+
+      // Dial, seconds track.
+      H.s('circle', { cx: C, cy: C, r: R.track + 1.5, fill: `url(#${u}-dial)`, class: 'kr-dial' }, root);
+      let tr = '';
+      for (let k = 0; k < 300; k++) {
+        const a = rest + sgn * k * 1.2;
+        const len = k % 25 === 0 ? 9 : k % 5 === 0 ? 5.5 : 2.4;
+        const [x0, y0] = pol(R.track, a);
+        const [x1, y1] = pol(R.track - len, a);
+        tr += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
+      }
+      const track = H.s('g', { class: 'kr-track' }, root);
+      H.s('path', { d: tr, class: 'kr-ticks' }, track);
+      H.s('circle', { cx: C, cy: C, r: R.track, class: 'kr-track-line' }, track);
+      H.s('circle', { cx: C, cy: C, r: R.trackIn, class: 'kr-track-line kr-track-thin' }, track);
+      H.s('path', { d: '', class: 'kr-run' }, track);
+
+      // Slices: a cell of the dial between the subdial and the track, its label and a lit arc on the track.
+      for (const sl of m.slices) {
+        const g = H.slice(root, sl, m);
+        H.s('path', { d: H.sector(R.hub + 1, R.case, sl.a0, sl.a1), class: 'kr-hit' }, g);
+        H.s('path', { d: H.sector(R.hub + 4, R.trackIn - 2.5, sl.a0 + 0.8, sl.a1 - 0.8), class: 'kr-cell' }, g);
+        H.s('path', { d: H.arc(R.trackIn + 4.5, sl.a0 + 2, sl.a1 - 2), class: 'kr-mark' }, g);
+      }
+      // Boundaries as fine printed rules.
+      let rules = '';
+      for (const sl of m.slices) {
+        const [x0, y0] = pol(R.hub + 4, sl.a0);
+        const [x1, y1] = pol(R.trackIn - 2, sl.a0);
+        rules += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
+      }
+      H.s('path', { d: rules, class: 'kr-rules' }, root);
+
+      // The chrono hand: a thin needle with a counterweight hidden under the subdial and a ring near its tip.
+      const hand = H.s('g', { class: 'kr-hand' }, root);
+      H.s('path', { d: `M${C} ${C - R.hub + 3}V${C - R.hand}`, class: 'kr-hand-edge' }, hand);
+      H.s('path', { d: `M${C} ${C - R.hub + 3}V${C - R.hand}`, class: 'kr-hand-line' }, hand);
+      H.s('circle', { cx: C, cy: C - R.pop, r: 4, class: 'kr-pop' }, hand);
+
+      // The labels lie over the hand, with a halo in the cell's color, so the hand passes under the words;
+      // update() mirrors each slice's state onto its label here.
+      const names = H.s('g', { class: 'kr-names' }, root);
+      for (const sl of m.slices) {
+        const c = H.s('g', { class: 'kr-ink' + (sl.off ? ' is-off' : ''), 'data-for': sl.i }, names);
+        c.style.setProperty('--i', sl.i);
+        if (m.kind === 'convert' && sl.sub) {
+          H.block(c, sl, R.lbl, {
+            size: 21,
+            subSize: 12.5,
+            gap: 1.5,
+            maxWidth: 70,
+            minSize: 9,
+            cls: 'kr-lbl kr-fmt',
+            subCls: 'kr-sub',
+          });
+        } else {
+          H.block(c, sl, R.lbl, {
+            icon: true,
+            iconSize: 20,
+            size: 13,
+            gap: 3,
+            maxWidth: 72,
+            minSize: 8.5,
+            cls: 'kr-lbl',
+            sub: null,
+          });
+        }
+      }
+
+      // Hub: the counter subdial with its own fine track and the wheel's name.
+      const hub = H.s('g', { class: 'kr-hub' }, root);
+      H.s('circle', { cx: C, cy: C, r: R.hub + 1.5, class: 'kr-hub-rim' }, hub);
+      H.s('circle', { cx: C, cy: C, r: R.hub, class: 'kr-hub-face' }, hub);
+      let az = '';
+      for (let r = 8; r < R.hub - 9; r += 3.2)
+        az += `M${C} ${f2(C - r)}a${f2(r)} ${f2(r)} 0 1 1 0 ${f2(2 * r)}a${f2(r)} ${f2(r)} 0 1 1 0 ${f2(-2 * r)}`;
+      H.s('path', { d: az, class: 'kr-azurage' }, hub);
+      let ht = '';
+      for (let k = 0; k < 30; k++) {
+        const a = rest + sgn * k * 12;
+        const [x0, y0] = pol(R.hub - 1.5, a);
+        const [x1, y1] = pol(R.hub - (k % 5 === 0 ? 7 : 4), a);
+        ht += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
+      }
+      H.s('path', { d: ht, class: 'kr-hub-ticks' }, hub);
+      H.label(hub, C, C - 16.5, m.title.toLocaleUpperCase(m.lang), {
+        maxWidth: 84,
+        size: 12,
+        minSize: 8,
+        cls: 'kr-title',
+        maxLines: 1,
+      });
+      H.label(hub, C, C + 1.5, m.file, {
+        maxWidth: 84,
+        size: 11,
+        minSize: 8,
+        cls: 'kr-file',
+        maxLines: 1,
+        attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
+      });
+      const kt = H.text(hub, C, C + 22.4, m.key.toLocaleUpperCase('en'), { class: 'kr-keytext' });
+      const kw = kt.getComputedTextLength() + 12;
+      hub.insertBefore(
+        H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 15, rx: 3, class: 'kr-key' }),
+        kt,
+      );
+      H.s('circle', { cx: C, cy: C, r: 2.6, class: 'kr-pin' }, hub);
+      // Crystal: light on the glass.
+      H.s('path', { d: H.arc(R.bezIn - 6, 296, 338), class: 'kr-glint' }, root);
+    }
+
+    // The hand rests by the crown and stays on the chosen slice; hovering only marks the slice.
+    function update(root, m, st) {
+      root.querySelectorAll('.kr-ink').forEach((g) => {
+        const i = +g.dataset.for;
+        g.classList.toggle('is-hover', i === st.hover);
+        g.classList.toggle('is-selected', i === st.selected);
+      });
+      if (root.__krStop) return;
+      const a = st.selected == null ? restAngle(m) : m.slices[st.selected].mid;
+      root.querySelector('.kr-hand').setAttribute('transform', `rotate(${f2(a)} ${C} ${C})`);
+      root.classList.toggle('kr-arrived', st.selected != null);
+    }
+
+    // Every voice goes through a gate that stays shut until its start time. A new gain node starts at 1, so
+    // without it a voice can click for one sample when its start falls exactly on a sample boundary.
+    function gate(ac, out, t) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(1, t);
+      g.connect(out);
+      return g;
+    }
+    const gatedSounds = (sounds) =>
+      Object.fromEntries(
+        Object.entries(sounds).map(([k, fn]) => [
+          k,
+          (ac, out, t, X) =>
+            fn(
+              ac,
+              out,
+              t,
+              Object.assign({}, X, {
+                tone: (a, o, at, opt) => X.tone(a, gate(a, o, at), at, opt),
+                burst: (a, o, at, opt) => X.burst(a, gate(a, o, at), at, opt),
+              }),
+            ),
+        ]),
+      );
+
+    Board.define({
+      id: 'kronograf',
+      fonts: {
+        brand: "'Archivo'",
+        load: ["'Archivo'"],
+        credits: [{ family: 'Archivo', license: 'SIL Open Font License 1.1' }],
+      },
+      motion: { open: 180, close: 110, stagger: 9, apply: APPLY },
+
+      palette: {
+        light: {
+          bg: '#f1f2f3',
+          surface: '#ffffff',
+          'surface-2': '#f5f6f7',
+          border: '#dadde1',
+          'border-strong': '#a3a9b0',
+          text: '#15171a',
+          'text-muted': '#545a62',
+          accent: '#c4420f',
+          'on-accent': '#ffffff',
+          focus: '#c4420f',
+          success: '#1f7a4f',
+          'on-success': '#ffffff',
+          'success-text': '#196942',
+          warning: '#b7791f',
+          'warning-text': '#7a4f0f',
+          danger: '#c4302b',
+          desk: 'linear-gradient(155deg, #f5f3ef 0%, #e9ebee 55%, #dde2e7 100%)',
+          'wheel-face': '#f5f4f0',
+          'wheel-slice': '#f5f4f0',
+          'wheel-slice-hover': '#e6e4dd',
+          'wheel-slice-selected': '#17191c',
+          'wheel-text': '#15171a',
+          'wheel-text-selected': '#ffffff',
+          'wheel-line': '#15171a',
+          'wheel-shadow': 'rgba(30, 36, 44, 0.32)',
+          'kr-sub': '#4b5058',
+          'kr-dial-hi': '#ffffff',
+          'kr-dial-lo': '#e3e2dc',
+          'kr-print': '#15171a',
+          'kr-steel-hi': '#fbfcfd',
+          'kr-steel': '#c3c9cf',
+          'kr-steel-lo': '#7b848d',
+          'kr-steel-edge': '#5f6870',
+          'kr-bezel': '#1a1c1f',
+          'kr-bezel-ink': '#f3f1ea',
+          'kr-hub': '#17191c',
+          'kr-hub-ink': '#f5f4f0',
+          'kr-hub-line': 'rgba(245, 244, 240, 0.55)',
+          'kr-azurage': 'rgba(255, 255, 255, 0.07)',
+          'kr-hand': '#f05a1a',
+          'kr-hand-edge': '#7a2405',
+          'kr-mark': '#f05a1a',
+          'kr-key': '#2a2d31',
+          'kr-glint-opacity': '0.75',
+        },
+        dark: {
+          bg: '#101113',
+          surface: '#18191c',
+          'surface-2': '#1f2124',
+          border: '#2c2f33',
+          'border-strong': '#4a4e54',
+          text: '#f1ece1',
+          'text-muted': '#aaa9a4',
+          accent: '#ff8a3d',
+          'on-accent': '#1d0c03',
+          focus: '#ffa060',
+          success: '#5cc58e',
+          'on-success': '#07200f',
+          'success-text': '#6fd39f',
+          warning: '#e9b44c',
+          'warning-text': '#f0c46a',
+          danger: '#ff6b5b',
+          desk: 'radial-gradient(circle at 34% 20%, #2a2b2e 0%, #17181b 55%, #0e0f11 100%)',
+          'wheel-face': '#141619',
+          'wheel-slice': '#141619',
+          'wheel-slice-hover': '#272a2f',
+          'wheel-slice-selected': '#ece4cf',
+          'wheel-text': '#f1ebdc',
+          'wheel-text-selected': '#17150f',
+          'wheel-line': '#f1ebdc',
+          'wheel-shadow': 'rgba(0, 0, 0, 0.66)',
+          'kr-sub': '#bdb6a6',
+          'kr-dial-hi': '#24272b',
+          'kr-dial-lo': '#0b0c0e',
+          'kr-print': '#efe8d6',
+          'kr-steel-hi': '#c7cdd3',
+          'kr-steel': '#6c747c',
+          'kr-steel-lo': '#2c3136',
+          'kr-steel-edge': '#1a1d20',
+          'kr-bezel': '#0c0d0f',
+          'kr-bezel-ink': '#e6dfcc',
+          'kr-hub': '#ece4cf',
+          'kr-hub-ink': '#17150f',
+          'kr-hub-line': 'rgba(23, 21, 15, 0.5)',
+          'kr-azurage': 'rgba(0, 0, 0, 0.06)',
+          'kr-hand': '#ff8a3d',
+          'kr-hand-edge': '#5c2206',
+          'kr-mark': '#ff8a3d',
+          'kr-key': '#dcd3bb',
+          'kr-glint-opacity': '0.28',
+        },
+      },
+      contrast: [
+        ['text', 'bg', 'text'],
+        ['text', 'surface', 'text'],
+        ['text-muted', 'bg', 'text'],
+        ['text-muted', 'surface', 'text'],
+        ['on-accent', 'accent', 'text'],
+        ['accent', 'surface', 'ui'],
+        ['focus', 'bg', 'ui'],
+        ['success', 'surface', 'ui'],
+        ['wheel-text', 'wheel-slice', 'text'],
+        ['wheel-text', 'wheel-slice-hover', 'text'],
+        ['wheel-text-selected', 'wheel-slice-selected', 'text'],
+        ['kr-sub', 'wheel-slice', 'text'],
+        ['kr-sub', 'wheel-slice-hover', 'text'],
+        ['kr-hub-ink', 'kr-hub', 'text'],
+        ['kr-bezel-ink', 'kr-bezel', 'text'],
+      ],
+
+      // No shared defs: every gradient and pattern is made per wheel in render(), because its colors come
+      // from the palette tokens of the wheel's own light or dark figure.
+      defs: '',
+      wheel: {
+        render,
+        update,
+        onOpen(root) {
+          stopFx(root);
+        },
+        onSelect(root, m, i, H, t) {
+          stopFx(root);
+          const k = runFor(m, i);
+          lastRun = k;
+          if (t == null && (reducedMotion() || !window.requestAnimationFrame)) return;
+          if (t != null) {
+            paintRun(root, k, t);
+            return;
+          }
+          const t0 = performance.now();
+          root.__krStop = () => {
+            cancelAnimationFrame(root.__krRaf);
+            root.__krStop = null;
+            paintRun(root, k, APPLY);
+            root.querySelector('.kr-run').setAttribute('d', '');
+          };
+          const step = () => {
+            const tt = performance.now() - t0;
+            if (!root.isConnected || tt >= APPLY) return stopFx(root);
+            paintRun(root, k, tt);
+            root.__krRaf = requestAnimationFrame(step);
+          };
+          paintRun(root, k, 0);
+          root.__krRaf = requestAnimationFrame(step);
+        },
+      },
+
+      sounds: gatedSounds({
+        open(ac, out, t, X) {
+          // The case snaps open with a small metallic ring.
+          X.burst(ac, out, t, { type: 'bandpass', f: 3400, q: 3, dur: 0.012, gain: 0.14 });
+          X.burst(ac, out, t + 0.018, { type: 'bandpass', f: 2200, q: 4, dur: 0.01, gain: 0.08 });
+          X.tone(ac, out, t + 0.012, { f: 3150, dur: 0.12, gain: 0.012, a: 0.001 });
+        },
+        tick(ac, out, t, X) {
+          X.burst(ac, out, t, { type: 'bandpass', f: 4600, q: 2.6, dur: 0.007, gain: 0.24 });
+          X.burst(ac, out, t + 0.004, { type: 'bandpass', f: 2600, q: 5, dur: 0.005, gain: 0.08 });
+        },
+        success(ac, out, t, X) {
+          const k = lastRun;
+          const at = (ms) => t + ms / 1000;
+          // Start: a firm two-part pusher click.
+          X.burst(ac, out, t, { type: 'bandpass', f: 2600, q: 1.8, dur: 0.012, gain: 0.2 });
+          X.burst(ac, out, at(22), { type: 'lowpass', f: 1300, q: 1, dur: 0.02, gain: 0.08 });
+          // The escapement while the hand runs.
+          for (let ms = k.start + 30; ms < k.arrive - 15; ms += 42)
+            X.burst(ac, out, at(ms), { type: 'bandpass', f: 5200, q: 7, dur: 0.004, gain: 0.07 });
+          // Stop: the same click, a touch higher, and the hand's tiny recoil.
+          X.burst(ac, out, at(k.arrive - 10), { type: 'bandpass', f: 3000, q: 1.8, dur: 0.012, gain: 0.21 });
+          X.burst(ac, out, at(k.arrive + 12), { type: 'lowpass', f: 1500, q: 1, dur: 0.02, gain: 0.07 });
+          X.tone(ac, out, at(k.arrive - 10), { f: 3600, dur: 0.09, gain: 0.01, a: 0.001 });
+        },
+      }),
+    });
+  })();
+}

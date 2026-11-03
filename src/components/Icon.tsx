@@ -99,6 +99,11 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
+/** The path data of an icon, or undefined for a name the set does not have. */
+export function iconPath(name: string): string | undefined {
+  return Object.hasOwn(PATHS, name) ? PATHS[name as IconName] : undefined;
+}
+
 export function Icon({ name, size = 20, className }: { name: IconName; size?: number; className?: string }) {
   return (
     <svg

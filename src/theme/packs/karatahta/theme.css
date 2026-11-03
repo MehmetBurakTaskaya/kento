@@ -1,0 +1,351 @@
+/* SPDX-License-Identifier: MIT */
+/* Kara tahta: chalk on slate, marker on a white board. */
+
+[data-concept='karatahta'] {
+  --kt-hand: var(--font-brand-face), 'Segoe Print', 'Comic Sans MS', cursive;
+  --radius: 10px;
+}
+[data-concept='karatahta'] .wheel {
+  font-family: var(--kt-hand);
+}
+
+/* Gradient stops take the palette. */
+[data-concept='karatahta'] .kt-st-shadow {
+  stop-color: var(--wheel-shadow);
+}
+[data-concept='karatahta'] .kt-st-clear {
+  stop-color: var(--wheel-shadow);
+  stop-opacity: 0;
+}
+[data-concept='karatahta'] .kt-st-fra {
+  stop-color: var(--frame-a);
+}
+[data-concept='karatahta'] .kt-st-frb {
+  stop-color: var(--frame-b);
+}
+[data-concept='karatahta'] .kt-st-face {
+  stop-color: var(--wheel-face);
+}
+[data-concept='karatahta'] .kt-st-facehi {
+  stop-color: var(--face-hi);
+}
+[data-concept='karatahta'] .kt-st-gloss {
+  stop-color: var(--gloss);
+}
+[data-concept='karatahta'] .kt-st-glossend {
+  stop-color: var(--gloss-end);
+}
+[data-concept='karatahta'] .kt-st-smudge {
+  stop-color: var(--smudge);
+}
+[data-concept='karatahta'] .kt-st-smudge0 {
+  stop-color: var(--smudge);
+  stop-opacity: 0;
+}
+
+/* Frame and board. */
+[data-concept='karatahta'] .kt-frame-ring {
+  stroke: var(--frame-edge);
+  stroke-width: 0.8;
+}
+[data-concept='karatahta'] .kt-frame-grain {
+  fill: none;
+  stroke: var(--frame-grain);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+[data-concept='karatahta'] .kt-frame-edge {
+  fill: none;
+  stroke: var(--frame-edge);
+  stroke-width: 1;
+}
+[data-concept='karatahta'] .kt-frame-inner {
+  fill: none;
+  stroke: var(--frame-inner);
+  stroke-width: 2.2;
+}
+[data-concept='karatahta'] .kt-swipe {
+  fill: none;
+  stroke: var(--smudge);
+  stroke-width: 18;
+  stroke-linecap: round;
+}
+[data-concept='karatahta'] .kt-frame,
+[data-concept='karatahta'] .kt-face,
+[data-concept='karatahta'] .kt-lines,
+[data-concept='karatahta'] .kt-hub,
+[data-concept='karatahta'] .kt-tray {
+  pointer-events: none;
+}
+[data-concept='karatahta'] .kt-piece {
+  fill: var(--piece-a);
+  stroke: var(--piece-line);
+  stroke-width: 0.7;
+}
+[data-concept='karatahta'] .kt-piece-tip {
+  fill: var(--piece-tip);
+  stroke: var(--piece-line);
+  stroke-width: 0.7;
+}
+[data-concept='karatahta'] .kt-piece-b {
+  fill: var(--piece-b);
+  stroke: var(--piece-line);
+  stroke-width: 0.7;
+}
+
+/* Chalk (or marker) lines. */
+[data-concept='karatahta'] .kt-lines {
+  filter: var(--line-filter);
+}
+[data-concept='karatahta'] .kt-line {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: var(--line-w);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+[data-concept='karatahta'] .kt-rim2 {
+  stroke-width: 1.4;
+  opacity: 0.55;
+}
+[data-concept='karatahta'] .kt-hubring {
+  stroke-width: 2.2;
+}
+[data-concept='karatahta'] .kt-key {
+  fill: var(--key-fill);
+  stroke: var(--wheel-line);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  filter: var(--line-filter);
+}
+
+/* Slices. */
+[data-concept='karatahta'] .kt-fill {
+  fill: transparent;
+  transition: fill 110ms;
+}
+[data-concept='karatahta'] .slice.is-hover .kt-fill {
+  fill: var(--slice-haze);
+}
+[data-concept='karatahta'] .slice.is-selected .kt-fill {
+  fill: var(--slice-sel);
+}
+[data-concept='karatahta'] .kt-ink {
+  color: var(--wheel-text);
+  fill: var(--wheel-text);
+  filter: var(--text-filter);
+}
+[data-concept='karatahta'] .kt-lbl {
+  fill: var(--wheel-text);
+  font-weight: 600;
+  transition: fill 160ms;
+}
+[data-concept='karatahta'] .kt-fmt {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+[data-concept='karatahta'] .kt-sub {
+  fill: var(--wheel-sub);
+  font-weight: 500;
+}
+[data-concept='karatahta'] .slice .ico {
+  stroke-width: 1.9;
+}
+[data-concept='karatahta'] .slice.is-selected .kt-ink {
+  color: var(--wheel-text-selected);
+}
+[data-concept='karatahta'] .slice.is-selected .kt-lbl {
+  fill: var(--wheel-text-selected);
+}
+[data-concept='karatahta'] .slice.is-off .kt-ink {
+  opacity: 0.4;
+}
+
+[data-concept='karatahta'] .kt-arrow {
+  fill: none;
+  stroke: var(--wheel-line);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: var(--line-filter);
+  visibility: hidden;
+}
+[data-concept='karatahta'] .slice.is-hover .kt-arrow,
+[data-concept='karatahta'] .slice.is-selected .kt-arrow {
+  visibility: visible;
+}
+[data-concept='karatahta'] .slice.is-selected .kt-arrow {
+  stroke: var(--mark);
+}
+[data-concept='karatahta'] .slice.is-off .kt-arrow {
+  opacity: 0.45;
+  stroke-dasharray: 3 4;
+}
+
+[data-concept='karatahta'] .kt-loop {
+  fill: none;
+  stroke: var(--mark);
+  stroke-width: 3.3;
+  stroke-linecap: round;
+  filter: var(--line-filter);
+  visibility: hidden;
+}
+[data-concept='karatahta'] .slice.is-selected .kt-loop {
+  visibility: visible;
+}
+[data-concept='karatahta'] .kt-dust {
+  display: none;
+}
+[data-concept='karatahta'] .kt-dust circle {
+  fill: var(--dust);
+  opacity: 0;
+}
+[data-concept='karatahta'] .kt-dust .kt-puff {
+  fill: var(--puff);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Hub. */
+[data-concept='karatahta'] .kt-hub-ink {
+  filter: var(--text-filter);
+}
+[data-concept='karatahta'] .kt-title {
+  fill: var(--wheel-text);
+  font-weight: 700;
+}
+[data-concept='karatahta'] .kt-file {
+  fill: var(--wheel-sub);
+  font-weight: 500;
+}
+[data-concept='karatahta'] .kt-keytext {
+  fill: var(--wheel-sub);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Open: the board settles, the dividers are drawn out from the hub, the words are chalked in. */
+[data-concept='karatahta'] .wheel-svg {
+  transform-origin: 50% 50%;
+}
+[data-concept='karatahta'] .kt-ink {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+}
+[data-concept='karatahta'] .wheel.is-opening .wheel-svg {
+  animation: karatahta-settle var(--dur-open) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='karatahta'] .wheel.is-opening .kt-div {
+  stroke-dasharray: 1 1;
+  animation: karatahta-draw var(--dur-open) cubic-bezier(0.4, 0.1, 0.4, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='karatahta'] .wheel.is-opening .kt-ink {
+  animation: karatahta-chalk-in calc(var(--dur-open) * 1.1) ease-out both;
+  animation-delay: calc(40ms + var(--i) * var(--stagger) - var(--t, 0ms));
+}
+[data-concept='karatahta'] .wheel.is-closing .wheel-svg {
+  animation: karatahta-away var(--dur-close) ease-in both;
+}
+@keyframes karatahta-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.95) rotate(-2deg);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes karatahta-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes karatahta-chalk-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes karatahta-away {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Apply: the ring is drawn round the label, then dust drifts off it and falls. */
+[data-concept='karatahta'] .wheel.is-applying .slice.is-selected .kt-loop {
+  stroke-dasharray: 1 1;
+  animation: karatahta-draw 400ms cubic-bezier(0.5, 0.05, 0.35, 1) both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+[data-concept='karatahta'] .wheel.is-applying .slice.is-selected .kt-dust {
+  display: inline;
+}
+[data-concept='karatahta'] .wheel.is-applying .slice.is-selected .kt-dust circle {
+  animation: karatahta-dust 360ms cubic-bezier(0.2, 0.6, 0.4, 1) both;
+  animation-delay: calc(var(--d) - var(--t, 0ms));
+}
+[data-concept='karatahta'] .wheel.is-applying .slice.is-selected .kt-dust .kt-puff {
+  animation-name: karatahta-puff;
+  animation-duration: 420ms;
+}
+[data-concept='karatahta'] .wheel.is-applying .slice.is-selected .kt-lbl {
+  transition-delay: 160ms;
+}
+[data-concept='karatahta'] .wheel.is-applying .wheel-svg {
+  animation: karatahta-tap 640ms linear both;
+  animation-delay: calc(0ms - var(--t, 0ms));
+}
+@keyframes karatahta-dust {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  18% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+@keyframes karatahta-puff {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(1.7);
+  }
+}
+@keyframes karatahta-tap {
+  0%,
+  60% {
+    transform: none;
+  }
+  63% {
+    transform: translateY(0.8px);
+  }
+  70%,
+  100% {
+    transform: none;
+  }
+}
