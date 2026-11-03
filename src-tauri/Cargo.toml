@@ -1,6 +1,6 @@
 [package]
 name = "kento"
-version = "1.1.0"
+version = "1.1.1"
 description = "Drag a file, press a modifier key, drop it on the wheel: local file conversion and tools."
 authors = ["Mehmet Burak Taşkaya"]
 license = "MIT"
