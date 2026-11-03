@@ -29,6 +29,8 @@
   "settings.appearance.light": "밝게",
   "settings.appearance.dark": "어둡게",
   "settings.appearance.theme": "테마",
+  "settings.appearance.sample": "사진.jpg",
+  "settings.appearance.try": "조각을 가리키면 소리가 나고, 클릭하면 적용됩니다. 그런 다음 휠이 다시 열립니다.",
   "settings.language.title": "언어",
   "settings.language.system": "시스템 언어({language})",
   "settings.language.test": "테스트 언어",

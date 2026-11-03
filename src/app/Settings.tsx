@@ -8,8 +8,8 @@ import { intlLocale, PSEUDO_LANGUAGES } from '../i18n';
 import { formatBytes } from '../i18n/format';
 import { api, type Settings as SettingsData, type ToolGroupStatus, type WheelKey } from '../ipc';
 import { useApp } from '../state/store';
-import { listThemes } from '../theme/registry';
 import { LayoutSettings } from './LayoutSettings';
+import { ThemePicker } from './ThemePicker';
 import { useToolStatus } from './Setup';
 import { UpdateSettings } from './UpdateSettings';
 
@@ -290,15 +290,10 @@ export function Settings() {
             ]}
           />
         </Row>
-        <Row label={t('settings.appearance.theme')} htmlFor={ids.theme}>
-          <select id={ids.theme} value={settings.theme} onChange={(e) => set({ theme: e.target.value })}>
-            {listThemes().map((theme) => (
-              <option key={theme.id} value={theme.id}>
-                {theme.name}
-              </option>
-            ))}
-          </select>
-        </Row>
+        <h3 id={ids.theme} className="theme-heading">
+          {t('settings.appearance.theme')}
+        </h3>
+        <ThemePicker settings={settings} labelledBy={ids.theme} onChange={(theme) => set({ theme })} />
       </Group>
 
       <Group title={t('settings.language.title')}>

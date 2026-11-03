@@ -29,6 +29,8 @@
   "settings.appearance.light": "Claro",
   "settings.appearance.dark": "Escuro",
   "settings.appearance.theme": "Tema",
+  "settings.appearance.sample": "foto.jpg",
+  "settings.appearance.try": "Aponte para uma fatia para ouvi-la e clique nela para aplicá-la; depois a roda abre de novo.",
   "settings.language.title": "Idioma",
   "settings.language.system": "Idioma do sistema ({language})",
   "settings.language.test": "Idiomas de teste",

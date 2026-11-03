@@ -29,6 +29,8 @@
   "settings.appearance.light": "فاتح",
   "settings.appearance.dark": "داكن",
   "settings.appearance.theme": "السمة",
+  "settings.appearance.sample": "صورة.jpg",
+  "settings.appearance.try": "أشِر إلى قطاع لتسمعه، وانقر عليه لتطبيقه؛ ثم تُفتح العجلة من جديد.",
   "settings.language.title": "اللغة",
   "settings.language.system": "لغة النظام ({language})",
   "settings.language.test": "لغات الاختبار",

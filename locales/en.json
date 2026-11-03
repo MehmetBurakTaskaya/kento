@@ -29,6 +29,8 @@
   "settings.appearance.light": "Light",
   "settings.appearance.dark": "Dark",
   "settings.appearance.theme": "Theme",
+  "settings.appearance.sample": "photo.jpg",
+  "settings.appearance.try": "Point at a slice to hear it and click it to apply it; then the wheel opens again.",
   "settings.language.title": "Language",
   "settings.language.system": "System language ({language})",
   "settings.language.test": "Test languages",

@@ -29,6 +29,8 @@
   "settings.appearance.light": "Chiaro",
   "settings.appearance.dark": "Scuro",
   "settings.appearance.theme": "Tema",
+  "settings.appearance.sample": "foto.jpg",
+  "settings.appearance.try": "Punta un settore per sentirlo e fai clic per applicarlo; poi la ruota si riapre.",
   "settings.language.title": "Lingua",
   "settings.language.system": "Lingua di sistema ({language})",
   "settings.language.test": "Lingue di prova",

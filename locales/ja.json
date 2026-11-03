@@ -29,6 +29,8 @@
   "settings.appearance.light": "ライト",
   "settings.appearance.dark": "ダーク",
   "settings.appearance.theme": "テーマ",
+  "settings.appearance.sample": "写真.jpg",
+  "settings.appearance.try": "スライスにポインターを合わせると音が鳴り、クリックすると適用されます。その後ホイールはもう一度開きます。",
   "settings.language.title": "言語",
   "settings.language.system": "システムの言語（{language}）",
   "settings.language.test": "テスト用の言語",
