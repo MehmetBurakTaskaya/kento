@@ -175,7 +175,7 @@
 }
 [data-concept='pizza'] .pz-fmt {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 900;
   letter-spacing: 0.01em;
 }
 [data-concept='pizza'] .pz-sub {
@@ -194,6 +194,7 @@
 }
 [data-concept='pizza'] .pz-title {
   font-family: var(--font-display);
+  font-weight: 900;
   fill: var(--pz-hub-text);
 }
 [data-concept='pizza'] .pz-file {

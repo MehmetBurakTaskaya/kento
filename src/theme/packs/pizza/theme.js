@@ -27,6 +27,28 @@ export default function register(Board) {
     function stop(grad, H, offset, token, op) {
       H.s('stop', { offset, style: `stop-color: var(${token})${op != null ? `; stop-opacity: ${op}` : ''}` }, grad);
     }
+    // The widest label the slice holds around the point at radius R.lbl on its centre line: on each
+    // line the label covers, the distance to the nearer edge of the slice (between radii r0 and r1,
+    // less `pad`), so a slice on the side of the wheel, where text runs along the radius, gets more
+    // room than one at the top. Labels stay upright, so this is what fits whatever the angle.
+    const room = (H, sl, r0, r1, pad, twist = () => 0) => {
+      const [cx, cy] = H.polar(R.lbl, sl.mid);
+      const inside = (x, y) => {
+        const r = Math.hypot(x - 200, y - 200);
+        if (r < r0 || r > r1) return false;
+        const a = (Math.atan2(x - 200, 200 - y) * 180) / Math.PI - twist(r);
+        return (((a - sl.a0) % 360) + 360) % 360 <= sl.a1 - sl.a0;
+      };
+      let half = 66;
+      for (const y of [cy - 11, cy, cy + 11]) {
+        let left = 0;
+        let right = 0;
+        while (left < 66 + pad && inside(cx - left - 1, y)) left += 1;
+        while (right < 66 + pad && inside(cx + right + 1, y)) right += 1;
+        half = Math.min(half, Math.min(left, right) - pad);
+      }
+      return Math.max(44, 2 * half);
+    };
     // A closed outline over a slice from radius r0 to an outer edge given by fn(angle).
     function wedge(H, r0, a0, a1, fn, gap) {
       const g = (r) => ((gap / 2 / r) * 180) / Math.PI;
@@ -76,10 +98,12 @@ export default function register(Board) {
           n++;
         }
       };
-      put('pep', 10.5, 2);
-      put('basil', 7.5, 1);
-      put('olive', 4.6, 2);
-      put('pepper', 5, 1);
+      // As many toppings per degree whatever the number of slices.
+      const share = Math.min(4, (sl.a1 - sl.a0) / 45);
+      put('pep', 10.5, Math.round(2 * share));
+      put('basil', 7.5, Math.max(1, Math.round(share)));
+      put('olive', 4.6, Math.round(2 * share));
+      put('pepper', 5, Math.max(1, Math.round(share)));
       let pep = '',
         pepDot = '',
         basil = '',
@@ -108,7 +132,7 @@ export default function register(Board) {
           pepper += `M${f2(p.x - ux)} ${f2(p.y - uy)}Q${f2(p.x - uy * 0.5)} ${f2(p.y + ux * 0.5)} ${f2(p.x + ux)} ${f2(p.y + uy)}`;
         }
       }
-      for (let k = 0; k < 9; k++) {
+      for (let k = 0; k < 9 * share; k++) {
         const rad = R.s0 + 8 + rand() * (R.cheese - R.s0 - 14);
         const a = sl.a0 + 3 + rand() * (sl.a1 - sl.a0 - 6);
         const [x, y] = H.polar(rad, a);
@@ -411,22 +435,23 @@ export default function register(Board) {
               fl = '',
               br = '',
               hi = '';
-            for (let k = 0; k < 7; k++) {
+            const share = Math.min(4, (sl.a1 - sl.a0) / 45);
+            for (let k = 0; k < 7 * share; k++) {
               const a = sl.a0 + 2 + rand() * (sl.a1 - sl.a0 - 4);
               const [x, y] = H.polar(R.sauce + 3 + rand() * (R.crust - R.sauce - 5), a);
               ch += dot(x, y, 0.8 + rand() * 1.6);
             }
-            for (let k = 0; k < 6; k++) {
+            for (let k = 0; k < 6 * share; k++) {
               const a = sl.a0 + 2 + rand() * (sl.a1 - sl.a0 - 4);
               const [x, y] = H.polar(R.sauce + 4 + rand() * (R.crust - R.sauce - 6), a);
               fl += dot(x, y, 0.5 + rand() * 0.6);
             }
-            for (let k = 0; k < 4; k++) {
+            for (let k = 0; k < 4 * share; k++) {
               const a = sl.a0 + 4 + rand() * (sl.a1 - sl.a0 - 8);
               const [x, y] = H.polar(R.cheese - 8 - rand() * 18, a);
               br += dot(x, y, 1.6 + rand() * 2.4);
             }
-            for (let k = 0; k < 3; k++) {
+            for (let k = 0; k < 3 * share; k++) {
               const a = sl.a0 + 5 + rand() * (sl.a1 - sl.a0 - 10);
               const [x, y] = H.polar(R.s0 + 12 + rand() * 30, a);
               hi += dot(x, y, 2 + rand() * 2.5);
@@ -437,12 +462,13 @@ export default function register(Board) {
             H.s('path', { d: hi, class: 'pz-cheese-hi' }, pie);
             // The label first, then toppings around its box.
             const c = H.s('g', { class: 'pz-content' }, pie);
-            if (m.kind === 'convert' && sl.sub) {
+            const maxWidth = room(H, sl, R.s0, R.cheese, 5);
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 23,
                 subSize: 13.5,
                 gap: 1,
-                maxWidth: 74,
+                maxWidth,
                 minSize: 11,
                 cls: 'pz-lbl pz-fmt',
                 subCls: 'pz-sub',
@@ -453,8 +479,8 @@ export default function register(Board) {
                 iconSize: 22,
                 size: 15,
                 gap: 2,
-                maxWidth: 74,
-                minSize: 9.5,
+                maxWidth,
+                minSize: 8.5,
                 cls: 'pz-lbl pz-word',
                 sub: null,
               });
@@ -489,8 +515,10 @@ export default function register(Board) {
           const lf = leaf(176, 166, 22, 8, -40);
           H.s('path', { d: lf.body, class: 'pz-basil' }, hub);
           H.s('path', { d: lf.vein, class: 'pz-vein' }, hub);
-          H.label(hub, 200, 185, m.title, { maxWidth: 80, size: 15, minSize: 10, cls: 'pz-title', maxLines: 1 });
-          H.label(hub, 200, 202, m.file, {
+          // Without a key (a ring opened from the menu) the name and the file sit in the middle.
+          const low = m.key ? 0 : 8;
+          H.label(hub, 200, 185 + low, m.title, { maxWidth: 80, size: 15, minSize: 9, cls: 'pz-title', maxLines: 1 });
+          H.label(hub, 200, 202 + low, m.file, {
             maxWidth: 76,
             size: 12,
             minSize: 9,
@@ -498,9 +526,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.2;
-          H.s('rect', { x: f2(200 - kw / 2), y: 211, width: f2(kw), height: 15, rx: 4, class: 'pz-key' }, hub);
-          H.text(hub, 200, 219, m.key, { class: 'pz-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.2;
+            H.s('rect', { x: f2(200 - kw / 2), y: 211, width: f2(kw), height: 15, rx: 4, class: 'pz-key' }, hub);
+            H.text(hub, 200, 219, m.key, { class: 'pz-keytext' });
+          }
         },
       },
 
