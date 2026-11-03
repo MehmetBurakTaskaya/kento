@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  Windows 10 (1809 ya da sonrası) ve 11, x64 · macOS 12 ya da sonrası, Apple silicon ve Intel<br>
+  Windows 10 (1809 ya da sonrası) ve 11, x64 · macOS 13 ya da sonrası, Apple silicon ve Intel<br>
   <a href="README.md">English</a> · <a href="CHANGELOG.md">Değişiklikler</a> ·
   Yazan: <a href="https://mehmetburaktaskaya.com">Mehmet Burak Taşkaya</a>
 </p>
