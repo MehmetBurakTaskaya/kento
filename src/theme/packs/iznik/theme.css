@@ -271,10 +271,10 @@
 }
 @keyframes iznik-sweep {
   from {
-    transform: translateX(-140px);
+    transform: translateX(calc(-1 * var(--iz-sweep, 140px)));
   }
   to {
-    transform: translateX(140px);
+    transform: translateX(var(--iz-sweep, 140px));
   }
 }
 @keyframes iznik-bloom {

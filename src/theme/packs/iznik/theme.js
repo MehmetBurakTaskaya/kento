@@ -85,8 +85,11 @@ export default function register(Board) {
       rosette(g, H);
       H.s('circle', { cx: C, cy: C, r: R.hub, class: 'iz-hub-disc' }, g);
       H.s('circle', { cx: C, cy: C, r: R.hub - 4.5, class: 'iz-hub-ring' }, g);
-      H.label(g, C, C - 15, m.title, { maxWidth: 88, size: 18, minSize: 11, maxLines: 1, cls: 'iz-title' });
-      H.label(g, C, C + 4.5, m.file, { maxWidth: 86, size: 12.5, minSize: 9, maxLines: 1, cls: 'iz-file' });
+      // Without a key (a ring opened from the keyboard, say) the title and file sit lower.
+      const dy = m.key ? 0 : 9;
+      H.label(g, C, C - 15 + dy, m.title, { maxWidth: 88, size: 18, minSize: 11, maxLines: 1, cls: 'iz-title' });
+      H.label(g, C, C + 4.5 + dy, m.file, { maxWidth: 86, size: 12.5, minSize: 9, maxLines: 1, cls: 'iz-file' });
+      if (!m.key) return;
       const kw = 16 + m.key.length * 6.6;
       H.s('rect', { x: f2(C - kw / 2), y: C + 16, width: f2(kw), height: 18, rx: 9, class: 'iz-key' }, g);
       H.text(g, C, C + 25.4, m.key, { class: 'iz-keytext' });
@@ -250,6 +253,10 @@ export default function register(Board) {
           // The tile body (its shadow is the wrapper's ::before).
           H.s('circle', { cx: C, cy: C, r: R.band1, class: 'iz-face' }, root);
 
+          // The band holds one cartouche for about every 36 degrees, so a wheel of two slices is as rich as
+          // one of eight; tulips and carnations take turns all the way round.
+          const perSlice = (sl) => Math.max(1, Math.floor(sl.step / 36));
+          let flowers = 0;
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
             H.s('path', { d: H.sector(R.in, R.out, sl.a0, sl.a1), class: 'iz-seg' }, g);
@@ -262,27 +269,38 @@ export default function register(Board) {
             H.s('path', { d: H.sector(R.in - 1, R.out + 0.5, sl.a0, sl.a1), class: 'iz-flood' }, fx);
             const [gx, gy] = H.polar((R.in + R.band1) / 2, sl.mid);
             const gw = H.s('g', { transform: `translate(${f2(gx)} ${f2(gy)}) rotate(28)` }, fx);
-            H.s('rect', { x: -30, y: -150, width: 60, height: 300, class: 'iz-gloss', fill: 'url(#iznik-gloss)' }, gw);
-
-            // Cartouche and flower in the border band, pointing outward like a rosette.
-            const [cx, cy] = H.polar(R.cart, sl.mid);
-            const cart = H.s(
-              'g',
-              { class: 'iz-cart', transform: `translate(${f2(cx)} ${f2(cy)}) rotate(${f2(sl.mid)})` },
-              g,
+            // A wide slice needs a longer sweep for the shine to cross all of it.
+            const sweep = Math.round(140 + Math.max(0, Math.min(sl.step, 180) - 45) * 0.75);
+            const gloss = H.s(
+              'rect',
+              { x: -30, y: -210, width: 60, height: 420, class: 'iz-gloss', fill: 'url(#iznik-gloss)' },
+              gw,
             );
-            H.s('path', { d: CART, class: 'iz-cart-bg' }, cart);
-            H.s('path', { d: SPRIG.stem, class: 'iz-stem' }, cart);
-            H.s('path', { d: SPRIG.leaf, class: 'iz-sprig' }, cart);
-            H.s('path', { d: SPRIG.bud, class: 'iz-bud' }, cart);
-            const fl = H.s('g', { class: 'iz-bloom', transform: 'translate(0 .4) scale(.95)' }, cart);
-            flower(fl, H, sl.i);
+            gloss.style.setProperty('--iz-sweep', sweep + 'px');
 
-            const [sx, sy] = H.polar(R.out - 12, sl.mid + sl.step * 0.28);
+            // Cartouches and flowers in the border band, pointing outward like a rosette.
+            const k = perSlice(sl);
+            for (let j = 0; j < k; j++) {
+              const a = sl.a0 + (sl.step * (j + 0.5)) / k;
+              const [cx, cy] = H.polar(R.cart, a);
+              const cart = H.s(
+                'g',
+                { class: 'iz-cart', transform: `translate(${f2(cx)} ${f2(cy)}) rotate(${f2(a)})` },
+                g,
+              );
+              H.s('path', { d: CART, class: 'iz-cart-bg' }, cart);
+              H.s('path', { d: SPRIG.stem, class: 'iz-stem' }, cart);
+              H.s('path', { d: SPRIG.leaf, class: 'iz-sprig' }, cart);
+              H.s('path', { d: SPRIG.bud, class: 'iz-bud' }, cart);
+              const fl = H.s('g', { class: 'iz-bloom', transform: 'translate(0 .4) scale(.95)' }, cart);
+              flower(fl, H, flowers++);
+            }
+
+            const [sx, sy] = H.polar(R.out - 12, sl.mid + Math.min(sl.step * 0.28, 16));
             H.s('path', { d: SPARK, class: 'iz-spark' }, H.s('g', { transform: `translate(${f2(sx)} ${f2(sy)})` }, g));
 
             const c = H.s('g', { class: 'iz-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 23.5,
                 subSize: 13.5,
@@ -321,16 +339,20 @@ export default function register(Board) {
           H.s('circle', { cx: C, cy: C, r: R.band1 - 2.6, class: 'iz-band-edge' }, lines);
           H.s('circle', { cx: C, cy: C, r: R.band1, class: 'iz-rim' }, lines);
           for (const sl of m.slices) {
-            const [qx, qy] = H.polar(R.cart, sl.a0);
-            H.s(
-              'path',
-              {
-                d: QUAT,
-                class: 'iz-quat',
-                transform: `translate(${f2(qx)} ${f2(qy)}) rotate(${f2(sl.a0 + 45)}) scale(1.2)`,
-              },
-              lines,
-            );
+            const k = perSlice(sl);
+            for (let j = 0; j < k; j++) {
+              const a = sl.a0 + (sl.step * j) / k;
+              const [qx, qy] = H.polar(R.cart, a);
+              H.s(
+                'path',
+                {
+                  d: QUAT,
+                  class: j ? 'iz-quat iz-quat-in' : 'iz-quat',
+                  transform: `translate(${f2(qx)} ${f2(qy)}) rotate(${f2(a + 45)}) scale(1.2)`,
+                },
+                lines,
+              );
+            }
           }
           H.s('circle', { cx: C, cy: C, r: R.band1, class: 'iz-glaze', fill: 'url(#iznik-glaze)' }, lines);
 
