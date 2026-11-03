@@ -162,128 +162,14 @@ export default function register(Board) {
       return polyD(pts);
     }
 
-    // ---------------------------------------------------------------- textures (cached images)
-    const svgUrl = (w, h, body) =>
-      `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`)}")`;
-    // Bands of pigment laid straight and combed by a turbulence (A), for card edges.
-    function marbleUrl(pal, angle, w = 240, h = 240) {
-      const seq = [
-        'w1',
-        'p1',
-        'f',
-        'w3',
-        'p3',
-        'p2',
-        'f',
-        'w2',
-        'p4',
-        'f',
-        'w4',
-        'p1',
-        'p2',
-        'f',
-        'p3',
-        'w1',
-        'p4',
-        'f',
-      ];
-      const col = (k) => (k === 'f' ? pal['wheel-face'] : pal[k]);
-      const r = rng(23);
-      let y = -60,
-        k = 0,
-        rects = '';
-      while (y < h + 60) {
-        const key = seq[k % seq.length];
-        const bw = key === 'f' ? 0.8 + r() * 0.6 : key[0] === 'p' ? 1.1 + r() * 1.6 : 2.4 + r() * 3.2;
-        rects += `<rect x="-60" y="${f2(y)}" width="${w + 120}" height="${f2(bw + 0.5)}" fill="${col(key)}"/>`;
-        y += bw;
-        k++;
-      }
-      return svgUrl(
-        w,
-        h,
-        `<defs><filter id="m" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="1" seed="6" result="n"/>` +
-          `<feDisplacementMap in="SourceGraphic" in2="n" scale="24" xChannelSelector="R" yChannelSelector="G"/></filter></defs>` +
-          `<rect width="${w}" height="${h}" fill="${pal['wheel-face']}"/><g filter="url(#m)"><g transform="rotate(${angle} ${w / 2} ${h / 2})">${rects}</g></g>`,
-      );
-    }
-    // Faint combed veins for large quiet surfaces (A).
-    function veinsUrl(color, w = 360, h = 360) {
-      let lines = '';
-      for (let y = -90; y < h + 90; y += 11) lines += `<path d="M-90 ${y}H${w + 90}"/>`;
-      return svgUrl(
-        w,
-        h,
-        `<defs><filter id="v" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.006 0.02" numOctaves="1" seed="4" result="n"/>` +
-          `<feDisplacementMap in="SourceGraphic" in2="n" scale="54" xChannelSelector="R" yChannelSelector="G"/></filter></defs>` +
-          `<g filter="url(#v)"><g transform="rotate(-24 ${w / 2} ${h / 2})" fill="none" stroke="${color}" stroke-width="1">${lines}</g></g>`,
-      );
-    }
-    // Overspray: random dots of the four pigments (B).
-    function speckleUrl(cols, w, h, n, seed, base = null, max = 1.5) {
-      const r = rng(seed);
-      const d = cols.map(() => '');
-      for (let k = 0; k < n; k++) d[k % cols.length] += circleD(r() * w, r() * h, 0.35 + r() * max);
-      return svgUrl(
-        w,
-        h,
-        (base ? `<rect width="${w}" height="${h}" fill="${base}"/>` : '') +
-          d.map((dd, k) => `<path d="${dd}" fill="${cols[k]}"/>`).join(''),
-      );
-    }
-    // Straight bands combed back and forth by a row of tines (C), for card edges.
-    function combUrl(pal, vertical, w = 240, h = 240) {
-      const seq = ['p1', 'f', 'p2', 'f', 'gold', 'f', 'p1', 'f', 'w2', 'p2', 'f', 'w1'];
-      const col = (k) => (k === 'f' ? pal['wheel-face'] : pal[k]);
-      const r = rng(31);
-      const S = 9,
-        LAM = 1.6,
-        AMP = 2.6;
-      const L = vertical ? h : w;
-      const edge = (y0) => {
-        const pts = [];
-        for (let x = -4; x <= L + 4; x += 1) {
-          const k = Math.round(x / S);
-          const d = Math.abs(x - k * S);
-          pts.push([x, y0 + (k % 2 ? 1 : -1) * AMP * (LAM / (d + LAM))]);
-        }
-        return pts;
-      };
-      let y = -6,
-        k = 0,
-        body = '';
-      const W = vertical ? w : h;
-      while (y < W + 6) {
-        const key = seq[k % seq.length];
-        const bw = key === 'f' ? 0.9 + r() * 0.6 : key === 'gold' ? 1 + r() * 0.6 : 1.8 + r() * 2.2;
-        const top = edge(y),
-          bot = edge(y + bw + 0.6).reverse();
-        const pts = top.concat(bot).map(([a, b]) => (vertical ? [b, a] : [a, b]));
-        body += `<path d="${polyD(pts)}" fill="${col(key)}"/>`;
-        y += bw;
-        k++;
-      }
-      return svgUrl(w, h, `<rect width="${w}" height="${h}" fill="${pal['wheel-face']}"/>${body}`);
-    }
-    // Faint combed lines for the drop zone (C).
-    function combLinesUrl(color, w = 360, h = 360) {
-      let lines = '';
-      for (let y = 6; y < h; y += 12) {
-        const pts = [];
-        for (let x = 0; x <= w; x += 2) {
-          const k = Math.round(x / 18);
-          const d = Math.abs(x - k * 18);
-          pts.push(`${x} ${f1(y + (k % 2 ? 1 : -1) * 3.2 * (3 / (d + 3)))}`);
-        }
-        lines += `<path d="M${pts.join('L')}"/>`;
-      }
-      return svgUrl(w, h, `<g fill="none" stroke="${color}" stroke-width="1">${lines}</g>`);
-    }
-
     // ---------------------------------------------------------------- shared wheel
+    // Four pigments in turn round the tray; on a wheel of five the last slice takes the second, so
+    // it differs from both of its neighbours.
+    const fourPigments = (i, n) => (n % 4 === 1 && n > 1 && i === n - 1 ? 2 : (i % 4) + 1);
+
     // Per-slice pigment variables: --p (stain), --pd (deep, drying rim), --pw (idle wash),
     // --ph (hover wash), --op (text on the stain), --q (the second pigment, used by C).
-    function pigmentVars(node, V, sl) {
+    function pigmentVars(node, V, sl, n) {
       if (sl.off) {
         for (const [k, v] of [
           ['--p', 'var(--border-strong)'],
@@ -296,7 +182,7 @@ export default function register(Board) {
           node.style.setProperty(k, v);
         return;
       }
-      const k = V.pig(sl.i),
+      const k = V.pig(sl.i, n),
         q = V.second ? V.second(sl.i) : k;
       node.style.setProperty('--p', `var(--p${k})`);
       node.style.setProperty('--pd', `var(--p${k}d)`);
@@ -306,90 +192,118 @@ export default function register(Board) {
       node.style.setProperty('--q', `var(--p${q})`);
     }
 
+    // Runs after the wheel is on screen: in a task after the next frame, or at once where there are
+    // no frames (a page in the background still gets its hover paint).
+    const afterFirstFrame = (fn) => {
+      if (typeof requestAnimationFrame !== 'function' || document.visibilityState === 'hidden')
+        return setTimeout(fn, 0);
+      return requestAnimationFrame(() => setTimeout(fn, 0));
+    };
+
     function makeRender(V) {
       return function render(root, m, H) {
         const id = H.uid(V.id + '-w');
         root._eb = { sel: null, raf: 0 };
         const defs = H.s('defs', {}, root);
         let clips = `<clipPath id="${id}-rim"><path d="${ringD(RB0, RB1)}"/></clipPath>`;
-        for (const sl of m.slices) {
+        for (const sl of m.slices)
           clips += `<clipPath id="${id}-w${sl.i}"><path d="${H.sector(R0 - 2, RMAX + 4, sl.a0, sl.a1)}"/></clipPath>`;
-          clips += `<clipPath id="${id}-s${sl.i}"><path d="${H.sector(R0, R1, sl.a0, sl.a1, GAP)}"/></clipPath>`;
-        }
         defs.innerHTML = clips;
 
         H.s('circle', { cx: C, cy: C, r: RB1, class: 'eb-face' }, root);
         const bodies = H.s('g', { class: 'eb-bodies' }, root);
         const rim = H.s('g', { class: 'eb-rim' }, root);
-        H.s('use', { href: `#${V.id}-rim`, 'clip-path': `url(#${id}-rim)` }, rim);
-        H.s('path', { d: ringD(RB0 - 0.6, RB0) + ringD(RB1 - 0.8, RB1), class: 'eb-rim-line' }, rim);
         const gushes = H.s('g', { class: 'eb-gushes' }, root);
         H.s('g', { class: 'eb-paint' }, root);
         const hub = H.s('g', { class: 'eb-hub' }, root);
         const labels = H.s('g', { class: 'eb-labels' }, root);
         H.s('g', { class: 'eb-air' }, root); // paint in flight passes over the labels
 
+        // Labels sit in their own top layer, above any paint, with a halo in the slice color. Formats
+        // read as their name, large, with their second line where they have one.
         for (const sl of m.slices) {
-          const P = at(C, C, RC, sl.mid);
-          const g = H.slice(bodies, sl, m);
-          pigmentVars(g, V, sl);
-          H.s('path', { d: H.sector(R0, RB0, sl.a0, sl.a1), class: 'eb-hit' }, g);
-          H.s('path', { d: H.sector(R0, R1, sl.a0, sl.a1, GAP), class: 'eb-seg' }, g);
-          if (V.band) H.s('path', { d: H.sector(R1 - V.band, R1, sl.a0, sl.a1, GAP), class: 'eb-band' }, g);
-          H.s('path', { d: H.sector(R1 - 5, R1, sl.a0, sl.a1, GAP), class: 'eb-edge' }, g);
-          if (!sl.off) {
-            const hov = H.s('g', { class: 'eb-hov', 'clip-path': `url(#${id}-s${sl.i})` }, g);
-            V.hover(hov, { H, P, sl, rnd: rng(V.seed * 53 + sl.i * 11 + 7), id: `${id}-h${sl.i}` });
-            // The open spill: the pigment squeezed out of its landing point, clipped to its
-            // wedge (drops press against each other at the slice borders) but free to run
-            // over the rim and past the edge of the tray.
-            const gc = H.s('g', { 'clip-path': `url(#${id}-w${sl.i})` }, gushes);
-            const gg = H.s('g', { class: 'eb-gush' }, gc);
-            pigmentVars(gg, V, sl);
-            gg.style.setProperty('--i', sl.i);
-            gg.style.transformOrigin = `${f1(P[0])}px ${f1(P[1])}px`;
-            V.gush(gg, { H, P, sl, rnd: rng(V.seed * 7 + sl.i * 29 + 5) });
-          }
-          // Labels sit in their own top layer, above any paint, with a halo in the slice color.
           const lab = H.s('g', { class: 'eb-lab' + (sl.off ? ' is-off' : ''), 'data-for': sl.i }, labels);
-          pigmentVars(lab, V, sl);
+          pigmentVars(lab, V, sl, m.n);
           lab.style.setProperty('--i', sl.i);
-          const parts =
-            m.kind === 'convert' && sl.sub
-              ? H.block(lab, sl, RC, {
-                  size: V.fmtSize || 23,
-                  subSize: 12.5,
-                  gap: 1,
-                  maxWidth: 84,
-                  cls: 'eb-lbl eb-fmt',
-                  subCls: 'eb-sub',
-                })
-              : H.block(lab, sl, RC, {
-                  icon: true,
-                  iconSize: 24,
-                  size: 14.5,
-                  gap: 5,
-                  maxWidth: 82,
-                  minSize: 9,
-                  cls: 'eb-lbl',
-                  sub: null,
-                });
+          const parts = sl.format
+            ? H.block(lab, sl, RC, {
+                size: V.fmtSize || 23,
+                subSize: 12.5,
+                gap: 1,
+                maxWidth: 84,
+                cls: 'eb-lbl eb-fmt',
+                subCls: 'eb-sub',
+              })
+            : H.block(lab, sl, RC, {
+                icon: true,
+                iconSize: 24,
+                size: 14.5,
+                gap: 5,
+                maxWidth: 82,
+                minSize: 9,
+                cls: 'eb-lbl',
+                sub: null,
+              });
           if (parts.icon) {
             const halo = parts.icon.cloneNode(true);
             halo.classList.add('eb-ico-halo');
             parts.icon.parentNode.insertBefore(halo, parts.icon);
           }
         }
-
         H.s('circle', { cx: C, cy: C, r: R0 - 3, class: 'eb-hub-bg' }, hub);
-        const rings = H.s('g', { class: 'eb-hub-rings' }, hub);
-        rings.innerHTML = V.hubRings;
+        H.s('g', { class: 'eb-hub-rings' }, hub).innerHTML = V.hubRings;
         const txt = H.s('g', { class: 'eb-hub-text' }, hub);
-        H.label(txt, C, C - 17, m.title, { maxWidth: 104, size: 17, minSize: 10, cls: 'eb-title', maxLines: 1 });
-        H.label(txt, C, C + 4, m.file, { maxWidth: 104, size: 12, minSize: 9, cls: 'eb-file', maxLines: 1 });
-        const kw = 14 + m.key.length * 7.5;
-        H.s('rect', { x: C - kw / 2, y: C + 20, width: kw, height: 19, rx: 9.5, class: 'eb-key' }, txt);
-        H.text(txt, C, C + 30, m.key, { class: 'eb-keytext' });
+        // Without a key the title and the file move down to the middle of the hub.
+        const dy = m.key ? 0 : 9;
+        H.label(txt, C, C - 17 + dy, m.title, { maxWidth: 104, size: 17, minSize: 10, cls: 'eb-title', maxLines: 1 });
+        H.label(txt, C, C + 4 + dy, m.file, { maxWidth: 104, size: 12, minSize: 9, cls: 'eb-file', maxLines: 1 });
+        if (m.key) {
+          const kw = 14 + m.key.length * 7.5;
+          H.s('rect', { x: C - kw / 2, y: C + 20, width: kw, height: 19, rx: 9.5, class: 'eb-key' }, txt);
+          H.text(txt, C, C + 30, m.key, { class: 'eb-keytext' });
+        }
+
+        H.s('use', { href: `#${V.id}-rim`, 'clip-path': `url(#${id}-rim)` }, rim);
+        H.s('path', { d: ringD(RB0 - 0.6, RB0) + ringD(RB1 - 0.8, RB1), class: 'eb-rim-line' }, rim);
+        const hovers = [];
+        for (const sl of m.slices) {
+          const P = at(C, C, RC, sl.mid);
+          const g = H.slice(bodies, sl, m);
+          pigmentVars(g, V, sl, m.n);
+          H.s('path', { d: H.sector(R0, RB0, sl.a0, sl.a1), class: 'eb-hit' }, g);
+          H.s('path', { d: H.sector(R0, R1, sl.a0, sl.a1, GAP), class: 'eb-seg' }, g);
+          if (V.band) H.s('path', { d: H.sector(R1 - V.band, R1, sl.a0, sl.a1, GAP), class: 'eb-band' }, g);
+          H.s('path', { d: H.sector(R1 - 5, R1, sl.a0, sl.a1, GAP), class: 'eb-edge' }, g);
+          if (!sl.off) {
+            hovers.push({ g, sl, P });
+            // The open spill: the pigment squeezed out of its landing point, clipped to its
+            // wedge (drops press against each other at the slice borders) but free to run
+            // over the rim and past the edge of the tray.
+            const gc = H.s('g', { 'clip-path': `url(#${id}-w${sl.i})` }, gushes);
+            const gg = H.s('g', { class: 'eb-gush' }, gc);
+            pigmentVars(gg, V, sl, m.n);
+            gg.style.setProperty('--i', sl.i);
+            gg.style.transformOrigin = `${f1(P[0])}px ${f1(P[1])}px`;
+            V.gush(gg, { H, P, sl, rnd: rng(V.seed * 7 + sl.i * 29 + 5) });
+          }
+        }
+
+        // The paint a slice shows under the pointer is not needed to open the wheel: it is laid on
+        // once the wheel is on screen, long before a pointer can rest on a slice.
+        const lay = () => {
+          if (!root.isConnected || root._eb.hovers) return;
+          root._eb.hovers = true;
+          let more = '';
+          for (const { sl } of hovers)
+            more += `<clipPath id="${id}-s${sl.i}"><path d="${H.sector(R0, R1, sl.a0, sl.a1, GAP)}"/></clipPath>`;
+          defs.insertAdjacentHTML('beforeend', more);
+          for (const { g, sl, P } of hovers) {
+            const hov = H.s('g', { class: 'eb-hov', 'clip-path': `url(#${id}-s${sl.i})` }, g);
+            V.hover(hov, { H, P, sl, rnd: rng(V.seed * 53 + sl.i * 11 + 7), id: `${id}-h${sl.i}` });
+          }
+        };
+        root._eb.lay = lay;
+        afterFirstFrame(lay);
       };
     }
 
@@ -408,8 +322,8 @@ export default function register(Board) {
         const sl = m.slices[i];
         const g = H.s('g', { class: 'eb-stain' }, root.querySelector('.eb-paint'));
         const air = H.s('g', { class: 'eb-stain-air' }, root.querySelector('.eb-air'));
-        pigmentVars(g, V, sl);
-        pigmentVars(air, V, sl);
+        pigmentVars(g, V, sl, m.n);
+        pigmentVars(air, V, sl, m.n);
         const lab = root.querySelector(`.eb-lab[data-for="${i}"]`);
         const P = at(C, C, RC, sl.mid);
         const out = [Math.sin(rad(sl.mid)), -Math.cos(rad(sl.mid))];
@@ -421,6 +335,8 @@ export default function register(Board) {
       }
       return {
         update(root, m, st, H) {
+          // A pointer that rests on a slice before its hover paint was laid gets it now.
+          if (st.hover != null && root._eb && !root._eb.hovers) root._eb.lay();
           root.querySelectorAll('.eb-lab').forEach((l) => {
             const i = +l.dataset.for;
             l.classList.toggle('is-hover', i === st.hover);
@@ -1085,14 +1001,6 @@ export default function register(Board) {
         dim: '0.6',
       },
     };
-    for (const [pal, v] of [
-      [palA.light, 'rgba(60, 50, 30, 0.07)'],
-      [palA.dark, 'rgba(200, 215, 230, 0.06)'],
-    ]) {
-      pal['edge-v'] = marbleUrl(pal, 90);
-      pal['edge-h'] = marbleUrl(pal, 0);
-      pal.tex = veinsUrl(v);
-    }
 
     // B: a bold contemporary set on dark water. 1 ultramarine, 2 tangerine, 3 aqua, 4 magenta.
     const palB = {
@@ -1183,15 +1091,6 @@ export default function register(Board) {
         dim: '0.7',
       },
     };
-    for (const [pal, dust] of [
-      [palB.light, 'rgba(20, 22, 40, 0.09)'],
-      [palB.dark, 'rgba(230, 235, 255, 0.07)'],
-    ]) {
-      const cols = [pal.p1, pal.p2, pal.p3, pal.p4];
-      pal['edge-v'] = speckleUrl(cols, 24, 240, 1100, 3, pal['rim-base'], 1.1);
-      pal['edge-h'] = speckleUrl(cols, 240, 24, 1100, 4, pal['rim-base'], 1.1);
-      pal.tex = speckleUrl([dust], 300, 300, 520, 9, null, 1.1);
-    }
 
     // C: a refined pair, indigo and rose madder, with a thread of gold.
     const palC = {
@@ -1278,14 +1177,6 @@ export default function register(Board) {
         dim: '0.6',
       },
     };
-    for (const [pal, v] of [
-      [palC.light, 'rgba(39, 56, 127, 0.07)'],
-      [palC.dark, 'rgba(200, 210, 240, 0.06)'],
-    ]) {
-      pal['edge-v'] = combUrl(pal, true, 24, 240);
-      pal['edge-h'] = combUrl(pal, false, 240, 24);
-      pal.tex = combLinesUrl(v);
-    }
 
     const hubA = `<path d="${wavyCircle(C, C, R0 - 7, 2, 0.22)}" class="eb-hr eb-hr-1"/><path d="${wavyCircle(C, C, R0 - 11.5, 5, 0.18)}" class="eb-hr eb-hr-3"/>`;
     const hubB = (() => {
@@ -1344,7 +1235,7 @@ export default function register(Board) {
         seed: 1,
         T: 640,
         coverAt: 44,
-        pig: (i) => (i % 4) + 1,
+        pig: fourPigments,
         hover: hoverA,
         gush: gushA,
         splash: splashA,
@@ -1386,7 +1277,7 @@ export default function register(Board) {
         neutral: true,
         band: 7,
         fmtSize: 22,
-        pig: (i) => (i % 4) + 1,
+        pig: fourPigments,
         hover: hoverB,
         gush: gushB,
         splash: splashB,
