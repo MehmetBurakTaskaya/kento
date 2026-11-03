@@ -67,6 +67,7 @@ actions. Nothing is uploaded anywhere, and the original stays as it was.
 | **Command line** | The same engines and recipes for scripts: `kento convert photo.heic --to jpg`. |
 | **Window layouts** | Optional shortcuts that put the front window in a half, a corner, the centre or full screen. |
 | **Languages** | Twelve, Arabic right to left among them; light and dark in each. |
+| **Themes** | 51 wheels to choose from: the steel dial and fifty more, from a rotary phone dial and a record player to a halved orange and a stained-glass window, each with its own colours, motion and sounds. |
 
 ## Screenshots
 

@@ -67,6 +67,7 @@ orijinalin yanına yeni bir kopya olarak dönüştürür. **Ctrl** (Mac'te ⌘) 
 | **Komut satırı** | Betikler için aynı motorlar ve tarifler: `kento convert photo.heic --to jpg`. |
 | **Pencere yerleşimi** | Öndeki pencereyi bir yarıya, bir köşeye, ortaya ya da tam ekrana yerleştiren isteğe bağlı kısayollar. |
 | **Diller** | On iki dil, aralarında sağdan sola Arapça; her birinde açık ve koyu görünüm. |
+| **Temalar** | Seçilecek 51 çark: çelik kadran ve elli tane daha, çevirmeli telefon kadranından ve pikaptan ikiye bölünmüş portakala ve vitraylı pencereye kadar, her biri kendi rengi, hareketi ve sesiyle. |
 
 ## Ekran görüntüleri
 
