@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import catalog from './catalog.json';
+import { layoutSlices, offsetFor } from '../wheel/geometry';
 import { DEFAULT_PAIRS, NEED } from './host/board';
 import { PALETTE_TOKENS } from './host/contract';
+import { createHelpers } from './host/helpers';
+import { buildModel } from './host/model';
 import { loadPack, packNames } from './host/packs';
 import {
   applyTheme,
@@ -127,6 +130,113 @@ describe('the theme packs', () => {
       }
     }
     expect(failures).toEqual([]);
+  });
+
+  describe('mark every slice that opens a ring of choices', () => {
+    // Themes measure their labels: every character is 7 units wide at size 14, in proportion to the
+    // size, and a drawing's box is that of its text.
+    const size = (node: Element) => Number((node.closest('text') ?? node).getAttribute('font-size') ?? 14);
+    const advance = (node: Element) => 7 * (size(node) / 14);
+    const MEASURES: Record<string, (this: SVGElement, ...args: number[]) => unknown> = {
+      getComputedTextLength() {
+        return (this.textContent ?? '').length * advance(this);
+      },
+      getNumberOfChars() {
+        return (this.textContent ?? '').length;
+      },
+      getStartPositionOfChar(k) {
+        return { x: k! * advance(this), y: 0 };
+      },
+      getEndPositionOfChar(k) {
+        return { x: (k! + 1) * advance(this), y: 0 };
+      },
+      getSubStringLength(_, count) {
+        return count! * advance(this);
+      },
+      getBBox() {
+        const width = (this.textContent ?? '').length * advance(this);
+        return { x: -width / 2, y: -size(this) / 2, width, height: size(this) };
+      },
+    };
+    beforeAll(() => {
+      for (const [name, value] of Object.entries(MEASURES))
+        Object.defineProperty(SVGElement.prototype, name, { configurable: true, value });
+    });
+    afterAll(() => {
+      for (const name of Object.keys(MEASURES))
+        delete (SVGElement.prototype as unknown as Record<string, unknown>)[name];
+    });
+
+    const wheel = (kind: 'convert' | 'tools', count: number, dir: 'ltr' | 'rtl', offset: number) =>
+      buildModel({
+        kind,
+        lang: dir === 'rtl' ? 'ar' : 'en',
+        dir,
+        title: 'Convert',
+        file: 'photo.jpg',
+        key: 'Shift',
+        geometry: layoutSlices(count, dir, offset),
+        slices: Array.from({ length: count }, (_, i) => ({
+          id: `s${i}`,
+          label: kind === 'convert' ? ['JPG', 'PNG', 'WEBP', 'AVIF'][i % 4]! : `Tool ${i}`,
+          sub: kind === 'convert' && i === 1 ? 'Lossless' : null,
+          icon: kind === 'convert' ? undefined : 'crop',
+          off: i === count - 1 && count > 2,
+          ring: i % 3 !== 1,
+          format: kind === 'convert',
+        })),
+      });
+
+    it('near the rim, off its centre line towards the next slice, in both directions', async () => {
+      const failures: string[] = [];
+      for (const entry of catalog.slice(1)) {
+        const { concept } = (await loadPack(entry.pack!)).get(entry.id)!;
+        const H = createHelpers(concept.icons);
+        for (const dir of ['ltr', 'rtl'] as const)
+          for (const [kind, count, offset] of [
+            ['convert', 8, 0],
+            ['tools', 5, 0],
+            ['convert', 2, 0],
+            ['tools', 3, offsetFor(135, 1, 3, dir)],
+          ] as const) {
+            const m = wheel(kind, count, dir, offset);
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            const root = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            svg.appendChild(root);
+            document.body.appendChild(svg);
+            const where = `${entry.id} ${dir} ${kind} ${count}`;
+            try {
+              concept.wheel.render(root, m, H);
+            } catch (error) {
+              failures.push(`${where}: ${String(error)}`);
+              svg.remove();
+              continue;
+            }
+            const marks = [...root.querySelectorAll<SVGGElement>('[data-ring-mark]')];
+            const marked = marks.map((mark) => Number(mark.dataset.ringMark)).sort((a, b) => a - b);
+            const rings = m.slices.filter((slice) => slice.ring).map((slice) => slice.i);
+            if (marked.join() !== rings.join())
+              failures.push(`${where}: marks ${marked.join()}, rings ${rings.join()}`);
+            for (const mark of marks) {
+              const slice = m.slices[Number(mark.dataset.ringMark)]!;
+              const [, x, y] = /translate\((-?[\d.]+) (-?[\d.]+)\)/.exec(mark.getAttribute('transform') ?? '') ?? [];
+              const r = Math.hypot(Number(x) - 200, Number(y) - 200);
+              const at = (Math.atan2(Number(x) - 200, 200 - Number(y)) * 180) / Math.PI;
+              // A theme whose slices curve turns the mark with them.
+              const turn = Number(mark.dataset.turn ?? 0);
+              const toward = (((at - turn - slice.mid + 540) % 360) - 180) * (dir === 'rtl' ? -1 : 1);
+              if (r < 120 || r > 200 || toward <= 0 || toward >= slice.step / 2)
+                failures.push(`${where} slice ${slice.i}: mark at ${at.toFixed(1)}° r ${r.toFixed(1)}`);
+              // In its slice's group or a layer of its own, never in another slice's.
+              const owner = mark.closest<SVGGElement>('.slice');
+              if (owner && owner.dataset.slice !== String(slice.i))
+                failures.push(`${where} slice ${slice.i}: mark in slice ${owner.dataset.slice}`);
+            }
+            svg.remove();
+          }
+      }
+      expect(failures).toEqual([]);
+    }, 60_000);
   });
 
   it('colour the shell: their palette over the steel tokens, with the shell colours a palette lacks', async () => {
