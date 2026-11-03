@@ -11,7 +11,7 @@ export default function register(Board) {
     const f2 = (n) => Math.round(n * 100) / 100;
 
     if (typeof document !== 'undefined' && document.fonts) {
-      for (const f of ["500 16px 'Zen Maru Gothic'", "700 16px 'Zen Maru Gothic'", "900 16px 'Zen Maru Gothic'"])
+      for (const f of ["500 16px 'Nunito Variable'", "700 16px 'Nunito Variable'", "900 16px 'Nunito Variable'"])
         document.fonts.load(f, 'AaĞşı').catch(() => null);
     }
 
@@ -34,12 +34,46 @@ export default function register(Board) {
 
     const pt = (p) => `${f2(p[0])} ${f2(p[1])}`;
 
+    // The gap between two slices' sheets, in degrees.
+    const SEAM = 0.9;
+
+    // The width a label may take at radius r: the slice's chord there, less a margin, within a cap.
+    function roomAt(sl, r, margin, cap) {
+      const half = Math.min(sl.step / 2, 70);
+      return Math.max(40, Math.min(cap, 2 * r * Math.sin((half * Math.PI) / 180) - margin));
+    }
+
+    // A fold line along angle a from r0 to r1, with a gap where it would cross the box of a label.
+    function breakRound(H, a, r0, r1, bb) {
+      const C = H.C;
+      const u = [Math.sin(H.rad(a)), -Math.cos(H.rad(a))];
+      const seg = (p, q) => (q - p > 2 ? `M${pt(H.polar(p, a))}L${pt(H.polar(q, a))}` : '');
+      if (!bb.width) return seg(r0, r1);
+      let t0 = -Infinity,
+        t1 = Infinity;
+      for (const [lo, hi, d] of [
+        [bb.x - 3, bb.x + bb.width + 3, u[0]],
+        [bb.y - 3, bb.y + bb.height + 3, u[1]],
+      ]) {
+        if (Math.abs(d) < 1e-6) {
+          if (C < lo || C > hi) return seg(r0, r1);
+        } else {
+          const p = (lo - C) / d,
+            q = (hi - C) / d;
+          t0 = Math.max(t0, Math.min(p, q));
+          t1 = Math.min(t1, Math.max(p, q));
+        }
+      }
+      if (t0 >= t1 || t1 <= r0 || t0 >= r1) return seg(r0, r1);
+      return seg(r0, Math.max(r0, t0)) + seg(Math.min(r1, t1), r1);
+    }
+
     Board.define({
       id: ID,
       fonts: {
-        brand: "'Zen Maru Gothic'",
-        load: ["'Zen Maru Gothic'"],
-        credits: [{ family: 'Zen Maru Gothic', license: 'SIL Open Font License 1.1' }],
+        brand: "'Nunito Variable'",
+        load: ["'Nunito Variable'"],
+        credits: [{ family: 'Nunito', license: 'SIL Open Font License 1.1' }],
       },
       motion: { open: 190, close: 120, stagger: 11, apply: 600 },
 
@@ -178,15 +212,21 @@ export default function register(Board) {
           s('stop', { offset: 0.8, class: 'og-st-sh' }, sh);
           s('stop', { offset: 1, class: 'og-st-sh0' }, sh);
 
-          // The sheet's shadow on the desk, following the star outline.
+          // A slice is folded from about one pleat per 45 degrees, so two or three wide slices still
+          // make a many-pointed rosette; each pleat is two facets meeting in a mountain fold.
+          const pleatsOf = (sl) => Math.max(1, Math.round(sl.step / 45));
           let star = '';
-          m.slices.forEach((sl, k) => {
-            star += `${k ? 'L' : 'M'}${pt(H.polar(R.valley, sl.a0))}L${pt(H.polar(R.peak, sl.mid))}`;
-          });
+          for (const sl of m.slices) {
+            const p = pleatsOf(sl);
+            for (let k = 0; k < p; k++) {
+              const a0 = sl.a0 + (sl.step * k) / p;
+              star += `${star ? 'L' : 'M'}${pt(H.polar(R.valley, a0))}L${pt(H.polar(R.peak, a0 + sl.step / p / 2))}`;
+            }
+          }
           star += 'Z';
+          // The sheet's shadow on the desk, and the sheet below the pleats, seen when one folds over.
           const under = s('g', { class: 'og-under', 'aria-hidden': 'true' }, root);
           s('path', { d: star, class: 'og-shadow', transform: 'translate(2 5)' }, under);
-          // The sheet below the pleats, seen when one folds over.
           s('path', { d: star, class: 'og-base' }, under);
 
           for (const sl of m.slices) {
@@ -198,51 +238,48 @@ export default function register(Board) {
             body.style.setProperty('--lx', f2(u[0] * 6) + 'px');
             body.style.setProperty('--ly', f2(u[1] * 6) + 'px');
             const fold = s('g', { class: 'og-fold' }, body);
-            // The pleats start under the hub sheet, so no gap shows round it.
-            const L = [
-              H.polar(R.under, sl.a0),
-              H.polar(R.valley, sl.a0),
-              H.polar(R.peak, sl.mid),
-              H.polar(R.under, sl.mid),
-            ];
-            const Rr = [
-              H.polar(R.under, sl.mid),
-              H.polar(R.peak, sl.mid),
-              H.polar(R.valley, sl.a1),
-              H.polar(R.under, sl.a1),
-            ];
-            const face = (p, extra) => `M${pt(p[0])}L${pt(p[1])}L${pt(p[2])}L${pt(p[3])}${extra}Z`;
-            const dA = face(L, `A${R.under} ${R.under} 0 0 0 ${pt(L[0])}`);
-            const dB = face(Rr, `A${R.under} ${R.under} 0 0 0 ${pt(Rr[0])}`);
-            const lA = facetLight((sl.a0 + sl.mid) / 2, -1),
-              lB = facetLight((sl.mid + sl.a1) / 2, 1);
             // Front: white (or indigo) paper; back: the coloured side, shown once the slice is applied.
+            // The pleats start under the hub sheet, so no gap shows round it.
             const front = s('g', { class: 'og-front' }, fold);
-            s('path', { d: dA, style: `fill: color-mix(in srgb, var(--paper-hi) ${lA}%, var(--paper-lo))` }, front);
-            s('path', { d: dB, style: `fill: color-mix(in srgb, var(--paper-hi) ${lB}%, var(--paper-lo))` }, front);
             const back = s('g', { class: 'og-back' }, fold);
-            s('path', { d: dA, style: `fill: color-mix(in srgb, var(--back-hi) ${lA}%, var(--back-lo))` }, back);
-            s('path', { d: dB, style: `fill: color-mix(in srgb, var(--back-hi) ${lB}%, var(--back-lo))` }, back);
-            s('path', { d: dA + dB, fill: `url(#${uid}-dots)` }, back);
-            // Creases: the mountain fold down the middle, the valley folds at the sides.
+            const face = (q, extra) => `M${pt(q[0])}L${pt(q[1])}L${pt(q[2])}L${pt(q[3])}${extra}Z`;
+            const p = pleatsOf(sl);
+            const w = sl.step / p;
+            const folds = [];
+            let all = '';
+            for (let k = 0; k < p; k++) {
+              // Each slice is its own sheet: a hair's gap at its sides lets the sheet below show as a seam.
+              const mid = sl.a0 + w * k + w / 2,
+                a0 = sl.a0 + w * k + (k === 0 ? SEAM : 0),
+                a1 = sl.a0 + w * (k + 1) - (k === p - 1 ? SEAM : 0);
+              const L = [H.polar(R.under, a0), H.polar(R.valley, a0), H.polar(R.peak, mid), H.polar(R.under, mid)];
+              const Rr = [H.polar(R.under, mid), H.polar(R.peak, mid), H.polar(R.valley, a1), H.polar(R.under, a1)];
+              const dA = face(L, `A${R.under} ${R.under} 0 0 0 ${pt(L[0])}`);
+              const dB = face(Rr, `A${R.under} ${R.under} 0 0 0 ${pt(Rr[0])}`);
+              const lA = facetLight((a0 + mid) / 2, -1),
+                lB = facetLight((mid + a1) / 2, 1);
+              s('path', { d: dA, style: `fill: color-mix(in srgb, var(--paper-hi) ${lA}%, var(--paper-lo))` }, front);
+              s('path', { d: dB, style: `fill: color-mix(in srgb, var(--paper-hi) ${lB}%, var(--paper-lo))` }, front);
+              s('path', { d: dA, style: `fill: color-mix(in srgb, var(--back-hi) ${lA}%, var(--back-lo))` }, back);
+              s('path', { d: dB, style: `fill: color-mix(in srgb, var(--back-hi) ${lB}%, var(--back-lo))` }, back);
+              all += dA + dB;
+              folds.push([mid, R.peak - 1, 'og-crease']);
+              if (k) folds.push([a0, R.valley, 'og-valley']);
+            }
+            s('path', { d: all, fill: `url(#${uid}-dots)` }, back);
+            // Creases: mountain folds down each pleat, valley folds between them and at the sides.
             const crease = s('path', { class: 'og-crease' }, fold);
-            s(
-              'path',
-              {
-                d: `M${pt(H.polar(R.hub, sl.a0))}L${pt(L[1])}M${pt(H.polar(R.hub, sl.a1))}L${pt(Rr[2])}`,
-                class: 'og-valley',
-              },
-              fold,
-            );
-            s('path', { d: dA + dB, class: 'og-hl' }, front);
-            s('path', { d: dA + dB, class: 'og-turn' }, fold);
+            const valley = s('path', { class: 'og-valley' }, fold);
+            s('path', { d: all, class: 'og-hl' }, front);
+            s('path', { d: all, class: 'og-turn' }, fold);
             const ink = s('g', { class: 'og-ink' }, fold);
-            if (m.kind === 'convert' && sl.sub) {
+            const room = roomAt(sl, R.lbl, 20, 128);
+            if (sl.format) {
               H.block(ink, sl, R.lbl, {
                 size: 21,
                 subSize: 12.5,
                 gap: 2,
-                maxWidth: 74,
+                maxWidth: room,
                 minSize: 10,
                 cls: 'og-lbl og-fmt',
                 subCls: 'og-sub',
@@ -253,35 +290,18 @@ export default function register(Board) {
                 iconSize: 23,
                 size: 13.5,
                 gap: 4,
-                maxWidth: 76,
+                maxWidth: room + 2,
                 minSize: 9,
                 cls: 'og-lbl og-word',
                 sub: null,
               });
             }
-            // The crease breaks round the lettering, like a fold that runs under a printed word.
+            // The folds break round the lettering, like a fold that runs under a printed word.
             const bb = ink.getBBox();
-            const [ux, uy] = u;
-            const hits = [];
-            for (const [lo, hi, o, d] of [
-              [bb.x - 3, bb.x + bb.width + 3, C, ux],
-              [bb.y - 3, bb.y + bb.height + 3, C, uy],
-            ]) {
-              if (Math.abs(d) < 1e-6)
-                hits.push([o >= lo && o <= hi ? -Infinity : Infinity, o >= lo && o <= hi ? Infinity : -Infinity]);
-              else {
-                const a = (lo - o) / d,
-                  b = (hi - o) / d;
-                hits.push([Math.min(a, b), Math.max(a, b)]);
-              }
-            }
-            const t0 = Math.max(hits[0][0], hits[1][0]),
-              t1 = Math.min(hits[0][1], hits[1][1]);
-            const seg = (r0, r1) => (r1 - r0 > 2 ? `M${pt(H.polar(r0, sl.mid))}L${pt(H.polar(r1, sl.mid))}` : '');
-            crease.setAttribute(
-              'd',
-              bb.width && t0 < t1 ? seg(R.hub, t0) + seg(t1, R.peak - 1) : seg(R.hub, R.peak - 1),
-            );
+            const lines = { 'og-crease': '', 'og-valley': '' };
+            for (const [a, r1, cls] of folds) lines[cls] += breakRound(H, a, R.hub, r1, bb);
+            crease.setAttribute('d', lines['og-crease']);
+            valley.setAttribute('d', lines['og-valley']);
           }
 
           // Hub: a small square sheet with its creases, corners tucked into the valleys.
@@ -316,14 +336,17 @@ export default function register(Board) {
             },
             sq,
           );
-          H.label(hub, C, C - 15, m.title, { maxWidth: 92, size: 16, minSize: 10, cls: 'og-title', maxLines: 1 });
-          H.label(hub, C, C + 5, m.file, { maxWidth: 88, size: 12, minSize: 9, cls: 'og-file', maxLines: 1 });
-          const kt = H.text(hub, C, C + 26, m.key, { class: 'og-keytext' });
-          const kw = kt.getComputedTextLength() + 16;
-          hub.insertBefore(
-            s('rect', { x: f2(C - kw / 2), y: C + 18, width: f2(kw), height: 16, rx: 3, class: 'og-key' }),
-            kt,
-          );
+          const dy = m.key ? 0 : 8;
+          H.label(hub, C, C - 15 + dy, m.title, { maxWidth: 92, size: 16, minSize: 10, cls: 'og-title', maxLines: 1 });
+          H.label(hub, C, C + 5 + dy, m.file, { maxWidth: 88, size: 12, minSize: 9, cls: 'og-file', maxLines: 1 });
+          if (m.key) {
+            const kt = H.text(hub, C, C + 26, m.key, { class: 'og-keytext' });
+            const kw = kt.getComputedTextLength() + 16;
+            hub.insertBefore(
+              s('rect', { x: f2(C - kw / 2), y: C + 18, width: f2(kw), height: 16, rx: 3, class: 'og-key' }),
+              kt,
+            );
+          }
         },
       },
 
