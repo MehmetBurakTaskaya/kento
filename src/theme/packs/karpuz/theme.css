@@ -87,7 +87,7 @@
 }
 [data-concept='karpuz'] .kz-fmt {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 900;
   letter-spacing: 0;
 }
 [data-concept='karpuz'] .kz-sub {
@@ -123,6 +123,7 @@
 }
 [data-concept='karpuz'] .kz-title {
   font-family: var(--font-display);
+  font-weight: 900;
   fill: var(--kz-hub-text);
 }
 [data-concept='karpuz'] .kz-file {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // The faces this theme names (Paytone One, Nunito): Latin, Latin Extended and Cyrillic only,
 // from the Fontsource packages, registered under the family names the theme's code and styles use.
+// Paytone One has no Cyrillic, so Nunito's black answers for it inside the same family.
 import { registerFaces } from '../../host/fonts';
 import paytoneOne400Latin from '@fontsource/paytone-one/files/paytone-one-latin-400-normal.woff2?url';
 import paytoneOne400LatinExt from '@fontsource/paytone-one/files/paytone-one-latin-ext-400-normal.woff2?url';
@@ -8,10 +9,12 @@ import nunitoLatin from '@fontsource-variable/nunito/files/nunito-latin-wght-nor
 import nunitoLatinExt from '@fontsource-variable/nunito/files/nunito-latin-ext-wght-normal.woff2?url';
 import nunitoCyrillic from '@fontsource-variable/nunito/files/nunito-cyrillic-wght-normal.woff2?url';
 
+// A stand-in joins a family only when it is registered with the family's own weights.
 registerFaces([
   {
     family: 'Paytone One',
-    weight: '400',
+    // Its one weight stands for the black the labels ask for, so the Cyrillic below matches it.
+    weight: '400 900',
     sources: [
       {
         url: paytoneOne400Latin,
@@ -41,5 +44,10 @@ registerFaces([
       },
       { url: nunitoCyrillic, range: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' },
     ],
+  },
+  {
+    family: 'Paytone One',
+    weight: '400 900',
+    sources: [{ url: nunitoCyrillic, range: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' }],
   },
 ]);

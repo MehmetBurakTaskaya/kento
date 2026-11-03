@@ -9,7 +9,7 @@ export default function register(Board) {
     const f2 = (n) => Math.round(n * 100) / 100;
     const ID = 'karpuz';
     // Radii in the 400 x 400 view box: flesh, white rind, light green layer, striped skin.
-    const R = { hub: 50, flesh0: 52, flesh1: 164, white1: 171, light1: 179, skin1: 192, lbl: 112 };
+    const R = { hub: 50, flesh0: 52, flesh1: 164, white1: 171, light1: 179, skin1: 192, lbl: 116 };
 
     function rng(seed) {
       let a = seed >>> 0;
@@ -21,7 +21,37 @@ export default function register(Board) {
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     }
-    const reducedMotion = () => document.documentElement.classList.contains('reduce-motion');
+    // The effect plays only while the wheel is applying: with reduced motion the app never sets it.
+    const applying = (root) => {
+      const wheel = root.closest('.wheel');
+      return !!wheel && wheel.classList.contains('is-applying');
+    };
+    // The widest label the slice holds around the point at radius R.lbl on its centre line: on each
+    // line the label covers, the distance to the nearer edge of the slice (between radii r0 and r1,
+    // less `pad`), so a slice on the side of the wheel, where text runs along the radius, gets more
+    // room than one at the top. Labels stay upright, so this is what fits whatever the angle.
+    const room = (H, sl, r0, r1, pad, twist = () => 0) => {
+      const [cx, cy] = H.polar(R.lbl, sl.mid);
+      const inside = (x, y) => {
+        const r = Math.hypot(x - 200, y - 200);
+        if (r < r0 || r > r1) return false;
+        const a = (Math.atan2(x - 200, 200 - y) * 180) / Math.PI - twist(r);
+        return (((a - sl.a0) % 360) + 360) % 360 <= sl.a1 - sl.a0;
+      };
+      let half = 66;
+      for (const y of [cy - 11, cy, cy + 11]) {
+        let left = 0;
+        let right = 0;
+        while (left < 66 + pad && inside(cx - left - 1, y)) left += 1;
+        while (right < 66 + pad && inside(cx + right + 1, y)) right += 1;
+        half = Math.min(half, Math.min(left, right) - pad);
+      }
+      return Math.max(44, 2 * half);
+    };
+    const sameAngle = (a, b) => {
+      const d = (((a - b) % 360) + 360) % 360;
+      return d < 0.5 || d > 359.5;
+    };
     const dot = (x, y, r) =>
       `M${f2(x - r)} ${f2(y)}a${f2(r)} ${f2(r)} 0 1 0 ${f2(2 * r)} 0a${f2(r)} ${f2(r)} 0 1 0 ${f2(-2 * r)} 0Z`;
     function stop(grad, H, offset, token, op) {
@@ -332,7 +362,8 @@ export default function register(Board) {
             H.s('path', { d: stripes, class: 'kz-stripes', 'clip-path': `url(#${clipId})` }, chomp);
             // Sparkling grain in the flesh.
             let grain = '';
-            for (let k = 0; k < 26; k++) {
+            const grains = Math.round(26 * Math.min(4, (sl.a1 - sl.a0) / 45));
+            for (let k = 0; k < grains; k++) {
               const r = R.flesh0 + 8 + rand() * (R.flesh1 - R.flesh0 - 14);
               const a = sl.a0 + 2 + rand() * (sl.a1 - sl.a0 - 4);
               const [x, y] = H.polar(r, a);
@@ -342,12 +373,14 @@ export default function register(Board) {
             H.s('path', { d: '', class: 'kz-bite-edge' }, chomp);
             if (sl.off) H.s('path', { d: H.sector(R.flesh0, R.flesh1, sl.a0, sl.a1), class: 'kz-off' }, chomp);
             const c = H.s('g', { class: 'kz-content' }, chomp);
-            if (m.kind === 'convert' && sl.sub) {
+            // Between the seeds on its borders.
+            const maxWidth = room(H, sl, R.flesh0, R.flesh1, 5);
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 26,
                 subSize: 13,
                 gap: 0,
-                maxWidth: 74,
+                maxWidth,
                 minSize: 11,
                 cls: 'kz-lbl kz-fmt',
                 subCls: 'kz-sub',
@@ -358,8 +391,8 @@ export default function register(Board) {
                 iconSize: 22,
                 size: 14,
                 gap: 2,
-                maxWidth: 74,
-                minSize: 9.5,
+                maxWidth,
+                minSize: 8.5,
                 cls: 'kz-lbl kz-word',
                 sub: null,
               });
@@ -397,8 +430,10 @@ export default function register(Board) {
           // The heart of the melon: name, file and key.
           const hub = H.s('g', { class: 'kz-hub' }, root);
           H.s('circle', { cx: 200, cy: 200, r: R.hub, class: 'kz-heart' }, hub);
-          H.label(hub, 200, 183, m.title, { maxWidth: 86, size: 17, minSize: 11, cls: 'kz-title', maxLines: 1 });
-          H.label(hub, 200, 201, m.file, {
+          // Without a key (a ring opened from the menu) the name and the file sit in the middle.
+          const low = m.key ? 0 : 8;
+          H.label(hub, 200, 183 + low, m.title, { maxWidth: 86, size: 17, minSize: 9, cls: 'kz-title', maxLines: 1 });
+          H.label(hub, 200, 201 + low, m.file, {
             maxWidth: 80,
             size: 11.5,
             minSize: 9,
@@ -406,9 +441,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.4;
-          H.s('rect', { x: f2(200 - kw / 2), y: 211, width: f2(kw), height: 16, rx: 8, class: 'kz-key' }, hub);
-          H.text(hub, 200, 219.5, m.key, { class: 'kz-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.4;
+            H.s('rect', { x: f2(200 - kw / 2), y: 211, width: f2(kw), height: 16, rx: 8, class: 'kz-key' }, hub);
+            H.text(hub, 200, 219.5, m.key, { class: 'kz-keytext' });
+          }
         },
 
         update(root, m, st, H) {
@@ -446,10 +483,16 @@ export default function register(Board) {
           clearTimeout(root.__kzT1);
           clearTimeout(root.__kzT2);
           clearTimeout(root.__kzT3);
-          if (t == null && reducedMotion()) return;
+          if (t == null && !applying(root)) return;
           const k = (tt) => (tt < 40 ? 0 : tt < 130 ? 0.6 : 1);
           drawBite(g, sl, H, k(t || 0));
-          for (const b of [i, (i + 1) % m.n]) root.querySelector(`.kz-border[data-b="${b}"]`).classList.add('is-hop');
+          // The seeds on both borders of the slice: its own, and the one its far edge shares with the
+          // next slice (in either direction, so right to left and turned rings work the same).
+          const next = m.slices.find((other) => other.i !== i && sameAngle(other.a0, sl.a1));
+          for (const b of next ? [i, next.i] : [i]) {
+            const border = root.querySelector(`.kz-border[data-b="${b}"]`);
+            if (border) border.classList.add('is-hop');
+          }
           // Crumbs of flesh and drops of juice from the bite.
           const fx = g.querySelector('.kz-fx');
           const rand = rng(5 + i * 13);
