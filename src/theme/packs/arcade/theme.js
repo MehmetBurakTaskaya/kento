@@ -26,6 +26,9 @@ export default function register(Board) {
       }
       return d + 'Z';
     }
+    // The tube colours run round the sign in fours; with five slices the last takes the third colour, so no
+    // two neighbours (the last and the first included) ever share one.
+    const tubeOf = (i, n) => (n % 4 === 1 && i === n - 1 && n > 1 ? 2 : i % 4);
     // Pixel sparks: direction (degrees) and distance, fixed so every apply looks the same.
     const SPARKS = [
       [8, 58],
@@ -41,6 +44,8 @@ export default function register(Board) {
     ];
 
     function render(root, m, H) {
+      // Wider slices (fewer of them) give their labels more room, up to what the tube band holds.
+      const wide = Math.min(88, 2 * R.lbl * Math.sin(rad(Math.min(m.step, 180) / 2)) * 0.72);
       const u = H.uid('arcade');
       const defs = H.s('defs', {}, root);
       defs.innerHTML = `
@@ -74,8 +79,9 @@ export default function register(Board) {
       // Slices: hit wedge, the flood fill, the tube (glow, body, core) and the label in the tube's color.
       for (const sl of m.slices) {
         const g = H.slice(root, sl, m);
-        g.style.setProperty('--tube', `var(--ar-c${sl.i % 4})`);
-        g.style.setProperty('--tube-soft', `var(--ar-s${sl.i % 4})`);
+        const tc = tubeOf(sl.i, m.n);
+        g.style.setProperty('--tube', `var(--ar-c${tc})`);
+        g.style.setProperty('--tube-soft', `var(--ar-s${tc})`);
         H.s('path', { d: H.sector(R.hub + 1, R.rim, sl.a0, sl.a1), class: 'ar-hit' }, g);
         const tube = H.sector(R.tubeIn, R.tubeOut, sl.a0, sl.a1, 13);
         const sign = H.s('g', { class: 'ar-sign' }, g);
@@ -84,12 +90,13 @@ export default function register(Board) {
         H.s('path', { d: tube, class: 'ar-tube' }, sign);
         H.s('path', { d: tube, class: 'ar-tube-core' }, sign);
         const c = H.s('g', { class: 'ar-ink' }, sign);
-        if (m.kind === 'convert' && sl.sub) {
+        // A format is printed large, with its second line where it has one; tools and actions get an icon.
+        if (sl.format) {
           H.block(c, sl, R.lbl, {
             size: 22,
             subSize: 13,
             gap: 1.5,
-            maxWidth: 66,
+            maxWidth: wide,
             minSize: 9,
             cls: 'ar-lbl ar-fmt',
             subCls: 'ar-sub',
@@ -100,7 +107,7 @@ export default function register(Board) {
             iconSize: 20,
             size: 13.5,
             gap: 3,
-            maxWidth: 68,
+            maxWidth: wide,
             minSize: 8.5,
             cls: 'ar-lbl',
             sub: null,
@@ -139,49 +146,26 @@ export default function register(Board) {
         maxLines: 1,
         attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
       });
-      const kt = H.text(hub, C, C + 23.5, m.key, { class: 'ar-keytext' });
-      const kw = kt.getComputedTextLength() + 14;
-      hub.insertBefore(
-        H.s('rect', { x: f2(C - kw / 2), y: C + 15.5, width: f2(kw), height: 16, rx: 8, class: 'ar-key' }),
-        kt,
-      );
+      // The key that opened the wheel, when one did.
+      if (m.key) {
+        const kt = H.text(hub, C, C + 23.5, m.key, { class: 'ar-keytext' });
+        const kw = kt.getComputedTextLength() + 14;
+        hub.insertBefore(
+          H.s('rect', { x: f2(C - kw / 2), y: C + 15.5, width: f2(kw), height: 16, rx: 8, class: 'ar-key' }),
+          kt,
+        );
+      }
     }
-
-    // Every voice goes through a gate that stays shut until its start time. A new gain node starts at 1, so
-    // without it a voice can click for one sample when its start falls exactly on a sample boundary.
-    function gate(ac, out, t) {
-      const g = ac.createGain();
-      g.gain.value = 0;
-      g.gain.setValueAtTime(1, t);
-      g.connect(out);
-      return g;
-    }
-    const gatedSounds = (sounds) =>
-      Object.fromEntries(
-        Object.entries(sounds).map(([k, fn]) => [
-          k,
-          (ac, out, t, X) =>
-            fn(
-              ac,
-              out,
-              t,
-              Object.assign({}, X, {
-                tone: (a, o, at, opt) => X.tone(a, gate(a, o, at), at, opt),
-                burst: (a, o, at, opt) => X.burst(a, gate(a, o, at), at, opt),
-              }),
-            ),
-        ]),
-      );
 
     Board.define({
       id: 'arcade',
       fonts: {
-        brand: "'Tilt Neon'",
-        display: "'Bungee'",
-        load: ["'Tilt Neon'", "'Bungee'"],
+        brand: "'Comfortaa'",
+        display: "'Unbounded'",
+        load: ["'Comfortaa'", "'Unbounded'"],
         credits: [
-          { family: 'Tilt Neon', license: 'SIL Open Font License 1.1' },
-          { family: 'Bungee', license: 'SIL Open Font License 1.1' },
+          { family: 'Comfortaa', license: 'SIL Open Font License 1.1' },
+          { family: 'Unbounded', license: 'SIL Open Font License 1.1' },
         ],
       },
       motion: { open: 160, close: 110, stagger: 14, apply: APPLY },
@@ -346,7 +330,7 @@ export default function register(Board) {
           const [x, y] = pol(R.lbl, sl.mid);
           const fx = root.querySelector('.ar-fx');
           fx.setAttribute('transform', `translate(${f2(x)} ${f2(y)})`);
-          fx.style.setProperty('--tube', `var(--ar-c${i % 4})`);
+          fx.style.setProperty('--tube', `var(--ar-c${tubeOf(i, m.n)})`);
           // The score starts just outside the label and flies out over the rim.
           const sx = Math.sin(rad(sl.mid));
           const sy = -Math.cos(rad(sl.mid));
@@ -357,7 +341,7 @@ export default function register(Board) {
         },
       },
 
-      sounds: gatedSounds({
+      sounds: {
         open(ac, out, t, X) {
           // The ballast hums and the tubes strike with two flicker clicks.
           X.tone(ac, out, t, { type: 'square', f: 120, dur: 0.11, gain: 0.014, a: 0.01 });
@@ -377,7 +361,7 @@ export default function register(Board) {
           X.tone(ac, out, t + 0.31, { type: 'square', f: 2349.3, dur: 0.05, gain: 0.016, a: 0.002 });
           X.tone(ac, out, t + 0.37, { type: 'square', f: 2093, dur: 0.12, gain: 0.014, a: 0.002 });
         },
-      }),
+      },
     });
   })();
 }

@@ -100,19 +100,21 @@
   paint-order: stroke;
   stroke: var(--tube);
   stroke-opacity: var(--ar-text-glow);
-  stroke-width: 4px;
+  stroke-width: 3px;
   stroke-linejoin: round;
 }
 [data-concept='arcade'] .ar-lbl {
-  font-weight: 400;
+  font-weight: 700;
 }
 [data-concept='arcade'] .ar-fmt {
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 [data-concept='arcade'] .ar-sub {
   fill: color-mix(in srgb, var(--tube) var(--ar-sub-tube), var(--ar-sub));
   stroke-opacity: calc(var(--ar-text-glow) * 0.5);
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 [data-concept='arcade'] .slice.is-selected .ar-ink {
   fill: var(--wheel-text-selected);
@@ -154,9 +156,11 @@
 }
 [data-concept='arcade'] .ar-title {
   fill: var(--ar-hub-ink);
+  font-weight: 700;
 }
 [data-concept='arcade'] .ar-file {
   fill: var(--ar-hub-ink);
+  font-weight: 600;
   opacity: 0.85;
 }
 [data-concept='arcade'] .ar-key {
@@ -167,7 +171,8 @@
 [data-concept='arcade'] .ar-keytext {
   fill: var(--ar-key-ink);
   font-family: var(--font-display);
-  font-size: 8px;
+  font-size: 7.5px;
+  font-weight: 600;
   letter-spacing: 0.06em;
 }
 
@@ -194,7 +199,8 @@
 }
 [data-concept='arcade'] .ar-score {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 15px;
+  font-weight: 800;
   fill: var(--ar-score);
   paint-order: stroke;
   stroke: var(--ar-score-edge);
