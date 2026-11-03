@@ -72,6 +72,28 @@ export default function register(Board) {
       return out;
     }
     const angleOf = (x, y) => ((Math.atan2(x - 200, 200 - y) * 180) / Math.PI + 360) % 360;
+    // The widest label the slice holds around the point at radius R.lbl on its centre line: on each
+    // line the label covers, the distance to the nearer edge of the slice (between radii r0 and r1,
+    // less `pad`), so a slice on the side of the wheel, where text runs along the radius, gets more
+    // room than one at the top. Labels stay upright, so this is what fits whatever the angle.
+    const room = (H, sl, r0, r1, pad, twist = () => 0) => {
+      const [cx, cy] = H.polar(R.lbl, sl.mid);
+      const inside = (x, y) => {
+        const r = Math.hypot(x - 200, y - 200);
+        if (r < r0 || r > r1) return false;
+        const a = (Math.atan2(x - 200, 200 - y) * 180) / Math.PI - twist(r);
+        return (((a - sl.a0) % 360) + 360) % 360 <= sl.a1 - sl.a0;
+      };
+      let half = 66;
+      for (const y of [cy - 11, cy, cy + 11]) {
+        let left = 0;
+        let right = 0;
+        while (left < 66 + pad && inside(cx - left - 1, y)) left += 1;
+        while (right < 66 + pad && inside(cx + right + 1, y)) right += 1;
+        half = Math.min(half, Math.min(left, right) - pad);
+      }
+      return Math.max(44, 2 * half);
+    };
     const within = (a, a0, a1, pad) => {
       const d = (((a - a0) % 360) + 360) % 360;
       return d > pad && d < a1 - a0 - pad;
@@ -353,35 +375,58 @@ export default function register(Board) {
             const clipId = `${uid}-c${sl.i}`;
             const clip = H.s('clipPath', { id: clipId }, lift);
             H.s('path', { d: H.sector(R.p0, R.flake, sl.a0, sl.a1, CUT) }, clip);
-            // Only the part of each line over this slice (the clip trims the last pixel), so the
-            // slice's own box stays the size of the slice.
+            // Only the part of each line over this slice (the clip trims its edges exactly), so the
+            // slice's own box stays the size of the slice: each line is cut to the wedge between the
+            // slice's edges, a little widened. A wedge is convex up to 180 degrees, so a wider slice is
+            // cut as its two halves.
             let cut = '';
-            for (const [x0, y0, x1, y1] of lines) {
-              let first = -1;
-              let last = -1;
-              for (let k = 0; k <= 160; k++) {
-                const x = x0 + ((x1 - x0) * k) / 160;
-                const y = y0 + ((y1 - y0) * k) / 160;
-                if (Math.hypot(x - 200, y - 200) > R.p0 - 2 && within(angleOf(x, y), sl.a0, sl.a1, -1.5)) {
-                  if (first < 0) first = k;
-                  last = k;
+            const side = (a) => {
+              const t = H.rad(a);
+              return [Math.sin(t), -Math.cos(t)];
+            };
+            const wedges =
+              sl.a1 - sl.a0 > 170
+                ? [
+                    [sl.a0 - 2, sl.mid],
+                    [sl.mid, sl.a1 + 2],
+                  ]
+                : [[sl.a0 - 2, sl.a1 + 2]];
+            for (const [w0, w1] of wedges) {
+              const [e0x, e0y] = side(w0);
+              const [e1x, e1y] = side(w1);
+              for (const [x0, y0, x1, y1] of lines) {
+                const dx = x1 - x0;
+                const dy = y1 - y0;
+                let lo = 0;
+                let hi = 1;
+                // Clockwise of the first edge: cross(e0, p) >= 0; before the second: cross(e1, p) <= 0.
+                for (const [ex, ey, sign] of [
+                  [e0x, e0y, 1],
+                  [e1x, e1y, -1],
+                ]) {
+                  const c0 = sign * (ex * (y0 - 200) - ey * (x0 - 200));
+                  const cd = sign * (ex * dy - ey * dx);
+                  if (Math.abs(cd) < 1e-9) {
+                    if (c0 < 0) hi = -1;
+                  } else if (cd > 0) lo = Math.max(lo, -c0 / cd);
+                  else hi = Math.min(hi, -c0 / cd);
                 }
+                if (hi - lo < 1e-3) continue;
+                cut += `M${f2(x0 + dx * lo)} ${f2(y0 + dy * lo)}L${f2(x0 + dx * hi)} ${f2(y0 + dy * hi)}`;
               }
-              if (first < 0 || last === first) continue;
-              const p = (k) => `${f2(x0 + ((x1 - x0) * k) / 160)} ${f2(y0 + ((y1 - y0) * k) / 160)}`;
-              cut += `M${p(Math.max(0, first - 1))}L${p(Math.min(160, last + 1))}`;
             }
             const sc = H.s('g', { 'clip-path': `url(#${clipId})`, class: 'bk-score' }, lift);
             H.s('path', { d: cut, class: 'bk-cut-hi', transform: 'translate(0.9 0.9)' }, sc);
             H.s('path', { d: cut, class: 'bk-cut' }, sc);
             // The label, then pistachio on every diamond that stays clear of it.
             const c = H.s('g', { class: 'bk-content' }, lift);
-            if (m.kind === 'convert' && sl.sub) {
+            const maxWidth = room(H, sl, R.p0, R.flake, 5);
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 25,
                 subSize: 14,
                 gap: -1,
-                maxWidth: 76,
+                maxWidth,
                 minSize: 11,
                 cls: 'bk-lbl bk-fmt',
                 subCls: 'bk-sub',
@@ -390,10 +435,10 @@ export default function register(Board) {
               H.block(c, sl, R.lbl, {
                 icon: true,
                 iconSize: 22,
-                size: 15,
+                size: 15.5,
                 gap: 2,
-                maxWidth: 76,
-                minSize: 9.5,
+                maxWidth,
+                minSize: 8.5,
                 cls: 'bk-lbl bk-word',
                 sub: null,
               });
@@ -469,8 +514,10 @@ export default function register(Board) {
           }
           H.s('path', { d: cream + 'Z', class: 'bk-cream' }, hub);
           H.s('path', { d: `M${f2(176)} ${f2(176)}C185 168 199 166 210 169`, class: 'bk-cream-hi' }, hub);
-          H.label(hub, 200, 184, m.title, { maxWidth: 82, size: 17, minSize: 11, cls: 'bk-title', maxLines: 1 });
-          H.label(hub, 200, 201, m.file, {
+          // Without a key (a ring opened from the menu) the name and the file sit in the middle.
+          const low = m.key ? 0 : 8;
+          H.label(hub, 200, 184 + low, m.title, { maxWidth: 82, size: 17, minSize: 9, cls: 'bk-title', maxLines: 1 });
+          H.label(hub, 200, 201 + low, m.file, {
             maxWidth: 78,
             size: 12.5,
             minSize: 9,
@@ -478,9 +525,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.3;
-          H.s('rect', { x: f2(200 - kw / 2), y: 210, width: f2(kw), height: 16, rx: 8, class: 'bk-key' }, hub);
-          H.text(hub, 200, 218.5, m.key, { class: 'bk-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.3;
+            H.s('rect', { x: f2(200 - kw / 2), y: 210, width: f2(kw), height: 16, rx: 8, class: 'bk-key' }, hub);
+            H.text(hub, 200, 218.5, m.key, { class: 'bk-keytext' });
+          }
         },
 
         update(root, m, st) {
