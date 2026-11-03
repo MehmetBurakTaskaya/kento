@@ -36,6 +36,9 @@
 [data-concept='artdeco'] .slice.ad-b {
   --ad-bg: var(--ad-slice-b);
 }
+[data-concept='artdeco'] .slice.ad-c {
+  --ad-bg: var(--ad-slice-c);
+}
 [data-concept='artdeco'] .ad-hit {
   fill: transparent;
 }

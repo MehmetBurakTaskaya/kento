@@ -7,6 +7,7 @@ export default function register(Board) {
     'use strict';
 
     const R = { hub: 52, hubRing: 60, ray0: 64, face: 168, crown: [170, 179, 188], lbl: 112 };
+    // Nine rays fan across a slice of 45 degrees; wider slices get more, at the same spacing.
     const RAYS = 9;
     const f2 = (n) => Math.round(n * 100) / 100;
     const C = 200;
@@ -16,37 +17,142 @@ export default function register(Board) {
     // Uppercase for display type; scripts without case keep their text.
     const caps = (t, lang) => (/^(ja|zh|ko|ar)/.test(lang) ? t : t.toLocaleUpperCase(lang));
 
-    // The stepped crown of one slice, as an open path from a0 to a1, inset by `inset` units.
+    // The stepped crown of one slice, as an open path from a0 to a1, inset by `inset` units. The crown
+    // keeps the size it has on a slice of 45 degrees, centred on the slice; a wider slice runs flat
+    // on either side of it.
     function crown(a0, a1, inset) {
-      const w = a1 - a0;
+      const mid = (a0 + a1) / 2;
+      const w = Math.min(a1 - a0, 45);
       const [r0, r1, r2] = R.crown.map((r) => r - inset);
       const steps = [
-        [0, r0],
-        [0.24, r1],
-        [0.36, r2],
-        [0.64, r1],
-        [0.76, r0],
+        [mid - 0.26 * w, r1],
+        [mid - 0.14 * w, r2],
+        [mid + 0.14 * w, r1],
+        [mid + 0.26 * w, r0],
       ];
       let d = `M${pt(r0, a0)}`;
       let prevR = r0;
-      for (let k = 1; k < steps.length; k++) {
-        const [fa, r] = steps[k];
-        const a = a0 + fa * w;
-        d += `A${prevR} ${prevR} 0 0 1 ${pt(prevR, a)}L${pt(r, a)}`;
+      let prevA = a0;
+      for (const [a, r] of steps) {
+        d += `A${prevR} ${prevR} 0 ${a - prevA > 180 ? 1 : 0} 1 ${pt(prevR, a)}L${pt(r, a)}`;
         prevR = r;
+        prevA = a;
       }
-      return d + `A${prevR} ${prevR} 0 0 1 ${pt(prevR, a1)}`;
+      return d + `A${prevR} ${prevR} 0 ${a1 - prevA > 180 ? 1 : 0} 1 ${pt(prevR, a1)}`;
+    }
+
+    // Whether a point (relative to the centre) lies m inside a slice, between radii rin and rout.
+    // Tests the slice's own angles, so it holds for any number of slices and any turn.
+    function inSlice(sl, rin, rout, m) {
+      const toRad = (a) => (a * Math.PI) / 180;
+      const step = sl.a1 - sl.a0;
+      const away = (a, rr) => (a < 90 ? rr * Math.sin(toRad(a)) : rr);
+      return (x, y) => {
+        const rr = Math.hypot(x, y);
+        if (rr < rin + m || rr > rout - m) return false;
+        if (step >= 359.9) return true;
+        const rel = ((((Math.atan2(x, -y) * 180) / Math.PI - sl.a0) % 360) + 360) % 360;
+        return rel <= step && away(rel, rr) >= m && away(step - rel, rr) >= m;
+      };
+    }
+
+    // How wide a level label may be: its lines, centred dy below the point at radius r on the slice's
+    // centre line and hh high on each side, must stay inside the slice.
+    function room(sl, r, dy, hh, rin, rout, cap, m = 4) {
+      const inside = inSlice(sl, rin, rout, m);
+      const cx = r * Math.sin((sl.mid * Math.PI) / 180);
+      const cy = -r * Math.cos((sl.mid * Math.PI) / 180) + dy;
+      const fits = (w) => [-1, 0, 1].every((u) => [-1, 0, 1].every((v) => inside(cx + u * w, cy + v * hh)));
+      if (fits(cap / 2)) return cap;
+      let lo = 0;
+      let hi = cap / 2;
+      for (let k = 0; k < 12; k++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      return Math.max(2 * lo, 40);
+    }
+
+    // Draws a slice's label block where it has the most room, at whichever of the given radii lets its
+    // lines be widest (outward where the slice runs up or down, nearer the middle where it runs
+    // across), then checks the lines as drawn and narrows them until they sit inside the slice. A label
+    // is never shortened to fit: if only an ellipsis would make it fit, the last whole one is kept.
+    // A single word too long for the slice goes a size smaller before it is shortened.
+    function fitBlock(H, parent, sl, radii, o, rin, rout, cap, m = 2) {
+      const inside = inSlice(sl, rin, rout, m);
+      const iconH = o.icon ? o.iconSize + o.gap : 0;
+      const sub = o.sub === undefined ? sl.sub : o.sub;
+      const subH = sub ? o.gap + o.subSize * 1.1 : 0;
+      const best = (lines) =>
+        radii
+          .map((r) => [r, room(sl, r, iconH / 2, (lines * o.size * 1.1 + subH) / 2, rin, rout, cap, m + 2)])
+          .reduce((a, b) => (b[1] > a[1] + 1 ? b : a));
+      const draw = (r, width) => {
+        parent.textContent = '';
+        return H.block(parent, sl, r, { ...o, maxWidth: width });
+      };
+      // How wide each line as drawn may be where it sits, and whether every line is within that.
+      const lines = (parts) => {
+        const spans = [...parts.label.querySelectorAll('tspan')];
+        const list = (spans.length ? spans : [parts.label]).map((line) => [line, parts.label]);
+        if (parts.sub) list.push([parts.sub, parts.sub]);
+        return list.map(([line, text]) => {
+          const hh = +text.getAttribute('font-size') * 0.42;
+          const cx = +text.getAttribute('x') - 200;
+          const cy = line.getStartPositionOfChar(0).y - 200;
+          const ok = (half) => [-1, 0, 1].every((u) => [-1, 1].every((v) => inside(cx + u * half, cy + v * hh)));
+          let allowed = cap;
+          if (!ok(cap / 2)) {
+            let lo = 0;
+            let hi = cap / 2;
+            for (let k = 0; k < 10; k++) {
+              const half = (lo + hi) / 2;
+              if (ok(half)) lo = half;
+              else hi = half;
+            }
+            allowed = 2 * lo;
+          }
+          return { width: line.getComputedTextLength(), allowed };
+        });
+      };
+      const shortened = () => !!parent.querySelector('[data-fit="shortened"]');
+      let [r, width] = best(1);
+      let parts = draw(r, width);
+      // A single long word that would need an ellipsis may go a size smaller first.
+      if (shortened()) {
+        o = { ...o, minSize: Math.max(8.5, o.minSize - 1.5) };
+        parts = draw(r, width);
+      }
+      for (let k = 0; k < 4 && !shortened(); k++) {
+        const drawn = lines(parts);
+        const over = drawn.filter((line) => line.width > line.allowed + 0.5);
+        if (!over.length) break;
+        const last = [r, width];
+        r = best(drawn.length - (parts.sub ? 1 : 0))[0];
+        width = Math.max(30, Math.min(width * 0.96, ...over.map((line) => line.allowed)));
+        parts = draw(r, width);
+        if (shortened()) {
+          [r, width] = last;
+          parts = draw(r, width);
+          break;
+        }
+      }
+      parts.r = r;
+      return parts;
     }
 
     Board.define({
       id: 'artdeco',
+      // Limelight has no Cyrillic; Yeseva One, as high in contrast, draws those letters.
       fonts: {
         brand: "'Raleway'",
-        display: "'Limelight'",
-        load: ["'Raleway'", "'Limelight'"],
+        display: "'Limelight', 'Yeseva One'",
+        load: ["'Raleway'", "'Limelight', 'Yeseva One'"],
         credits: [
           { family: 'Raleway', license: 'SIL Open Font License 1.1' },
           { family: 'Limelight', license: 'SIL Open Font License 1.1' },
+          { family: 'Yeseva One', license: 'SIL Open Font License 1.1' },
         ],
       },
       motion: { open: 180, close: 120, stagger: 12, apply: 680 },
@@ -78,6 +184,7 @@ export default function register(Board) {
           'wheel-line': '#a8843a',
           'wheel-shadow': 'rgba(80, 60, 20, 0.22)',
           'ad-slice-b': '#f5efe0',
+          'ad-slice-c': '#f8f1de',
           'ad-gold': '#a8843a',
           'ad-gold-hi': '#d7b562',
           'ad-gold-lo': '#7d6020',
@@ -125,6 +232,7 @@ export default function register(Board) {
           'wheel-line': '#c9a550',
           'wheel-shadow': 'rgba(0, 0, 0, 0.6)',
           'ad-slice-b': '#19191d',
+          'ad-slice-c': '#1d1c1a',
           'ad-gold': '#c9a550',
           'ad-gold-hi': '#f3d98f',
           'ad-gold-lo': '#8a6a2a',
@@ -149,6 +257,8 @@ export default function register(Board) {
       contrast: [
         ...Board.DEFAULT_PAIRS,
         ['wheel-text', 'ad-slice-b', 'text'],
+        ['wheel-text', 'ad-slice-c', 'text'],
+        ['ad-sub', 'ad-slice-c', 'text'],
         ['ad-sub', 'wheel-slice', 'text'],
         ['ad-sub', 'ad-slice-b', 'text'],
         ['ad-sub', 'wheel-slice-hover', 'text'],
@@ -175,9 +285,11 @@ export default function register(Board) {
           root.style.setProperty('--ad-gild', `url(#${uid}-gild)`);
 
           // Silhouette: the ring of stepped crowns, filled, with a soft shadow.
+          // The crowns joined clockwise, whichever way the slices run (right to left they run the other way).
           let outline = '';
-          for (const sl of m.slices)
-            outline += outline ? crown(sl.a0, sl.a1, 0).replace(/^M/, 'L') : crown(sl.a0, sl.a1, 0);
+          const spans = m.slices.map((sl) => [((sl.a0 % 360) + 360) % 360, sl.a1 - sl.a0]).sort((p, q) => p[0] - q[0]);
+          for (const [a0, step] of spans)
+            outline += outline ? crown(a0, a0 + step, 0).replace(/^M/, 'L') : crown(a0, a0 + step, 0);
           outline += 'Z';
           s('path', { d: outline, class: 'ad-shadow', transform: 'translate(0 6)' }, root);
           s('path', { d: outline, class: 'ad-crownfill' }, root);
@@ -185,7 +297,9 @@ export default function register(Board) {
 
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
-            if (sl.i % 2) g.classList.add('ad-b');
+            // Neighbours alternate; an odd count gives the last slice a third tone.
+            if (m.n % 2 && sl.i === m.n - 1 && m.n > 1) g.classList.add('ad-c');
+            else if (sl.i % 2) g.classList.add('ad-b');
             s('path', { d: H.sector(R.hubRing, R.crown[0], sl.a0, sl.a1), class: 'ad-hit' }, g);
             s('path', { d: H.sector(R.hubRing, R.face, sl.a0, sl.a1), class: 'ad-fill' }, g);
             s('path', { d: H.sector(R.hubRing, R.face, sl.a0, sl.a1), class: 'ad-gilt' }, g);
@@ -200,8 +314,10 @@ export default function register(Board) {
             );
             // Sunburst: thin wedges fanning out from the hub.
             const rays = s('g', { class: 'ad-rays' }, g);
-            for (let k = 0; k < RAYS; k++) {
-              const off = (k - (RAYS - 1) / 2) * (sl.step / (RAYS + 0.6));
+            const count = 2 * Math.round(((RAYS - 1) / 2) * Math.max(1, sl.step / 45)) + 1;
+            const centre = (count - 1) / 2;
+            for (let k = 0; k < count; k++) {
+              const off = (k - centre) * (Math.min(sl.step, 45) / (RAYS + 0.6));
               const a = sl.mid + off;
               const w = k % 2 ? 0.55 : 1.15;
               const ray = s(
@@ -210,34 +326,36 @@ export default function register(Board) {
                 rays,
               );
               ray.style.setProperty('--fan', f2(-off) + 'deg');
-              ray.style.setProperty('--k', Math.abs(k - (RAYS - 1) / 2));
+              // The fan opens from the centre line; the outermost rays start about 70 ms later.
+              ray.style.setProperty('--k', f2((Math.abs(k - centre) / Math.max(1, centre)) * 4));
             }
             // The crown's inner gold line, brighter when the slice is pointed at or applied.
             s('path', { d: crown(sl.a0, sl.a1, 5.5), class: 'ad-crownline' }, g);
             s('path', { d: crown(sl.a0, sl.a1, 0), class: 'ad-glint', pathLength: 120 }, g);
             const ink = s('g', { class: 'ad-ink' }, g);
-            const lab = Object.assign({}, sl, { label: caps(sl.label, m.lang) });
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(ink, lab, R.lbl, {
-                size: 21,
+            const wide = sl.step >= 70;
+            const radii = [R.lbl, R.lbl + 6, R.lbl - 6, R.lbl - 12];
+            if (sl.format) {
+              const o = {
+                size: sl.sub ? 21 : 25,
                 subSize: 12.5,
                 gap: 4,
-                maxWidth: 76,
                 minSize: 10,
                 cls: 'ad-lbl ad-fmt',
                 subCls: 'ad-sub',
-              });
+              };
+              fitBlock(H, ink, { ...sl, label: caps(sl.label, m.lang) }, radii, o, R.hubRing, R.face, 112);
             } else {
-              H.block(ink, Object.assign({}, sl), R.lbl, {
+              const o = {
                 icon: true,
-                iconSize: 23,
-                size: 14,
-                gap: 5,
-                maxWidth: 76,
+                iconSize: wide ? 27 : 22,
+                size: wide ? 16 : 14,
+                gap: 4,
                 minSize: 9.5,
                 cls: 'ad-lbl ad-word',
                 sub: null,
-              });
+              };
+              fitBlock(H, ink, sl, radii, o, R.hubRing, R.face, 112);
             }
           }
 
@@ -255,28 +373,33 @@ export default function register(Board) {
           s('circle', { cx: C, cy: C, r: R.hubRing - 4, class: 'ad-hub' }, hub);
           s('circle', { cx: C, cy: C, r: R.hub, class: 'ad-hub-ring2' }, hub);
           H.label(hub, C, C - 15, caps(m.title, m.lang), {
-            maxWidth: 82,
+            // As wide as the disc allows: a long title (Russian "Convert") shrinks rather than shortens.
+            maxWidth: 94,
             size: 13,
-            minSize: 8.5,
+            minSize: 7,
             cls: 'ad-title',
             maxLines: 1,
           });
-          H.label(hub, C, C + 4, m.file, { maxWidth: 78, size: 12, minSize: 9, cls: 'ad-file', maxLines: 1 });
-          const key = caps(m.key, m.lang);
-          const kw = 16 + key.length * 7.2;
-          const x0 = C - kw / 2,
-            y0 = C + 16,
-            h = 15,
-            n = 3;
-          s(
-            'path',
-            {
-              d: `M${f2(x0 + n)} ${y0}H${f2(x0 + kw - n)}V${y0 + n}H${f2(x0 + kw)}V${y0 + h - n}H${f2(x0 + kw - n)}V${y0 + h}H${f2(x0 + n)}V${y0 + h - n}H${f2(x0)}V${y0 + n}H${f2(x0 + n)}Z`,
-              class: 'ad-key',
-            },
-            hub,
-          );
-          H.text(hub, C, C + 24, key, { class: 'ad-keytext' });
+          H.label(hub, C, C + (m.key ? 4 : 9), m.file, {
+            maxWidth: 78,
+            size: 12,
+            minSize: 9,
+            cls: 'ad-file',
+            maxLines: 1,
+          });
+          if (m.key) {
+            const plate = s('path', { class: 'ad-key' }, hub);
+            const text = H.text(hub, C, C + 24, caps(m.key, m.lang), { class: 'ad-keytext' });
+            const kw = Math.min(90, Math.ceil(text.getComputedTextLength()) + 16);
+            const x0 = C - kw / 2;
+            const y0 = C + 16;
+            const h = 15;
+            const n = 3;
+            plate.setAttribute(
+              'd',
+              `M${f2(x0 + n)} ${y0}H${f2(x0 + kw - n)}V${y0 + n}H${f2(x0 + kw)}V${y0 + h - n}H${f2(x0 + kw - n)}V${y0 + h}H${f2(x0 + n)}V${y0 + h - n}H${f2(x0)}V${y0 + n}H${f2(x0 + n)}Z`,
+            );
+          }
         },
       },
 
