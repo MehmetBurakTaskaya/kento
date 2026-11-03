@@ -341,3 +341,10 @@
     fill: var(--wheel-slice-selected);
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead at the top of its cell, with the label's
+   halo so the hand passes behind it. */
+[data-concept='kronograf'] .kr-ring-mark {
+  --ring-mark-halo: var(--kr-halo);
+  --ring-mark-rest: 0.9;
+}

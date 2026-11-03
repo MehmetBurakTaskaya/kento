@@ -324,3 +324,17 @@
     color: var(--wheel-text-selected);
   }
 }
+
+/* More choices: a slice that opens a ring has an arrowhead printed on the finger wheel's outer band
+   beside its hole, in the number card's print, red when aimed at or chosen. */
+[data-concept='telefon'] .tl-ring-mark {
+  --ring-mark-color: var(--tl-print);
+  --ring-mark-hover: var(--tl-ring);
+  --ring-mark-selected: var(--tl-ring);
+  --ring-mark-rest: 1;
+}
+[data-concept='telefon'][data-theme='dark'] .tl-ring-mark {
+  --ring-mark-color: var(--tl-card);
+  --ring-mark-hover: var(--tl-chrome-hi);
+  --ring-mark-selected: var(--tl-chrome-hi);
+}

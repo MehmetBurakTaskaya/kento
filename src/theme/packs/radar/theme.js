@@ -234,6 +234,8 @@ export default function register(Board) {
           },
           top,
         );
+        // More choices: an arrowhead just inside the glass's rim, above the beam like the label.
+        H.ringMark(top, sl, m, { r: R.glass - 8, size: 9, halo: 1.2, cls: 'rd-ring-mark' });
       });
 
       // Hub: own position, the wheel's name, the file and the key.

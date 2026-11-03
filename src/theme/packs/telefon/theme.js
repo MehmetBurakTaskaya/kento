@@ -141,6 +141,8 @@ export default function register(Board) {
         // A small paint dot between the holes, as on many dials.
         const [dx, dy] = pol(R.at + 4, sl.a1);
         H.s('circle', { cx: f2(dx), cy: f2(dy), r: 2.1, class: 'tl-dot' }, fw);
+        // More choices: an arrowhead printed on the finger wheel's outer band, beside the hole.
+        H.ringMark(fw, sl, m, { r: R.fw - 2, size: 9.5, cls: 'tl-ring-mark' });
       }
       H.s('circle', { cx: C, cy: C, r: R.fw - 0.6, class: 'tl-fw-edge' }, fw);
       // Light on the finger wheel's outer band stays put while the wheel turns.

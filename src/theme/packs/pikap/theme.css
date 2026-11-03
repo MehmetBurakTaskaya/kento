@@ -394,3 +394,9 @@
     fill: var(--wheel-text-selected);
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead at the outer edge of its grooves, in the
+   label's colour; it turns with the record. */
+[data-concept='pikap'] .pk-ring-mark {
+  --ring-mark-rest: 0.9;
+}

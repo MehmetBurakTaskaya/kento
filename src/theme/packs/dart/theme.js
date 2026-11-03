@@ -254,6 +254,9 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a flight-shaped arrowhead in the sector just under the double ring, pointing
+            // out, in the sector's lettering colour.
+            H.ringMark(c, sl, m, { r: R.d0 - 3, size: 10.5, shape: 'dart', cls: 'dt-ring-mark' });
           }
 
           // Spotlight falloff (dark mode), then the wire spider.

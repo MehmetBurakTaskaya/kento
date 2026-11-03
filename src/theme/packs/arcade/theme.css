@@ -392,3 +392,17 @@
     r: 4.6px;
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead near the top of its sign, lit in the
+   tube's colour at night and printed in the lettering's ink by day; the chosen slice's in the
+   selected text colour. */
+[data-concept='arcade'] .ar-ring-mark {
+  --ring-mark-color: var(--tube);
+  --ring-mark-hover: var(--tube);
+  --ring-mark-rest: 1;
+}
+[data-concept='arcade'][data-theme='light'] .ar-ring-mark {
+  --ring-mark-color: var(--wheel-text);
+  --ring-mark-hover: var(--wheel-text);
+  --ring-mark-rest: 0.85;
+}

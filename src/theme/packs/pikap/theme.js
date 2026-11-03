@@ -154,6 +154,8 @@ export default function register(Board) {
           });
         }
         labels.push({ node: lg, x, y });
+        // More choices: an arrowhead at the outer edge of the grooves; it turns with the record.
+        H.ringMark(labelsLayer, sl, m, { r: R.grooveOut - 3.5, size: 9.5, cls: 'pk-ring-mark' });
       }
       // Grooves and sheen above the wedges (one foreignObject, never redrawn while the record turns).
       const fo = H.s('foreignObject', {

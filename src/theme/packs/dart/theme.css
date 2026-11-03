@@ -391,3 +391,13 @@
     transform: scale(0.94);
   }
 }
+
+/* More choices: a slice that opens a ring carries a flight-shaped arrowhead in its sector just under
+   the double ring, pointing out, in the sector's lettering colour. */
+[data-concept='dart'] .dt-ring-mark {
+  --ring-mark-rest: 0.9;
+}
+[data-concept='dart'] :is(.dt-odd, .dt-third) .dt-ring-mark {
+  --ring-mark-color: var(--dt-text-alt);
+  --ring-mark-hover: var(--dt-text-alt);
+}

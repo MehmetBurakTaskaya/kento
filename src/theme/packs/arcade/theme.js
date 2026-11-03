@@ -113,6 +113,8 @@ export default function register(Board) {
             sub: null,
           });
         }
+        // More choices: a neon arrowhead in the tube's colour near the top of the sign.
+        H.ringMark(c, sl, m, { r: R.tubeOut - 9.5, size: 10, cls: 'ar-ring-mark' });
       }
 
       // The apply burst: moved onto the chosen slice by onSelect, animated by CSS while is-applying.

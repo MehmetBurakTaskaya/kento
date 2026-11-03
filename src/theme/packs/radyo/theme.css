@@ -519,3 +519,10 @@
     opacity: 0.22;
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead printed at the top of its station's
+   window, with the label's halo so the pointer passes behind it. */
+[data-concept='radyo'] .ry-ring-mark {
+  --ring-mark-halo: var(--ry-halo);
+  --ring-mark-rest: 0.9;
+}

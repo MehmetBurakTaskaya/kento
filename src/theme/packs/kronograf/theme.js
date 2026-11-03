@@ -215,6 +215,8 @@ export default function register(Board) {
             sub: null,
           });
         }
+        // More choices: an arrowhead at the top of the cell, just under the track, above the hand.
+        H.ringMark(c, sl, m, { r: R.trackIn - 5.5, size: 9.5, halo: 1.3, cls: 'kr-ring-mark' });
       }
 
       // Hub: the counter subdial with its own fine track and the wheel's name.

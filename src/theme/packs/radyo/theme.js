@@ -144,6 +144,8 @@ export default function register(Board) {
             sub: null,
           });
         }
+        // More choices: an arrowhead printed at the top of the station's window, under the scale.
+        H.ringMark(lg, sl, m, { r: R.scaleIn - 5, size: 9.5, halo: 1.3, cls: 'ry-ring-mark' });
       });
       // A small band legend between the resting pointer and the first station.
       const [bx, by] = pol(R.scaleIn + 13, m.slices[0].mid + (m.dir === 'rtl' ? 1 : -1) * (m.step / 4));
