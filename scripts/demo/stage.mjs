@@ -20,7 +20,7 @@ const TEXT = {
     tagline: 'Drag a file. Press a key. Drop it on the dial.',
     folder: 'Demo',
     items: (n) => `${n} items`,
-    files: ['sunrise.heic', 'harbour.jpg', 'report.docx', 'slides.pptx', 'budget.xlsx', 'invoice.pdf', 'clip.mov'],
+    files: ['sunrise.heic', 'harbor.jpg', 'report.docx', 'slides.pptx', 'budget.xlsx', 'invoice.pdf', 'clip.mov'],
     made: ['sunrise.jpg', 'clip.mp4'],
     mac: (key) => `${key} on a Mac`,
     caption: {
@@ -52,7 +52,7 @@ const TEXT = {
     mac: (key) => `Mac’te ${key}`,
     caption: {
       drag: 'Bir dosyayı sürükle, Shift’e bas',
-      wheel: 'Dönüştür çarkı imlecin altında açılır',
+      wheel: 'Dönüştürme çarkı imlecin altında açılır',
       rest: 'Seçenekler için bir dilimde bekle',
       copy: 'Bırak: orijinalin yanına yeni bir kopya',
       ctrl: 'Ctrl araçları açar',
@@ -151,7 +151,7 @@ function thumb(name) {
   const box = element('div', 'thumb');
   const extension = name.split('.').pop();
   if (extension === 'heic' || extension === 'jpg') {
-    const photo = paintPhoto(128, 96, /harbour|liman/.test(name) ? 'jpg' : 'heic');
+    const photo = paintPhoto(128, 96, /harbor|liman/.test(name) ? 'jpg' : 'heic');
     box.append(photo);
     return box;
   }

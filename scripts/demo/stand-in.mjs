@@ -258,6 +258,7 @@ const TEXT = turkish
       ready: 'Hazır',
       opened: 'Açılanlar',
       downloadsFolder: 'İndirilenler',
+      desktop: 'Masaüstü',
     }
   : {
       shots: 'Screenshots → WEBP',
@@ -271,6 +272,7 @@ const TEXT = turkish
       ready: 'Ready',
       opened: 'Extracted',
       downloadsFolder: 'Downloads',
+      desktop: 'Desktop',
     };
 
 const home = (...parts) => ['C:\\Users\\me', ...parts].join('\\');
@@ -306,10 +308,10 @@ function automationView(base) {
       rule(
         'social',
         TEXT.social,
-        home('Desktop', turkish ? 'Paylaşılacak' : 'To share'),
+        home(TEXT.desktop, turkish ? 'Paylaşılacak' : 'To share'),
         ['jpg', 'heic'],
         { kind: 'recipe', recipe: 'ready-for-instagram' },
-        home('Desktop', turkish ? 'Paylaşılacak' : 'To share', TEXT.ready),
+        home(TEXT.desktop, turkish ? 'Paylaşılacak' : 'To share', TEXT.ready),
       ),
       rule(
         'archives',
@@ -365,7 +367,7 @@ const LIBRARY = (
         ['clip.mp4', 'convert', 'clip.mov', 95_000],
         ['report.pdf', 'convert', 'report.docx', 400_000],
         [`${TEXT.video}.mp4`, 'download', null, 2_400_000],
-        ['harbour - cropped.jpg', 'tool', 'harbour.jpg', 7_200_000],
+        ['harbor - cropped.jpg', 'tool', 'harbor.jpg', 7_200_000],
         ['slides - 1.png', 'convert', 'slides.pptx', 86_400_000],
       ]
 ).map(([name, origin, source, age], index) => ({
