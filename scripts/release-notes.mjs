@@ -34,7 +34,7 @@ if (!notes) {
 }
 
 const mac = `
-- **Kento-macOS-Universal.dmg**: for macOS 12 or later, on Apple silicon and Intel. Open it and drag
+- **Kento-macOS-Universal.dmg**: for macOS 13 or later, on Apple silicon and Intel. Open it and drag
   Kento into Applications. Kento is not notarized by Apple, so macOS blocks its first opening: close
   the warning (**Done** or **Cancel**, not Move to Trash), then open **System Settings → Privacy &
   Security**, scroll down, choose **Open Anyway** next to Kento and enter your password.

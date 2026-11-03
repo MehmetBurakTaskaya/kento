@@ -24,7 +24,7 @@ download:
   - platform: macos
     file: "https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-macOS-Universal.dmg"
     portable: null
-    note: {en: "Kento runs on macOS 12 or later, on Macs with Apple silicon or Intel processors. Open the disk image and drag Kento into Applications. Kento is not notarized by Apple, so macOS blocks its first launch: close the warning, then choose Open Anyway in System Settings → Privacy & Security.", tr: "Kento, macOS 12 ya da sonrasında, Apple silicon ya da Intel işlemcili Mac’lerde çalışır. Disk görüntüsünü açıp Kento’yu Uygulamalar klasörüne sürükleyin. Kento Apple onaylı değil, bu yüzden macOS ilk açılışı engeller: uyarıyı kapatın, sonra Sistem Ayarları → Gizlilik ve Güvenlik’te Yine de Aç’ı seçin."}
+    note: {en: "Kento runs on macOS 13 or later, on Macs with Apple silicon or Intel processors. Open the disk image and drag Kento into Applications. Kento is not notarized by Apple, so macOS blocks its first launch: close the warning, then choose Open Anyway in System Settings → Privacy & Security.", tr: "Kento, macOS 13 ya da sonrasında, Apple silicon ya da Intel işlemcili Mac’lerde çalışır. Disk görüntüsünü açıp Kento’yu Uygulamalar klasörüne sürükleyin. Kento Apple onaylı değil, bu yüzden macOS ilk açılışı engeller: uyarıyı kapatın, sonra Sistem Ayarları → Gizlilik ve Güvenlik’te Yine de Aç’ı seçin."}
 video: null
 lab: null
 supervisor: null
