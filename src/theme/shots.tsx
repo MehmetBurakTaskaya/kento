@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: MIT
 // Pictures of a theme's wheel for scripts/shoot-themes.mjs: the floating wheel as the app shows it,
-// with a chosen number of slices in the language of the page, on the theme's own desk. Development
-// builds only: the script loads this module into the dev server's page.
+// with a chosen number of slices in the language of the page, on the theme's own desk. The slices hold
+// the choices the app gives them, so the ones that open a ring show their mark. Development builds
+// only: the script loads this module into the dev server's page.
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import { changeLanguage } from '../i18n';
 import i18n from '../i18n';
 import type { IconName } from '../components/Icon';
 import { TOOL_ICONS } from '../app/slices';
-import { targetChoices, withChoices } from '../app/variants';
+import { actionChoices, targetChoices, toolChoices, withChoices } from '../app/variants';
+import type { Category } from '../ipc';
 import { loadTheme, showTheme, type Mode } from './registry';
 import { Wheel, type WheelSlice } from '../wheel/Wheel';
 
-export type SampleSet = 'convert2' | 'tools3' | 'actions5' | 'convert8' | 'convert12' | 'tools8';
+export type SampleSet = 'convert2' | 'tools3' | 'actions5' | 'convert8' | 'convert12' | 'tools8' | 'pdf8';
 
+// The targets of a picture (JPG, WEBP and AVIF open a ring of picture quality) and of a PDF (JPG and
+// PNG open a ring of page resolution).
 const FORMATS = ['jpg', 'png', 'webp', 'avif', 'pdf', 'tiff', 'ico', 'gif', 'bmp', 'heic', 'jxl', 'qoi'];
+const PDF_TARGETS = ['jpg', 'png', 'txt', 'md', 'xlsx', 'docx', 'pptx', 'html'];
 const TOOLS = [
   'compress',
   'crop-image',
@@ -25,6 +30,8 @@ const TOOLS = [
   'remove-background',
   'metadata',
 ];
+/** Recent folders, which give Copy and Move a ring. */
+const FOLDERS = ['C:\\Users\\me\\Pictures\\', 'C:\\Users\\me\\Documents\\Invoices\\'];
 const ACTIONS: [string, IconName][] = [
   ['share', 'share'],
   ['shelf', 'shelf'],
@@ -33,31 +40,36 @@ const ACTIONS: [string, IconName][] = [
   ['zip', 'zip'],
 ];
 
-function formats(count: number): WheelSlice[] {
+function formats(targets: string[], category: Category = 'image'): WheelSlice[] {
   const t = i18n.t.bind(i18n);
-  return FORMATS.slice(0, count).map((to) => {
+  return targets.map((to) => {
     const hint = i18n.exists(`format.hint.${to}`) ? t(`format.hint.${to}`) : undefined;
-    return withChoices({ id: to, label: to.toUpperCase(), hint }, targetChoices('image', to, 1, true, t), t);
+    return withChoices({ id: to, label: to.toUpperCase(), hint }, targetChoices(category, to, 1, true, t), t);
   });
 }
 
 function sample(set: SampleSet): { kind: 'convert' | 'tools'; title: string; slices: WheelSlice[] } {
   const t = i18n.t.bind(i18n);
   const tools = (ids: string[]): WheelSlice[] =>
-    ids.map((id) => ({
-      id,
-      label: t(`tool.${id}`),
-      icon: TOOL_ICONS[id] ?? 'sliders',
-      dimmed: id === 'remove-background',
-      hint: id === 'remove-background' ? t('wheel.needs', { name: t('group.extras') }) : undefined,
-    }));
+    ids.map((id) => {
+      const slice: WheelSlice = {
+        id,
+        label: t(`tool.${id}`),
+        icon: TOOL_ICONS[id] ?? 'sliders',
+        dimmed: id === 'remove-background',
+        hint: id === 'remove-background' ? t('wheel.needs', { name: t('group.extras') }) : undefined,
+      };
+      return slice.dimmed ? slice : withChoices(slice, toolChoices(id, t, i18n.language, ['image']), t);
+    });
   switch (set) {
     case 'convert2':
-      return { kind: 'convert', title: t('wheel.convert'), slices: formats(2) };
+      return { kind: 'convert', title: t('wheel.convert'), slices: formats(FORMATS.slice(0, 2)) };
     case 'convert8':
-      return { kind: 'convert', title: t('wheel.convert'), slices: formats(8) };
+      return { kind: 'convert', title: t('wheel.convert'), slices: formats(FORMATS.slice(0, 8)) };
     case 'convert12':
-      return { kind: 'convert', title: t('wheel.convert'), slices: formats(12) };
+      return { kind: 'convert', title: t('wheel.convert'), slices: formats(FORMATS) };
+    case 'pdf8':
+      return { kind: 'convert', title: t('wheel.convert'), slices: formats(PDF_TARGETS, 'pdf') };
     case 'tools3':
       return { kind: 'tools', title: t('wheel.tools'), slices: tools(TOOLS.slice(0, 3)) };
     case 'tools8':
@@ -66,7 +78,9 @@ function sample(set: SampleSet): { kind: 'convert' | 'tools'; title: string; sli
       return {
         kind: 'tools',
         title: t('wheel.actions'),
-        slices: ACTIONS.map(([id, icon]) => ({ id, label: t(`action.${id}`), icon })),
+        slices: ACTIONS.map(([id, icon]) =>
+          withChoices({ id, label: t(`action.${id}`), icon }, actionChoices(id, FOLDERS, t), t),
+        ),
       };
   }
 }

@@ -2,14 +2,16 @@
 // Pictures of the themes as the app shows them (SPEC 5.20), for working on a theme: the floating wheel
 // in light and dark with 2, 3, 5 and 8 slices, with a second page ("More…"), with a ring of choices
 // open, in Arabic (right to left) and German (long labels), pointed at, in the middle of its apply
-// effect and applied; and Settings › Appearance with the theme chosen, and its card. Each theme gets a
-// folder in artifacts/theme-shots/ with the pictures and contact.png, a sheet of all of them. The
-// script reports every error a page logs, labels a theme had to shorten, letters its faces lack
-// (Turkish, Cyrillic) and the longest a wheel took to be drawn, in report.json and on the console; it
-// fails when a page logged an error.
+// effect and applied; the slices that open a ring of choices with their mark, at rest, pointed at and
+// applied, on the Convert wheels of a picture and of a PDF and in Arabic; and Settings › Appearance
+// with the theme chosen, and its card. Each theme gets a folder in artifacts/theme-shots/ with the
+// pictures and contact.png, a sheet of all of them. The script reports every error a page logs, labels
+// a theme had to shorten, letters its faces lack (Turkish, Cyrillic) and the longest a wheel took to
+// be drawn, in report.json and on the console; it fails when a page logged an error.
 //   npm run shots:themes                     every theme
 //   npm run shots:themes -- pusula telefon   these themes
 //   npm run shots:themes -- --no-settings    without the Settings pictures (faster)
+//   npm run shots:themes -- --only=8,ring-hover,ar-rings   only these pictures
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +22,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'artifacts', 'theme-shots');
 const catalog = JSON.parse(readFileSync(path.join(root, 'src', 'theme', 'catalog.json'), 'utf8'));
 const args = process.argv.slice(2);
-const settingsShots = !args.includes('--no-settings');
+const only =
+  args
+    .find((arg) => arg.startsWith('--only='))
+    ?.slice('--only='.length)
+    .split(',') ?? null;
+const settingsShots = !args.includes('--no-settings') && !only;
 const asked = args.filter((arg) => !arg.startsWith('--'));
 const unknown = asked.filter((id) => !catalog.some((theme) => theme.id === id));
 if (unknown.length) {
@@ -44,21 +51,39 @@ const SHOTS = [
   { name: 'hover', set: 'tools8', lang: 'en', act: 'hover' },
   { name: 'apply', set: 'tools8', lang: 'en', act: 'apply' },
   { name: 'selected', set: 'tools8', lang: 'en', act: 'selected' },
+  // JPG, WEBP and AVIF open a ring of picture quality; JPG and PNG of a PDF one of page resolution.
+  // `at` is the slice pointed at or applied.
+  { name: 'ring-hover', set: 'convert8', lang: 'en', act: 'hover', at: 2 },
+  { name: 'ring-selected', set: 'convert8', lang: 'en', act: 'selected', at: 2 },
+  { name: 'pdf', set: 'pdf8', lang: 'en' },
+  { name: 'pdf-hover', set: 'pdf8', lang: 'en', act: 'hover', at: 1 },
+  { name: 'pdf-selected', set: 'pdf8', lang: 'en', act: 'selected', at: 1 },
+  { name: 'ar-rings', set: 'convert8', lang: 'ar' },
+  { name: 'ar-ring-hover', set: 'convert8', lang: 'ar', act: 'hover', at: 2 },
 ];
+const unknownShots = (only ?? []).filter((name) => !SHOTS.some((shot) => shot.name === name));
+if (unknownShots.length) {
+  console.error(`No such picture: ${unknownShots.join(', ')}. Pictures: ${SHOTS.map((shot) => shot.name).join(' ')}`);
+  process.exit(2);
+}
+const shots = only ? SHOTS.filter((shot) => only.includes(shot.name)) : SHOTS;
+const RTL = new Set(['ar']);
 const WINDOW = { width: 520, height: 520 };
 const SIZE = 360;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** The middle of slice `index` of a ring of `count` (left to right, from twelve o'clock). */
-async function sliceAt(page, index, count) {
+/** The middle of slice `index` of a ring of `count`, from twelve o'clock: clockwise, or
+ *  counterclockwise right to left. */
+async function sliceAt(page, index, count, rtl = false) {
   const box = await page.locator('.wheel-disc').boundingBox();
-  const angle = ((index * 360) / count) * (Math.PI / 180);
+  const angle = (((rtl ? -1 : 1) * index * 360) / count) * (Math.PI / 180);
   const r = box.width * 0.33;
   return [box.x + box.width / 2 + r * Math.sin(angle), box.y + box.height / 2 - r * Math.cos(angle)];
 }
 
 async function act(page, shot, timings) {
+  const slice = () => sliceAt(page, shot.at ?? 1, 8, RTL.has(shot.lang));
   if (shot.act === 'page') {
     // "More…" is the eighth slice; Enter on it turns the page.
     await page.keyboard.press('End');
@@ -70,15 +95,17 @@ async function act(page, shot, timings) {
     await page.keyboard.press('Enter');
     await wait(timings.open + 200);
   } else if (shot.act === 'hover') {
-    await page.mouse.move(...(await sliceAt(page, 1, 8)));
+    // Shorter than the rest that opens a slice's ring of choices.
+    await page.mouse.move(...(await slice()));
     await wait(350);
   } else if (shot.act === 'apply') {
-    await page.mouse.move(...(await sliceAt(page, 1, 8)));
+    await page.mouse.move(...(await slice()));
     await page.mouse.down();
     await page.mouse.up();
     await wait(Math.max(40, timings.apply / 2));
   } else if (shot.act === 'selected') {
-    await page.mouse.move(...(await sliceAt(page, 1, 8)));
+    // A slice with a ring of choices applies its usual choice.
+    await page.mouse.move(...(await slice()));
     await page.mouse.down();
     await page.mouse.up();
     await wait(timings.apply + 150);
@@ -138,7 +165,7 @@ for (const theme of themes) {
   await page.goto(`${base}?surface=wheel&lang=en&appearance=light&theme=${theme.id}`);
   await page.waitForSelector('#root');
   for (const mode of MODES) {
-    for (const shot of SHOTS) {
+    for (const shot of shots) {
       current = `${mode} ${shot.name}`;
       const timings = await page.evaluate(
         (options) => import('/src/theme/shots.tsx').then((shots) => shots.mountWheelShot(options)),
