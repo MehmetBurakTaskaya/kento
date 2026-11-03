@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/kento-demo-tr.gif" width="960" alt="Kento kullanımda. Bir klasörden sürüklenen fotoğraf, Shift'e basılınca imlecin altında çelik Dönüştür çarkını açıyor; JPG'de beklemek görsel kalitelerini açıyor, bırakınca kadranın sürgüleri dışarı çıkıyor ve orijinalin yanına balon.jpg yazılıyor. Ctrl Araçlar çarkını ve Kırp düzenleyicisini, Alt dosya işlemlerini ve rafı açıyor. Ardından karışık bir seçim, bir belge ve bir sunum, yapıştırılan bir video bağlantısı, klasör kuralları ve tarifler, Kütüphane, açık ve koyu görünüm ve sekiz dilde çark geliyor.">
+  <img src="docs/images/kento-demo-tr.gif" width="960" alt="Kento kullanımda. Bir klasörden sürüklenen fotoğraf, Shift'e basılınca imlecin altında çelik Dönüştürme çarkını açıyor; JPG'de beklemek görsel kalitelerini açıyor, bırakınca kadranın sürgüleri dışarı çıkıyor ve orijinalin yanına balon.jpg yazılıyor. Ctrl Araçlar çarkını ve Kırp düzenleyicisini, Alt dosya işlemlerini ve rafı açıyor. Ardından karışık bir seçim, bir belge ve bir sunum, yapıştırılan bir video bağlantısı, klasör kuralları ve tarifler, Kütüphane, açık ve koyu görünüm ve sekiz dilde çark geliyor.">
 </p>
 
 <p align="center">
@@ -48,7 +48,7 @@ orijinalin yanına yeni bir kopya olarak dönüştürür. **Ctrl** (Mac'te ⌘) 
 - **Seçenek halkaları.** Bir dilimin üzerinde yarım saniye bekle, seçenekleri etrafında açılsın:
   resim kalitesi, tek PDF ya da ayrı PDF'ler, sayfa çözünürlüğü, sıkıştırma ayarları, son
   kullanılan klasörler. Dilime doğrudan bırakmak varsayılanı uygular.
-- **Karışık seçimler.** Fotoğrafları, PDF'leri ve videoları birlikte sürükle: Dönüştür çarkı önce
+- **Karışık seçimler.** Fotoğrafları, PDF'leri ve videoları birlikte sürükle: Dönüştürme çarkı önce
   türlerini, sonra her birinin biçimlerini gösterir.
 - **Hiçbir dosyanın üzerine yazmaz.** Her iş orijinalin yanına yeni bir dosya yazar; orijinali
   yalnızca onayladığın Taşı işlemi taşır.
@@ -83,7 +83,7 @@ değişiklik hemen görünür.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/images/kento-wheel-tr.webp" alt="Bir klasördeki fotoğrafın üzerinde açılmış Dönüştür çarkı; imleç PNG'nin üzerinde, açıklaması kadranın altında"><br><sub>Dönüştür çarkı</sub></td>
+    <td align="center"><img src="docs/images/kento-wheel-tr.webp" alt="Bir klasördeki fotoğrafın üzerinde açılmış Dönüştürme çarkı; imleç PNG'nin üzerinde, açıklaması kadranın altında"><br><sub>Dönüştürme çarkı</sub></td>
     <td align="center"><img src="docs/images/kento-tools-dark-tr.webp" alt="Koyu görünümde Araçlar çarkı; Sıkıştır'ın hazır ayarları açık: Yüksek kalite, Dengeli, En küçük, 25 MB altı ve Diğer"><br><sub>Araçlar çarkında bir seçenek halkası, koyu</sub></td>
   </tr>
   <tr>
@@ -287,7 +287,7 @@ Bir ya da birkaç dosyayı sürükle ve sürüklerken bir tuşa bas:
 
 - Tuşu bıraktığında çark açık kalır: sürüklemeye devam et ve dosyaları bir dilime bırak. Esc ya da
   dosyaları çarkın dışına bırakmak işi iptal eder. Başka bir tuş, o tuşun çarkına geçer.
-- Dönüştür çarkı yalnızca seçili dosyaların hepsinin dönüşebileceği biçimleri gösterir. Karışık bir
+- Dönüştürme çarkı yalnızca seçili dosyaların hepsinin dönüşebileceği biçimleri gösterir. Karışık bir
   seçimde önce dosya türleri gelir: birini açmak için üzerinde bekle.
 - **Seçenek halkaları.** Bir dilimin üzerinde yarım saniye bekle, seçenekleri etrafında açılsın:
   resim kalitesi, tek PDF ya da ayrı PDF'ler, çözünürlük, hazır ayarlar, son kullanılan klasörler ve
@@ -318,7 +318,7 @@ ikisini birbirinden ayırır. Bunu aşmak için lütfen Kento'yu yönetici olara
   kısayolu tarayıcıya ulaşmaz; Ayarlar'dan kapatılabilir.
 - **Ana Sayfa** (Ctrl+1): dosyaları bırak, seç (Ctrl+O) ya da yapıştır (Ctrl+V). Yapıştırılan metin
   bir `.txt` dosyası, yapıştırılan resim bir `.png` olur, yapıştırılan bağlantı ise indirmeyi başlatır.
-  Dosya listesinde Enter Dönüştür çarkını, Ctrl+Space araçları, Alt+Enter dosya işlemlerini açar;
+  Dosya listesinde Enter Dönüştürme çarkını, Ctrl+Space araçları, Alt+Enter dosya işlemlerini açar;
   Delete dosyayı diskten değil, yalnızca listeden çıkarır. Ana Sayfa son yapılanları, araçların
   durumunu ve çalışan işleri de gösterir.
 - **Kütüphane** (Ctrl+2): Kento'nun yaptığı son 50 dosya; arama (Ctrl+F), türe göre süzme,
