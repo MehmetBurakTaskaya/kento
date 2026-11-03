@@ -52,10 +52,13 @@ export default function register(Board) {
       return d + 'Z';
     }
 
+    // About sixteen pleats whatever the number of slices, with a valley on every slice boundary.
+    const pleat = (m) => m.step / Math.max(1, Math.round(m.step / 22.5));
+
     // The fabric: cloth, graded shadow on the falling side of every pleat, creases and ridges.
     function fabric(parent, m, H, ids) {
       const valley = m.slices[0].a0;
-      const period = m.step / 2;
+      const period = pleat(m);
       const g = H.s('g', { class: 'se-fabric' }, parent);
       H.s('path', { d: hemPath(valley, period), class: 'se-cloth', fill: `url(#${ids.cloth})` }, g);
       const shade = ['', '', ''];
@@ -94,8 +97,11 @@ export default function register(Board) {
       H.s('circle', { cx: C, cy: C + 1.5, r: R.hat + 1, class: 'se-hat-shadow' }, g);
       H.s('circle', { cx: C, cy: C, r: R.hat, class: 'se-hat', fill: `url(#${ids.hat})` }, g);
       H.s('circle', { cx: C, cy: C, r: R.hat - 5, class: 'se-hat-crown' }, g);
-      H.label(g, C, C - 15, m.title, { maxWidth: 86, size: 19, minSize: 12, maxLines: 1, cls: 'se-title' });
-      H.label(g, C, C + 4, m.file, { maxWidth: 80, size: 11.5, minSize: 8.5, maxLines: 1, cls: 'se-file' });
+      // Without a key the title and file sit lower, in the middle of the crown.
+      const dy = m.key ? 0 : 8;
+      H.label(g, C, C - 15 + dy, m.title, { maxWidth: 86, size: 19, minSize: 12, maxLines: 1, cls: 'se-title' });
+      H.label(g, C, C + 4 + dy, m.file, { maxWidth: 80, size: 11.5, minSize: 8.5, maxLines: 1, cls: 'se-file' });
+      if (!m.key) return;
       const kw = 16 + m.key.length * 6.4;
       H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 17, rx: 8.5, class: 'se-key' }, g);
       H.text(g, C, C + 23.9, m.key, { class: 'se-keytext' });
@@ -244,14 +250,16 @@ export default function register(Board) {
           fabric(turn, m, H, ids);
 
           const valley = m.slices[0].a0;
-          const period = m.step / 2;
+          const period = pleat(m);
+          // The apply turn is four whole pleats, so the fabric ends where it started.
+          turn.style.setProperty('--se-whirl', f2(-4 * period) + 'deg');
           const tl = twist(R.lbl);
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
             H.s('path', { d: band(sl.a0, sl.a1, valley, period, R.waist - 2), class: 'se-seg' }, g);
             const c = H.s('g', { class: 'se-ink' }, g);
             const at = Object.assign({}, sl, { mid: sl.mid + tl });
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(c, at, R.lbl, {
                 size: 26,
                 subSize: 13.5,
