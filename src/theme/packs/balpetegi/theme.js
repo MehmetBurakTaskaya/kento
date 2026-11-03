@@ -87,6 +87,15 @@ export default function register(Board) {
       };
     }
 
+    // The cell that carries the mark of a slice that opens a ring of choices: the one of its cells
+    // nearest the mark's place near the rim, outside the label's patch. Capped like the patch.
+    function markCell(mine, sl, patch, H) {
+      if (!sl.ring) return null;
+      const [x, y] = H.polar(R.outer - 16, sl.mark);
+      const free = mine.filter((c) => !patch.has(c) && c.dist <= R.outer - 8);
+      return free.reduce((a, c) => (!a || Math.hypot(c.x - x, c.y - y) < Math.hypot(a.x - x, a.y - y) ? c : a), null);
+    }
+
     // A hanging honey drop, its tip at (x, y + len).
     const dropPath = (x, y, w, len) =>
       `M${f2(x - w)} ${f2(y)}C${f2(x - w)} ${f2(y + len * 0.45)} ${f2(x - w * 1.05)} ${f2(y + len * 0.72)} ${f2(x)} ${f2(y + len)}C${f2(x + w * 1.05)} ${f2(y + len * 0.72)} ${f2(x + w)} ${f2(y + len * 0.45)} ${f2(x + w)} ${f2(y)}Z`;
@@ -236,8 +245,9 @@ export default function register(Board) {
             const mine = all.filter((c) => inSlice(c.ang, sl));
             // Cells under the label are capped with wax so the text sits on a calm patch.
             const patch = cap(sl, H);
-            const open = mine.filter((c) => !patch.has(c));
-            const caps = mine.filter(patch.has);
+            const marked = markCell(mine, sl, patch, H);
+            const open = mine.filter((c) => !patch.has(c) && c !== marked);
+            const caps = mine.filter((c) => patch.has(c) || c === marked);
             const grp = H.s('g', { class: 'bp-cells' }, g);
             H.s('path', { d: open.map((c) => hex(c.x, c.y, S - 1.35)).join(''), class: 'bp-cell' }, grp);
             H.s('path', { d: open.map((c) => hex(c.x, c.y, S * 0.56, 0.7, 1.3)).join(''), class: 'bp-deep' }, grp);
@@ -278,6 +288,16 @@ export default function register(Board) {
                 minSize: 9,
                 cls: 'bp-lbl bp-lbl-s',
                 sub: null,
+              });
+            }
+            // More choices: an arrowhead on a capped cell near the rim, pointing out.
+            if (marked) {
+              const turn = ((((marked.ang - sl.mid) % 360) + 540) % 360) - 180;
+              H.ringMark(ink, sl, m, {
+                r: marked.dist + 4.5,
+                size: 9,
+                offset: turn * (m.dir === 'rtl' ? -1 : 1),
+                cls: 'bp-ring-mark',
               });
             }
           }
@@ -338,10 +358,11 @@ export default function register(Board) {
           deep.parentNode.insertBefore(fills, deep);
           const mine = cells().filter((c) => c.ring > HUB_RING && inSlice(c.ang, sl));
           const patch = cap(sl, H);
+          const marked = markCell(mine, sl, patch, H);
           const near = Math.min(...mine.map((c) => c.dist));
           const far = Math.max(...mine.map((c) => c.dist));
           for (const c of mine) {
-            if (patch.has(c)) continue;
+            if (patch.has(c) || c === marked) continue;
             const d = Math.round(((c.dist - near) / (far - near)) * 300 + ((c.ang * 7) % 40));
             H.s(
               'path',

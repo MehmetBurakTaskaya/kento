@@ -316,7 +316,9 @@ export default function register(Board) {
               [-0.28, 158, 8],
               [0.12, 176, 5],
             ].forEach(([da, r, s], k) => {
-              const [x, y] = H.polar(r, sl.mid + da * sl.step);
+              // The glint by the rim keeps clear of the mark of a slice that opens a ring of choices.
+              const away = sl.ring && k === 2 ? (m.dir === 'rtl' ? 1 : -1) : 1;
+              const [x, y] = H.polar(r, sl.mid + away * da * sl.step);
               H.s('path', { d: glint(x, y, s), class: 'ka-glint', style: `--k: ${k}` }, sp);
             });
             const ink = H.s('g', { class: 'ka-ink' }, g);
@@ -342,6 +344,16 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: an icicle arrowhead pointing out, just inside the rim light and nearer the
+            // middle of the pane than the snowflake's twigs.
+            H.ringMark(g, sl, m, {
+              r: R.out - 10,
+              size: 10,
+              offset: 10,
+              shape: 'dart',
+              halo: 1.4,
+              cls: 'ka-ring-mark',
+            });
           }
 
           // The crystal: an arm on every slice border (and lighter ones between few slices), drawn

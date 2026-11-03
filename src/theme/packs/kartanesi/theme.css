@@ -393,3 +393,9 @@
     transition: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries an icicle arrowhead just inside the rim light,
+   pointing out, haloed in the pane so the frost breaks round it. */
+[data-concept='kartanesi'] .ka-ring-mark {
+  --ring-mark-rest: 0.85;
+}

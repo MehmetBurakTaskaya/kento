@@ -377,3 +377,8 @@
     transition: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead near the tip of its petal. */
+[data-concept='aycicegi'] .ay-ring-mark {
+  --ring-mark-rest: 0.8;
+}

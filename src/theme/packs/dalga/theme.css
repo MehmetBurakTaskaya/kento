@@ -345,3 +345,9 @@
     transition: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries a foam-white arrowhead near the rim, haloed in the
+   water so the grooves break around it. */
+[data-concept='dalga'] .dl-ring-mark {
+  --ring-mark-rest: 0.85;
+}

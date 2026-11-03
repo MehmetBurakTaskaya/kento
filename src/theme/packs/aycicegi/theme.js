@@ -30,6 +30,61 @@ export default function register(Board) {
       );
     }
 
+    // How far the petal reaches to either side at radius r: its outline sampled from the base out.
+    function petalHalf(r, w) {
+      const bez = (p, t) =>
+        (1 - t) ** 3 * p[0] + 3 * (1 - t) ** 2 * t * p[1] + 3 * (1 - t) * t ** 2 * p[2] + t ** 3 * p[3];
+      const lo = R.wide - R.base;
+      const hi = R.tip - R.wide;
+      const legs = [
+        [
+          [0, w * 0.5, w, w],
+          [R.base, R.base + lo * 0.18, R.wide - lo * 0.5, R.wide],
+        ],
+        [
+          [w, w, w * 0.2, 0],
+          [R.wide, R.wide + hi * 0.42, R.tip - hi * 0.1, R.tip],
+        ],
+      ];
+      let last = [0, R.base];
+      for (const [xs, ys] of legs)
+        for (let k = 1; k <= 24; k++) {
+          const p = [bez(xs, k / 24), bez(ys, k / 24)];
+          if (p[1] >= r) return last[0] + ((p[0] - last[0]) * (r - last[1])) / Math.max(1e-6, p[1] - last[1]);
+          last = p;
+        }
+      return 0;
+    }
+
+    // The length of the mark of a slice that opens a ring of choices.
+    const MARK = 8.5;
+    // Where that mark goes: just inside the petal's edge towards the next petal, at the outermost
+    // radius where it keeps clear of the label (a label lying along a petal reaches far out).
+    function markSpot(H, sl, w, ink) {
+      let box = null;
+      try {
+        box = ink.getBBox();
+      } catch {
+        box = null;
+      }
+      const clear = (x, y) => {
+        if (!box || !box.width) return true;
+        const dx = Math.max(box.x - x, 0, x - box.x - box.width);
+        const dy = Math.max(box.y - y, 0, y - box.y - box.height);
+        return Math.hypot(dx, dy) >= MARK / 2 + 4;
+      };
+      let first = null;
+      for (let r = 180; r >= 120; r -= 2) {
+        const side = petalHalf(r - MARK / 2, w) - MARK * 0.75;
+        if (side <= 2) continue;
+        const offset = (Math.asin(side / r) * 180) / Math.PI;
+        first = first || { r, offset };
+        const [x, y] = H.polar(r - MARK / 2, sl.mark === null ? sl.mid : sl.mid + Math.sign(sl.mark - sl.mid) * offset);
+        if (clear(x, y)) return { r, offset };
+      }
+      return first;
+    }
+
     // Seeds on the golden angle (Vogel's model): seed k sits at radius c * sqrt(k). One path for
     // the whole band keeps the node count low.
     function seedPath(cx, cy, c, rMin, rMax, s0, s1) {
@@ -277,6 +332,12 @@ export default function register(Board) {
                 cls: 'ay-lbl ay-lbl-s',
                 sub: null,
               });
+            }
+            // More choices: an arrowhead inside the petal's edge towards the next one, as near the tip
+            // as the petal is wide enough to hold it clear of the label.
+            if (sl.ring) {
+              const spot = markSpot(H, sl, w, ink);
+              H.ringMark(lift, sl, m, { r: spot.r, size: MARK, offset: spot.offset, cls: 'ay-ring-mark' });
             }
           }
 

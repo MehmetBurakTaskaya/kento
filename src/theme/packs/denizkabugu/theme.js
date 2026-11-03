@@ -318,6 +318,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: an arrowhead just inside the chamber's outer wall, which grows with the spiral.
+            if (sl.ring) H.ringMark(ink, sl, m, { r: sh.rWall(sl.mark, 0) - 6, size: 8, cls: 'dk-ring-mark' });
           }
 
           // Septa, the siphuncle beads that thread through them, and the aperture lip.

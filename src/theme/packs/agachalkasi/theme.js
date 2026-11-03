@@ -321,6 +321,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: an arrowhead burnt into the outer rings, pointing to the bark.
+            H.ringMark(ink, sl, m, { r: R.face - 2.5, size: 8.5, cls: 'ag-ring-mark' });
           }
 
           // Drying checks along the slice borders, over the wedges.

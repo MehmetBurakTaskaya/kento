@@ -282,6 +282,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a foam-white arrowhead near the rim, cutting the grooves with a halo of water.
+            H.ringMark(ink, sl, m, { r: R.rim - 6, size: 8.5, halo: 1.5, cls: 'dl-ring-mark' });
           }
 
           // Hub: a paper sky with a carved ring (a full moon in the dark palette).

@@ -353,3 +353,8 @@
     transition: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead just inside its chamber's outer wall. */
+[data-concept='denizkabugu'] .dk-ring-mark {
+  --ring-mark-rest: 0.8;
+}

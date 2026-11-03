@@ -446,3 +446,8 @@
     transition: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead burnt into its outer rings. */
+[data-concept='agachalkasi'] .ag-ring-mark {
+  --ring-mark-rest: 0.8;
+}

@@ -360,3 +360,9 @@
     transition: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead on a cell capped with wax near the
+   rim, in the label's ink. */
+[data-concept='balpetegi'] .bp-ring-mark {
+  --ring-mark-rest: 0.85;
+}
