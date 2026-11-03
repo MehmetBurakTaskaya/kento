@@ -48,7 +48,7 @@ function formats(targets: string[], category: Category = 'image'): WheelSlice[] 
   });
 }
 
-function sample(set: SampleSet): { kind: 'convert' | 'tools'; title: string; slices: WheelSlice[] } {
+export function sample(set: SampleSet): { kind: 'convert' | 'tools'; title: string; slices: WheelSlice[] } {
   const t = i18n.t.bind(i18n);
   const tools = (ids: string[]): WheelSlice[] =>
     ids.map((id) => {

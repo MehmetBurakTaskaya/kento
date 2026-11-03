@@ -7,11 +7,13 @@
 // plays three times slower than life (timers, frames and animations alike) and the frames are timed
 // back, so a busy computer still gives every animation its frames.
 //
-// The same stage gives the README's screenshots (docs/images/kento-*.webp).
+// The same stage gives the README's screenshots (docs/images/kento-*.webp). The themes reel
+// (scripts/demo/themes.mjs) is recorded the same way, in the app's own page.
 //
 //   npm run demo                      everything, in English and Turkish
 //   npm run demo -- --gif             only the GIFs: docs/images/kento-demo.gif and kento-demo-tr.gif
 //   npm run demo -- --stills          only the screenshots
+//   npm run demo -- --themes          only the themes reel: docs/images/kento-themes.gif and -tr.gif
 //   npm run demo -- --lang tr         one language
 //   npm run demo -- --config file     another Vite config file
 //
@@ -34,7 +36,13 @@ const option = (name) => {
   return at >= 0 ? args[at + 1] : undefined;
 };
 const languages = (option('--lang') ?? 'en,tr').split(',');
-const only = args.includes('--stills') ? 'stills' : args.includes('--gif') ? 'gif' : null;
+const only = args.includes('--stills')
+  ? 'stills'
+  : args.includes('--gif')
+    ? 'gif'
+    : args.includes('--themes')
+      ? 'themes'
+      : null;
 
 /** The size of the stage and of the GIF, the GIF's frame rate and the scale of its ordered dither
  *  (5: the least visible pattern and the smallest file, at the cost of a little banding). */
@@ -90,7 +98,7 @@ const errors = [];
 
 /** A stage with every window loaded. A window that failed to load (the dev server can drop a
  *  request on a busy computer) costs a fresh page, twice at most. */
-async function openStage(lang, still = false, dark = false, attempt = 1) {
+async function openStage(lang, still = false, dark = false, attempt = 1, reel = false) {
   const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: still ? 2 : 1 });
   if (!still) await page.addInitScript(slowClock, SLOW);
   const problems = [];
@@ -98,7 +106,13 @@ async function openStage(lang, still = false, dark = false, attempt = 1) {
   page.on('console', (message) => message.type() === 'error' && problems.push(`${lang}: ${message.text()}`));
   const query = new URLSearchParams({ lang, ...(still && { still: '1' }), ...(dark && { appearance: 'dark' }) });
   try {
-    await page.goto(`${base}scripts/demo/stage.html?${query}`);
+    if (reel) {
+      await page.goto(`${base}?surface=wheel&lang=${lang}&appearance=light&theme=steel`);
+      await page.waitForFunction(() => document.documentElement.dataset.surface, null, { timeout: 60_000 });
+      await page.evaluate(() => import('/scripts/demo/themes.mjs'));
+    } else {
+      await page.goto(`${base}scripts/demo/stage.html?${query}`);
+    }
     await page.waitForFunction(() => window.demo, null, { timeout: 60_000 });
     await page.evaluate(() => window.demo.ready);
   } catch (error) {
@@ -106,7 +120,7 @@ async function openStage(lang, still = false, dark = false, attempt = 1) {
     if (attempt === 3) throw new Error([error.message, ...problems].join('\n'), { cause: error });
     console.warn(`${lang}: the stage did not load (${error.message.split('\n')[0]}); trying again`);
     console.warn(problems.join('\n'));
-    return openStage(lang, still, dark, attempt + 1);
+    return openStage(lang, still, dark, attempt + 1, reel);
   }
   page.on('close', () => errors.push(...problems));
   return page;
@@ -114,11 +128,11 @@ async function openStage(lang, still = false, dark = false, attempt = 1) {
 
 /** Plays the storyboard once, slowed down, and keeps the frames the compositor makes with their
  *  time in the demo's seconds: one at most every STEP, and always the last before a pause. */
-async function record(lang) {
-  const dir = path.join(work, lang);
+async function record(lang, reel = false) {
+  const dir = path.join(work, reel ? `themes-${lang}` : lang);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
-  const page = await openStage(lang);
+  const page = await openStage(lang, false, false, 1, reel);
   const cdp = await page.context().newCDPSession(page);
   // CSS animations, transitions and the Web Animations of every frame follow the slower clock.
   // (Without Animation.enable, which would keep every animation for the inspector.)
@@ -213,9 +227,10 @@ try {
   mkdirSync(images, { recursive: true });
   mkdirSync(work, { recursive: true });
   for (const lang of languages) {
-    if (only !== 'gif') await stills(lang);
-    if (only !== 'stills')
-      gif(await record(lang), path.join(images, `kento-demo${lang === 'en' ? '' : `-${lang}`}.gif`));
+    const suffix = lang === 'en' ? '' : `-${lang}`;
+    if (!only || only === 'stills') await stills(lang);
+    if (!only || only === 'gif') gif(await record(lang), path.join(images, `kento-demo${suffix}.gif`));
+    if (only === 'themes') gif(await record(lang, true), path.join(images, `kento-themes${suffix}.gif`));
   }
 } finally {
   await browser.close();
