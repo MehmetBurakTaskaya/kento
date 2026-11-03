@@ -87,3 +87,14 @@ registerFaces([
     ],
   },
 ]);
+
+// The app's own face is named IBM Plex Sans Variable too, without the width axis, so loading the family
+// at its normal width may load the app's face and leave the narrow one, in which this theme engraves its
+// numerals, formats and titles, until the first wheel draws them, measured in a fallback. The pack loads
+// it here, before any wheel; a face that never comes holds the pack back one second at most.
+if (typeof document !== 'undefined' && document.fonts) {
+  await Promise.race([
+    document.fonts.load("600 condensed 16px 'IBM Plex Sans Variable'", 'AaĞşıЖ').catch(() => null),
+    new Promise((resolve) => window.setTimeout(resolve, 1000)),
+  ]);
+}

@@ -40,8 +40,13 @@ export default function register(Board) {
 
     // ---------------------------------------------------------------- shared wheel parts
     // At rest the bezel parks on the boundary before slice 1, so the index never seems to choose a
-    // slice by itself. It turns the shortest way to the slice in use and stays there afterwards.
-    const restAngle = (m) => (m.dir === 'rtl' ? 1 : -1) * (m.step / 2);
+    // slice by itself. It turns the shortest way to the slice in use and stays there afterwards. A ring
+    // of choices may be turned, so the boundary comes from slice 1 itself, not from twelve o'clock.
+    const restAngle = (m) => {
+      const first = m.slices[0];
+      if (!first) return 0;
+      return m.dir === 'rtl' ? first.a1 : first.a0;
+    };
     function startBezel(bez, m) {
       bez._k2 = restAngle(m);
       bez.style.transform = `rotate(${fx(bez._k2)}deg)`;
@@ -57,46 +62,149 @@ export default function register(Board) {
       root.classList.toggle('k2-muted', cur != null && m.slices[cur].off);
     }
 
-    // Icon, label and sub-label of one slice, kept upright at every angle by H.block.
+    // Icon, label and sub-label of one slice, kept upright at every angle by H.block. A format of the
+    // Convert wheel is its name, engraved large, with its sub-label where it has one. Wider slices (fewer
+    // of them) give a label more room before it shrinks or wraps, and a face with a width axis sets a
+    // label that would have to shrink (a long German word) in its narrow width instead.
     function content(g, sl, m, H, o) {
       const c = H.s('g', { class: 'k2-content' }, g);
-      if (m.kind === 'convert' && sl.sub) {
-        H.block(c, sl, o.r, {
-          size: o.fmt,
-          subSize: o.subSize,
-          gap: 2,
-          maxWidth: o.w,
-          minSize: o.fmtMin || 8,
-          cls: 'k2-lbl k2-fmt',
-          subCls: 'k2-sub',
-        });
-      } else {
-        H.block(c, sl, o.r, {
-          icon: true,
-          iconSize: o.icon,
-          size: o.lbl,
-          gap: o.gap || 4,
-          maxWidth: o.w,
-          minSize: 9,
-          cls: 'k2-lbl',
-          sub: null,
-        });
+      const fit = H.s('g', {}, c);
+      const chord = sl.step >= 180 ? Infinity : 2 * o.r * Math.sin(rad(sl.step / 2)) * 0.8;
+      const w = Math.max(o.w, Math.min(o.w * 1.45, chord));
+      const size = sl.format ? o.fmt : o.lbl;
+      const block = (narrow) =>
+        sl.format
+          ? H.block(fit, sl, o.r, {
+              size,
+              subSize: o.subSize,
+              gap: 2,
+              maxWidth: w,
+              minSize: o.fmtMin || 8,
+              cls: 'k2-lbl k2-fmt' + narrow,
+              subCls: 'k2-sub',
+            })
+          : H.block(fit, sl, o.r, {
+              icon: true,
+              iconSize: o.icon,
+              size,
+              gap: o.gap || 4,
+              maxWidth: w,
+              minSize: 9,
+              cls: 'k2-lbl' + narrow,
+              sub: null,
+            });
+      const parts = block('');
+      if (o.narrow && +parts.label.getAttribute('font-size') < size * 0.92) {
+        fit.textContent = '';
+        block(' k2-narrow');
       }
-      return c;
+      return { fit, sl, r: o.r };
     }
 
-    // Wheel title, file name and the modifier key on a small cap, centered in the hub.
+    // The boxes a slice's content covers: its icon and each line of its labels, as [x, y, w, h].
+    function boxes(fit) {
+      const out = [];
+      for (const ico of fit.querySelectorAll('.ico')) {
+        const t = /translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\)/.exec(ico.getAttribute('transform') || '');
+        if (t) out.push([+t[1], +t[2], 24 * t[3], 24 * t[3]]);
+      }
+      for (const text of fit.querySelectorAll('text')) {
+        const size = +text.getAttribute('font-size') || 12;
+        const x = +text.getAttribute('x');
+        let y = +text.getAttribute('y');
+        const spans = text.querySelectorAll('tspan');
+        for (const line of spans.length ? spans : [text]) {
+          if (line !== text) y += +line.getAttribute('dy') || 0;
+          const w = line.getComputedTextLength();
+          out.push([x - w / 2, y - size * 0.52, w, size * 1.04]);
+        }
+      }
+      return out;
+    }
+
+    // Keeps each slice's content inside its window: clear of the hub collar, the chapter ring and the
+    // dividers. A block that does not fit (a long German word, a two-line label in a narrow slice) moves
+    // out or in along its slice's centre line, and only when that is not enough is it drawn smaller. All
+    // boxes are read first and all moves written after, so the text is laid out once.
+    function settle(items, m, H, rIn, rOut) {
+      const C = H.C;
+      const pad = 3;
+      const measured = items.map((it) => ({ ...it, rects: boxes(it.fit) }));
+      for (const { fit, sl, r, rects } of measured) {
+        if (!rects.length) continue;
+        const [px, py] = H.polar(r, sl.mid);
+        const ux = Math.sin(rad(sl.mid));
+        const uy = -Math.cos(rad(sl.mid));
+        const sides =
+          m.n > 1
+            ? [
+                [Math.cos(rad(sl.a0)), Math.sin(rad(sl.a0))],
+                [-Math.cos(rad(sl.a1)), -Math.sin(rad(sl.a1))],
+              ]
+            : [];
+        const over = (s, d) => {
+          let worst = -Infinity;
+          for (const [x, y, w, h] of rects) {
+            const x0 = px + (x - px) * s + ux * d - C;
+            const y0 = py + (y - py) * s + uy * d - C;
+            const x1 = x0 + w * s;
+            const y1 = y0 + h * s;
+            const nx = Math.max(x0, Math.min(0, x1));
+            const ny = Math.max(y0, Math.min(0, y1));
+            worst = Math.max(worst, rIn + pad - Math.hypot(nx, ny));
+            for (const [cx, cy] of [
+              [x0, y0],
+              [x1, y0],
+              [x0, y1],
+              [x1, y1],
+            ]) {
+              worst = Math.max(worst, Math.hypot(cx, cy) - (rOut - pad));
+              for (const [sx, sy] of sides) worst = Math.max(worst, pad - (cx * sx + cy * sy));
+            }
+          }
+          return worst;
+        };
+        if (over(1, 0) <= 0) continue;
+        let best = { s: 1, d: 0, v: over(1, 0) };
+        search: for (const s of [1, 0.95, 0.9, 0.86, 0.82]) {
+          for (let k = 1; k <= 48; k++) {
+            const d = (k % 2 ? 1 : -1) * Math.ceil(k / 2);
+            const v = over(s, d);
+            if (v <= 0) {
+              best = { s, d, v };
+              break search;
+            }
+            if (v < best.v - 0.5) best = { s, d, v };
+          }
+        }
+        const ex = (1 - best.s) * px + ux * best.d;
+        const ey = (1 - best.s) * py + uy * best.d;
+        fit.setAttribute('transform', `matrix(${fx(best.s)} 0 0 ${fx(best.s)} ${fx(ex)} ${fx(ey)})`);
+      }
+    }
+
+    // Wheel title, file name and the modifier key on a small cap, centered in the hub. Without a key (a
+    // wheel opened from the keyboard shortcut or a menu) the title and the file move down to the middle.
     function hubText(hub, m, H, o) {
       const C = H.C;
-      H.label(hub, C, C - o.t, m.title.toLocaleUpperCase(m.lang), {
+      const key = (m.key || '').toLocaleUpperCase('en');
+      const dy = key ? 0 : (o.k + o.kh - o.f - o.fs / 2) / 2;
+      H.label(hub, C, C - o.t + dy, m.title.toLocaleUpperCase(m.lang), {
         maxWidth: o.w,
         size: o.ts,
         minSize: 7.5,
         cls: 'k2-title',
         maxLines: 1,
       });
-      H.label(hub, C, C + o.f, m.file, { maxWidth: o.w + 4, size: o.fs, minSize: 8, cls: 'k2-file', maxLines: 1 });
-      const key = m.key.toLocaleUpperCase('en');
+      if (m.file)
+        H.label(hub, C, C + o.f + dy, m.file, {
+          maxWidth: o.w + 4,
+          size: o.fs,
+          minSize: 8,
+          cls: 'k2-file',
+          maxLines: 1,
+        });
+      if (!key) return;
       const y = C + o.k + o.kh / 2;
       const t = H.text(hub, C, fx(y + 0.4), key, { class: 'k2-keytext' });
       const kw = t.getComputedTextLength() + o.pad * 2;
@@ -141,6 +249,7 @@ export default function register(Board) {
       const face = H.s('g', { class: 'k2-face' }, root);
       H.s('circle', { cx: C, cy: C, r: R.BEZ, fill: `url(#${u}-enamel)` }, face);
 
+      const items = [];
       for (const sl of m.slices) {
         const g = H.slice(root, sl, m);
         H.s('path', { d: H.sector(R.WIN, R.OUT, sl.a0, sl.a1), class: 'k2-hit' }, g);
@@ -154,8 +263,9 @@ export default function register(Board) {
         H.s('circle', { cx: fx(nx), cy: fx(ny), r: 9, class: 'k2-lock' }, g);
         H.s('circle', { cx: fx(nx), cy: fx(ny), r: 8.6, class: 'k2-disc' }, g);
         H.text(g, fx(nx), fx(ny + 0.4), numeral(sl.i + 1, m.lang), { class: 'k2-num' });
-        content(g, sl, m, H, { r: R.LBL, fmt: 21, subSize: 11, w: 76, icon: 23, lbl: 13 });
+        items.push(content(g, sl, m, H, { r: R.LBL, fmt: 21, subSize: 11, w: 76, icon: 23, lbl: 13, narrow: true }));
       }
+      settle(items, m, H, R.WIN, R.CHAP);
 
       // Fixed graduations: hairlines through the windows, a strong tick at each slice boundary and
       // fine ticks between them, leaving room for the numeral.
@@ -302,6 +412,7 @@ export default function register(Board) {
       H.s('circle', { cx: C, cy: C, r: R.BEZ, class: 'k2-concrete' }, face);
       H.s('circle', { cx: C, cy: C, r: R.BEZ, fill: `url(#${u}-pores)` }, face);
 
+      const items = [];
       for (const sl of m.slices) {
         const g = H.slice(body, sl, m);
         H.s('path', { d: H.sector(R.WIN, R.OUT, sl.a0, sl.a1), class: 'k2-hit' }, g);
@@ -311,8 +422,11 @@ export default function register(Board) {
           H.s('path', { d: H.sector(R.WIN, R.BEZ, sl.a0, sl.a1), class: 'k2-hatch', fill: `url(#${u}-hatch)` }, g);
         const [nx, ny] = H.polar(R.NUM, sl.mid);
         H.text(g, fx(nx), fx(ny + 0.5), numeral(sl.i + 1, m.lang, true), { class: 'k2-num' });
-        content(g, sl, m, H, { r: R.LBL, fmt: 19, subSize: 10, w: 70, icon: 24, lbl: 12, gap: 5 });
+        items.push(
+          content(g, sl, m, H, { r: R.LBL, fmt: 19, subSize: 10, w: 70, icon: 24, lbl: 12, gap: 5, narrow: true }),
+        );
       }
+      settle(items, m, H, R.WIN, R.CHAP);
 
       // Thick cast dividers, a heavy chapter line and square ticks.
       let div = '',
@@ -387,6 +501,7 @@ export default function register(Board) {
       H.s('circle', { cx: C, cy: C, r: R.BEZ, fill: `url(#${u}-frost)`, class: 'k2-frost' }, face);
       H.s('circle', { cx: C, cy: C, r: R.BEZ, fill: `url(#${u}-sheen)` }, face);
 
+      const items = [];
       for (const sl of m.slices) {
         const g = H.slice(root, sl, m);
         H.s('path', { d: H.sector(R.WIN, R.OUT, sl.a0, sl.a1), class: 'k2-hit' }, g);
@@ -398,8 +513,9 @@ export default function register(Board) {
           H.s('path', { d: H.sector(R.WIN, R.BEZ, sl.a0, sl.a1), class: 'k2-hatch', fill: `url(#${u}-hatch)` }, g);
         const [nx, ny] = H.polar(R.NUM, sl.mid);
         H.text(g, fx(nx), fx(ny + 0.4), numeral(sl.i + 1, m.lang), { class: 'k2-num' });
-        content(g, sl, m, H, { r: R.LBL, fmt: 21, subSize: 11, w: 76, icon: 23, lbl: 13 });
+        items.push(content(g, sl, m, H, { r: R.LBL, fmt: 21, subSize: 11, w: 76, icon: 23, lbl: 13 }));
       }
+      settle(items, m, H, R.WIN, R.CHAP);
 
       let div = '',
         min = '';

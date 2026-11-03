@@ -30,7 +30,10 @@
   transform-box: view-box;
   transform-origin: 200px 200px;
 }
-[data-concept^='kadran-'] .wheel:is(:lang(ar), :lang(ja), :lang(zh), :lang(ko)) .k2-title {
+/* Arabic joins its letters and the CJK scripts set their own rhythm: no tracking there. */
+[data-concept^='kadran-']
+  .wheel:is(:lang(ar), :lang(ja), :lang(zh), :lang(ko))
+  :is(.k2-title, .k2-lbl, .k2-sub, .k2-file) {
   letter-spacing: 0;
 }
 [data-concept^='kadran-'] .wheel-svg,
@@ -129,6 +132,10 @@
   font-weight: 450;
   letter-spacing: 0.01em;
 }
+/* A label that would have to shrink is set in Plex's condensed width instead. */
+[data-concept='kadran-a'] .k2-lbl.k2-narrow {
+  font-stretch: 85%;
+}
 [data-concept='kadran-a'] .slice .ico {
   stroke-width: 1.55;
 }
@@ -161,7 +168,9 @@
 [data-concept='kadran-a'] .slice.is-selected .k2-disc {
   opacity: 1;
 }
-[data-concept='kadran-a'] .slice.is-selected .k2-num {
+/* The applied slice stays pointed at, so its numeral must win over the hover colour on the blue disc. */
+[data-concept='kadran-a'] .slice.is-selected .k2-num,
+[data-concept='kadran-a'] .slice.is-selected.is-hover .k2-num {
   fill: var(--on-index);
   font-weight: 700;
 }
@@ -577,8 +586,20 @@
   font-stretch: 75%;
   letter-spacing: -0.01em;
 }
+/* A label that would have to shrink is set in the mono's narrowest width instead. */
+[data-concept='kadran-b'] .k2-lbl.k2-narrow {
+  font-stretch: 75%;
+}
 [data-concept='kadran-b'] .slice .ico {
   stroke-width: 2.1;
+}
+/* The monospaced face has no Arabic or CJK letters, and its wide spaces pull their words apart: those
+   scripts take the brand face, untracked. */
+[data-concept='kadran-b']
+  .wheel:is(:lang(ar), :lang(ja), :lang(zh), :lang(ko))
+  :is(.k2-lbl, .k2-sub, .k2-title, .k2-file) {
+  font-family: var(--font-brand);
+  font-stretch: 100%;
 }
 [data-concept='kadran-b'] .k2-num {
   fill: var(--wheel-num);
