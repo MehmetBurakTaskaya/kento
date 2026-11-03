@@ -249,6 +249,8 @@ export default function register(Board) {
             halo.classList.add('eb-ico-halo');
             parts.icon.parentNode.insertBefore(halo, parts.icon);
           }
+          // More choices: an arrowhead inside the rim, above the paint like the label, with its halo.
+          H.ringMark(lab, sl, m, { r: R1 - (V.band || 5) - 4.5, size: 8, halo: 1.6, cls: 'eb-ring-mark' });
         }
         H.s('circle', { cx: C, cy: C, r: R0 - 3, class: 'eb-hub-bg' }, hub);
         H.s('g', { class: 'eb-hub-rings' }, hub).innerHTML = V.hubRings;

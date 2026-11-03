@@ -1067,3 +1067,25 @@
 [data-concept^='simya-'] .s2-art-beam {
   stroke: var(--wheel-glow);
 }
+
+/* ================================================================ more choices */
+/* The mark of a slice that opens a ring of choices: a gilded arrowhead on lapis, a moonsilver one on
+   obsidian, edged in the deeper metal; no dust settles on it. */
+[data-concept='simya-a'] .s2-ring-mark {
+  --ring-mark-color: var(--s2-gold);
+  --ring-mark-hover: var(--s2-gold);
+  --ring-mark-halo: var(--s2-gold-deep);
+  --ring-mark-rest: 1;
+}
+/* On the gold leaf of the chosen slice it is inked like the lettering. */
+[data-concept='simya-a'] .slice.is-selected .s2-ring-mark {
+  --ring-mark-halo: var(--s2-gold-hi);
+}
+[data-concept='simya-c'] .s2-ring-mark {
+  --ring-mark-color: var(--wheel-ink-hi);
+  --ring-mark-hover: var(--wheel-ink-hi);
+  --ring-mark-halo: var(--wheel-slice);
+}
+[data-concept^='simya-'] .slice.is-selected.s2-unlit .s2-ring-mark {
+  color: var(--ring-mark-hover);
+}

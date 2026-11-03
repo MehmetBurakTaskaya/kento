@@ -1308,3 +1308,21 @@
     fill: var(--wheel-text-selected);
   }
 }
+
+/* ================================================================ more choices */
+/* The mark of a slice that opens a ring of choices: the steel wheel's arrowhead in the numerals' ink,
+   in the index colour when pointed at. */
+[data-concept^='kadran-'] .k2-ring-mark {
+  --ring-mark-color: var(--wheel-num);
+  --ring-mark-rest: 0.95;
+}
+[data-concept='kadran-a'] .k2-ring-mark {
+  --ring-mark-hover: var(--index);
+}
+[data-concept='kadran-b'] .k2-ring-mark {
+  --ring-mark-hover: var(--wheel-text);
+  --ring-mark-rest: 0.9;
+}
+[data-concept='kadran-c'] .k2-ring-mark {
+  --ring-mark-hover: var(--lume-text);
+}

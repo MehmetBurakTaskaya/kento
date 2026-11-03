@@ -264,6 +264,8 @@ export default function register(Board) {
         H.s('circle', { cx: fx(nx), cy: fx(ny), r: 8.6, class: 'k2-disc' }, g);
         H.text(g, fx(nx), fx(ny + 0.4), numeral(sl.i + 1, m.lang), { class: 'k2-num' });
         items.push(content(g, sl, m, H, { r: R.LBL, fmt: 21, subSize: 11, w: 76, icon: 23, lbl: 13, narrow: true }));
+        // More choices: the steel wheel's arrowhead, just inside the chapter ring.
+        H.ringMark(g, sl, m, { r: R.CHAP - 4.5, size: 7.5, cls: 'k2-ring-mark' });
       }
       settle(items, m, H, R.WIN, R.CHAP);
 
@@ -425,6 +427,14 @@ export default function register(Board) {
         items.push(
           content(g, sl, m, H, { r: R.LBL, fmt: 19, subSize: 10, w: 70, icon: 24, lbl: 12, gap: 5, narrow: true }),
         );
+        // More choices: a cast block arrow, just inside the chapter ring.
+        H.ringMark(g, sl, m, {
+          r: R.CHAP - 4.5,
+          size: 10.5,
+          shape: (l) =>
+            `M0 0L${fx(l * 0.6)} ${fx(l * 0.52)}H${fx(l * 0.25)}V${fx(l)}H${fx(-l * 0.25)}V${fx(l * 0.52)}H${fx(-l * 0.6)}Z`,
+          cls: 'k2-ring-mark',
+        });
       }
       settle(items, m, H, R.WIN, R.CHAP);
 
@@ -514,6 +524,8 @@ export default function register(Board) {
         const [nx, ny] = H.polar(R.NUM, sl.mid);
         H.text(g, fx(nx), fx(ny + 0.4), numeral(sl.i + 1, m.lang), { class: 'k2-num' });
         items.push(content(g, sl, m, H, { r: R.LBL, fmt: 21, subSize: 11, w: 76, icon: 23, lbl: 13 }));
+        // More choices: a lume-filled arrowhead, just inside the chapter ring.
+        H.ringMark(g, sl, m, { r: R.CHAP - 4.5, size: 8.5, cls: 'k2-ring-mark' });
       }
       settle(items, m, H, R.WIN, R.CHAP);
 

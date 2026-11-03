@@ -167,3 +167,10 @@
     fill: var(--accent);
   }
 }
+
+/* More choices: a slice that opens a ring carries a small arrowhead pointing out, just inside the rim;
+   the accent's colour when pointed at. */
+[data-concept='minimal'] .mn-ring-mark {
+  --ring-mark-hover: var(--accent);
+  --ring-mark-rest: 0.75;
+}

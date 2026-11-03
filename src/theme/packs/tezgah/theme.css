@@ -404,3 +404,16 @@
     fill: var(--wheel-slice-selected);
   }
 }
+
+/* More choices: a slice that opens a ring carries a little kraft tag near the frame, its point and
+   eyelet outwards, edged in the stamp's colour when aimed at or chosen. */
+[data-concept='tezgah'] .tz-ring-mark {
+  --ring-mark-color: var(--kraft);
+  --ring-mark-hover: var(--kraft-hi);
+  --ring-mark-selected: var(--kraft-hi);
+  --ring-mark-halo: var(--kraft-edge);
+  --ring-mark-rest: 1;
+}
+[data-concept='tezgah'] .slice:is(.is-hover, .is-selected) .tz-ring-mark {
+  --ring-mark-halo: var(--kraft-accent);
+}

@@ -246,6 +246,12 @@ export default function register(Board) {
 
     // ================================================================== A: Star atlas
     const ATL = { HUB: 72, IN: 79, OUT: 182, LBL: 119, B0: 145, B1: 175, S0: 184, S1: 191, APPLY: 660 };
+    // The mark of a slice that opens a ring of choices: its point's radius and its length. Stars and
+    // planets keep clear of it.
+    const ATL_MARK = { r: 180, size: 9.5, shape: 'dart' };
+    const ORR_MARK = { r: 180, size: 9 };
+    const GAL_MARK = { r: 180, size: 9 };
+    const markAt = (sl, mk, turn = 0) => (sl.ring ? P(mk.r - mk.size / 2, sl.mark + turn) : null);
     // Our own constellations, one per slice: stars as [u, v, magnitude] (u across the slice from -1 to 1,
     // v from the inner to the outer edge of the star band, magnitude 1 brightest) and the lines between them.
     const ATL_PATTERNS = [
@@ -410,11 +416,12 @@ export default function register(Board) {
     // Where a slice's constellation keeps clear of its label (box): on the centre line if it can,
     // else turned a little within the slice, else in a narrower band nearer the border.
     function atlasFit(sl, m, box) {
+      const mark = markAt(sl, ATL_MARK);
       const clear = (fit) =>
         atlasStars(sl, m, fit).pts.every((p) => {
           const dx = Math.max(box.x - p.x, 0, p.x - box.x - box.width);
           const dy = Math.max(box.y - p.y, 0, p.y - box.y - box.height);
-          return dx * dx + dy * dy >= (p.r + 3) ** 2;
+          return dx * dx + dy * dy >= (p.r + 3) ** 2 && (!mark || Math.hypot(p.x - mark[0], p.y - mark[1]) >= p.r + 12);
         });
       const slack = Math.max(0, sl.step / 2 - 4 - atlasHalf(sl));
       for (const c of [0, 0.25, 0.45, 0.6])
@@ -671,6 +678,8 @@ export default function register(Board) {
               for (const p of pts) s('circle', { cx: f2(p.x), cy: f2(p.y), r: p.r, class: 'atl-cstar' }, stars);
               const br = pts.reduce((a, b) => (b.mag < a.mag ? b : a));
               s('path', { d: sparkle(br.x, br.y, 7, -0.25), class: 'atl-con-spark' }, con);
+              // More choices: a chart arrowhead at the edge of the sky.
+              H.ringMark(g, sl, m, { ...ATL_MARK, halo: 1.2, cls: 'ast-ring-mark' });
             }
 
             // Faint field stars in the sky, clear of the labels and of the constellations as placed.
@@ -1208,6 +1217,10 @@ export default function register(Board) {
                 gapF: 3,
                 maxWidth: 82,
               });
+              // More choices: an arrowhead near the rim, turned with the arm, a little past the arm's
+              // middle there, so it stays nearer its own label than the next one.
+              const turn = galTwist(GAL_MARK.r - GAL_MARK.size / 2, m);
+              H.ringMark(g, sl, m, { ...GAL_MARK, offset: 7, turn, halo: 1.2, cls: 'ast-ring-mark' });
             }
 
             // The black hole: soft halo, accretion ring brighter on the approaching side, photon ring, horizon.
@@ -1417,11 +1430,12 @@ export default function register(Board) {
     // slices there are and however long the words.
     function orrSpot(sl, m, info, box) {
       const reach = orrReach(info) + 6;
+      const mark = markAt(sl, ORR_MARK);
       const clear = (r, a) => {
         const [x, y] = P(r, a);
         const dx = Math.max(box.x - x, 0, x - box.x - box.width);
         const dy = Math.max(box.y - y, 0, y - box.y - box.height);
-        return dx * dx + dy * dy >= reach * reach;
+        return dx * dx + dy * dy >= reach * reach && (!mark || Math.hypot(x - mark[0], y - mark[1]) >= reach);
       };
       const orbits = [info.r, ...ORR.ORBITS.filter((r) => r !== info.r).sort((a, b) => b - a)];
       const side = (sl.i % 2 ? -1 : 1) * (m.dir === 'rtl' ? -1 : 1);
@@ -1695,6 +1709,8 @@ export default function register(Board) {
                 swing,
               );
               orrBody(H, place, info, plFill);
+              // More choices: an arrowhead near the rim, clear of the planet.
+              H.ringMark(g, sl, m, { ...ORR_MARK, halo: 1.2, cls: 'ast-ring-mark' });
             }
 
             const hub = s('g', { class: 'ast-hub orr-hub' }, root);

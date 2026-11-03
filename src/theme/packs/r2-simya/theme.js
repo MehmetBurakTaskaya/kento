@@ -417,6 +417,8 @@ export default function register(Board) {
               });
             }
             items.push({ fit, sl, r: G.lbl });
+            // More choices: an arrowhead near the band, gilded or in moonsilver.
+            H.ringMark(g, sl, m, { r: G.rout - 7, size: MARK, halo: 0.8, cls: 's2-ring-mark' });
           }
           settle(items, m, H, G.rin + 5, G.rout - 1);
           V.openFx(s('g', { class: 's2-fx' }, root), ctx);
@@ -553,10 +555,14 @@ export default function register(Board) {
       for (let x = -400; x <= 800; x += step) d += `M${f1(x)} 0L${f1(x + 400 * dir)} 400`;
       return d;
     }
+    // The length of the mark of a slice that opens a ring of choices.
+    const MARK = 7.5;
     function dustLayer(tex, ctx, o) {
       const { m, H, G } = ctx;
       const rand = rng(o.seed + m.kind.length * 131);
       const centers = labelCenters(H, m, G.lbl);
+      // No dust on the mark of a slice that opens a ring of choices.
+      const marks = m.slices.filter((sl) => sl.ring).map((sl) => H.polar(G.rout - 7 - MARK / 2, sl.mark));
       const dust = ['', '', ''];
       let glints = '';
       for (let k = 0, kept = 0; k < 700 && kept < o.count; k++) {
@@ -564,6 +570,7 @@ export default function register(Board) {
         const a = rand() * 360;
         const [x, y] = H.polar(r, a);
         if (nearLabel(centers, x, y, o.keep) || nearDivider(m, r, a, 3.5)) continue;
+        if (marks.some(([mx, my]) => Math.hypot(x - mx, y - my) < 11)) continue;
         kept++;
         if (o.glint && kept % o.glint === 0) {
           const q = o.glintSize || 2.6;

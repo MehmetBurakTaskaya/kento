@@ -244,6 +244,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a needle's head pointing out to the band, beside the label.
+            H.ringMark(g, sl, m, { r: R.outer - 4, size: 11, shape: 'dart', halo: 1.2, cls: 'pu-ring-mark' });
           }
 
           // Star points between the slices; the one where the needle rests is the north point.

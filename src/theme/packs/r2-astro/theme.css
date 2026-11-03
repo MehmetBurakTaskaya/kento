@@ -910,3 +910,17 @@
 [data-concept='astro-c'] .orr-art-glow {
   fill: var(--orr-sun-glow);
 }
+
+/* ---------------------------------------------------------------- more choices */
+/* The mark of a slice that opens a ring of choices: an arrowhead in the chart's ink near the rim, with
+   the label's halo so no star or line touches it. */
+[data-concept^='astro-'] .ast-ring-mark {
+  --ring-mark-halo: var(--ast-halo-idle);
+  --ring-mark-rest: 0.9;
+}
+[data-concept^='astro-'] .slice.is-hover .ast-ring-mark {
+  --ring-mark-halo: var(--ast-halo-hover);
+}
+[data-concept^='astro-'] .slice.is-selected .ast-ring-mark {
+  --ring-mark-halo: var(--ast-halo-selected);
+}

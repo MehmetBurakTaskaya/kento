@@ -534,6 +534,8 @@ export default function register(Board) {
             H.s('path', { d: H.arc(190, sl.a0 + 6, sl.a1 - 6), class: 'tz-mark' }, g);
             if (m.kind === 'convert') tags.push(tagParts(g, sl, m, H));
             else tool(g, sl, m, H);
+            // More choices: a little kraft tag near the frame, its point and hole outwards.
+            H.ringMark(g, sl, m, { r: 181.5, size: 12, shape: 'tag', halo: 0.8, cls: 'tz-ring-mark' });
           }
           if (tags.length) layoutTags(tags, H);
           // Screws hold the frame between the spots.

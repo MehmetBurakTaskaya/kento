@@ -502,3 +502,12 @@
   stroke: var(--text);
   stroke-width: 1.4;
 }
+
+/* More choices: a slice that opens a ring carries a needle's head pointing out, in the resting
+   needle's colours, red when aimed at. */
+[data-concept='pusula'] .pu-ring-mark {
+  --ring-mark-color: var(--needle-rest);
+  --ring-mark-hover: var(--needle);
+  --ring-mark-halo: var(--pu-halo);
+  --ring-mark-rest: 1;
+}

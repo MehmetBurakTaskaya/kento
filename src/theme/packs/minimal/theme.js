@@ -103,6 +103,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a small arrowhead pointing out, just inside the rim.
+            H.ringMark(g, sl, m, { r: 178, size: 8, cls: 'mn-ring-mark' });
           }
           // Center: what wheel this is and which file it acts on.
           const ctr = H.s('g', { class: 'mn-center' }, root);

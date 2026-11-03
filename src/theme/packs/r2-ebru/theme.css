@@ -521,3 +521,15 @@
 [data-concept='ebru-c'] .eb-art-3 {
   fill: var(--gold);
 }
+
+/* ---------------------------------------------------------------- more choices */
+/* The mark of a slice that opens a ring of choices sits with the label above the paint, haloed in the
+   slice's colour, and takes the stain's text colour once the pigment lands. */
+[data-concept^='ebru-'] .eb-ring-mark {
+  --ring-mark-halo: var(--halo);
+  --ring-mark-selected: var(--wheel-text);
+  --ring-mark-rest: 0.85;
+}
+[data-concept^='ebru-'] .eb-lab.is-stained .eb-ring-mark {
+  color: var(--op);
+}
