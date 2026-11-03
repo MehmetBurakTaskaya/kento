@@ -33,8 +33,11 @@ export default function register(Board) {
       H.s('circle', { cx: C, cy: C, r: R.bull - 3.5, class: 'dt-bull-ring' }, g);
       H.s('circle', { cx: C, cy: C, r: R.bullOut, class: 'dt-wire-c' }, g);
       H.s('circle', { cx: C, cy: C, r: R.bull, class: 'dt-wire-c' }, g);
-      H.label(g, C, C - 14, m.title, { maxWidth: 84, size: 19, minSize: 12, maxLines: 1, cls: 'dt-title' });
-      H.label(g, C, C + 4, m.file, { maxWidth: 76, size: 12, minSize: 9, maxLines: 1, cls: 'dt-file' });
+      // Without a key the title and file sit lower, in the middle of the bull.
+      const dy = m.key ? 0 : 8;
+      H.label(g, C, C - 14 + dy, m.title, { maxWidth: 84, size: 19, minSize: 12, maxLines: 1, cls: 'dt-title' });
+      H.label(g, C, C + 4 + dy, m.file, { maxWidth: 76, size: 12, minSize: 9, maxLines: 1, cls: 'dt-file' });
+      if (!m.key) return;
       const kw = 14 + m.key.length * 6.2;
       H.s('rect', { x: f2(C - kw / 2), y: C + 14, width: f2(kw), height: 16, rx: 3, class: 'dt-key' }, g);
       H.text(g, C, C + 22.4, m.key, { class: 'dt-keytext' });
@@ -83,6 +86,10 @@ export default function register(Board) {
           'dt-sub-alt': '#ffb8a8',
           'dt-red': '#d6402f',
           'dt-green': '#14857a',
+          'dt-third': '#3d5573',
+          'dt-third-hover': '#4a6488',
+          'dt-sub-third': '#ffd8cf',
+          'dt-chalk': '#e8e1d1',
           'dt-red-sel': '#ffdf7e',
           'dt-green-sel': '#ffdf7e',
           'dt-wire-hi': '#ffffff',
@@ -137,6 +144,10 @@ export default function register(Board) {
           'dt-sub-alt': '#ff9d88',
           'dt-red': '#ff5a45',
           'dt-green': '#1fb5a3',
+          'dt-third': '#28405e',
+          'dt-third-hover': '#35537a',
+          'dt-sub-third': '#ffc4b5',
+          'dt-chalk': '#d9d1bf',
           'dt-red-sel': '#ffe08a',
           'dt-green-sel': '#ffe08a',
           'dt-wire-hi': '#ffffff',
@@ -166,6 +177,10 @@ export default function register(Board) {
         ['dt-text-alt', 'dt-alt-hover', 'text'],
         ['dt-sub-alt', 'dt-alt', 'text'],
         ['dt-sub-alt', 'dt-alt-hover', 'text'],
+        ['dt-text-alt', 'dt-third', 'text'],
+        ['dt-text-alt', 'dt-third-hover', 'text'],
+        ['dt-sub-third', 'dt-third', 'text'],
+        ['dt-sub-third', 'dt-third-hover', 'text'],
         ['dt-title', 'dt-bull', 'text'],
         ['dt-file', 'dt-bull', 'text'],
       ]),
@@ -204,24 +219,20 @@ export default function register(Board) {
           }
           H.s('path', { d: chev, class: 'dt-chevron' }, base);
 
+          // Sectors alternate; with an odd count the last one, which would match the first, takes a third
+          // colour with its own rings, so no two neighbours are ever alike.
           for (const sl of m.slices) {
-            const alt = sl.i % 2 === 1;
+            const third = m.n > 1 && m.n % 2 === 1 && sl.i === m.n - 1;
+            const alt = !third && sl.i % 2 === 1;
+            const rings = third ? 'dt-chalk' : alt ? 'dt-red' : 'dt-green';
             const g = H.slice(root, sl, m);
-            g.classList.add(alt ? 'dt-odd' : 'dt-even');
+            g.classList.add(third ? 'dt-third' : alt ? 'dt-odd' : 'dt-even');
             H.s('path', { d: H.sector(R.t0, R.d1, sl.a0, sl.a1), class: 'dt-single' }, g);
-            H.s(
-              'path',
-              { d: H.sector(R.t0, R.t1, sl.a0, sl.a1), class: 'dt-treble ' + (alt ? 'dt-red' : 'dt-green') },
-              g,
-            );
-            H.s(
-              'path',
-              { d: H.sector(R.d0, R.d1, sl.a0, sl.a1), class: 'dt-double ' + (alt ? 'dt-red' : 'dt-green') },
-              g,
-            );
+            H.s('path', { d: H.sector(R.t0, R.t1, sl.a0, sl.a1), class: 'dt-treble ' + rings }, g);
+            H.s('path', { d: H.sector(R.d0, R.d1, sl.a0, sl.a1), class: 'dt-double ' + rings }, g);
             H.s('path', { d: H.sector(R.t0, R.d1, sl.a0, sl.a1), class: 'dt-sisal', fill: 'url(#dart-sisal)' }, g);
             const c = H.s('g', { class: 'dt-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 27,
                 subSize: 15,

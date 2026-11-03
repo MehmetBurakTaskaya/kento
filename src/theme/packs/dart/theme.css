@@ -49,6 +49,12 @@
 [data-concept='dart'] .dt-odd.is-hover .dt-single {
   fill: var(--dt-alt-hover);
 }
+[data-concept='dart'] .dt-third .dt-single {
+  fill: var(--dt-third);
+}
+[data-concept='dart'] .dt-third.is-hover .dt-single {
+  fill: var(--dt-third-hover);
+}
 [data-concept='dart'] .slice.is-selected .dt-single {
   fill: var(--wheel-slice-selected);
 }
@@ -57,6 +63,9 @@
 }
 [data-concept='dart'] .dt-green {
   fill: var(--dt-green);
+}
+[data-concept='dart'] .dt-chalk {
+  fill: var(--dt-chalk);
 }
 [data-concept='dart'] .dt-sisal {
   opacity: var(--dt-sisal-opacity);
@@ -107,6 +116,15 @@
 }
 [data-concept='dart'] .dt-odd .dt-sub {
   fill: var(--dt-sub-alt);
+}
+[data-concept='dart'] .dt-third .dt-ink {
+  color: var(--dt-text-alt);
+}
+[data-concept='dart'] .dt-third .dt-lbl {
+  fill: var(--dt-text-alt);
+}
+[data-concept='dart'] .dt-third .dt-sub {
+  fill: var(--dt-sub-third);
 }
 [data-concept='dart'] .slice.is-selected .dt-ink {
   color: var(--wheel-text-selected);
