@@ -175,6 +175,11 @@
   font-family: var(--font-display-face), 'Segoe UI', 'SF Arabic', 'Geeza Pro', sans-serif;
   font-style: normal;
 }
+/* The file name too goes straight to a face with Arabic, so the first wheel is not slowed by looking
+   for one through the Latin stack. */
+[data-concept='pusula'] .wheel:lang(ar) .pu-file {
+  font-family: var(--font-brand-face), 'Segoe UI', 'SF Arabic', 'Geeza Pro', sans-serif;
+}
 
 /* Star points between the slices: half ink, half paper. */
 [data-concept='pusula'] .pu-pt-a {

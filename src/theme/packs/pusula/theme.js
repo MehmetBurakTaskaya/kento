@@ -32,9 +32,11 @@ export default function register(Board) {
       return [`M${p(r0, 0)}L${p(rw, -w)}L${p(r1, 0)}Z`, `M${p(r0, 0)}L${p(rw, w)}L${p(r1, 0)}Z`];
     }
 
+    // Where the first slice points: twelve o'clock, or wherever a ring of choices was turned to.
+    const origin = (m) => (m.slices.length ? m.slices[0].mid : 0);
     // Where the needle rests when nothing is aimed at: the star point between the last slice and
     // the first one, so it never seems to pick a slice. Mirrored in right-to-left languages.
-    const restAngle = (m) => ((m.dir === 'rtl' ? 1 : -1) * m.step) / 2;
+    const restAngle = (m) => origin(m) + ((m.dir === 'rtl' ? 1 : -1) * m.step) / 2;
 
     Board.define({
       id: 'pusula',
@@ -158,20 +160,25 @@ export default function register(Board) {
       wheel: {
         render(root, m, H) {
           const C = H.C;
-          // Chart lines under the slices: 32 rhumb lines, the slice ring rules, the degree ring.
+          // Chart lines under the slices: about 32 rhumb lines, the slice ring rules, the degree ring.
+          // Both run from the first slice, so they meet the slice borders however many slices there
+          // are and wherever a ring of choices was turned to.
           const face = H.s('g', { class: 'pu-face', 'aria-hidden': 'true' }, root);
+          const a0 = origin(m);
+          const lines = Math.max(4, Math.round(16 / m.n) * 2);
           let rh = '';
-          for (let k = 0; k < m.n * 4; k++) {
-            const a = (k * m.step) / 4;
+          for (let k = 0; k < m.n * lines; k++) {
+            const a = a0 + (k * m.step) / lines;
             const [x0, y0] = H.polar(R.cap + 2, a);
             const [x1, y1] = H.polar(R.outer, a);
             rh += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
           }
           H.s('path', { d: rh, class: 'pu-rhumbs' }, face);
+          // A degree ring of 72 to 120 ticks: the longest on each slice's centre line, then its borders.
           let ticks = '';
-          const per = 12;
+          const per = 12 * Math.max(1, Math.round(8 / m.n));
           for (let k = 0; k < m.n * per; k++) {
-            const a = (k * m.step) / per;
+            const a = a0 + (k * m.step) / per;
             const len = k % per === 0 ? 9 : k % (per / 2) === 0 ? 7 : k % 3 === 0 ? 4.5 : 2.6;
             const [x0, y0] = H.polar(R.band - len, a);
             const [x1, y1] = H.polar(R.band, a);
@@ -183,6 +190,15 @@ export default function register(Board) {
           H.s('circle', { cx: C, cy: C, r: R.rim, class: 'pu-rule pu-rim' }, face);
           H.s('circle', { cx: C, cy: C, r: R.inner, class: 'pu-rule' }, face);
           H.s('circle', { cx: C, cy: C, r: R.inner - 3.5, class: 'pu-rule pu-rule-thin' }, face);
+
+          // Labels may be as wide as the wedge between two star points allows, and as the rings
+          // above and below allow where a slice lies on its side: 70 there, up to 96 on a slice
+          // that stands upright among few, so long words keep their size and wrap less.
+          const across = 2 * (R.label - 12) * Math.sin(H.rad(Math.min(m.step, 180) / 2)) - 22;
+          const width = (sl) => {
+            const along = (2 * (R.label - R.inner - 4)) / Math.max(0.01, Math.abs(Math.sin(H.rad(sl.mid))));
+            return Math.round(Math.max(70, Math.min(96, across, along)));
+          };
 
           // Slices: a hit area from the hub to the rim, the visible wedge and the lubber mark.
           for (const sl of m.slices) {
@@ -204,12 +220,14 @@ export default function register(Board) {
             const [bx, by] = H.polar(R.band - 0.5, sl.mid + d);
             H.s('path', { d: `M${f2(tx)} ${f2(ty)}L${f2(ax)} ${f2(ay)}L${f2(bx)} ${f2(by)}Z`, class: 'pu-mark' }, g);
             const c = H.s('g', { class: 'pu-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            const wide = width(sl);
+            // Formats are lettered large, as place names on the chart.
+            if (sl.format) {
               H.block(c, sl, R.label, {
                 size: 22,
                 subSize: 12.5,
                 gap: 1,
-                maxWidth: 68,
+                maxWidth: wide - 2,
                 minSize: 9,
                 cls: 'pu-lbl pu-fmt pu-type',
                 subCls: 'pu-sub pu-type',
@@ -220,7 +238,7 @@ export default function register(Board) {
                 iconSize: 23,
                 size: 14.5,
                 gap: 3.5,
-                maxWidth: 70,
+                maxWidth: wide,
                 minSize: 9.5,
                 cls: 'pu-lbl pu-type',
                 sub: null,
@@ -233,7 +251,8 @@ export default function register(Board) {
           const rest = restAngle(m);
           for (const sl of m.slices) {
             // Each slice's a0 is one boundary; together they cover every boundary in both directions.
-            const isNorth = Math.abs((((sl.a0 - rest) % 360) + 360) % 360) < 0.01;
+            const off = (((sl.a0 - rest) % 360) + 360) % 360;
+            const isNorth = off < 0.01 || off > 359.99;
             const [l, r] = isNorth
               ? kite(H, sl.a0, R.inner - 1, R.rim, R.inner + 13, 8)
               : kite(H, sl.a0, R.inner - 1, R.band - 1, R.inner + 11, 6.2);
@@ -256,14 +275,16 @@ export default function register(Board) {
           const cap = H.s('g', { class: 'pu-cap' }, root);
           H.s('circle', { cx: C, cy: C, r: R.cap, class: 'pu-cap-disc' }, cap);
           H.s('circle', { cx: C, cy: C, r: R.cap - 4.5, class: 'pu-cap-ring' }, cap);
-          H.label(cap, C, C - 17, m.title, {
+          // Without a key the title and the file move down to the middle of the cap.
+          const dy = m.key ? 0 : 8;
+          H.label(cap, C, C - 17 + dy, m.title, {
             maxWidth: 86,
             size: 15.5,
             minSize: 10,
             cls: 'pu-title pu-type',
             maxLines: 1,
           });
-          H.label(cap, C, C + 2, m.file, {
+          H.label(cap, C, C + 2 + dy, m.file, {
             maxWidth: 84,
             size: 11,
             minSize: 8.5,
@@ -271,9 +292,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.6;
-          H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 17, rx: 8.5, class: 'pu-key' }, cap);
-          H.text(cap, C, C + 23.8, m.key, { class: 'pu-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.6;
+            H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 17, rx: 8.5, class: 'pu-key' }, cap);
+            H.text(cap, C, C + 23.8, m.key, { class: 'pu-keytext' });
+          }
         },
 
         update(root, m, st) {
