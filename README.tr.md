@@ -69,6 +69,16 @@ orijinalin yanına yeni bir kopya olarak dönüştürür. **Ctrl** (Mac'te ⌘) 
 | **Diller** | On iki dil, aralarında sağdan sola Arapça; her birinde açık ve koyu görünüm. |
 | **Temalar** | Seçilecek 51 çark: çelik kadran ve elli tane daha, çevirmeli telefon kadranından ve pikaptan ikiye bölünmüş portakala ve vitraylı pencereye kadar, her biri kendi rengi, hareketi ve sesiyle. |
 
+## 51 tema
+
+<p align="center">
+  <img src="docs/images/kento-themes-tr.gif" width="960" alt="Kento'nun temaları. Çelik kadran Kasa, 51 tema yazısının yanında açılır; ardından diğer elli tema kendi zeminlerinde birbirini izler: ikiye bölünmüş bir portakal, çevirmeli telefon kadranı ve İznik çinisi bir rozetten vitraylı bir pencereye, piksellere, bir pikaba ve bir ayçiçeğine kadar; altısı aynı anda bir dilimi uygular, her biri kendi efektiyle; sonunda 51'i yan yana durur.">
+</p>
+
+Varsayılan tema çelik kadran Kasa. Diğer elli tema çarkı baştan değiştirir, kendi rengi, hareketi ve
+sesiyle; uygulamanın geri kalanı da onların renklerini alır. Ayarlar → Görünüm → Tema'dan seç;
+değişiklik hemen görünür.
+
 ## Ekran görüntüleri
 
 <table>
@@ -479,7 +489,7 @@ diğer araçlara ihtiyaç duyduğu [CONTRIBUTING.md](CONTRIBUTING.md) dosyasınd
 </details>
 
 Tasarım sistemi [design/DESIGN.md](design/DESIGN.md), şartname [docs/SPEC.md](docs/SPEC.md), kodun
-yapısı [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) dosyasında. Yukarıdaki tanıtım ve ekran
+yapısı [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) dosyasında. Yukarıdaki tanıtımlar ve ekran
 görüntüleri `npm run demo` ile doğrudan uygulamanın kendisinden kaydedilir.
 
 ## Katkı

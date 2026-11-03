@@ -69,6 +69,16 @@ actions. Nothing is uploaded anywhere, and the original stays as it was.
 | **Languages** | Twelve, Arabic right to left among them; light and dark in each. |
 | **Themes** | 51 wheels to choose from: the steel dial and fifty more, from a rotary phone dial and a record player to a halved orange and a stained-glass window, each with its own colours, motion and sounds. |
 
+## 51 themes
+
+<p align="center">
+  <img src="docs/images/kento-themes.gif" width="960" alt="Kento's themes. The steel dial, Kasa, opens beside the words 51 themes; then the other fifty follow one another on their own desks, from a halved orange, a rotary phone dial and an İznik tile rosette to a stained-glass window, pixels, a record player and a sunflower; six of them apply a slice at once, each with its own effect; and all 51 stand side by side.">
+</p>
+
+Kasa, the steel dial, is the default. The other fifty change the wheel completely, with their own
+colours, motion and sounds, and give the rest of the app their colours. Choose one in Settings →
+Appearance → Theme; the change shows at once.
+
 ## Screenshots
 
 <table>
@@ -473,7 +483,7 @@ the other tools.
 
 The design system is in [design/DESIGN.md](design/DESIGN.md), the specification in
 [docs/SPEC.md](docs/SPEC.md) and the structure of the code in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The demo above and the screenshots are recorded from
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The demos above and the screenshots are recorded from
 the app itself with `npm run demo`.
 
 ## Contributing
