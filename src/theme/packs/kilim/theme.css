@@ -256,3 +256,9 @@
     opacity: 1;
   }
 }
+
+/* More choices: a slice that opens a ring carries a little woven arrow at the edge of its field, knotted
+   on the weave's grid in the label's yarn. */
+[data-concept='kilim'] .kl-ring-mark {
+  --ring-mark-rest: 0.9;
+}

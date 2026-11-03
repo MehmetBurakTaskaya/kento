@@ -281,6 +281,9 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: an arrowhead near the hem, turned with the fold as it swirls; a little off the
+            // fold's middle, since the swirl carries it towards the next label.
+            H.ringMark(c, sl, m, { r: R.hem - 11, size: 9.5, offset: 6, turn: twist(R.hem - 16), cls: 'se-ring-mark' });
           }
           hub(root, m, H, ids);
         },

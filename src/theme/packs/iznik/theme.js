@@ -296,7 +296,9 @@ export default function register(Board) {
               flower(fl, H, flowers++);
             }
 
-            const [sx, sy] = H.polar(R.out - 12, sl.mid + Math.min(sl.step * 0.28, 16));
+            // The shine's spark keeps clear of the mark of a slice that opens a ring of choices.
+            const away = sl.ring ? (m.dir === 'rtl' ? 1 : -1) : 1;
+            const [sx, sy] = H.polar(R.out - 12, sl.mid + away * Math.min(sl.step * 0.28, 16));
             H.s('path', { d: SPARK, class: 'iz-spark' }, H.s('g', { transform: `translate(${f2(sx)} ${f2(sy)})` }, g));
 
             const c = H.s('g', { class: 'iz-ink' }, g);
@@ -322,6 +324,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a cobalt spearhead in the white panel, just inside the border band.
+            H.ringMark(c, sl, m, { r: R.out - 4.5, size: 10, shape: 'dart', cls: 'iz-ring-mark' });
           }
 
           // Line work over the panels: cobalt dividers, the band's edges and a small quatrefoil where cartouches meet.

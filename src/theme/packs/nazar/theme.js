@@ -248,6 +248,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a white arrowhead near the rim of the glass.
+            H.ringMark(c, sl, m, { r: R.rim - 8, size: 10.5, cls: 'nz-ring-mark' });
           }
 
           // Air caught in the glass: bubble trails between the slices and a few strays near the rim.
@@ -264,7 +266,11 @@ export default function register(Board) {
             // Strays near the rim: as many for a wide slice as for two narrow ones.
             const strays = Math.max(2, Math.round(sl.step / 22));
             for (let k = 0; k < strays; k++) {
-              const [x, y] = polar(R.rim - 5 - rand() * 4, sl.mid + (rand() - 0.5) * sl.step * 0.8);
+              const r = R.rim - 5 - rand() * 4;
+              const a = sl.mid + (rand() - 0.5) * sl.step * 0.8;
+              // None on the mark of a slice that opens a ring of choices.
+              if (sl.ring && Math.abs(a - sl.mark) < 6) continue;
+              const [x, y] = polar(r, a);
               bub += dot(x, y, f2(0.7 + rand() * 0.8));
             }
           }

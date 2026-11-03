@@ -375,3 +375,10 @@
     transform: scale(0.94) rotate(4deg);
   }
 }
+
+/* More choices: a slice that opens a ring carries a cobalt spearhead just inside the border band. */
+[data-concept='iznik'] .iz-ring-mark {
+  --ring-mark-color: var(--wheel-line);
+  --ring-mark-hover: var(--wheel-line);
+  --ring-mark-rest: 0.9;
+}

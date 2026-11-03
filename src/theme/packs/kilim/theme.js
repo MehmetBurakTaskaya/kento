@@ -422,6 +422,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a little woven arrow at the edge of the field, on the weave's own grid.
+            H.ringMark(c, sl, m, { r: R.field - 9, size: 12, shape: 'pixel', grid: S, cls: 'kl-ring-mark' });
           }
           hub(root, m, H, P);
         },

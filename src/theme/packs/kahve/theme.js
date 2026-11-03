@@ -356,6 +356,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a gilt arrowhead pointing to the saucer's gold rim.
+            H.ringMark(c, sl, m, { r: R.slice1 - 7.5, size: 10.5, cls: 'kv-ring-mark' });
           }
           // Dotted gold lines between the slices.
           let d = '';

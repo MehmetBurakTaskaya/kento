@@ -345,3 +345,8 @@
     transform: scale(0.9);
   }
 }
+
+/* More choices: a slice that opens a ring carries a white arrowhead near the rim of the glass. */
+[data-concept='nazar'] .nz-ring-mark {
+  --ring-mark-rest: 0.95;
+}

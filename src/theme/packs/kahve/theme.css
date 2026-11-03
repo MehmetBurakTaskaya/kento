@@ -429,3 +429,16 @@
     transform: translateY(6px) scale(0.95);
   }
 }
+
+/* More choices: a slice that opens a ring carries a gilt arrowhead pointing to the gold rim, edged in
+   copper on the white porcelain. */
+[data-concept='kahve'] .kv-ring-mark {
+  --ring-mark-color: var(--kv-gold);
+  --ring-mark-hover: var(--kv-gold);
+  --ring-mark-rest: 1;
+}
+[data-concept='kahve'][data-theme='light'] .kv-ring-mark .ring-mark-body {
+  stroke: var(--kv-copper);
+  stroke-width: 0.8px;
+  stroke-linejoin: round;
+}

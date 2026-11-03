@@ -311,3 +311,8 @@
     transform: scale(0.92) rotate(-10deg);
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead near the hem, following the fold. */
+[data-concept='sema'] .se-ring-mark {
+  --ring-mark-rest: 0.9;
+}
