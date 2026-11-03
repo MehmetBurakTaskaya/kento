@@ -310,3 +310,17 @@
     stroke-dashoffset: -110;
   }
 }
+
+/* More choices: a slice that opens a ring carries a gilded double chevron under its crown, pointing
+   out; on the chosen slice it takes the selected text colour over the gilt. */
+[data-concept='artdeco'] .ad-ring-mark {
+  --ring-mark-color: var(--ad-gold);
+  --ring-mark-hover: var(--ad-gold);
+  --ring-mark-halo: var(--ad-bg);
+  --ring-mark-width: 2.1px;
+  --ring-mark-rest: 1;
+}
+/* The chosen slice is gilded or lacquered all over: no halo there. */
+[data-concept='artdeco'] .slice.is-selected .ad-ring-mark {
+  --ring-mark-halo: transparent;
+}

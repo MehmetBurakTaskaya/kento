@@ -8,6 +8,8 @@ export default function register(Board) {
     'use strict';
 
     const R = { zigIn: 173, zigOut: 193, band: 157, tile: 155, inner: 60, hub: 55, lbl: 116 };
+    // The mark of a slice that opens a ring of choices: its point's radius and its length.
+    const MARK = { r: 150, size: 11 };
     const TEETH = 40;
     const WAVE = { amp: 3.8, len: 23.75 }; // four whole waves between the hub and the band
     const f2 = (n) => Math.round(n * 100) / 100;
@@ -352,12 +354,15 @@ export default function register(Board) {
             const rand = rng(sl.i + 1);
             let specks = ['', '', ''];
             const count = Math.min(32, Math.round((12 * sl.step) / 45));
+            // None on the mark of a slice that opens a ring of choices.
+            const mark = sl.ring ? H.polar(MARK.r - MARK.size / 2, sl.mark) : null;
             for (let k = 0; k < count; k++) {
               const r = k % 2 ? 66 + rand() * 14 : 139 + rand() * 11;
               const a = sl.a0 + 7 + rand() * (sl.a1 - sl.a0 - 14);
               const [x, y] = H.polar(r, a);
               const w = 1.6 + rand() * 1.8;
               const turnA = rand() * 180;
+              if (mark && Math.hypot(x - mark[0], y - mark[1]) < MARK.size + w) continue;
               specks[k % 3] +=
                 `M${f2(x - w)} ${f2(y)}l${f2(2 * w * Math.cos(rad(turnA)))} ${f2(2 * w * Math.sin(rad(turnA)))}`;
             }
@@ -379,6 +384,8 @@ export default function register(Board) {
                 };
             // The squiggles swing about four units either way, so labels keep a wider margin.
             fitBlock(H, ink, sl, [R.lbl, R.lbl + 6, R.lbl - 6, R.lbl + 12, R.lbl - 12], o, R.inner, R.tile, 112, 6);
+            // More choices: a bold triangle near the top of the tile, lifted with it.
+            H.ringMark(lift, sl, m, { ...MARK, cls: 'mp-ring-mark' });
           }
 
           // Hub: a black disc with the wheel's name, the file and the key on a yellow pill.

@@ -318,3 +318,19 @@
     transform: scale(1.4);
   }
 }
+
+/* More choices: a slice that opens a ring carries a mother-of-pearl arrowhead inlaid near the
+   stringing, set in dark stringing of its own on the pale woods; on a slice already turned to pearl it
+   is inlaid in the lettering's colour. */
+[data-concept='kakma'] .kk-ring-mark {
+  --ring-mark-color: var(--pearl-1);
+  --ring-mark-hover: var(--pearl-1);
+  --ring-mark-halo: var(--pearl-edge);
+  --ring-mark-rest: 1;
+}
+[data-concept='kakma'][data-theme='light'] .kk-ring-mark {
+  --ring-mark-halo: var(--wheel-text);
+}
+[data-concept='kakma'] .slice.is-selected .kk-ring-mark {
+  --ring-mark-halo: var(--pearl-1);
+}

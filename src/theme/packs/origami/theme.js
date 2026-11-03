@@ -302,6 +302,11 @@ export default function register(Board) {
             for (const [a, r1, cls] of folds) lines[cls] += breakRound(H, a, R.hub, r1, bb);
             crease.setAttribute('d', lines['og-crease']);
             valley.setAttribute('d', lines['og-valley']);
+            // More choices: an arrowhead printed near the tip of the sheet, on a facet towards the next
+            // slice, clear of the folds: past the first ridge after the middle when a slice has several.
+            const ridge = Array.from({ length: p }, (_, k) => w * (k + 0.5) - sl.step / 2).find((x) => x > 0);
+            const offset = p > 1 && ridge !== undefined ? ridge + w / 4 : undefined;
+            H.ringMark(ink, sl, m, { r: R.valley - 5, size: 9.5, offset, cls: 'og-ring-mark' });
           }
 
           // Hub: a small square sheet with its creases, corners tucked into the valleys.

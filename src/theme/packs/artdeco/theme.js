@@ -357,6 +357,8 @@ export default function register(Board) {
               };
               fitBlock(H, ink, sl, radii, o, R.hubRing, R.face, 112);
             }
+            // More choices: a gilded double chevron under the crown, pointing out.
+            H.ringMark(g, sl, m, { r: R.face - 5, size: 10.5, shape: 'double', halo: 1.4, cls: 'ad-ring-mark' });
           }
 
           // Gold rules: the slice dividers, the face ring and the stepped outline.

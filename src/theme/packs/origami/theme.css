@@ -260,3 +260,8 @@
     transform: translate(var(--lx), var(--ly));
   }
 }
+
+/* More choices: a slice that opens a ring carries an arrowhead printed near the tip of its sheet. */
+[data-concept='origami'] .og-ring-mark {
+  --ring-mark-rest: 0.9;
+}

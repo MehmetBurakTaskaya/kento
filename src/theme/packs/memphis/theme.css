@@ -322,3 +322,8 @@
     transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1.5);
   }
 }
+
+/* More choices: a slice that opens a ring carries a bold triangle near the top of its tile. */
+[data-concept='memphis'] .mp-ring-mark {
+  --ring-mark-rest: 0.9;
+}

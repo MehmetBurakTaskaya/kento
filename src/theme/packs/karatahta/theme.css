@@ -349,3 +349,16 @@
     transform: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries a small chalk arrow near the frame, pointing out,
+   in chalk at rest and in the marking colour on the chosen slice. */
+[data-concept='karatahta'] .kt-ring-mark {
+  --ring-mark-color: var(--wheel-line);
+  --ring-mark-hover: var(--wheel-line);
+  --ring-mark-selected: var(--mark);
+  --ring-mark-width: 2.5px;
+  --ring-mark-rest: 1;
+}
+[data-concept='karatahta'] .kt-ring-mark .ring-mark-body {
+  filter: var(--line-filter);
+}

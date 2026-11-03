@@ -296,3 +296,9 @@
     color: var(--wheel-text-selected);
   }
 }
+
+/* More choices: a slice that opens a ring carries a bold ink arrowhead near the top of its panel, on a
+   patch the halftone leaves clear. */
+[data-concept='popart'] .pa-ring-mark {
+  --ring-mark-rest: 1;
+}

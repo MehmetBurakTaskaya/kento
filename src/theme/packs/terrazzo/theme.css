@@ -296,3 +296,14 @@
     transform: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries a brass chevron set into its field by the rim like
+   the strips, pointing out, the chips keeping clear of it. */
+[data-concept='terrazzo'] .tz-ring-mark {
+  --ring-mark-width: 2.6px;
+  --ring-mark-color: var(--brass);
+  --ring-mark-hover: var(--brass-hi);
+  --ring-mark-selected: var(--brass-hi);
+  --ring-mark-halo: var(--brass-lo);
+  --ring-mark-rest: 1;
+}

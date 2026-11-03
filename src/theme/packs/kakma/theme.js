@@ -437,6 +437,8 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a mother-of-pearl arrowhead inlaid near the stringing, pointing out.
+            H.ringMark(ink, sl, m, { r: R.field - 5.5, size: 10.5, halo: 1.1, cls: 'kk-ring-mark' });
           }
 
           // Stringing between the veneers: ebony with a line of holly each side.

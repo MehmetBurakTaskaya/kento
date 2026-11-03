@@ -323,3 +323,10 @@
   direction: ltr;
   unicode-bidi: isolate;
 }
+
+/* More choices: a slice that opens a ring carries a leader arrow just inside the rim, pointing out,
+   with the paper knocked out round it. */
+[data-concept='blueprint'] .bp-ring-mark {
+  --ring-mark-halo: var(--paper);
+  --ring-mark-rest: 1;
+}

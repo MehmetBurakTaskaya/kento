@@ -368,6 +368,18 @@ export default function register(Board) {
             };
             // A label that reaches almost to the hub leaves no room: the hover haze is enough there.
             if (reach - R.hub >= 18) arrow.setAttribute('d', wobLine(p0, p1, r1, 1.2) + head(1) + head(-1));
+            // More choices: a small chalk arrow near the frame, pointing out.
+            const r2 = rng(311 + sl.i * 53);
+            H.ringMark(g, sl, m, {
+              r: R.rim - 6,
+              size: 15,
+              shape: (l) =>
+                wobLine([0, l], [0, 0], r2, 0.5) +
+                wobLine([-5.4, 6], [0, 0], r2, 0.3) +
+                wobLine([5.4, 6], [0, 0], r2, 0.3),
+              line: true,
+              cls: 'kt-ring-mark',
+            });
             const [lx, ly] = bb.width ? [bb.x + bb.width / 2, bb.y + bb.height / 2] : H.polar(R.lbl, sl.mid);
             const rx = Math.max(40, (bb.width || 70) / 2 + 15);
             const ry = Math.max(26, (bb.height || 40) / 2 + 10);

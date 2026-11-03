@@ -436,3 +436,13 @@
     fill: var(--sel-glow);
   }
 }
+
+/* More choices: a slice that opens a ring carries a leaded piece of gold glass in its arch, pointing
+   out, brighter when lit. */
+[data-concept='vitray'] .vt-ring-mark {
+  --ring-mark-color: var(--g-gold);
+  --ring-mark-hover: var(--g-gold-hi);
+  --ring-mark-selected: var(--g-gold-hi);
+  --ring-mark-halo: var(--lead);
+  --ring-mark-rest: 1;
+}

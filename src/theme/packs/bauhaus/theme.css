@@ -270,3 +270,12 @@
     transition-delay: 0ms;
   }
 }
+
+/* More choices: a slice that opens a ring carries a solid triangle on its coloured band, pointing out,
+   in the colour that reads on that primary. */
+[data-concept='bauhaus'] .bh-ring-mark {
+  --ring-mark-color: var(--bh-on);
+  --ring-mark-hover: var(--bh-on);
+  --ring-mark-selected: var(--bh-on);
+  --ring-mark-rest: 1;
+}

@@ -33,6 +33,8 @@ export default function register(Board) {
 
     // Radii in the 400 x 400 view box.
     const R = { outer: 196, rim: 188, hub: 64, lbl: 127, arcOut: 165, arcIn: 89 };
+    // The mark of a slice that opens a ring of choices: its point's radius and its length.
+    const MARK = { r: 180, size: 9 };
     const CHIP_COLORS = 7;
     const pt = (p) => `${f2(p[0])} ${f2(p[1])}`;
 
@@ -274,6 +276,8 @@ export default function register(Board) {
               });
             }
             const bb = ink.getBBox();
+            // Chips and specks keep clear of the lettering and of the mark of a slice that opens a ring.
+            const mark = sl.ring ? H.polar(MARK.r - MARK.size / 2, sl.mark) : null;
             const clear = (x, y, pad) =>
               !(
                 bb.width &&
@@ -281,7 +285,7 @@ export default function register(Board) {
                 x < bb.x + bb.width + pad &&
                 y > bb.y - pad &&
                 y < bb.y + bb.height + pad
-              );
+              ) && !(mark && Math.hypot(x - mark[0], y - mark[1]) < MARK.size * 0.8 + pad);
             // Fine specks of the cement, one path per colour.
             const specks = ['', ''];
             for (let k = 0, kept = 0; k < 400 * share && kept < Math.round(46 * share); k++) {
@@ -367,6 +371,8 @@ export default function register(Board) {
               c.style.setProperty('--tr', Math.round((rand() - 0.5) * 40) + 'deg');
               c.style.setProperty('--d', Math.round(rand() * 70) + 'ms');
             });
+            // More choices: a brass chevron set into the field by the rim like its strips, pointing out.
+            H.ringMark(g, sl, m, { ...MARK, shape: 'chevron', halo: 0.7, cls: 'tz-ring-mark' });
             s('path', { d: wedge, class: 'tz-gloss', fill: `url(#${uid}-gloss)` }, g);
             s('path', { d: H.arc(R.rim + 4, sl.a0 + 1.2, sl.a1 - 1.2), class: 'tz-glint' }, g);
             g.appendChild(ink);

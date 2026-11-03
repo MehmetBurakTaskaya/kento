@@ -342,3 +342,9 @@
     opacity: 0;
   }
 }
+
+/* More choices: a slice that opens a ring carries a pixel arrow near the rim, square to the grid and
+   turned to the nearest eighth, in the label's colour. */
+[data-concept='piksel'] .px-ring-mark {
+  --ring-mark-rest: 1;
+}

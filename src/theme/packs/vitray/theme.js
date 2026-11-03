@@ -395,6 +395,9 @@ export default function register(Board) {
                 sub: null,
               });
             }
+            // More choices: a leaded piece of gold glass in the arch beside the medallion, pointing out.
+            // A narrow petal keeps it nearer its middle, between the medallion and the lead.
+            H.ringMark(g, sl, m, { r: 170, size: 10, offset: sl.step >= 70 ? 16 : 9, halo: 1.2, cls: 'vt-ring-mark' });
           }
 
           // Light that falls through a chosen pane: a beam per slice down to the centre (under the

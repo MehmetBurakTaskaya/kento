@@ -433,3 +433,11 @@
     transform: none;
   }
 }
+
+/* More choices: a slice that opens a ring carries a thin glowing chevron near the outer edge of its
+   cell, pointing out. */
+[data-concept='hologram'] .hg-ring-mark {
+  --ring-mark-width: 2px;
+  --ring-mark-rest: 0.9;
+  filter: var(--text-glow);
+}

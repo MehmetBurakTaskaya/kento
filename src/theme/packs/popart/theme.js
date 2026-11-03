@@ -128,10 +128,17 @@ export default function register(Board) {
     }
 
     // Ben-Day dots on a 45-degree screen, growing from nothing near the label to full at the rim.
+    // The mark of a slice that opens a ring of choices: its point's radius and its length.
+    const MARK = { r: 165, size: 11 };
+
     function dots(sl) {
       const step = 8.4;
       let d = '';
       const cs = Math.SQRT1_2;
+      // The dots leave the mark of a slice that opens a ring a clear patch.
+      const mark = sl.ring
+        ? [C + (MARK.r - MARK.size / 2) * Math.sin(rad(sl.mark)), C - (MARK.r - MARK.size / 2) * Math.cos(rad(sl.mark))]
+        : null;
       for (let i = -26; i <= 26; i++) {
         for (let j = -26; j <= 26; j++) {
           const x = (i - j) * step * cs;
@@ -147,6 +154,7 @@ export default function register(Board) {
           const edge = Math.min(rel, sl.a1 - sl.a0 - rel);
           if (r * Math.sin(rad(edge)) < R.gap / 2 + rho + 2.5) continue;
           if (R.panel - r < rho + 3) continue;
+          if (mark && Math.hypot(C + x - mark[0], C + y - mark[1]) < 10 + rho) continue;
           d += `M${f2(C + x - rho)} ${f2(C + y)}a${f2(rho)} ${f2(rho)} 0 1 0 ${f2(2 * rho)} 0a${f2(rho)} ${f2(rho)} 0 1 0 ${f2(-2 * rho)} 0`;
         }
       }
@@ -367,6 +375,8 @@ export default function register(Board) {
             );
             const [bx, by] = H.polar(fitted.r, sl.mid);
             fx.setAttribute('transform', `translate(${f2(bx)} ${f2(by)})`);
+            // More choices: a bold ink arrowhead near the top of the panel, on a patch the dots leave.
+            H.ringMark(lift, sl, m, { ...MARK, cls: 'pa-ring-mark' });
           }
 
           // Hub: a small round caption with the wheel's name, the file and the key.

@@ -24,11 +24,15 @@ export default function register(Board) {
 
     // Radii in the 400 x 400 view box.
     const R = { paper: 186, rim: 178, hub: 70, lbl: 126, dim: 196, ball_r: 8.5 };
+    // The mark of a slice that opens a ring of choices: its point's radius and its length.
+    const MARK = { r: 173, size: 15 };
 
     // Where the balloon goes: inside the slice, clear of the label's box, as far from it as the
     // slice allows (ties go to the clockwise side, so every slice reads the same way).
     function balloonSpot(H, sl, bb) {
       const rb = R.ball_r + 2.5;
+      // It also keeps clear of the mark of a slice that opens a ring of choices.
+      const mark = sl.ring ? H.polar(MARK.r - MARK.size / 2, sl.mark) : null;
       let best = null;
       for (let r = R.hub + rb + 1; r <= R.rim - rb - 1; r += 3) {
         const half = sl.step / 2 - ((rb / r) * 180) / Math.PI;
@@ -38,7 +42,7 @@ export default function register(Board) {
           const [x, y] = H.polar(r, a);
           const dx = Math.max(bb.x - x, 0, x - (bb.x + bb.width));
           const dy = Math.max(bb.y - y, 0, y - (bb.y + bb.height));
-          const clear = Math.hypot(dx, dy) - rb;
+          const clear = Math.min(Math.hypot(dx, dy), mark ? Math.hypot(x - mark[0], y - mark[1]) - 4 : Infinity) - rb;
           const score = Math.min(clear, 14) + u * 0.6 - Math.abs(r - 150) * 0.02;
           if (!best || score > best.score) best = { score, x, y };
         }
@@ -299,6 +303,14 @@ export default function register(Board) {
               },
               ball,
             );
+            // More choices: a leader arrow just inside the rim, pointing out, knocked out of the
+            // hatching like the lettering.
+            H.ringMark(ink, sl, m, {
+              ...MARK,
+              shape: (l) => `M0 0L3.3 ${l * 0.62}H0.6V${l}H-0.6V${l * 0.62}H-3.3Z`,
+              halo: 1.6,
+              cls: 'bp-ring-mark',
+            });
           }
 
           // Object lines: the rim (thick), an inner rule, slice lines drawn from the hub out, the hub.

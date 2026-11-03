@@ -395,6 +395,15 @@ export default function register(Board) {
                   sub: null,
                 };
             fitBlock(H, ink, sl, [R.lbl, R.lbl + 5, R.lbl - 6, R.lbl - 12], o, R.hubInk, R.rimInk, 110);
+            // More choices: a pixel arrow near the rim, on half the grid's pixels like the lettering.
+            H.ringMark(g, sl, m, {
+              r: R.rimInk - 7,
+              size: 15,
+              offset: 10,
+              shape: 'pixel',
+              grid: P / 2,
+              cls: 'px-ring-mark',
+            });
 
             // The star that marks the applied slice: a plus of five cells on the rim.
             const [sx, sy] = H.polar((R.rim + R.ink) / 2, sl.mid);

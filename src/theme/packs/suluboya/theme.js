@@ -408,6 +408,14 @@ export default function register(Board) {
             const [bx, by] = H.polar(fitted.r + 4, sl.mid);
             bloomAt.setAttribute('transform', `translate(${f2(bx)} ${f2(by)})`);
             dropAt.setAttribute('transform', `translate(${f2(bx)} ${f2(by)})`);
+            // More choices: a brushed chevron near the outer edge of the wash, pointing out.
+            H.ringMark(g, sl, m, {
+              r: R.outer - 11,
+              size: 10,
+              shape: (l) => `M${-l * 0.8} ${l}Q${-l * 0.3} ${l * 0.45} 0 0Q${l * 0.35} ${l * 0.5} ${l * 0.8} ${l}`,
+              line: true,
+              cls: 'su-ring-mark',
+            });
           }
 
           // Hub: a pale gray wash with the wheel's name, the file and the key in a pencil box.

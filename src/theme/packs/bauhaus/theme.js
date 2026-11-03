@@ -324,6 +324,8 @@ export default function register(Board) {
                   sub: null,
                 };
             fitBlock(H, ink, word, [R.lbl, R.lbl + 6, R.lbl - 6, R.lbl - 12], o, R.hub, R.band, 116);
+            // More choices: a solid triangle on the slice's coloured band, pointing out.
+            H.ringMark(g, sl, m, { r: R.face - 2, size: 11, cls: 'bh-ring-mark' });
           }
 
           // The grid: radial rules between slices, the band's inner circle and the heavy rim.

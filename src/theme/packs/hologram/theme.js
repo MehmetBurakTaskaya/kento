@@ -359,6 +359,8 @@ export default function register(Board) {
               },
               vis,
             );
+            // More choices: a thin chevron near the outer edge of the cell, pointing out.
+            H.ringMark(vis, sl, m, { r: R.cellOut - 6.5, size: 9, shape: 'chevron', cls: 'hg-ring-mark' });
           }
 
           // Hub: a dashed ring, a thin ring, the name, the file and the key.
