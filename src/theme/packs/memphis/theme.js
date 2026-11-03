@@ -15,6 +15,111 @@ export default function register(Board) {
     const rad = (a) => (a * Math.PI) / 180;
     const pt = (x, y) => `${f2(x)} ${f2(y)}`;
 
+    // Whether a point (relative to the centre) lies m inside a slice, between radii rin and rout.
+    // Tests the slice's own angles, so it holds for any number of slices and any turn.
+    function inSlice(sl, rin, rout, m) {
+      const toRad = (a) => (a * Math.PI) / 180;
+      const step = sl.a1 - sl.a0;
+      const away = (a, rr) => (a < 90 ? rr * Math.sin(toRad(a)) : rr);
+      return (x, y) => {
+        const rr = Math.hypot(x, y);
+        if (rr < rin + m || rr > rout - m) return false;
+        if (step >= 359.9) return true;
+        const rel = ((((Math.atan2(x, -y) * 180) / Math.PI - sl.a0) % 360) + 360) % 360;
+        return rel <= step && away(rel, rr) >= m && away(step - rel, rr) >= m;
+      };
+    }
+
+    // How wide a level label may be: its lines, centred dy below the point at radius r on the slice's
+    // centre line and hh high on each side, must stay inside the slice.
+    function room(sl, r, dy, hh, rin, rout, cap, m = 4) {
+      const inside = inSlice(sl, rin, rout, m);
+      const cx = r * Math.sin((sl.mid * Math.PI) / 180);
+      const cy = -r * Math.cos((sl.mid * Math.PI) / 180) + dy;
+      const fits = (w) => [-1, 0, 1].every((u) => [-1, 0, 1].every((v) => inside(cx + u * w, cy + v * hh)));
+      if (fits(cap / 2)) return cap;
+      let lo = 0;
+      let hi = cap / 2;
+      for (let k = 0; k < 12; k++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      return Math.max(2 * lo, 40);
+    }
+
+    // Draws a slice's label block where it has the most room, at whichever of the given radii lets its
+    // lines be widest (outward where the slice runs up or down, nearer the middle where it runs
+    // across), then checks the lines as drawn and narrows them until they sit inside the slice. A label
+    // is never shortened to fit: if only an ellipsis would make it fit, the last whole one is kept.
+    // A single word too long for the slice goes a size smaller before it is shortened.
+    function fitBlock(H, parent, sl, radii, o, rin, rout, cap, m = 2) {
+      const inside = inSlice(sl, rin, rout, m);
+      const iconH = o.icon ? o.iconSize + o.gap : 0;
+      const sub = o.sub === undefined ? sl.sub : o.sub;
+      const subH = sub ? o.gap + o.subSize * 1.1 : 0;
+      const best = (lines) =>
+        radii
+          .map((r) => [r, room(sl, r, iconH / 2, (lines * o.size * 1.1 + subH) / 2, rin, rout, cap, m + 2)])
+          .reduce((a, b) => (b[1] > a[1] + 1 ? b : a));
+      const draw = (r, width) => {
+        parent.textContent = '';
+        return H.block(parent, sl, r, { ...o, maxWidth: width });
+      };
+      // How wide each line as drawn may be where it sits, and whether every line is within that.
+      const lines = (parts) => {
+        const spans = [...parts.label.querySelectorAll('tspan')];
+        const list = (spans.length ? spans : [parts.label]).map((line) => [line, parts.label]);
+        if (parts.sub) list.push([parts.sub, parts.sub]);
+        return list.map(([line, text]) => {
+          const hh = +text.getAttribute('font-size') * 0.42;
+          const cx = +text.getAttribute('x') - 200;
+          const cy = line.getStartPositionOfChar(0).y - 200;
+          const ok = (half) => [-1, 0, 1].every((u) => [-1, 1].every((v) => inside(cx + u * half, cy + v * hh)));
+          let allowed = cap;
+          if (!ok(cap / 2)) {
+            let lo = 0;
+            let hi = cap / 2;
+            for (let k = 0; k < 10; k++) {
+              const half = (lo + hi) / 2;
+              if (ok(half)) lo = half;
+              else hi = half;
+            }
+            allowed = 2 * lo;
+          }
+          return { width: line.getComputedTextLength(), allowed };
+        });
+      };
+      const shortened = () => !!parent.querySelector('[data-fit="shortened"]');
+      let [r, width] = best(1);
+      let parts = draw(r, width);
+      // A single long word that would need an ellipsis may go a size smaller first.
+      if (shortened()) {
+        o = { ...o, minSize: Math.max(8.5, o.minSize - 1.5) };
+        parts = draw(r, width);
+      }
+      for (let k = 0; k < 4 && !shortened(); k++) {
+        const drawn = lines(parts);
+        const over = drawn.filter((line) => line.width > line.allowed + 0.5);
+        if (!over.length) break;
+        const last = [r, width];
+        r = best(drawn.length - (parts.sub ? 1 : 0))[0];
+        width = Math.max(30, Math.min(width * 0.96, ...over.map((line) => line.allowed)));
+        parts = draw(r, width);
+        if (shortened()) {
+          [r, width] = last;
+          parts = draw(r, width);
+          break;
+        }
+      }
+      parts.r = r;
+      return parts;
+    }
+
+    // Four hues round the wheel; when the count leaves the last tile next to the first in the same hue,
+    // the last one takes the second hue instead.
+    const hue = (i, n) => (n > 1 && n % 4 === 1 && i === n - 1 ? 2 : (i % 4) + 1);
+
     // A point on the squiggle that runs along a slice boundary at angle b.
     function wavy(b, r) {
       const o = WAVE.amp * Math.sin((2 * Math.PI * (r - R.inner)) / WAVE.len);
@@ -56,13 +161,15 @@ export default function register(Board) {
 
     Board.define({
       id: 'memphis',
+      // Quicksand and Righteous have no Cyrillic; Comfortaa, as round, draws those letters.
       fonts: {
-        brand: "'Quicksand'",
-        display: "'Righteous'",
-        load: ["'Quicksand'", "'Righteous'"],
+        brand: "'Quicksand', 'Comfortaa'",
+        display: "'Righteous', 'Comfortaa'",
+        load: ["'Quicksand', 'Comfortaa'", "'Righteous', 'Comfortaa'"],
         credits: [
           { family: 'Quicksand', license: 'SIL Open Font License 1.1' },
           { family: 'Righteous', license: 'SIL Open Font License 1.1' },
+          { family: 'Comfortaa', license: 'SIL Open Font License 1.1' },
         ],
       },
       motion: { open: 180, close: 110, stagger: 14, apply: 680 },
@@ -231,7 +338,7 @@ export default function register(Board) {
 
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
-            g.classList.add('mp-h' + ((sl.i % 4) + 1));
+            g.classList.add('mp-h' + hue(sl.i, m.n));
             const d = tilePath(sl.a0, sl.a1);
             // The shadow stays put and is the hit area; the tile and its label lift off it.
             s('path', { d, class: 'mp-shade' }, g);
@@ -244,7 +351,8 @@ export default function register(Board) {
             // Terrazzo specks shown once the tile is applied, kept clear of the label.
             const rand = rng(sl.i + 1);
             let specks = ['', '', ''];
-            for (let k = 0; k < 12; k++) {
+            const count = Math.min(32, Math.round((12 * sl.step) / 45));
+            for (let k = 0; k < count; k++) {
               const r = k % 2 ? 66 + rand() * 14 : 139 + rand() * 11;
               const a = sl.a0 + 7 + rand() * (sl.a1 - sl.a0 - 14);
               const [x, y] = H.polar(r, a);
@@ -257,38 +365,40 @@ export default function register(Board) {
             specks.forEach((dd, k) => s('path', { d: dd, class: `mp-speck mp-speck-${k + 1}` }, sp));
             s('path', { d, class: 'mp-outline' }, lift);
             const ink = s('g', { class: 'mp-ink' }, lift);
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(ink, sl, R.lbl, {
-                size: 24,
-                subSize: 13,
-                gap: 2,
-                maxWidth: 64,
-                minSize: 11,
-                cls: 'mp-lbl mp-fmt',
-                subCls: 'mp-sub',
-              });
-            } else {
-              H.block(ink, sl, R.lbl, {
-                icon: true,
-                iconSize: 25,
-                size: 14.5,
-                gap: 4,
-                maxWidth: 68,
-                minSize: 9.5,
-                cls: 'mp-lbl mp-word',
-                sub: null,
-              });
-            }
+            const wide = sl.step >= 70;
+            const o = sl.format
+              ? { size: sl.sub ? 24 : 28, subSize: 13, gap: 2, minSize: 11, cls: 'mp-lbl mp-fmt', subCls: 'mp-sub' }
+              : {
+                  icon: true,
+                  iconSize: wide ? 28 : 23,
+                  size: wide ? 16.5 : 14.5,
+                  gap: 4,
+                  minSize: 10,
+                  cls: 'mp-lbl mp-word',
+                  sub: null,
+                };
+            // The squiggles swing about four units either way, so labels keep a wider margin.
+            fitBlock(H, ink, sl, [R.lbl, R.lbl + 6, R.lbl - 6, R.lbl + 12, R.lbl - 12], o, R.inner, R.tile, 112, 6);
           }
 
           // Hub: a black disc with the wheel's name, the file and the key on a yellow pill.
           const hub = s('g', { class: 'mp-hubg' }, root);
           s('circle', { cx: C, cy: C, r: R.hub, class: 'mp-hub' }, hub);
           H.label(hub, C, C - 16, m.title, { maxWidth: 88, size: 16, minSize: 10, cls: 'mp-title', maxLines: 1 });
-          H.label(hub, C, C + 3, m.file, { maxWidth: 84, size: 12.5, minSize: 9, cls: 'mp-file', maxLines: 1 });
-          const kw = 18 + m.key.length * 7;
-          s('rect', { x: f2(C - kw / 2), y: C + 16, width: f2(kw), height: 18, rx: 9, class: 'mp-key' }, hub);
-          H.text(hub, C, C + 25.5, m.key, { class: 'mp-keytext' });
+          H.label(hub, C, C + (m.key ? 3 : 8), m.file, {
+            maxWidth: 84,
+            size: 12.5,
+            minSize: 9,
+            cls: 'mp-file',
+            maxLines: 1,
+          });
+          if (m.key) {
+            const pill = s('rect', { y: C + 16, height: 18, rx: 9, class: 'mp-key' }, hub);
+            const text = H.text(hub, C, C + 25.5, m.key, { class: 'mp-keytext' });
+            const kw = Math.min(96, Math.ceil(text.getComputedTextLength()) + 20);
+            pill.setAttribute('x', f2(C - kw / 2));
+            pill.setAttribute('width', f2(kw));
+          }
 
           // Confetti for the slice at twelve o'clock; update() turns the group to the applied slice.
           const fx = s('g', { class: 'mp-fx', 'aria-hidden': 'true' }, root);
