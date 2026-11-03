@@ -36,6 +36,12 @@ export default function register(Board) {
     const CHIP_COLORS = 7;
     const pt = (p) => `${f2(p[0])} ${f2(p[1])}`;
 
+    // The width a label may take at radius r: the slice's chord there, less a margin, within a cap.
+    function roomAt(sl, r, margin, cap) {
+      const half = Math.min(sl.step / 2, 70);
+      return Math.max(40, Math.min(cap, 2 * r * Math.sin((half * Math.PI) / 180) - margin));
+    }
+
     // An irregular stone chip round (0, 0): five to seven corners at uneven radii.
     function chipShape(rand, size) {
       const n = 5 + Math.floor(rand() * 3);
@@ -92,6 +98,7 @@ export default function register(Board) {
           'wheel-slice': '#e9ecef',
           'wheel-slice-hover': '#fbfaf8',
           'wheel-slice-selected': '#f8e4e1',
+          'field-c': '#f2ece9',
           'field-sel': '#f8e4e1',
           'field-sel-b': '#e2eee3',
           'chip-1': '#f2a5a0',
@@ -142,6 +149,7 @@ export default function register(Board) {
           'wheel-slice': '#2c303b',
           'wheel-slice-hover': '#363b47',
           'wheel-slice-selected': '#3b2f3e',
+          'field-c': '#302c3a',
           'field-sel': '#3b2f3e',
           'field-sel-b': '#2a3b38',
           'chip-1': '#f4a3a8',
@@ -184,6 +192,8 @@ export default function register(Board) {
         ['wheel-text', 'field-a', 'text'],
         ['wheel-sub', 'field-a', 'text'],
         ['wheel-sub', 'field-b', 'text'],
+        ['wheel-text', 'field-c', 'text'],
+        ['wheel-sub', 'field-c', 'text'],
         ['wheel-text-selected', 'field-sel-b', 'text'],
         ['wheel-sub-selected', 'field-sel', 'text'],
         ['wheel-sub-selected', 'field-sel-b', 'text'],
@@ -231,16 +241,22 @@ export default function register(Board) {
             const g = H.slice(root, sl, m);
             const rand = rng(977 + sl.i * 7919 + m.kind.length * 31);
             const wedge = H.sector(R.hub, R.rim, sl.a0, sl.a1);
-            s('path', { d: wedge, class: `tz-field ${sl.i % 2 ? 'tz-field-b' : 'tz-field-a'}` }, g);
-            s('path', { d: wedge, class: `tz-sel ${sl.i % 2 ? 'tz-sel-b' : 'tz-sel-a'}` }, g);
+            // Two cement mixes take turns; with an odd count the last field gets a third, so no two
+            // neighbours match.
+            const mix = m.n % 2 === 1 && sl.i === m.n - 1 && m.n > 1 ? 'c' : sl.i % 2 ? 'b' : 'a';
+            s('path', { d: wedge, class: `tz-field tz-field-${mix}` }, g);
+            s('path', { d: wedge, class: `tz-sel tz-sel-${mix === 'c' ? 'a' : mix}` }, g);
+            // Chips and specks keep the same density in a slice of any width.
+            const share = sl.step / 45;
             // Lettering first (hidden in place), so the chips can keep clear of it.
             const ink = s('g', { class: 'tz-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            const room = roomAt(sl, R.lbl, 22, 128);
+            if (sl.format) {
               H.block(ink, sl, R.lbl, {
                 size: 23,
                 subSize: 12.5,
                 gap: 2,
-                maxWidth: 76,
+                maxWidth: room,
                 minSize: 10,
                 cls: 'tz-lbl tz-fmt',
                 subCls: 'tz-sub',
@@ -251,7 +267,7 @@ export default function register(Board) {
                 iconSize: 23,
                 size: 14,
                 gap: 4,
-                maxWidth: 78,
+                maxWidth: room + 2,
                 minSize: 9,
                 cls: 'tz-lbl tz-word',
                 sub: null,
@@ -268,7 +284,7 @@ export default function register(Board) {
               );
             // Fine specks of the cement, one path per colour.
             const specks = ['', ''];
-            for (let k = 0, kept = 0; k < 400 && kept < 46; k++) {
+            for (let k = 0, kept = 0; k < 400 * share && kept < Math.round(46 * share); k++) {
               const r = Math.sqrt(R.hub ** 2 + rand() * (R.rim ** 2 - R.hub ** 2));
               const a = sl.a0 + rand() * sl.step;
               const [x, y] = H.polar(r, a);
@@ -280,41 +296,59 @@ export default function register(Board) {
             }
             s('path', { d: specks[0], class: 'tz-speck' }, g);
             s('path', { d: specks[1], class: 'tz-speck tz-speck-2' }, g);
-            // Chips: scattered at rest; once applied they settle in two arcs, by the rim and the hub.
-            // Each arc keeps clear of the label: the outer one moves out, the inner one in, as needed.
-            const sizes = [];
-            for (let k = 0; k < 11; k++) sizes.push(k < 7 ? 6.2 + rand() * 1.8 : 5 + rand() * 1.3);
-            const arc = (n, r0, dr, rMin, rMax, spanDeg, from) => {
-              for (let r = r0; r >= rMin && r <= rMax; r += dr) {
-                const pts = [];
-                for (let k = 0; k < n; k++) pts.push(H.polar(r, sl.mid - spanDeg / 2 + (spanDeg * (k + 0.5)) / n));
-                if (pts.every(([x, y], k) => clear(x, y, sizes[from + k] + 2))) return pts;
+            // Chips: scattered at rest; once applied they settle in two rows of evenly spaced places, by
+            // the rim and by the hub. Each place slides along its spoke, within its row's band, to the
+            // first radius clear of the label; a place with none is left out, so a tall or long label
+            // simply gets fewer chips round it.
+            const row = (count, span, radii, size) => {
+              const out = [];
+              for (let k = 0; k < count; k++) {
+                const a = sl.mid - span / 2 + (span * (k + 0.5)) / count;
+                const r = radii.find((rr) => {
+                  const [x, y] = H.polar(rr, a);
+                  return clear(x, y, size + 2);
+                });
+                if (r != null) out.push(H.polar(r, a));
               }
-              return null;
+              return out;
             };
-            const outer =
-              arc(7, R.arcOut, 2, R.arcOut, R.rim - 9, sl.step - 12, 0) ||
-              arc(7, R.rim - 9, 0.5, 0, R.rim - 9, sl.step - 12, 0);
-            const inner =
-              arc(4, R.arcIn, -2, R.hub + 7, R.arcIn, sl.step - 16, 7) ||
-              arc(4, R.hub + 7, 1, R.hub + 7, R.hub + 8, sl.step - 16, 7);
-            const targets = [...(outer || []), ...(inner || [])];
+            const band = (from, to, by) => {
+              const radii = [];
+              for (let r = from; by > 0 ? r <= to : r >= to; r += by) radii.push(r);
+              return radii;
+            };
+            const targets = [
+              ...row(
+                Math.min(28, Math.max(3, Math.round(7 * share))),
+                sl.step - 12,
+                [...band(R.arcOut, R.rim - 9, 2), ...band(R.arcOut - 3, R.arcOut - 12, -3)],
+                7.5,
+              ),
+              ...row(
+                Math.min(16, Math.max(2, Math.round(4 * share))),
+                sl.step - 16,
+                [...band(R.arcIn, R.hub + 7, -2), ...band(R.arcIn + 3, R.arcIn + 9, 3)],
+                6,
+              ),
+            ];
+            const outerCount = targets.filter(([x, y]) => Math.hypot(x - C, y - C) > R.lbl).length;
+            const sizes = targets.map((_, k) => (k < outerCount ? 6.2 + rand() * 1.8 : 5 + rand() * 1.3));
             const chips = s('g', { class: 'tz-chips' }, g);
             const placed = [];
             targets.forEach((tg, k) => {
               const size = sizes[k];
-              let x = 0,
-                y = 0;
-              for (let tries = 0; tries < 200; tries++) {
+              // At rest a chip lies anywhere in the field clear of the label and of the other chips;
+              // where the field is crowded it settles for clear of the label, and else for its place.
+              let spot = null;
+              let fallback = null;
+              for (let tries = 0; tries < 200 && !spot; tries++) {
                 const r = Math.sqrt(R.hub ** 2 + rand() * (R.rim ** 2 - R.hub ** 2));
-                [x, y] = H.polar(r, sl.a0 + rand() * sl.step);
-                if (
-                  inSlice(H, sl, x, y, size + 1) &&
-                  clear(x, y, size + 3) &&
-                  placed.every(([px, py]) => Math.hypot(px - x, py - y) > size + 8)
-                )
-                  break;
+                const [px, py] = H.polar(r, sl.a0 + rand() * sl.step);
+                if (!inSlice(H, sl, px, py, size + 1) || !clear(px, py, size + 3)) continue;
+                if (placed.every(([qx, qy]) => Math.hypot(qx - px, qy - py) > size + 8)) spot = [px, py];
+                else fallback = fallback || [px, py];
               }
+              const [x, y] = spot || fallback || tg;
               placed.push([x, y]);
               const shape = chipShape(rand, size);
               const col = 1 + ((sl.i * 3 + k * 2) % CHIP_COLORS);
@@ -359,14 +393,23 @@ export default function register(Board) {
             hs += `M${f2(x - rr)} ${f2(y)}a${rr} ${rr} 0 1 0 ${2 * rr} 0a${rr} ${rr} 0 1 0 ${-2 * rr} 0Z`;
           }
           s('path', { d: hs, class: 'tz-hub-speck' }, hub);
-          H.label(hub, C, C - 15, m.title, { maxWidth: 100, size: 16.5, minSize: 10, cls: 'tz-title', maxLines: 1 });
-          H.label(hub, C, C + 4, m.file, { maxWidth: 92, size: 12, minSize: 9, cls: 'tz-file', maxLines: 1 });
-          const kt = H.text(hub, C, C + 25, m.key, { class: 'tz-keytext' });
-          const kw = kt.getComputedTextLength() + 16;
-          hub.insertBefore(
-            s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 16, rx: 8, class: 'tz-key' }),
-            kt,
-          );
+          const dy = m.key ? 0 : 8;
+          H.label(hub, C, C - 15 + dy, m.title, {
+            maxWidth: 100,
+            size: 16.5,
+            minSize: 10,
+            cls: 'tz-title',
+            maxLines: 1,
+          });
+          H.label(hub, C, C + 4 + dy, m.file, { maxWidth: 92, size: 12, minSize: 9, cls: 'tz-file', maxLines: 1 });
+          if (m.key) {
+            const kt = H.text(hub, C, C + 25, m.key, { class: 'tz-keytext' });
+            const kw = kt.getComputedTextLength() + 16;
+            hub.insertBefore(
+              s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 16, rx: 8, class: 'tz-key' }),
+              kt,
+            );
+          }
         },
       },
 

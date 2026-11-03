@@ -2,7 +2,7 @@
 /* Terrazzo: a polished slab of cement and stone chips with brass strips. */
 
 [data-concept='terrazzo'] {
-  --tz-face: var(--font-brand-face), 'Segoe UI', system-ui, sans-serif;
+  --tz-face: var(--font-brand-face), 'Segoe UI', 'Geeza Pro', system-ui, sans-serif;
   --radius: 12px;
 }
 [data-concept='terrazzo'] .wheel {
@@ -56,6 +56,9 @@
 /* Fields, specks and chips. */
 [data-concept='terrazzo'] .tz-field-a {
   fill: var(--field-a);
+}
+[data-concept='terrazzo'] .tz-field-c {
+  fill: var(--field-c);
 }
 [data-concept='terrazzo'] .tz-field-b {
   fill: var(--field-b);
