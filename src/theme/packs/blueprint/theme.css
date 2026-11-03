@@ -2,7 +2,7 @@
 /* Mavi kopya: a technical drawing of the wheel. */
 
 [data-concept='blueprint'] {
-  --bp-mono: var(--font-brand-face), 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --bp-mono: var(--font-brand-face), 'Cascadia Mono', Consolas, 'Segoe UI', 'Geeza Pro', ui-monospace, monospace;
   --radius: 4px;
   --radius-sm: 3px;
 }
@@ -306,4 +306,20 @@
 }
 [data-concept='blueprint'] .wheel.is-applying .slice.is-selected .bp-lbl {
   transition: fill 120ms 200ms;
+}
+
+/* Arabic is set in a face made for it, with ordinary spaces; the drawing's notes stay left to right. */
+[data-concept='blueprint'] .wheel:lang(ar) .bp-lbl,
+[data-concept='blueprint'] .wheel:lang(ar) .bp-sub,
+[data-concept='blueprint'] .wheel:lang(ar) .bp-title,
+[data-concept='blueprint'] .wheel:lang(ar) .bp-file {
+  font-family: 'Segoe UI', 'Geeza Pro', sans-serif;
+  font-stretch: normal;
+  letter-spacing: 0;
+}
+[data-concept='blueprint'] .bp-note-text,
+[data-concept='blueprint'] .bp-dim-text,
+[data-concept='blueprint'] .bp-keytext {
+  direction: ltr;
+  unicode-bidi: isolate;
 }

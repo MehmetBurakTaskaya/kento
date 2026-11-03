@@ -16,6 +16,12 @@ export default function register(Board) {
       }
     }
 
+    // The width a label may take at radius r: the slice's chord there, less a margin, within a cap.
+    function roomAt(sl, r, margin, cap) {
+      const half = Math.min(sl.step / 2, 70);
+      return Math.max(40, Math.min(cap, 2 * r * Math.sin((half * Math.PI) / 180) - margin));
+    }
+
     // Radii in the 400 x 400 view box.
     const R = { paper: 186, rim: 178, hub: 70, lbl: 126, dim: 196, ball_r: 8.5 };
 
@@ -250,12 +256,13 @@ export default function register(Board) {
             H.text(dim, tx, ty + 0.5, txt, { class: 'bp-dim-text' });
             const ball = s('g', { class: 'bp-ball' }, g);
             const ink = s('g', { class: 'bp-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            const room = roomAt(sl, R.lbl, 20, 124);
+            if (sl.format) {
               H.block(ink, sl, R.lbl, {
                 size: 20,
                 subSize: 11,
                 gap: 3,
-                maxWidth: 76,
+                maxWidth: room,
                 minSize: 9,
                 cls: 'bp-lbl bp-fmt',
                 subCls: 'bp-sub',
@@ -266,7 +273,7 @@ export default function register(Board) {
                 iconSize: 23,
                 size: 11.5,
                 gap: 4,
-                maxWidth: 80,
+                maxWidth: room + 4,
                 minSize: 8,
                 cls: 'bp-lbl bp-word',
                 sub: null,
@@ -355,12 +362,19 @@ export default function register(Board) {
             const w = Math.sqrt(Math.max(0, (R.hub - 4) ** 2 - (y - C) ** 2));
             return `M${f2(C - w)} ${y}H${f2(C + w)}`;
           };
-          s('path', { d: chord(C - 2) + chord(C + 17), class: 'bp-thin' }, hub);
-          H.label(hub, C, C - 19, m.title, { maxWidth: 104, size: 13.5, minSize: 9, cls: 'bp-title', maxLines: 1 });
-          H.label(hub, C, C + 7.5, m.file, { maxWidth: 100, size: 10, minSize: 7.5, cls: 'bp-file', maxLines: 1 });
-          const kt = H.text(hub, C, C + 29, m.key.toUpperCase(), { class: 'bp-keytext' });
-          const kw = kt.getComputedTextLength() + 12;
-          s('rect', { x: f2(C - kw / 2), y: C + 22, width: f2(kw), height: 14, class: 'bp-key' }, hub);
+          if (m.key) {
+            s('path', { d: chord(C - 2) + chord(C + 17), class: 'bp-thin' }, hub);
+            H.label(hub, C, C - 19, m.title, { maxWidth: 104, size: 13.5, minSize: 9, cls: 'bp-title', maxLines: 1 });
+            H.label(hub, C, C + 7.5, m.file, { maxWidth: 100, size: 10, minSize: 7.5, cls: 'bp-file', maxLines: 1 });
+            const kt = H.text(hub, C, C + 29, m.key.toUpperCase(), { class: 'bp-keytext' });
+            const kw = kt.getComputedTextLength() + 12;
+            s('rect', { x: f2(C - kw / 2), y: C + 22, width: f2(kw), height: 14, class: 'bp-key' }, hub);
+          } else {
+            // No key: two cells, the name over the file.
+            s('path', { d: chord(C + 4), class: 'bp-thin' }, hub);
+            H.label(hub, C, C - 12, m.title, { maxWidth: 104, size: 13.5, minSize: 9, cls: 'bp-title', maxLines: 1 });
+            H.label(hub, C, C + 16, m.file, { maxWidth: 100, size: 10, minSize: 7.5, cls: 'bp-file', maxLines: 1 });
+          }
         },
       },
 
