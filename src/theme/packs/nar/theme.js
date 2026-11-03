@@ -22,7 +22,33 @@ export default function register(Board) {
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     }
-    const reducedMotion = () => document.documentElement.classList.contains('reduce-motion');
+    // The effect plays only while the wheel is applying: with reduced motion the app never sets it.
+    const applying = (root) => {
+      const wheel = root.closest('.wheel');
+      return !!wheel && wheel.classList.contains('is-applying');
+    };
+    // The widest label the slice holds around the point at radius R.lbl on its centre line: on each
+    // line the label covers, the distance to the nearer edge of the slice (between radii r0 and r1,
+    // less `pad`), so a slice on the side of the wheel, where text runs along the radius, gets more
+    // room than one at the top. Labels stay upright, so this is what fits whatever the angle.
+    const room = (H, sl, r0, r1, pad, twist = () => 0) => {
+      const [cx, cy] = H.polar(R.lbl, sl.mid);
+      const inside = (x, y) => {
+        const r = Math.hypot(x - 200, y - 200);
+        if (r < r0 || r > r1) return false;
+        const a = (Math.atan2(x - 200, 200 - y) * 180) / Math.PI - twist(r);
+        return (((a - sl.a0) % 360) + 360) % 360 <= sl.a1 - sl.a0;
+      };
+      let half = 66;
+      for (const y of [cy - 11, cy, cy + 11]) {
+        let left = 0;
+        let right = 0;
+        while (left < 66 + pad && inside(cx - left - 1, y)) left += 1;
+        while (right < 66 + pad && inside(cx + right + 1, y)) right += 1;
+        half = Math.min(half, Math.min(left, right) - pad);
+      }
+      return Math.max(44, 2 * half);
+    };
     const dot = (x, y, r) =>
       `M${f2(x - r)} ${f2(y)}a${f2(r)} ${f2(r)} 0 1 0 ${f2(2 * r)} 0a${f2(r)} ${f2(r)} 0 1 0 ${f2(-2 * r)} 0Z`;
     // An ellipse as path data, rotated by rot degrees.
@@ -67,18 +93,35 @@ export default function register(Board) {
         const side = Math.min(a - sl.a0, sl.a1 - a);
         return Math.min(r * Math.sin(H.rad(side)) - GAP / 2, r - R.c0, R.c1 - r) - 0.8;
       };
-      for (let k = 0; k < 2400 && pts.length < 64; k++) {
+      // As many arils per degree whatever the number of compartments; a grid of 12-unit cells keeps
+      // the neighbour checks short on the wide compartments of a wheel with few slices.
+      const share = Math.min(4, (sl.a1 - sl.a0) / 45);
+      const cells = new Map();
+      const cellOf = (x, y) => `${Math.floor(x / 12)},${Math.floor(y / 12)}`;
+      const around = (x, y) => {
+        const cx = Math.floor(x / 12);
+        const cy = Math.floor(y / 12);
+        const out = [];
+        for (let i = -1; i <= 1; i++)
+          for (let j = -1; j <= 1; j++) out.push(...(cells.get(`${cx + i},${cy + j}`) ?? []));
+        return out;
+      };
+      for (let k = 0; k < 2400 * share && pts.length < 64 * share; k++) {
         const r = R.c0 + 5 + rand() * (R.c1 - R.c0 - 10);
         const a = sl.a0 + rand() * (sl.a1 - sl.a0);
         const [x, y] = H.polar(r, a);
         if (wall(r, a) < 4.6 || boxDist(x, y) < 9) continue;
-        if (pts.some((p) => (p.x - x) ** 2 + (p.y - y) ** 2 < 11.8 * 11.8)) continue;
-        pts.push({ x, y, rad: r, a });
+        if (around(x, y).some((p) => (p.x - x) ** 2 + (p.y - y) ** 2 < 11.8 * 11.8)) continue;
+        const p = { x, y, rad: r, a };
+        pts.push(p);
+        const key = cellOf(x, y);
+        if (!cells.has(key)) cells.set(key, []);
+        cells.get(key).push(p);
       }
       return pts
         .map((p) => {
           let near = Infinity;
-          for (const q of pts) if (q !== p) near = Math.min(near, Math.hypot(p.x - q.x, p.y - q.y));
+          for (const q of around(p.x, p.y)) if (q !== p) near = Math.min(near, Math.hypot(p.x - q.x, p.y - q.y));
           const r = Math.min(9.5, near / 2 + 0.9, wall(p.rad, p.a) + 1.2, boxDist(p.x, p.y) - 3);
           return { x: p.x, y: p.y, r, e: 0.8 + rand() * 0.14, rot: rand() * 180, rad: p.rad };
         })
@@ -300,12 +343,13 @@ export default function register(Board) {
             H.s('path', { d: shape, class: 'nr-cell' }, body);
             // The label first: its box decides the clearing the arils leave free.
             const c = H.s('g', { class: 'nr-content' }, body);
-            if (m.kind === 'convert' && sl.sub) {
+            const maxWidth = room(H, sl, R.c0, R.c1, 6);
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 26,
                 subSize: 12.5,
                 gap: 1,
-                maxWidth: 74,
+                maxWidth,
                 minSize: 11,
                 cls: 'nr-lbl nr-fmt',
                 subCls: 'nr-sub',
@@ -316,8 +360,8 @@ export default function register(Board) {
                 iconSize: 22,
                 size: 14,
                 gap: 2,
-                maxWidth: 76,
-                minSize: 9.5,
+                maxWidth,
+                minSize: 8.5,
                 cls: 'nr-lbl nr-word',
                 sub: null,
               });
@@ -359,8 +403,10 @@ export default function register(Board) {
           );
           const hub = H.s('g', { class: 'nr-hub' }, root);
           H.s('circle', { cx: 200, cy: 200, r: R.hub, class: 'nr-core' }, hub);
-          H.label(hub, 200, 183, m.title, { maxWidth: 86, size: 17, minSize: 11, cls: 'nr-title', maxLines: 1 });
-          H.label(hub, 200, 201, m.file, {
+          // Without a key (a ring opened from the menu) the name and the file sit in the middle.
+          const low = m.key ? 0 : 8;
+          H.label(hub, 200, 183 + low, m.title, { maxWidth: 86, size: 17, minSize: 9, cls: 'nr-title', maxLines: 1 });
+          H.label(hub, 200, 201 + low, m.file, {
             maxWidth: 80,
             size: 11.5,
             minSize: 9,
@@ -368,16 +414,18 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.4;
-          H.s('rect', { x: f2(200 - kw / 2), y: 211, width: f2(kw), height: 16, rx: 8, class: 'nr-key' }, hub);
-          H.text(hub, 200, 219.5, m.key, { class: 'nr-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.4;
+            H.s('rect', { x: f2(200 - kw / 2), y: 211, width: f2(kw), height: 16, rx: 8, class: 'nr-key' }, hub);
+            H.text(hub, 200, 219.5, m.key, { class: 'nr-keytext' });
+          }
         },
 
         // The arils of the chosen compartment are cloned one by one and sent rolling out; the
         // compartment itself already shows its emptied, stained state. Glints flash on a few.
         onSelect(root, m, i, H, t) {
           root.querySelectorAll('.nr-fx').forEach((n) => (n.textContent = ''));
-          if (t == null && reducedMotion()) return;
+          if (t == null && !applying(root)) return;
           const g = root.querySelector(`.slice[data-slice="${i}"]`);
           const sl = m.slices[i];
           const fx = g.querySelector('.nr-fx');
