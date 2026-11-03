@@ -2,7 +2,7 @@
 /* Kara tahta: chalk on slate, marker on a white board. */
 
 [data-concept='karatahta'] {
-  --kt-hand: var(--font-brand-face), 'Segoe Print', 'Comic Sans MS', cursive;
+  --kt-hand: var(--font-brand-face), 'Segoe Print', 'Comic Sans MS', 'Segoe UI', 'Geeza Pro', cursive;
   --radius: 10px;
 }
 [data-concept='karatahta'] .wheel {

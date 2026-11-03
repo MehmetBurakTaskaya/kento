@@ -16,6 +16,13 @@ export default function register(Board) {
       }
     }
 
+    // The width a label may take at radius r: the slice's chord there, less a margin, within a cap,
+    // so two or three wide slices get roomy labels and eight narrow ones stay inside their lines.
+    function roomAt(sl, r, margin, cap) {
+      const half = Math.min(sl.step / 2, 70);
+      return Math.max(40, Math.min(cap, 2 * r * Math.sin((half * Math.PI) / 180) - margin));
+    }
+
     // Small seeded random source, so every wheel draws the same hand-made wobble.
     function rng(seed) {
       let a = seed >>> 0;
@@ -304,22 +311,71 @@ export default function register(Board) {
             const g = H.slice(root, sl, m);
             s('path', { d: H.sector(R.hit0, R.hit1, sl.a0, sl.a1), class: 'kt-fill' }, g);
             const r1 = rng(97 + sl.i * 131 + m.kind.length);
-            // Arrow from the hub toward the slice, chalked on hover.
-            const p0 = H.polar(R.hub + 6, sl.mid + (r1() - 0.5) * 4);
-            const p1 = H.polar(R.hub + 28, sl.mid);
-            const ah = (dir) => {
+            // Arrow from the hub toward the slice, chalked on hover; drawn once the label is measured.
+            const arrow = s('path', { class: 'kt-arrow' }, g);
+            const ink = s('g', { class: 'kt-ink' }, g);
+            const room = roomAt(sl, R.lbl, 22, 124);
+            if (sl.format) {
+              H.block(ink, sl, R.lbl, {
+                size: 23,
+                subSize: 12.5,
+                gap: 2,
+                maxWidth: room,
+                minSize: 10,
+                cls: 'kt-lbl kt-fmt',
+                subCls: 'kt-sub',
+              });
+            } else {
+              H.block(ink, sl, R.lbl, {
+                icon: true,
+                iconSize: 24,
+                size: 14,
+                gap: 4,
+                maxWidth: room + 2,
+                minSize: 9,
+                cls: 'kt-lbl kt-word',
+                sub: null,
+              });
+            }
+            // The ring round the label, sized to it, drawn on apply and kept while selected; dust is
+            // knocked off along it. Both go under the lettering.
+            const bb = ink.getBBox();
+            // The arrow stops short of the label, wherever the label's box begins along the slice.
+            let reach = R.hub + 28;
+            if (bb.width) {
+              const u = [Math.sin(H.rad(sl.mid)), -Math.cos(H.rad(sl.mid))];
+              let t0 = -Infinity;
+              let t1 = Infinity;
+              for (const [lo, hi, d] of [
+                [bb.x - 4, bb.x + bb.width + 4, u[0]],
+                [bb.y - 4, bb.y + bb.height + 4, u[1]],
+              ]) {
+                if (Math.abs(d) < 1e-6) {
+                  if (C < lo || C > hi) t0 = Infinity;
+                } else {
+                  t0 = Math.max(t0, Math.min((lo - C) / d, (hi - C) / d));
+                  t1 = Math.min(t1, Math.max((lo - C) / d, (hi - C) / d));
+                }
+              }
+              if (t0 < t1) reach = Math.min(reach, t0 - 2);
+            }
+            const p0 = H.polar(R.hub + 5, sl.mid + (r1() - 0.5) * 4);
+            const p1 = H.polar(reach, sl.mid);
+            const head = (dir) => {
               const [x, y] = p1;
               const a = H.rad(sl.mid + 180 + dir * 28);
-              return wobLine([x, y], [x + 9 * Math.sin(a), y - 9 * Math.cos(a)], r1, 0.4);
+              return wobLine([x, y], [x + 8 * Math.sin(a), y - 8 * Math.cos(a)], r1, 0.4);
             };
-            s('path', { d: wobLine(p0, p1, r1, 1.6) + ah(1) + ah(-1), class: 'kt-arrow' }, g);
-            // The ring round the label, drawn on apply and kept while selected.
-            const [lx, ly] = H.polar(R.lbl, sl.mid);
+            // A label that reaches almost to the hub leaves no room: the hover haze is enough there.
+            if (reach - R.hub >= 18) arrow.setAttribute('d', wobLine(p0, p1, r1, 1.2) + head(1) + head(-1));
+            const [lx, ly] = bb.width ? [bb.x + bb.width / 2, bb.y + bb.height / 2] : H.polar(R.lbl, sl.mid);
+            const rx = Math.max(40, (bb.width || 70) / 2 + 15);
+            const ry = Math.max(26, (bb.height || 40) / 2 + 10);
             const start = -50 + r1() * 30;
-            const loop = wobArc(lx, ly + 1, 49, 31, start, start + 384, r1, { amp: 1.4, drift: 4.5, stepDeg: 14 });
-            s('path', { d: loop.d, class: 'kt-loop', pathLength: 1 }, g);
-            // Dust knocked off along the ring.
-            const dust = s('g', { class: 'kt-dust' }, g);
+            const loop = wobArc(lx, ly + 1, rx, ry, start, start + 384, r1, { amp: 1.4, drift: 4.5, stepDeg: 14 });
+            g.insertBefore(s('path', { d: loop.d, class: 'kt-loop', pathLength: 1 }), ink);
+            const dust = s('g', { class: 'kt-dust' });
+            g.insertBefore(dust, ink);
             const N = 14;
             for (let k = 0; k < N; k++) {
               const p = loop.pts[Math.floor(((k + 0.5) / N) * (loop.pts.length - 1))];
@@ -334,29 +390,6 @@ export default function register(Board) {
               dot.style.setProperty('--dx', f2(Math.cos(out) * dist) + 'px');
               dot.style.setProperty('--dy', f2(Math.sin(out) * dist * 0.6 + 6 + r1() * 8) + 'px');
               dot.style.setProperty('--d', Math.round(220 + (k / N) * 170 + r1() * 40) + 'ms');
-            }
-            const ink = s('g', { class: 'kt-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(ink, sl, R.lbl, {
-                size: 23,
-                subSize: 12.5,
-                gap: 2,
-                maxWidth: 76,
-                minSize: 10,
-                cls: 'kt-lbl kt-fmt',
-                subCls: 'kt-sub',
-              });
-            } else {
-              H.block(ink, sl, R.lbl, {
-                icon: true,
-                iconSize: 24,
-                size: 14,
-                gap: 4,
-                maxWidth: 78,
-                minSize: 9,
-                cls: 'kt-lbl kt-word',
-                sub: null,
-              });
             }
           }
 
@@ -397,20 +430,24 @@ export default function register(Board) {
           // Hub: wheel name, the dragged file and the key in a hand-drawn box.
           const hub = s('g', { class: 'kt-hub' }, root);
           const ht = s('g', { class: 'kt-hub-ink' }, hub);
-          H.label(ht, C, C - 15, m.title, { maxWidth: 104, size: 18, minSize: 11, cls: 'kt-title', maxLines: 1 });
-          H.label(ht, C, C + 5, m.file, { maxWidth: 98, size: 12, minSize: 9, cls: 'kt-file', maxLines: 1 });
-          const kt = H.text(ht, C, C + 27, m.key, { class: 'kt-keytext' });
-          const kw = Math.max(34, kt.getComputedTextLength() + 16);
-          const kr = rng(31);
-          const box = [
-            [C - kw / 2, C + 18],
-            [C + kw / 2, C + 18.6],
-            [C + kw / 2 + 0.6, C + 36],
-            [C - kw / 2, C + 35.4],
-          ];
-          let bd = '';
-          for (let k = 0; k < 4; k++) bd += wobLine(box[k], box[(k + 1) % 4], kr, 0.5);
-          s('path', { d: bd, class: 'kt-key' }, hub);
+          // Without a key (a ring opened from the keyboard, the window ring) the name and file sit lower.
+          const dy = m.key ? 0 : 9;
+          H.label(ht, C, C - 15 + dy, m.title, { maxWidth: 104, size: 18, minSize: 11, cls: 'kt-title', maxLines: 1 });
+          H.label(ht, C, C + 5 + dy, m.file, { maxWidth: 98, size: 12, minSize: 9, cls: 'kt-file', maxLines: 1 });
+          if (m.key) {
+            const kt = H.text(ht, C, C + 27, m.key, { class: 'kt-keytext' });
+            const kw = Math.max(34, kt.getComputedTextLength() + 16);
+            const kr = rng(31);
+            const box = [
+              [C - kw / 2, C + 18],
+              [C + kw / 2, C + 18.6],
+              [C + kw / 2 + 0.6, C + 36],
+              [C - kw / 2, C + 35.4],
+            ];
+            let bd = '';
+            for (let k = 0; k < 4; k++) bd += wobLine(box[k], box[(k + 1) % 4], kr, 0.5);
+            s('path', { d: bd, class: 'kt-key' }, hub);
+          }
           // Tray pieces lying on the frame: a stick of chalk and a stub (a marker and a cap on the white board).
           const tray = s('g', { class: 'kt-tray', 'aria-hidden': 'true' }, root);
           const piece = (a, len, tip, cls) => {
