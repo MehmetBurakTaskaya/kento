@@ -38,13 +38,54 @@ export default function register(Board) {
           const dist = Math.hypot(x - cx, y - cy);
           if (dist < rmin || dist > rmax) continue;
           const ang = ((Math.atan2(x - cx, cy - y) * 180) / Math.PI + 360) % 360;
-          out.push({ x, y, dist, ang, ring: (Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 });
+          out.push({ x, y, q, r, dist, ang, ring: (Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 });
         }
       }
       return out;
     }
     const HUB_RING = 2;
     const inSlice = (ang, sl) => (((ang - sl.a0) % 360) + 360) % 360 < sl.a1 - sl.a0;
+
+    // The walls between two slices: every cell edge whose neighbour belongs to another slice, so the
+    // slices read as groups of cells with any number of them. Neighbours in axial steps, each with
+    // the direction (degrees, y down) its shared edge faces.
+    const NEAR = [
+      [1, 0, 0],
+      [0, 1, 60],
+      [-1, 1, 120],
+      [-1, 0, 180],
+      [0, -1, 240],
+      [1, -1, 300],
+    ];
+    function seams(list, owner, s = S) {
+      const at = new Map(list.map((c) => [`${c.q},${c.r}`, c]));
+      let d = '';
+      for (const c of list) {
+        const mine = owner(c);
+        for (const [dq, dr, face] of NEAR) {
+          const n = at.get(`${c.q + dq},${c.r + dr}`);
+          if (!n) continue;
+          const theirs = owner(n);
+          if (theirs < 0 || theirs <= mine) continue;
+          const p = (a) => `${f2(c.x + s * Math.cos(rad(a)))} ${f2(c.y + s * Math.sin(rad(a)))}`;
+          d += `M${p(face - 30)}L${p(face + 30)}`;
+        }
+      }
+      return d;
+    }
+
+    // The capped patch under a slice's label: wider in a wide slice (fewer slices), so a long
+    // label gets more room; `room` is the label's width.
+    function cap(sl, H) {
+      const [x, y] = H.polar(R.label, sl.mid);
+      const chord = 2 * R.label * Math.sin(rad(Math.min(sl.step, 180) / 2));
+      const rx = Math.max(40, Math.min(54, chord * 0.42));
+      const ry = rx > 46 ? 29 : 27;
+      return {
+        has: (c) => ((c.x - x) / rx) ** 2 + ((c.y - y) / ry) ** 2 <= 1,
+        room: Math.round(rx * 1.8),
+      };
+    }
 
     // A hanging honey drop, its tip at (x, y + len).
     const dropPath = (x, y, w, len) =>
@@ -53,10 +94,10 @@ export default function register(Board) {
     Board.define({
       id: 'balpetegi',
       fonts: {
-        brand: "'Signika'",
-        display: "'Signika'",
-        load: ["'Signika'"],
-        credits: [{ family: 'Signika', license: 'SIL Open Font License 1.1' }],
+        brand: "'Nunito Variable'",
+        display: "'Nunito Variable'",
+        load: ["'Nunito Variable'"],
+        credits: [{ family: 'Nunito', license: 'SIL Open Font License 1.1' }],
       },
       motion: { open: 170, close: 120, stagger: 14, apply: 700 },
 
@@ -90,6 +131,7 @@ export default function register(Board) {
           'wheel-shadow': 'rgba(90, 80, 20, 0.3)',
           wax: '#fff2c8',
           'wax-edge': '#e6b44a',
+          seam: '#c98a1c',
           cell: '#f5e1a2',
           'cell-deep': '#e7c26a',
           'cell-hover': '#ffd261',
@@ -137,6 +179,7 @@ export default function register(Board) {
           'wheel-shadow': 'rgba(0, 0, 0, 0.6)',
           wax: '#c58a22',
           'wax-edge': '#e9a93a',
+          seam: '#ffd57a',
           cell: '#2c2434',
           'cell-deep': '#1d1824',
           'cell-hover': '#6a4a2c',
@@ -184,15 +227,17 @@ export default function register(Board) {
           H.s('path', { d: every.map((c) => hex(c.x, c.y, S + 1)).join(''), class: 'bp-rim' }, comb);
           H.s('path', { d: every.map((c) => hex(c.x, c.y, S)).join(''), class: 'bp-wax' }, comb);
 
+          const owner = (c) => (c.ring <= HUB_RING ? -1 : m.slices.findIndex((sl) => inSlice(c.ang, sl)));
+          H.s('path', { d: seams(every, owner), class: 'bp-seam' }, comb);
+
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
             H.s('path', { d: H.sector(R.hub, R.outer + 10, sl.a0, sl.a1), class: 'bp-hit' }, g);
             const mine = all.filter((c) => inSlice(c.ang, sl));
             // Cells under the label are capped with wax so the text sits on a calm patch.
-            const [lx, ly] = H.polar(R.label, sl.mid);
-            const capped = (c) => ((c.x - lx) / 40) ** 2 + ((c.y - ly) / 27) ** 2 <= 1;
-            const open = mine.filter((c) => !capped(c));
-            const caps = mine.filter(capped);
+            const patch = cap(sl, H);
+            const open = mine.filter((c) => !patch.has(c));
+            const caps = mine.filter(patch.has);
             const grp = H.s('g', { class: 'bp-cells' }, g);
             H.s('path', { d: open.map((c) => hex(c.x, c.y, S - 1.35)).join(''), class: 'bp-cell' }, grp);
             H.s('path', { d: open.map((c) => hex(c.x, c.y, S * 0.56, 0.7, 1.3)).join(''), class: 'bp-deep' }, grp);
@@ -213,12 +258,12 @@ export default function register(Board) {
             H.s('path', { d: caps.map((c) => hex(c.x, c.y, S + 0.6)).join(''), class: 'bp-cap' }, grp);
             H.s('path', { d: caps.map((c) => hex(c.x, c.y, S - 0.6)).join(''), class: 'bp-cap-seam' }, grp);
             const ink = H.s('g', { class: 'bp-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(ink, sl, R.label, {
                 size: 22,
                 subSize: 12.5,
                 gap: 1,
-                maxWidth: 74,
+                maxWidth: patch.room + 2,
                 minSize: 9,
                 cls: 'bp-lbl',
                 subCls: 'bp-sub',
@@ -229,7 +274,7 @@ export default function register(Board) {
                 iconSize: 21,
                 size: 14,
                 gap: 3,
-                maxWidth: 72,
+                maxWidth: patch.room,
                 minSize: 9,
                 cls: 'bp-lbl bp-lbl-s',
                 sub: null,
@@ -248,8 +293,15 @@ export default function register(Board) {
             inlay += `${j ? 'L' : 'M'}${f2(C + 47 * Math.cos(a))} ${f2(C + 47 * Math.sin(a))}`;
           }
           H.s('path', { d: inlay + 'Z', class: 'bp-plate-line' }, hub);
-          H.label(hub, C, C - 14, m.title, { maxWidth: 86, size: 16.5, minSize: 10, cls: 'bp-title', maxLines: 1 });
-          H.label(hub, C, C + 5.5, m.file, {
+          const dy = m.key ? 0 : 9;
+          H.label(hub, C, C - 14 + dy, m.title, {
+            maxWidth: 86,
+            size: 16.5,
+            minSize: 10,
+            cls: 'bp-title',
+            maxLines: 1,
+          });
+          H.label(hub, C, C + 5.5 + dy, m.file, {
             maxWidth: 80,
             size: 11.5,
             minSize: 8.5,
@@ -257,9 +309,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.6;
-          H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 8.5, class: 'bp-key' }, hub);
-          H.text(hub, C, C + 26, m.key, { class: 'bp-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.6;
+            H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 8.5, class: 'bp-key' }, hub);
+            H.text(hub, C, C + 26, m.key, { class: 'bp-keytext' });
+          }
 
           H.s('g', { class: 'bp-fx', 'aria-hidden': 'true' }, root);
         },
@@ -283,12 +337,11 @@ export default function register(Board) {
           const fills = H.s('g', { class: 'bp-fill' });
           deep.parentNode.insertBefore(fills, deep);
           const mine = cells().filter((c) => c.ring > HUB_RING && inSlice(c.ang, sl));
-          const [lx, ly] = H.polar(R.label, sl.mid);
-          const capped = (c) => ((c.x - lx) / 40) ** 2 + ((c.y - ly) / 27) ** 2 <= 1;
+          const patch = cap(sl, H);
           const near = Math.min(...mine.map((c) => c.dist));
           const far = Math.max(...mine.map((c) => c.dist));
           for (const c of mine) {
-            if (capped(c)) continue;
+            if (patch.has(c)) continue;
             const d = Math.round(((c.dist - near) / (far - near)) * 300 + ((c.ang * 7) % 40));
             H.s(
               'path',

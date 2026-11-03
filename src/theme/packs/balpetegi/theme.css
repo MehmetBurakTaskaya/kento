@@ -25,6 +25,13 @@
 [data-concept='balpetegi'] .bp-wax {
   fill: var(--wax);
 }
+/* The walls between slices: a darker (at night, brighter) line of wax. */
+[data-concept='balpetegi'] .bp-seam {
+  fill: none;
+  stroke: var(--seam);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
 [data-concept='balpetegi'] .bp-hit {
   fill: transparent;
 }
