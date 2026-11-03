@@ -86,15 +86,39 @@ p {
   display: grid;
   grid-template-columns: var(--rail) 1fr;
   block-size: 100%;
+  /* A theme pack tints the page and the rail (theme/registry.ts); the steel theme shows the backdrop. */
+  background: var(--page-bg, transparent);
 }
 .rail {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 8px 6px;
+  background: var(--rail-bg, transparent);
 }
-.rail-item:last-child {
+/* The theme in use and Settings sit at the foot of the rail. */
+.rail-theme {
   margin-block-start: auto;
+}
+.rail-theme-thumb {
+  display: block;
+  inline-size: 40px;
+  block-size: 40px;
+  overflow: hidden;
+  border-radius: 9px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+.rail-theme-thumb .theme-card-stage {
+  inline-size: 148px;
+  block-size: 148px;
+  transform: scale(0.27);
+  transform-origin: 0 0;
+}
+.rail-theme > span:last-child {
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rail-item {
   position: relative;

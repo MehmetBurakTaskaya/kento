@@ -74,6 +74,12 @@ export function chromeTokens(palette: Tokens, base: Tokens): Tokens {
   tokens.keycap = palette['surface-2'] ?? base.keycap!;
   tokens['keycap-text'] = palette.text ?? base['keycap-text']!;
   if (palette['text-muted']) tokens['scale-tick'] = `color-mix(in srgb, ${palette['text-muted']} 42%, transparent)`;
+  // The window wears the theme's tone: its page and its navigation rail are tinted with the accent,
+  // over the system's Mica too. The steel theme sets neither and keeps the backdrop as it is.
+  const bg = palette.bg ?? base.bg!;
+  const accent = palette.accent ?? base.accent!;
+  tokens['page-bg'] = `color-mix(in srgb, ${accent} 7%, ${bg})`;
+  tokens['rail-bg'] = `color-mix(in srgb, ${accent} 13%, ${bg})`;
   return tokens;
 }
 
