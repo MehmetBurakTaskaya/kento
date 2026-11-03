@@ -86,16 +86,13 @@ export default function register(Board) {
       fromArm(sl.a0, 1, 146, 22, 5, 4);
       fromArm(sl.a1, -1, 156, 24, 5, 5);
       fromArm(sl.a0, 1, 168, 14, 4, 6);
-      // Three from the rim, pointing inward and fanning out.
-      for (const [da, k, len] of [
-        [-0.3, 6, 22],
-        [0.04, 7, 16],
-        [0.32, 8, 22],
-      ]) {
-        const a = sl.mid + da * sl.step;
+      // From the rim, pointing inward and fanning out: three in a narrow pane, more in a wide one.
+      const count = Math.max(3, Math.round(sl.step / 15));
+      for (let j = 0; j < count; j++) {
+        const a = sl.a0 + ((j + 0.5) * sl.step) / count;
         const at = frame(a);
         const u = [Math.sin(rad(a)), -Math.cos(rad(a))];
-        fern(at(R.out - 3, 0), [-u[0], -u[1]], len, 5, k);
+        fern(at(R.out - 3, 0), [-u[0], -u[1]], j % 2 ? 16 : 22, 5, 6 + (j % 3));
       }
       return out;
     }
@@ -104,22 +101,50 @@ export default function register(Board) {
     const glint = (x, y, r) =>
       `M${f2(x)} ${f2(y - r)}Q${f2(x + r * 0.16)} ${f2(y - r * 0.16)} ${f2(x + r)} ${f2(y)}Q${f2(x + r * 0.16)} ${f2(y + r * 0.16)} ${f2(x)} ${f2(y + r)}Q${f2(x - r * 0.16)} ${f2(y + r * 0.16)} ${f2(x - r)} ${f2(y)}Q${f2(x - r * 0.16)} ${f2(y - r * 0.16)} ${f2(x)} ${f2(y - r)}Z`;
 
-    function octagon(r, cx = 200, cy = 200, rot = 22.5) {
+    // A plate with its corners at the given angles (degrees from twelve o'clock, in order).
+    function polygon(r, angles, cx = 200, cy = 200) {
       let d = '';
-      for (let j = 0; j < 8; j++) {
-        const a = rad(rot + j * 45);
-        d += `${j ? 'L' : 'M'}${f2(cx + r * Math.sin(a))} ${f2(cy - r * Math.cos(a))}`;
-      }
+      angles.forEach((a, j) => {
+        d += `${j ? 'L' : 'M'}${f2(cx + r * Math.sin(rad(a)))} ${f2(cy - r * Math.cos(rad(a)))}`;
+      });
       return d + 'Z';
+    }
+
+    // The crystal's arms: a main arm on every slice border, and with fewer than six slices lighter
+    // arms between them where they clear the labels, so the crystal keeps six-fold rhythm. Where a
+    // light arm would run through a label, the hub plate only gets a corner there.
+    function arms(m) {
+      const main = m.slices.map((sl) => ({ a: sl.a0, kind: 'main' }));
+      const minor = [];
+      if (m.n < 6) {
+        const k = Math.ceil(6 / m.n);
+        for (const sl of m.slices)
+          for (let j = 1; j < k; j++) {
+            const a = sl.a0 + (j * sl.step) / k;
+            minor.push({ a, kind: Math.abs(a - sl.mid) < 25 ? 'corner' : 'minor' });
+          }
+      }
+      return [...main, ...minor].sort((p, q) => p.a - q.a);
+    }
+
+    // The room a label has across its pane: up to the nearest arm.
+    function room(sl, all) {
+      let half = 90;
+      for (const x of all) {
+        if (x.kind === 'corner') continue;
+        const d = Math.abs(((((x.a - sl.mid) % 360) + 540) % 360) - 180);
+        half = Math.min(half, d);
+      }
+      return Math.round(Math.min(92, 2 * (R.label * Math.sin(rad(half)) - 12)));
     }
 
     Board.define({
       id: 'kartanesi',
       fonts: {
-        brand: "'Quicksand'",
-        display: "'Quicksand'",
-        load: ["'Quicksand'"],
-        credits: [{ family: 'Quicksand', license: 'SIL Open Font License 1.1' }],
+        brand: "'Comfortaa Variable'",
+        display: "'Comfortaa Variable'",
+        load: ["'Comfortaa Variable'"],
+        credits: [{ family: 'Comfortaa', license: 'SIL Open Font License 1.1' }],
       },
       motion: { open: 190, close: 120, stagger: 11, apply: 640 },
 
@@ -275,7 +300,9 @@ export default function register(Board) {
           H.s('circle', { cx: C, cy: C, r: R.out - 0.5, class: 'ka-edge' }, glass);
           H.s('circle', { cx: C, cy: C, r: R.out - 5, class: 'ka-edge-in' }, glass);
 
+          const all = arms(m);
           for (const sl of m.slices) {
+            const width = room(sl, all);
             const g = H.slice(root, sl, m);
             const pane = H.s('g', { class: 'ka-pane-g' }, g);
             H.s('path', { d: H.sector(R.in, R.out, sl.a0, sl.a1), class: 'ka-pane' }, pane);
@@ -293,12 +320,12 @@ export default function register(Board) {
               H.s('path', { d: glint(x, y, s), class: 'ka-glint', style: `--k: ${k}` }, sp);
             });
             const ink = H.s('g', { class: 'ka-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(ink, sl, R.label, {
                 size: 22,
                 subSize: 13,
                 gap: 1.5,
-                maxWidth: 74,
+                maxWidth: width,
                 minSize: 9,
                 cls: 'ka-lbl',
                 subCls: 'ka-sub',
@@ -309,7 +336,7 @@ export default function register(Board) {
                 iconSize: 22,
                 size: 14,
                 gap: 4,
-                maxWidth: 74,
+                maxWidth: width,
                 minSize: 9,
                 cls: 'ka-lbl ka-lbl-s',
                 sub: null,
@@ -317,14 +344,34 @@ export default function register(Board) {
             }
           }
 
-          // The crystal: eight arms on the slice borders, drawn twice (body and a bright core).
+          // The crystal: an arm on every slice border (and lighter ones between few slices), drawn
+          // twice (body and a bright core).
           const crystal = H.s('g', { class: 'ka-crystal', 'aria-hidden': 'true' }, root);
           let lines = '';
           let plates = '';
-          for (const sl of m.slices) {
-            const a = arm(sl.a0);
-            lines += a.lines;
-            plates += a.plate;
+          let light = '';
+          let lightPlates = '';
+          for (const x of all) {
+            if (x.kind === 'main') {
+              const a = arm(x.a);
+              lines += a.lines;
+              plates += a.plate;
+            } else if (x.kind === 'minor') {
+              const a = arm(x.a, 1, C, C, {
+                branches: [
+                  [92, 12, 0],
+                  [148, 13, 1],
+                ],
+                plate: 5,
+              });
+              light += a.lines;
+              lightPlates += a.plate;
+            }
+          }
+          if (light) {
+            H.s('path', { d: light, class: 'ka-arm ka-arm-minor' }, crystal);
+            H.s('path', { d: lightPlates, class: 'ka-plate-tip ka-plate-minor' }, crystal);
+            H.s('path', { d: light, class: 'ka-arm-hi' }, crystal);
           }
           H.s('path', { d: lines, class: 'ka-arm' }, crystal);
           H.s('path', { d: plates, class: 'ka-plate-tip' }, crystal);
@@ -345,21 +392,26 @@ export default function register(Board) {
             H.s('path', { d: lit, class: 'ka-lit', 'data-k': sl.i }, crystal);
           }
 
-          // Hub: a faceted octagonal plate with its corners on the arms.
+          // Hub: a faceted plate with a corner on every arm (six at least, so it stays a plate).
           const hub = H.s('g', { class: 'ka-hub' }, root);
-          const o0 = octagon(R.hub, C, C, m.slices[0].a0);
-          const o1 = octagon(R.hub - 9, C, C, m.slices[0].a0);
+          const corners = all.map((x) => x.a);
           let facets = '';
-          for (let j = 0; j < 8; j++) {
-            const a = m.slices[0].a0 + j * 45;
+          for (const a of corners) {
             const [x0, y0] = H.polar(R.hub, a);
             const [x1, y1] = H.polar(R.hub - 9, a);
             facets += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
           }
-          H.s('path', { d: o0, class: 'ka-hubplate' }, hub);
-          H.s('path', { d: o1 + facets, class: 'ka-hubfacet' }, hub);
-          H.label(hub, C, C - 14, m.title, { maxWidth: 88, size: 16, minSize: 10, cls: 'ka-title', maxLines: 1 });
-          H.label(hub, C, C + 5.5, m.file, {
+          H.s('path', { d: polygon(R.hub, corners), class: 'ka-hubplate' }, hub);
+          H.s('path', { d: polygon(R.hub - 9, corners) + facets, class: 'ka-hubfacet' }, hub);
+          const dy = m.key ? 0 : 9;
+          H.label(hub, C, C - 14 + dy, m.title, {
+            maxWidth: 88,
+            size: 16,
+            minSize: 10,
+            cls: 'ka-title',
+            maxLines: 1,
+          });
+          H.label(hub, C, C + 5.5 + dy, m.file, {
             maxWidth: 82,
             size: 11.5,
             minSize: 8.5,
@@ -367,9 +419,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.6;
-          H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 3, class: 'ka-key' }, hub);
-          H.text(hub, C, C + 26.3, m.key, { class: 'ka-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.6;
+            H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 3, class: 'ka-key' }, hub);
+            H.text(hub, C, C + 26.3, m.key, { class: 'ka-keytext' });
+          }
         },
 
         update(root, m, st) {

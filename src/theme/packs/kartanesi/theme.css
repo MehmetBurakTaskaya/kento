@@ -150,6 +150,14 @@
   stroke-linecap: round;
   opacity: 0.85;
 }
+/* The lighter arms between few slices: thinner, so the slice borders still lead. */
+[data-concept='kartanesi'] .ka-arm-minor {
+  stroke-width: 2.3;
+  opacity: 0.8;
+}
+[data-concept='kartanesi'] .ka-plate-minor {
+  opacity: 0.8;
+}
 [data-concept='kartanesi'] .ka-lit {
   fill: none;
   stroke: var(--arm-lit);
