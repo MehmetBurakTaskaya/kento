@@ -2,7 +2,7 @@
 /* Ahşap kakma: a marquetry panel of pale veneers, ebony stringing and mother-of-pearl. */
 
 [data-concept='kakma'] {
-  --kk-caps: var(--font-display-face), Georgia, serif;
+  --kk-caps: var(--font-display-face), Georgia, 'Segoe UI', 'Geeza Pro', serif;
   --kk-sans: var(--font-brand-face), 'Segoe UI', sans-serif;
   --radius: 6px;
 }
@@ -303,7 +303,7 @@
     opacity: 1;
   }
   to {
-    transform: translateX(260px);
+    transform: translateX(var(--travel, 260px));
     opacity: 0;
   }
 }

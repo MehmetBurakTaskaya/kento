@@ -36,6 +36,12 @@ export default function register(Board) {
     const R = { outer: 198, band1: 196, band0: 185, field: 182, hub: 66, lbl: 126, dotBand: 190.5, dotHub: 71 };
     const pt = (p) => `${f2(p[0])} ${f2(p[1])}`;
 
+    // The width a label may take at radius r: the slice's chord there, less a margin, within a cap.
+    function roomAt(sl, r, margin, cap) {
+      const half = Math.min(sl.step / 2, 70);
+      return Math.max(40, Math.min(cap, 2 * r * Math.sin((half * Math.PI) / 180) - margin));
+    }
+
     // Grain for one veneer: lines along the slice (radial) or across it (rings), gently wavy.
     function grainPath(H, sl, along, rand) {
       let d = '';
@@ -82,11 +88,11 @@ export default function register(Board) {
         return r >= R.hub - 4 && r <= R.field + 4 && a >= a0 && a <= a1;
       };
       let out = '';
-      for (let c = -210; c <= 120; c += 4.5 + rand() * 4) {
+      for (let c = -192; c <= 192; c += 4.5 + rand() * 4) {
         const ph = rand() * 6.28,
           amp = 0.4 + rand() * 0.8;
         const pts = [];
-        for (let t = -20; t <= 240; t += 6) {
+        for (let t = -192; t <= 192; t += 7) {
           const w = amp * Math.sin(t * 0.05 + ph);
           const x = C + n[0] * (c + w) + d[0] * t,
             y = C + n[1] * (c + w) + d[1] * t;
@@ -121,7 +127,7 @@ export default function register(Board) {
         return r >= R.hub - 4 && r <= R.field + 4 && Math.abs(a) <= sl.step / 2 + 2;
       };
       let out = '';
-      for (let r = 26; r < 170; r += 7 + rand() * 6) {
+      for (let r = 26; r < 380; r += 7 + rand() * 6) {
         const pts = [];
         const ph = rand() * 6.28;
         for (let a = 0; a <= 360; a += 5) {
@@ -341,6 +347,9 @@ export default function register(Board) {
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
             const wedge = H.sector(R.hub, R.field, sl.a0, sl.a1);
+            // Bookmatched and ring-cut veneers take turns; with an odd count the last slice is
+            // bookmatched in the second wood, so it differs from both neighbours.
+            const odd = m.n % 2 === 1 && sl.i === m.n - 1;
             const along = sl.i % 2 === 0;
             const clipId = `${uid}-c${sl.i}`;
             s('path', { d: wedge }, s('clipPath', { id: clipId }, g));
@@ -351,7 +360,11 @@ export default function register(Board) {
                 const half = H.sector(R.hub, R.field, side < 0 ? -sl.step / 2 : 0, side < 0 ? 0 : sl.step / 2);
                 const cid = `${uid}-h${sl.i}${side < 0 ? 'l' : 'r'}`;
                 s('path', { d: half }, s('clipPath', { id: cid }, local));
-                s('path', { d: half, class: side < 0 ? 'kk-wood kk-wood-a' : 'kk-wood kk-wood-a2' }, local);
+                s(
+                  'path',
+                  { d: half, class: odd ? 'kk-wood kk-wood-b' : side < 0 ? 'kk-wood kk-wood-a' : 'kk-wood kk-wood-a2' },
+                  local,
+                );
                 s(
                   'path',
                   { d: chevronGrain(H, sl, side, rand), class: 'kk-grain kk-grain-a', 'clip-path': `url(#${cid})` },
@@ -369,16 +382,19 @@ export default function register(Board) {
             s('path', { d: wedge, class: 'kk-glow' }, g);
             const pearlG = s('g', { class: 'kk-pearl', 'clip-path': `url(#${clipId})` }, g);
             s('path', { d: wedge, fill: `url(#${uid}-pearl)` }, pearlG);
-            s('path', { d: nacre(H, sl, rand), class: 'kk-nacre' }, pearlG);
+            // Nacre is drawn when the slice is first applied (update), not for every slice up front.
+            s('path', { class: 'kk-nacre' }, pearlG);
             // The shine: a slanted band laid across the slice, moved from one edge to the other.
             const shine = s('g', { class: 'kk-shine-clip', 'clip-path': `url(#${clipId})` }, g);
             const rot = s('g', { transform: `rotate(${f2(sl.mid)} ${C} ${C})` }, shine);
+            const halfW = R.field * Math.sin(H.rad(Math.min(sl.step / 2, 90)));
             s(
               'path',
               {
-                d: `M${C - 128} ${C - R.field - 4}h44l30 ${R.field - R.hub + 8}h-44z`,
+                d: `M${f2(C - halfW - 58)} ${C - R.field - 4}h44l30 ${R.field - R.hub + 8}h-44z`,
                 class: 'kk-shine',
                 fill: `url(#${uid}-sheen)`,
+                style: `--travel: ${f2(2 * halfW + 90)}px`,
               },
               rot,
             );
@@ -398,12 +414,13 @@ export default function register(Board) {
               );
             }
             const ink = s('g', { class: 'kk-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            const room = roomAt(sl, R.lbl, 20, 128);
+            if (sl.format) {
               H.block(ink, sl, R.lbl, {
                 size: 23,
                 subSize: 13,
                 gap: 1,
-                maxWidth: 78,
+                maxWidth: room,
                 minSize: 10,
                 cls: 'kk-lbl kk-fmt',
                 subCls: 'kk-sub',
@@ -414,7 +431,7 @@ export default function register(Board) {
                 iconSize: 23,
                 size: 14.5,
                 gap: 4,
-                maxWidth: 78,
+                maxWidth: room + 2,
                 minSize: 9,
                 cls: 'kk-lbl kk-word',
                 sub: null,
@@ -436,14 +453,24 @@ export default function register(Board) {
           s('path', { d: star8(C, C, R.hub - 7, m.slices[0].a0 + 22.5), class: 'kk-star' }, hub);
           s('circle', { cx: C, cy: C, r: R.hub - 0.8, class: 'kk-string kk-hub-ring' }, hub);
           s('circle', { cx: C, cy: C, r: R.hub - 3.5, class: 'kk-holly-thin' }, hub);
-          H.label(hub, C, C - 15, m.title, { maxWidth: 104, size: 17, minSize: 11, cls: 'kk-title', maxLines: 1 });
-          H.label(hub, C, C + 5, m.file, { maxWidth: 96, size: 13, minSize: 9, cls: 'kk-file', maxLines: 1 });
-          const kt = H.text(hub, C, C + 26, m.key, { class: 'kk-keytext' });
-          const kw = kt.getComputedTextLength() + 16;
-          hub.insertBefore(
-            s('rect', { x: f2(C - kw / 2), y: C + 18, width: f2(kw), height: 16, rx: 3, class: 'kk-key' }),
-            kt,
-          );
+          const dy = m.key ? 0 : 8;
+          H.label(hub, C, C - 15 + dy, m.title, { maxWidth: 104, size: 17, minSize: 11, cls: 'kk-title', maxLines: 1 });
+          H.label(hub, C, C + 5 + dy, m.file, { maxWidth: 96, size: 13, minSize: 9, cls: 'kk-file', maxLines: 1 });
+          if (m.key) {
+            const kt = H.text(hub, C, C + 26, m.key, { class: 'kk-keytext' });
+            const kw = kt.getComputedTextLength() + 16;
+            hub.insertBefore(
+              s('rect', { x: f2(C - kw / 2), y: C + 18, width: f2(kw), height: 16, rx: 3, class: 'kk-key' }),
+              kt,
+            );
+          }
+        },
+
+        update(root, m, st, H) {
+          if (st.selected == null) return;
+          const path = root.querySelector(`.slice[data-slice="${st.selected}"] .kk-nacre`);
+          if (path && !path.getAttribute('d'))
+            path.setAttribute('d', nacre(H, m.slices[st.selected], rng(5099 + st.selected * 37)));
         },
       },
 
