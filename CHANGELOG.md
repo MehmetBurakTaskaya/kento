@@ -4,12 +4,16 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - 2026-11-03
+## [1.0.2] - 2026-11-03
 
 ### Fixed
 
-- The Mac app is built and signed again: the command line inside it is now signed before the app,
-  so macOS accepts the bundle. Version 1.0.0 was published for Windows only.
+- The Mac app is built and signed: the command line inside it is now signed before the app, so
+  macOS accepts the bundle. Version 1.0.0 was published for Windows only.
+
+### Changed
+
+- Kento for Mac needs macOS 13 or later, the oldest version its PDF library runs on.
 
 ## [1.0.0] - 2026-11-03
 
@@ -74,5 +78,5 @@ download the links you ask for.
   Portuguese, Arabic (right to left), Korean, Italian and Russian. Kento follows the system
   language, and Settings → Language changes it at once in every window.
 
-[1.0.1]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.0.1
+[1.0.2]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.0.2
 [1.0.0]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.0.0
