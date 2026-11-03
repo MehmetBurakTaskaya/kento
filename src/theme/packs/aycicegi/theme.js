@@ -65,10 +65,10 @@ export default function register(Board) {
     Board.define({
       id: 'aycicegi',
       fonts: {
-        brand: "'Mali'",
-        display: "'Mali'",
-        load: ["'Mali'"],
-        credits: [{ family: 'Mali', license: 'SIL Open Font License 1.1' }],
+        brand: "'Playpen Sans Variable'",
+        display: "'Playpen Sans Variable'",
+        load: ["'Playpen Sans Variable'"],
+        credits: [{ family: 'Playpen Sans', license: 'SIL Open Font License 1.1' }],
       },
       motion: { open: 180, close: 120, stagger: 12, apply: 680 },
 
@@ -220,20 +220,30 @@ export default function register(Board) {
             [1, 'disc-out'],
           ]);
 
-          // Back row: narrower petals between the slices, reaching a little further out.
+          // Back row: narrower petals at the slice borders, reaching a little further out. Wide slices
+          // (fewer than six) get more of them, so the flower stays full with two petals or eight.
           const back = H.s('g', { class: 'ay-back', 'aria-hidden': 'true' }, root);
-          const bp = petal(86, 150, 197, 25);
-          for (const sl of m.slices)
-            H.s(
-              'path',
-              { d: bp, fill: `url(#${bid})`, class: 'ay-bp', transform: `rotate(${f2(sl.a0)} ${C} ${C})` },
-              back,
-            );
+          for (const sl of m.slices) {
+            const per = Math.max(1, Math.round(sl.step / 30));
+            const bp = petal(86, 150, 197, Math.min(34, 25 + (sl.step - 45) * 0.3));
+            for (let j = 0; j < per; j++) {
+              const a = sl.a0 + (j * sl.step) / per;
+              if (Math.abs(a - sl.mid) < 10) continue;
+              H.s(
+                'path',
+                { d: bp, fill: `url(#${bid})`, class: 'ay-bp', transform: `rotate(${f2(a)} ${C} ${C})` },
+                back,
+              );
+            }
+          }
 
-          const front = petal(R.base, R.wide, R.tip, 47);
-          const glow = petal(R.base, R.wide + 4, R.tip + 10, 55);
           const vein = veins();
           for (const sl of m.slices) {
+            // The petal widens with its slice, up to a point where it still reads as a petal.
+            const w = Math.min(60, 47 + (sl.step - 45) * 0.3);
+            const front = petal(R.base, R.wide, R.tip, w);
+            const glow = petal(R.base, R.wide + 4, R.tip + 10, w + 8);
+            const room = Math.round(w * 1.55);
             const g = H.slice(root, sl, m);
             g.style.setProperty('--ux', f2(Math.sin(H.rad(sl.mid))));
             g.style.setProperty('--uy', f2(-Math.cos(H.rad(sl.mid))));
@@ -246,12 +256,12 @@ export default function register(Board) {
             H.s('path', { d: front, class: 'ay-tint' }, rot);
             H.s('path', { d: vein, class: 'ay-vein' }, rot);
             const ink = H.s('g', { class: 'ay-ink' }, lift);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(ink, sl, R.label, {
                 size: 23,
                 subSize: 12.5,
                 gap: 1,
-                maxWidth: 72,
+                maxWidth: room + 2,
                 minSize: 9,
                 cls: 'ay-lbl',
                 subCls: 'ay-sub',
@@ -262,7 +272,7 @@ export default function register(Board) {
                 iconSize: 22,
                 size: 14,
                 gap: 3,
-                maxWidth: 70,
+                maxWidth: room,
                 minSize: 9,
                 cls: 'ay-lbl ay-lbl-s',
                 sub: null,
@@ -278,9 +288,17 @@ export default function register(Board) {
           H.s('path', { d: seedPath(C, C, 3.5, 70, 78.5, 2.3, 2.5), class: 'ay-florets' }, disc);
           H.s('circle', { cx: C, cy: C, r: R.disc - 0.5, class: 'ay-rim' }, disc);
 
+          // The hub: title, file and the key that opened the wheel (none for some wheels).
           const hub = H.s('g', { class: 'ay-hub' }, root);
-          H.label(hub, C, C - 15, m.title, { maxWidth: 88, size: 16.5, minSize: 10, cls: 'ay-title', maxLines: 1 });
-          H.label(hub, C, C + 5.5, m.file, {
+          const dy = m.key ? 0 : 9;
+          H.label(hub, C, C - 15 + dy, m.title, {
+            maxWidth: 88,
+            size: 16.5,
+            minSize: 10,
+            cls: 'ay-title',
+            maxLines: 1,
+          });
+          H.label(hub, C, C + 5.5 + dy, m.file, {
             maxWidth: 82,
             size: 11.5,
             minSize: 8.5,
@@ -288,9 +306,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.6;
-          H.s('rect', { x: f2(C - kw / 2), y: C + 18, width: f2(kw), height: 17, rx: 8.5, class: 'ay-key' }, hub);
-          H.text(hub, C, C + 26.8, m.key, { class: 'ay-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.6;
+            H.s('rect', { x: f2(C - kw / 2), y: C + 18, width: f2(kw), height: 17, rx: 8.5, class: 'ay-key' }, hub);
+            H.text(hub, C, C + 26.8, m.key, { class: 'ay-keytext' });
+          }
 
           H.s('g', { class: 'ay-fx', 'aria-hidden': 'true' }, root);
         },
