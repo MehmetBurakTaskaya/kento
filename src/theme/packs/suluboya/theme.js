@@ -50,10 +50,14 @@ export default function register(Board) {
       // Outer edge, a0 to a1.
       // A fine fringe on top of the slow wobble, where pigment bled into damp paper.
       const fringe = [rand() * 6.3, rand() * 6.3];
-      for (let k = 0; k <= 18; k++) {
-        const t = k / 18;
+      // As many points, and as fine a fringe, per degree on a wide slice as on one of 45 degrees.
+      const span = (a1 - a0) / 45;
+      const count = Math.max(18, Math.round(18 * span));
+      for (let k = 0; k <= count; k++) {
+        const t = k / count;
         const a = a0 + g0(R.outer) + t * (a1 - a0 - 2 * g0(R.outer));
-        const r = R.outer + 6 * outer(t) + 2 + 1.6 * Math.sin(t * 37 + fringe[0]) * Math.sin(t * 13 + fringe[1]);
+        const u = t * span;
+        const r = R.outer + 6 * outer(t) + 2 + 1.6 * Math.sin(u * 37 + fringe[0]) * Math.sin(u * 13 + fringe[1]);
         pts.push([C + r * Math.sin(rad(a)), C - r * Math.cos(rad(a))]);
       }
       // Side at a1, outward to inward.
@@ -79,6 +83,108 @@ export default function register(Board) {
       }
       return smooth(pts);
     }
+
+    // Whether a point (relative to the centre) lies m inside a slice, between radii rin and rout.
+    // Tests the slice's own angles, so it holds for any number of slices and any turn.
+    function inSlice(sl, rin, rout, m) {
+      const toRad = (a) => (a * Math.PI) / 180;
+      const step = sl.a1 - sl.a0;
+      const away = (a, rr) => (a < 90 ? rr * Math.sin(toRad(a)) : rr);
+      return (x, y) => {
+        const rr = Math.hypot(x, y);
+        if (rr < rin + m || rr > rout - m) return false;
+        if (step >= 359.9) return true;
+        const rel = ((((Math.atan2(x, -y) * 180) / Math.PI - sl.a0) % 360) + 360) % 360;
+        return rel <= step && away(rel, rr) >= m && away(step - rel, rr) >= m;
+      };
+    }
+
+    // How wide a level label may be: its lines, centred dy below the point at radius r on the slice's
+    // centre line and hh high on each side, must stay inside the slice.
+    function room(sl, r, dy, hh, rin, rout, cap, m = 4) {
+      const inside = inSlice(sl, rin, rout, m);
+      const cx = r * Math.sin((sl.mid * Math.PI) / 180);
+      const cy = -r * Math.cos((sl.mid * Math.PI) / 180) + dy;
+      const fits = (w) => [-1, 0, 1].every((u) => [-1, 0, 1].every((v) => inside(cx + u * w, cy + v * hh)));
+      if (fits(cap / 2)) return cap;
+      let lo = 0;
+      let hi = cap / 2;
+      for (let k = 0; k < 12; k++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      return Math.max(2 * lo, 40);
+    }
+
+    // Draws a slice's label block where it has the most room, at whichever of the given radii lets its
+    // lines be widest (outward where the slice runs up or down, nearer the middle where it runs
+    // across), then checks the lines as drawn and narrows them until they sit inside the slice. A label
+    // is never shortened to fit: if only an ellipsis would make it fit, the last whole one is kept.
+    // A single word too long for the slice goes a size smaller before it is shortened.
+    function fitBlock(H, parent, sl, radii, o, rin, rout, cap, m = 2) {
+      const inside = inSlice(sl, rin, rout, m);
+      const iconH = o.icon ? o.iconSize + o.gap : 0;
+      const sub = o.sub === undefined ? sl.sub : o.sub;
+      const subH = sub ? o.gap + o.subSize * 1.1 : 0;
+      const best = (lines) =>
+        radii
+          .map((r) => [r, room(sl, r, iconH / 2, (lines * o.size * 1.1 + subH) / 2, rin, rout, cap, m + 2)])
+          .reduce((a, b) => (b[1] > a[1] + 1 ? b : a));
+      const draw = (r, width) => {
+        parent.textContent = '';
+        return H.block(parent, sl, r, { ...o, maxWidth: width });
+      };
+      // How wide each line as drawn may be where it sits, and whether every line is within that.
+      const lines = (parts) => {
+        const spans = [...parts.label.querySelectorAll('tspan')];
+        const list = (spans.length ? spans : [parts.label]).map((line) => [line, parts.label]);
+        if (parts.sub) list.push([parts.sub, parts.sub]);
+        return list.map(([line, text]) => {
+          const hh = +text.getAttribute('font-size') * 0.42;
+          const cx = +text.getAttribute('x') - 200;
+          const cy = line.getStartPositionOfChar(0).y - 200;
+          const ok = (half) => [-1, 0, 1].every((u) => [-1, 1].every((v) => inside(cx + u * half, cy + v * hh)));
+          let allowed = cap;
+          if (!ok(cap / 2)) {
+            let lo = 0;
+            let hi = cap / 2;
+            for (let k = 0; k < 10; k++) {
+              const half = (lo + hi) / 2;
+              if (ok(half)) lo = half;
+              else hi = half;
+            }
+            allowed = 2 * lo;
+          }
+          return { width: line.getComputedTextLength(), allowed };
+        });
+      };
+      const shortened = () => !!parent.querySelector('[data-fit="shortened"]');
+      let [r, width] = best(1);
+      let parts = draw(r, width);
+      // A single long word that would need an ellipsis may go a size smaller first.
+      if (shortened()) {
+        o = { ...o, minSize: Math.max(8.5, o.minSize - 1.5) };
+        parts = draw(r, width);
+      }
+      for (let k = 0; k < 4 && !shortened(); k++) {
+        const drawn = lines(parts);
+        const over = drawn.filter((line) => line.width > line.allowed + 0.5);
+        if (!over.length) break;
+        const last = [r, width];
+        r = best(drawn.length - (parts.sub ? 1 : 0))[0];
+        width = Math.max(30, Math.min(width * 0.96, ...over.map((line) => line.allowed)));
+        parts = draw(r, width);
+        if (shortened()) {
+          [r, width] = last;
+          parts = draw(r, width);
+          break;
+        }
+      }
+      parts.r = r;
+      return parts;
+    }
+
     // A soft irregular blob around cx, cy.
     function blob(cx, cy, r, seed, lobes = 9, amp = 0.16) {
       const rand = rng(seed);
@@ -247,7 +353,8 @@ export default function register(Board) {
             // Granules of pigment, scattered away from the label.
             const rand = rng(sl.i * 13 + 2);
             let gd = '';
-            for (let k = 0; k < 26; k++) {
+            const granules = Math.min(80, Math.round((26 * sl.step) / 45));
+            for (let k = 0; k < granules; k++) {
               const r = k % 3 ? R.outer - 4 - rand() * 30 : R.inner + 4 + rand() * 16;
               const a = sl.a0 + 4 + rand() * (sl.a1 - sl.a0 - 8);
               const [x, y] = H.polar(r, a);
@@ -270,59 +377,58 @@ export default function register(Board) {
             // The bloom: clipped to the wash, it spreads from a drop near the label and dries with a tide line.
             const clipId = `${uid}-c${sl.i}`;
             s('path', { d }, s('clipPath', { id: clipId }, defs));
-            const [bx, by] = H.polar(R.lbl + 4, sl.mid);
             const bloom = s('g', { class: 'su-bloom', 'clip-path': `url(#${clipId})` }, g);
-            // The transform attribute places it; the inner group carries the CSS scale of the spread.
-            const spread = s(
-              'g',
-              { class: 'su-spread' },
-              s('g', { transform: `translate(${f2(bx)} ${f2(by)})` }, bloom),
-            );
+            // A transform attribute places it on the label once the label has its place; the inner group
+            // carries the CSS scale of the spread.
+            const bloomAt = s('g', {}, bloom);
+            const spread = s('g', { class: 'su-spread' }, bloomAt);
             const bd = blob(0, 0, 45, sl.i * 17 + 9, 8, 0.2);
             s('path', { d: bd, class: 'su-bloom-fill' }, spread);
             s('path', { d: bd, class: 'su-tide' }, spread);
             s('path', { d: blob(0, 0, 24, sl.i * 5 + 1, 7, 0.25), class: 'su-backrun' }, spread);
-            const drop = s('g', { class: 'su-drop' }, s('g', { transform: `translate(${f2(bx)} ${f2(by)})` }, g));
+            const dropAt = s('g', {}, g);
+            const drop = s('g', { class: 'su-drop' }, dropAt);
             s('circle', { cx: 0, cy: 0, r: 9, class: 'su-drop-ring' }, drop);
 
             const ink = s('g', { class: 'su-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(ink, sl, R.lbl, {
-                size: 30,
-                subSize: 18,
-                gap: -2,
-                maxWidth: 76,
-                minSize: 14,
-                cls: 'su-lbl su-fmt',
-                subCls: 'su-sub',
-              });
-            } else {
-              H.block(ink, sl, R.lbl, {
-                icon: true,
-                iconSize: 24,
-                size: 19,
-                gap: 2,
-                maxWidth: 76,
-                minSize: 12,
-                cls: 'su-lbl su-word',
-                sub: null,
-              });
-            }
+            const wide = sl.step >= 70;
+            const o = sl.format
+              ? { size: sl.sub ? 30 : 36, subSize: 18, gap: -2, minSize: 14, cls: 'su-lbl su-fmt', subCls: 'su-sub' }
+              : {
+                  icon: true,
+                  iconSize: wide ? 28 : 23,
+                  size: wide ? 21 : 19,
+                  gap: 2,
+                  minSize: 13,
+                  cls: 'su-lbl su-word',
+                  sub: null,
+                };
+            // The washes wobble and leave a strip of paper between them, so labels keep a wider margin.
+            const fitted = fitBlock(H, ink, sl, [R.lbl, R.lbl + 6, R.lbl - 6, R.lbl - 12], o, R.inner, R.outer, 116, 6);
+            const [bx, by] = H.polar(fitted.r + 4, sl.mid);
+            bloomAt.setAttribute('transform', `translate(${f2(bx)} ${f2(by)})`);
+            dropAt.setAttribute('transform', `translate(${f2(bx)} ${f2(by)})`);
           }
 
           // Hub: a pale gray wash with the wheel's name, the file and the key in a pencil box.
           const hub = s('g', { class: 'su-hubg' }, root);
           s('path', { d: blob(C, C, R.hub, 41, 8, 0.07), class: 'su-hub' }, hub);
           s('path', { d: blob(C, C, R.hub, 41, 8, 0.07), class: 'su-hub-edge' }, hub);
-          H.label(hub, C, C - 17, m.title, { maxWidth: 92, size: 23, minSize: 14, cls: 'su-title', maxLines: 1 });
-          H.label(hub, C, C + 3, m.file, { maxWidth: 88, size: 17, minSize: 12, cls: 'su-file', maxLines: 1 });
-          const kw = 18 + m.key.length * 8;
-          s(
-            'path',
-            { d: `M${f2(C - kw / 2)} ${C + 18.5}l${f2(kw + 1.5)} -0.8l-0.6 18.6l${f2(-kw - 1)} 0.6z`, class: 'su-key' },
-            hub,
-          );
-          H.text(hub, C, C + 28, m.key, { class: 'su-keytext' });
+          // As wide as the wash allows: a long title (Russian "Convert") shrinks rather than shortens.
+          H.label(hub, C, C - 17, m.title, { maxWidth: 98, size: 23, minSize: 12, cls: 'su-title', maxLines: 1 });
+          H.label(hub, C, C + (m.key ? 3 : 8), m.file, {
+            maxWidth: 88,
+            size: 17,
+            minSize: 12,
+            cls: 'su-file',
+            maxLines: 1,
+          });
+          if (m.key) {
+            const box = s('path', { class: 'su-key' }, hub);
+            const text = H.text(hub, C, C + 28, m.key, { class: 'su-keytext' });
+            const kw = Math.min(92, Math.ceil(text.getComputedTextLength()) + 18);
+            box.setAttribute('d', `M${f2(C - kw / 2)} ${C + 18.5}l${f2(kw + 1.5)} -0.8l-0.6 18.6l${f2(-kw - 1)} 0.6z`);
+          }
         },
       },
 
