@@ -81,7 +81,8 @@ export default function register(Board) {
             H.s('path', { d: H.sector(R0 + 4, R1, sl.a0, sl.a1, 4), class: 'mn-seg' }, g);
             H.s('path', { d: H.arc(R1 + 9, sl.a0 + 5, sl.a1 - 5), class: 'mn-ind' }, g);
             const c = H.s('g', { class: 'mn-content' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            // Formats read as their name, large, with a second line where they have one.
+            if (sl.format) {
               H.block(c, sl, 136, {
                 size: 22,
                 subSize: 12.5,
@@ -106,11 +107,28 @@ export default function register(Board) {
           // Center: what wheel this is and which file it acts on.
           const ctr = H.s('g', { class: 'mn-center' }, root);
           H.s('circle', { cx: H.C, cy: H.C, r: R0 - 4, class: 'mn-hub' }, ctr);
-          H.label(ctr, H.C, H.C - 16, m.title, { maxWidth: 120, size: 15, minSize: 10, cls: 'mn-title', maxLines: 1 });
-          H.label(ctr, H.C, H.C + 5, m.file, { maxWidth: 120, size: 11.5, minSize: 9, cls: 'mn-file', maxLines: 1 });
-          const kw = 12 + m.key.length * 7.5;
-          H.s('rect', { x: H.C - kw / 2, y: H.C + 21, width: kw, height: 19, rx: 5, class: 'mn-key' }, ctr);
-          H.text(ctr, H.C, H.C + 31, m.key, { class: 'mn-keytext' });
+          // Without a key the title and the file move down to the middle.
+          const dy = m.key ? 0 : 9;
+          H.label(ctr, H.C, H.C - 16 + dy, m.title, {
+            maxWidth: 120,
+            size: 15,
+            minSize: 10,
+            cls: 'mn-title',
+            maxLines: 1,
+          });
+          H.label(ctr, H.C, H.C + 5 + dy, m.file, {
+            maxWidth: 120,
+            size: 11.5,
+            minSize: 9,
+            cls: 'mn-file',
+            maxLines: 1,
+          });
+          // The key that opened the wheel; a ring opened without one shows none.
+          if (m.key) {
+            const kw = 12 + m.key.length * 7.5;
+            H.s('rect', { x: H.C - kw / 2, y: H.C + 21, width: kw, height: 19, rx: 5, class: 'mn-key' }, ctr);
+            H.text(ctr, H.C, H.C + 31, m.key, { class: 'mn-keytext' });
+          }
         },
       },
 
