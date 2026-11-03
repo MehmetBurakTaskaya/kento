@@ -72,7 +72,7 @@ actions. Nothing is uploaded anywhere, and the original stays as it was.
 ## 51 themes
 
 <p align="center">
-  <img src="docs/images/kento-themes.gif" width="960" alt="Kento's themes. The steel dial, Kasa, opens beside the words 51 themes; then the other fifty follow one another on their own desks, from a halved orange, a rotary phone dial and an İznik tile rosette to a stained-glass window, pixels, a record player and a sunflower; six of them apply a slice at once, each with its own effect; and all 51 stand side by side.">
+  <img src="docs/images/kento-themes.gif" width="960" alt="Kento's themes. The steel dial, Kasa, opens beside the words 51 different themes. Damla, Bom, Nar, Piksel, Konfeti and Varak each open and apply a slice with their own effect: a splash of paint, a comic-book boom, spilling seeds, flying pixels, confetti and a glow of gold. More themes follow quickly, each name popping in under its wheel, six more apply at once, all 51 stand side by side under the question which one is yours, and the end card offers the free download.">
 </p>
 
 Kasa, the steel dial, is the default. The other fifty change the wheel completely, with their own

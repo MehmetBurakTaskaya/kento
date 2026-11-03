@@ -72,7 +72,7 @@ orijinalin yanına yeni bir kopya olarak dönüştürür. **Ctrl** (Mac'te ⌘) 
 ## 51 tema
 
 <p align="center">
-  <img src="docs/images/kento-themes-tr.gif" width="960" alt="Kento'nun temaları. Çelik kadran Kasa, 51 tema yazısının yanında açılır; ardından diğer elli tema kendi zeminlerinde birbirini izler: ikiye bölünmüş bir portakal, çevirmeli telefon kadranı ve İznik çinisi bir rozetten vitraylı bir pencereye, piksellere, bir pikaba ve bir ayçiçeğine kadar; altısı aynı anda bir dilimi uygular, her biri kendi efektiyle; sonunda 51'i yan yana durur.">
+  <img src="docs/images/kento-themes-tr.gif" width="960" alt="Kento'nun temaları. Çelik kadran Kasa, 51 farklı tema yazısının yanında açılır. Damla, Bom, Nar, Piksel, Konfeti ve Varak birer dilimi kendi efektiyle uygular: boya sıçraması, çizgi roman patlaması, saçılan taneler, uçuşan pikseller, konfeti ve altın bir ışık. Ardından başka temalar hızla gelir, her birinin adı çarkının altında belirir; altı tema aynı anda uygular, 51 tema seninki hangisi sorusunun altında yan yana durur ve son kart ücretsiz indirmeye çağırır.">
 </p>
 
 Varsayılan tema çelik kadran Kasa. Diğer elli tema çarkı baştan değiştirir, kendi rengi, hareketi ve
