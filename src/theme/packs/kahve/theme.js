@@ -34,8 +34,16 @@ export default function register(Board) {
         return s / 4294967296;
       };
     }
-    // Where the handle rests when nothing is chosen: between two slices, low on the right.
-    const restAngle = (m) => (m.dir === 'rtl' ? -1 : 1) * (m.step * 2.5);
+    // Where the handle rests when nothing is chosen: on the slice boundary nearest to low on the right
+    // (low on the left right to left), so it never seems to point at a slice. Rings may be turned, so
+    // the boundaries come from the slices themselves.
+    function restAngle(m) {
+      const want = m.dir === 'rtl' ? 225 : 135;
+      const off = (a) => Math.abs(((((a - want) % 360) + 540) % 360) - 180);
+      let best = m.slices.length ? m.slices[0].a1 : want;
+      for (const sl of m.slices) if (off(sl.a1) < off(best)) best = sl.a1;
+      return best;
+    }
 
     function stops(H, grad, list) {
       for (const [o, cls] of list) H.s('stop', { offset: o, class: cls }, grad);
@@ -122,11 +130,15 @@ export default function register(Board) {
       H.s('path', { d: small, class: 'kv-bubble-s' }, swirl);
       // Hub text floats on the foam.
       const txt = H.s('g', { class: 'kv-hubtext' }, lift);
-      H.label(txt, C, C - 14, m.title, { maxWidth: 88, size: 16.5, minSize: 11, maxLines: 1, cls: 'kv-title' });
-      H.label(txt, C, C + 4, m.file, { maxWidth: 80, size: 11.5, minSize: 8.5, maxLines: 1, cls: 'kv-file' });
-      const kw = 16 + m.key.length * 6.4;
-      H.s('rect', { x: f2(C - kw / 2), y: C + 14, width: f2(kw), height: 17, rx: 8.5, class: 'kv-key' }, txt);
-      H.text(txt, C, C + 22.9, m.key, { class: 'kv-keytext' });
+      // Without a key the title and file sit lower, in the middle of the foam.
+      const dy = m.key ? 0 : 8;
+      H.label(txt, C, C - 14 + dy, m.title, { maxWidth: 88, size: 16.5, minSize: 11, maxLines: 1, cls: 'kv-title' });
+      H.label(txt, C, C + 4 + dy, m.file, { maxWidth: 80, size: 11.5, minSize: 8.5, maxLines: 1, cls: 'kv-file' });
+      if (m.key) {
+        const kw = 16 + m.key.length * 6.4;
+        H.s('rect', { x: f2(C - kw / 2), y: C + 14, width: f2(kw), height: 17, rx: 8.5, class: 'kv-key' }, txt);
+        H.text(txt, C, C + 22.9, m.key, { class: 'kv-keytext' });
+      }
       // Steam, seen only while a slice is applied.
       const steam = H.s('g', { class: 'kv-steam' }, g);
       [
@@ -322,7 +334,7 @@ export default function register(Board) {
             H.s('path', { d: H.sector(R.slice0, R.slice1, sl.a0, sl.a1, 3), class: 'kv-seg' }, g);
             H.s('path', { d: H.arc(R.slice1 - 3, sl.a0 + 2.5, sl.a1 - 2.5), class: 'kv-seg-gold' }, g);
             const c = H.s('g', { class: 'kv-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 21,
                 subSize: 13.5,
