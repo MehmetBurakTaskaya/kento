@@ -26,7 +26,8 @@ export function registerFaces(specs: FaceSpec[]): void {
   if (typeof FontFace === 'undefined' || typeof document === 'undefined' || !document.fonts) return;
   for (const spec of specs) {
     for (const source of spec.sources) {
-      const key = `${spec.family}\u0001${spec.style ?? 'normal'}\u0001${source.url}`;
+      // The weight is part of the key: one variable file may stand in for several static weights.
+      const key = `${spec.family}\u0001${spec.weight}\u0001${spec.style ?? 'normal'}\u0001${source.url}`;
       if (registered.has(key)) continue;
       registered.add(key);
       const face = new FontFace(spec.family, `url(${source.url}) format('woff2')`, {
