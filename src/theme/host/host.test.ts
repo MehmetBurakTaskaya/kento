@@ -94,6 +94,7 @@ describe('the timings of a theme', () => {
     expect(themeTimings({ open: 150, close: 100, stagger: 10 }).apply(false)).toBe(0);
   });
 
+  // The first load of every pack takes seconds on a slow machine.
   it('of every theme keep the wheel on screen within the open budget', async () => {
     for (const entry of catalog.slice(1)) {
       const theme = (await loadPack(entry.pack!)).get(entry.id)!;
@@ -102,7 +103,7 @@ describe('the timings of a theme', () => {
       expect(motion.apply ?? 0, entry.id).toBeLessThanOrEqual(800);
       expect(theme.timings.open(8, false), entry.id).toBe(motion.open + motion.stagger * 7);
     }
-  });
+  }, 60_000);
 });
 
 describe('the board a pack registers with', () => {

@@ -98,6 +98,7 @@ describe('the steel theme', () => {
 });
 
 describe('the theme packs', () => {
+  // The first load of every pack takes seconds on a slow machine; the tests after it reuse them.
   it('each define the themes the catalog names, with every palette token in light and dark', async () => {
     for (const theme of catalog.slice(1)) {
       const themes = await loadPack(theme.pack!);
@@ -109,7 +110,7 @@ describe('the theme packs', () => {
       expect(typeof pack!.concept.wheel.render).toBe('function');
       expect(pack!.concept.fonts.brand).toBeTruthy();
     }
-  });
+  }, 60_000);
 
   it('pass the contrast pairs of their wheels (WCAG AA)', async () => {
     const failures: string[] = [];
