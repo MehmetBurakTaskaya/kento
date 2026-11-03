@@ -85,6 +85,8 @@ export default function register(Board) {
     }
 
     function render(root, m, H) {
+      // Wider slices (fewer of them) give their labels more room, up to what the grooved band holds.
+      const wide = Math.min(96, 2 * R.lbl * Math.sin(rad(Math.min(m.step, 180) / 2)) * 0.78);
       const u = H.uid('pikap');
       const sgn = m.dir === 'rtl' ? -1 : 1;
       const geo = armGeometry(sgn);
@@ -128,12 +130,13 @@ export default function register(Board) {
         const lg = H.s('g', { class: 'pk-lbl', 'data-for': sl.i }, labelsLayer);
         lg.style.setProperty('--i', sl.i);
         const [x, y] = pol(R.lbl, sl.mid);
-        if (m.kind === 'convert' && sl.sub) {
+        // A format is printed large, with its second line where it has one; tools and actions get an icon.
+        if (sl.format) {
           H.block(lg, sl, R.lbl, {
             size: 22,
             subSize: 14.5,
             gap: 0.5,
-            maxWidth: 72,
+            maxWidth: wide,
             minSize: 9,
             cls: 'pk-name pk-fmt',
             subCls: 'pk-sub',
@@ -144,7 +147,7 @@ export default function register(Board) {
             iconSize: 21,
             size: 14,
             gap: 3,
-            maxWidth: 74,
+            maxWidth: wide,
             minSize: 9,
             cls: 'pk-name',
             sub: null,
@@ -191,12 +194,15 @@ export default function register(Board) {
         maxLines: 1,
         attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
       });
-      const kt = H.text(hub, C, C + 31.2, m.key, { class: 'pk-keytext' });
-      const kw = kt.getComputedTextLength() + 12;
-      hub.insertBefore(
-        H.s('rect', { x: f2(C - kw / 2), y: C + 24.5, width: f2(kw), height: 13.5, rx: 6.75, class: 'pk-key' }),
-        kt,
-      );
+      // The key that opened the wheel, when one did.
+      if (m.key) {
+        const kt = H.text(hub, C, C + 31.2, m.key, { class: 'pk-keytext' });
+        const kw = kt.getComputedTextLength() + 12;
+        hub.insertBefore(
+          H.s('rect', { x: f2(C - kw / 2), y: C + 24.5, width: f2(kw), height: 13.5, rx: 6.75, class: 'pk-key' }),
+          kt,
+        );
+      }
 
       // Where the stylus touches: a ripple, shown only as the needle lands.
       const ripple = H.s('g', { class: 'pk-ripple' }, root);
@@ -275,41 +281,15 @@ export default function register(Board) {
       }
     }
 
-    // Every voice goes through a gate that stays shut until its start time. A new gain node starts at 1, so
-    // without it a voice can click for one sample when its start falls exactly on a sample boundary.
-    function gate(ac, out, t) {
-      const g = ac.createGain();
-      g.gain.value = 0;
-      g.gain.setValueAtTime(1, t);
-      g.connect(out);
-      return g;
-    }
-    const gatedSounds = (sounds) =>
-      Object.fromEntries(
-        Object.entries(sounds).map(([k, fn]) => [
-          k,
-          (ac, out, t, X) =>
-            fn(
-              ac,
-              out,
-              t,
-              Object.assign({}, X, {
-                tone: (a, o, at, opt) => X.tone(a, gate(a, o, at), at, opt),
-                burst: (a, o, at, opt) => X.burst(a, gate(a, o, at), at, opt),
-              }),
-            ),
-        ]),
-      );
-
     Board.define({
       id: 'pikap',
       fonts: {
-        brand: "'Instrument Sans'",
-        display: "'Instrument Serif'",
-        load: ["'Instrument Sans'", "'Instrument Serif'"],
+        brand: "'Geologica'",
+        display: "'Literata'",
+        load: ["'Geologica'", "'Literata'"],
         credits: [
-          { family: 'Instrument Sans', license: 'SIL Open Font License 1.1' },
-          { family: 'Instrument Serif', license: 'SIL Open Font License 1.1' },
+          { family: 'Geologica', license: 'SIL Open Font License 1.1' },
+          { family: 'Literata', license: 'SIL Open Font License 1.1' },
         ],
       },
       motion: { open: 190, close: 120, stagger: 9, apply: APPLY },
@@ -467,7 +447,7 @@ export default function register(Board) {
         },
       },
 
-      sounds: gatedSounds({
+      sounds: {
         open(ac, out, t, X) {
           // The start button and the platter coming up to speed.
           X.burst(ac, out, t, { type: 'bandpass', f: 2200, q: 2, dur: 0.018, gain: 0.12 });
@@ -507,7 +487,7 @@ export default function register(Board) {
             X.tone(ac, out, at(TM.drop1 + 70), { type: 'triangle', f, dur: 0.42, gain: g, a: 0.06 });
           }
         },
-      }),
+      },
     });
   })();
 }

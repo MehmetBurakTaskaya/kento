@@ -130,18 +130,17 @@
   color: var(--wheel-text-selected);
 }
 [data-concept='pikap'] .pk-name {
-  font-weight: 600;
+  font-weight: 560;
 }
 [data-concept='pikap'] .pk-fmt {
-  font-weight: 650;
-  font-stretch: 88%;
-  letter-spacing: 0.03em;
+  font-weight: 640;
+  letter-spacing: 0.01em;
 }
 [data-concept='pikap'] .pk-sub {
   fill: var(--pk-sub);
   font-family: var(--font-display);
   font-style: italic;
-  letter-spacing: 0.01em;
+  font-weight: 500;
 }
 [data-concept='pikap'] .pk-lbl.is-selected .pk-sub {
   fill: var(--wheel-text-selected);
@@ -177,6 +176,7 @@
   fill: var(--pk-label-ink);
   font-family: var(--font-display);
   font-style: italic;
+  font-weight: 500;
 }
 [data-concept='pikap'] .pk-file {
   fill: var(--pk-label-ink);
