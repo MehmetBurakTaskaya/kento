@@ -293,12 +293,15 @@ export default function register(Board) {
             H.s('path', { d, class: 'dk-hov', fill: hover }, body);
             H.s('path', { d, class: 'dk-sel', fill: sel }, body);
             const ink = H.s('g', { class: 'dk-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            // A wider chamber (fewer slices) gives a long label more room.
+            const chord = 2 * R.label * Math.sin(rad(Math.min(sl.step, 180) / 2));
+            const room = Math.round(Math.max(70, Math.min(96, chord * 0.62)));
+            if (sl.format) {
               H.block(ink, sl, R.label, {
                 size: 22,
                 subSize: 12.5,
                 gap: 0.5,
-                maxWidth: 70,
+                maxWidth: room,
                 minSize: 9,
                 cls: 'dk-lbl',
                 subCls: 'dk-sub',
@@ -309,7 +312,7 @@ export default function register(Board) {
                 iconSize: 21,
                 size: 14,
                 gap: 3,
-                maxWidth: 72,
+                maxWidth: room + 2,
                 minSize: 9,
                 cls: 'dk-lbl dk-lbl-s',
                 sub: null,
@@ -341,8 +344,15 @@ export default function register(Board) {
           H.s('path', { d: c.line, class: 'dk-coil' }, hub);
           H.s('circle', { cx: C, cy: C, r: 52, fill: `url(#${veil})` }, hub);
           H.s('circle', { cx: C, cy: C, r: R.hub, class: 'dk-hubrim' }, hub);
-          H.label(hub, C, C - 14, m.title, { maxWidth: 92, size: 17, minSize: 10, cls: 'dk-title', maxLines: 1 });
-          H.label(hub, C, C + 5.5, m.file, {
+          const dy = m.key ? 0 : 9;
+          H.label(hub, C, C - 14 + dy, m.title, {
+            maxWidth: 92,
+            size: 17,
+            minSize: 10,
+            cls: 'dk-title',
+            maxLines: 1,
+          });
+          H.label(hub, C, C + 5.5 + dy, m.file, {
             maxWidth: 84,
             size: 11.5,
             minSize: 8.5,
@@ -350,9 +360,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.6;
-          H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 8.5, class: 'dk-key' }, hub);
-          H.text(hub, C, C + 26.3, m.key, { class: 'dk-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.6;
+            H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 8.5, class: 'dk-key' }, hub);
+            H.text(hub, C, C + 26.3, m.key, { class: 'dk-keytext' });
+          }
 
           H.s('g', { class: 'dk-fx', 'aria-hidden': 'true' }, root);
         },
