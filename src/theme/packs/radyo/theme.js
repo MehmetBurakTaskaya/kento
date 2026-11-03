@@ -15,10 +15,17 @@ export default function register(Board) {
     const f2 = (n) => Math.round(n * 100) / 100;
     const rad = (a) => (a * Math.PI) / 180;
     const pol = (r, a) => [C + r * Math.sin(rad(a)), C - r * Math.cos(rad(a))];
-    // The pointer rests on the boundary before the first slice, so at rest it never seems to choose.
-    const restAngle = (m) => ((m.dir === 'rtl' ? 1 : -1) * m.step) / 2;
+    const reducedMotion = () =>
+      document.documentElement.classList.contains('reduce-motion') ||
+      (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    // The pointer rests on the boundary before the first slice (in reading order), so at rest it never seems
+    // to choose, however many slices there are and however a ring of choices is turned.
+    const restAngle = (m) => (m.dir === 'rtl' ? m.slices[0].a1 : m.slices[0].a0);
 
     function render(root, m, H) {
+      // Wider slices (fewer of them) give their labels more room, up to what the glass between the hub and
+      // the scale holds.
+      const wide = Math.min(86, Math.max(70, 2 * R.lbl * Math.sin(rad(Math.min(m.step, 180) / 2)) * 0.8));
       const u = H.uid('radyo');
       const defs = H.s('defs', {}, root);
       defs.innerHTML = `
@@ -114,12 +121,13 @@ export default function register(Board) {
         H.text(print, f2(x), f2(y), BAND[k % BAND.length], { class: 'ry-fig' });
         const lg = H.s('g', { class: 'ry-name' + (sl.off ? ' is-off' : ''), 'data-for': sl.i }, labels);
         lg.style.setProperty('--i', sl.i);
-        if (m.kind === 'convert' && sl.sub) {
+        // A format is printed large, with its second line where it has one; tools and actions get an icon.
+        if (sl.format) {
           H.block(lg, sl, R.lbl, {
             size: 21,
             subSize: 13,
             gap: 1.5,
-            maxWidth: 70,
+            maxWidth: wide,
             minSize: 9,
             cls: 'ry-lbl ry-fmt',
             subCls: 'ry-sub',
@@ -130,15 +138,15 @@ export default function register(Board) {
             iconSize: 20,
             size: 13.5,
             gap: 3,
-            maxWidth: 72,
+            maxWidth: wide,
             minSize: 8.5,
             cls: 'ry-lbl',
             sub: null,
           });
         }
       });
-      // A small band legend under twelve o'clock's figure.
-      const [bx, by] = pol(R.scaleIn + 13, (m.dir === 'rtl' ? 1 : -1) * (m.step / 4));
+      // A small band legend between the resting pointer and the first station.
+      const [bx, by] = pol(R.scaleIn + 13, m.slices[0].mid + (m.dir === 'rtl' ? 1 : -1) * (m.step / 4));
       H.text(print, f2(bx), f2(by), 'kHz', { class: 'ry-band' });
 
       // Hub: speaker cloth, a brass plate with the wheel's name and the file, the key below it.
@@ -160,12 +168,15 @@ export default function register(Board) {
         maxLines: 1,
         attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
       });
-      const kt = H.text(hub, C, C + 27.6, m.key, { class: 'ry-keytext' });
-      const kw = kt.getComputedTextLength() + 13;
-      hub.insertBefore(
-        H.s('rect', { x: f2(C - kw / 2), y: C + 20, width: f2(kw), height: 15, rx: 7.5, class: 'ry-key' }),
-        kt,
-      );
+      // The key that opened the wheel, when one did.
+      if (m.key) {
+        const kt = H.text(hub, C, C + 27.6, m.key, { class: 'ry-keytext' });
+        const kw = kt.getComputedTextLength() + 13;
+        hub.insertBefore(
+          H.s('rect', { x: f2(C - kw / 2), y: C + 20, width: f2(kw), height: 15, rx: 7.5, class: 'ry-key' }),
+          kt,
+        );
+      }
 
       // Light on the glass.
       H.s('path', { d: H.arc(176, 292, 336), class: 'ry-glint' }, root);
@@ -190,46 +201,22 @@ export default function register(Board) {
         void nd.getBoundingClientRect();
         nd.style.transition = '';
       } else {
+        // With reduced motion the pointer jumps instead of gliding.
+        nd.style.transition = reducedMotion() ? 'transform 60ms linear' : '';
         nd.style.transform = `rotate(${f2(next)}deg)`;
       }
       root.classList.toggle('ry-tuned', st.selected != null);
     }
 
-    // Every voice goes through a gate that stays shut until its start time. A new gain node starts at 1, so
-    // without it a voice can click for one sample when its start falls exactly on a sample boundary.
-    function gate(ac, out, t) {
-      const g = ac.createGain();
-      g.gain.value = 0;
-      g.gain.setValueAtTime(1, t);
-      g.connect(out);
-      return g;
-    }
-    const gatedSounds = (sounds) =>
-      Object.fromEntries(
-        Object.entries(sounds).map(([k, fn]) => [
-          k,
-          (ac, out, t, X) =>
-            fn(
-              ac,
-              out,
-              t,
-              Object.assign({}, X, {
-                tone: (a, o, at, opt) => X.tone(a, gate(a, o, at), at, opt),
-                burst: (a, o, at, opt) => X.burst(a, gate(a, o, at), at, opt),
-              }),
-            ),
-        ]),
-      );
-
     Board.define({
       id: 'radyo',
       fonts: {
-        brand: "'Josefin Sans'",
-        display: "'Marcellus'",
-        load: ["'Marcellus'", "'Josefin Sans'"],
+        brand: "'Raleway'",
+        display: "'Spectral'",
+        load: ["'Spectral'", "'Raleway'"],
         credits: [
-          { family: 'Marcellus', license: 'SIL Open Font License 1.1' },
-          { family: 'Josefin Sans', license: 'SIL Open Font License 1.1' },
+          { family: 'Spectral', license: 'SIL Open Font License 1.1' },
+          { family: 'Raleway', license: 'SIL Open Font License 1.1' },
         ],
       },
       motion: { open: 190, close: 120, stagger: 10, apply: APPLY },
@@ -370,7 +357,7 @@ export default function register(Board) {
       defs: '',
       wheel: { render, update },
 
-      sounds: gatedSounds({
+      sounds: {
         open(ac, out, t, X) {
           // The power switch, a short warm-up hum and a breath of static.
           X.burst(ac, out, t, { type: 'bandpass', f: 1800, q: 2.5, dur: 0.02, gain: 0.13 });
@@ -389,7 +376,7 @@ export default function register(Board) {
           X.tone(ac, out, t + 0.33, { f: 987.8, dur: 0.48, gain: 0.03, a: 0.03 });
           X.tone(ac, out, t + 0.27, { type: 'triangle', f: 329.6, dur: 0.4, gain: 0.015, a: 0.04 });
         },
-      }),
+      },
     });
   })();
 }

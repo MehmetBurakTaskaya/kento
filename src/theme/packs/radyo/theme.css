@@ -79,9 +79,6 @@
 [data-concept='radyo'] .ry-needle {
   transition: transform 320ms cubic-bezier(0.3, 1.45, 0.5, 1);
 }
-[data-concept='radyo'].reduce-motion .ry-needle {
-  transition: transform 60ms linear;
-}
 @media (prefers-reduced-motion: reduce) {
   [data-concept='radyo'] .ry-needle {
     transition: transform 60ms linear;
@@ -184,9 +181,10 @@
 }
 [data-concept='radyo'] .ry-lbl {
   font-family: var(--font-display);
+  font-weight: 500;
 }
 [data-concept='radyo'] .ry-fmt {
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 [data-concept='radyo'] .ry-sub {
   fill: var(--ry-sub);
@@ -219,7 +217,8 @@
 [data-concept='radyo'] .ry-title {
   fill: var(--ry-plate-ink);
   font-family: var(--font-display);
-  letter-spacing: 0.03em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 [data-concept='radyo'] .ry-file {
   fill: var(--ry-plate-ink);
