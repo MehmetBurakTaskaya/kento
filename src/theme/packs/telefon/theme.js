@@ -20,16 +20,31 @@ export default function register(Board) {
       document.documentElement.classList.contains('reduce-motion') ||
       (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-    // The finger stop sits on the boundary three and a half slices after twelve o'clock (five o'clock with
-    // eight slices), mirrored in right-to-left languages, where the finger wheel also turns the other way.
-    const stopAngle = (m) => (m.dir === 'rtl' ? -1 : 1) * m.step * 3.5;
+    // The finger stop sits on the slice boundary nearest to five o'clock (seven o'clock right to left, where
+    // the finger wheel also turns the other way), so it stays in a gap between two holes whatever the number
+    // of slices and however a ring of choices is turned.
+    function stopAngle(m) {
+      const target = m.dir === 'rtl' ? -150 : 150;
+      let best = target;
+      let gap = Infinity;
+      for (const sl of m.slices) {
+        const d = Math.abs(((((sl.a0 - target) % 360) + 540) % 360) - 180);
+        if (d < gap - 1e-6) {
+          gap = d;
+          best = sl.a0;
+        }
+      }
+      return best;
+    }
+    // Fewer slices leave room for larger finger holes, and larger holes for longer labels.
+    const holeFor = (m) => (m.n <= 6 ? 44 : m.n === 7 ? 42 : R.hole);
 
     // One dial turn: how far the selected hole travels to the stop, how many holes it clicks back over,
     // and when the turn and the ratchet end (ms).
     function turnFor(m, i) {
       const sgn = m.dir === 'rtl' ? -1 : 1;
       const d = (((sgn * (stopAngle(m) - m.slices[i].mid)) % 360) + 360) % 360 || 360;
-      const pulses = Math.round((d - m.step / 2) / m.step) + 1;
+      const pulses = Math.max(1, Math.round((d - m.step / 2) / m.step) + 1);
       const tt = 80 + 170 * (d / 337.5);
       return { sgn, d, step: m.step, pulses, tt, te: tt + T.hold + pulses * T.pulse };
     }
@@ -60,6 +75,8 @@ export default function register(Board) {
     function render(root, m, H) {
       const u = H.uid('telefon');
       const sgn = m.dir === 'rtl' ? -1 : 1;
+      const hole = holeFor(m);
+      const wide = hole * 1.57;
       const defs = H.s('defs', {}, root);
       defs.innerHTML = `
       <radialGradient id="${u}-body" gradientUnits="userSpaceOnUse" cx="128" cy="96" r="330">
@@ -83,15 +100,16 @@ export default function register(Board) {
         const g = H.slice(root, sl, m);
         H.s('path', { d: H.sector(R.ret, R.body, sl.a0, sl.a1), class: 'tl-hit' }, g);
         const [x, y] = pol(R.at, sl.mid);
-        H.s('circle', { cx: f2(x), cy: f2(y), r: R.hole + 1.5, class: 'tl-disc' }, g);
-        H.s('circle', { cx: f2(x), cy: f2(y), r: R.hole - 4, class: 'tl-ring' }, g);
+        H.s('circle', { cx: f2(x), cy: f2(y), r: hole + 1.5, class: 'tl-disc' }, g);
+        H.s('circle', { cx: f2(x), cy: f2(y), r: hole - 4, class: 'tl-ring' }, g);
         const c = H.s('g', { class: 'tl-ink' }, g);
-        if (m.kind === 'convert' && sl.sub) {
+        // A format is printed large, with its second line where it has one; tools and actions get an icon.
+        if (sl.format) {
           H.block(c, sl, R.at, {
             size: 22,
             subSize: 12.8,
             gap: 1.5,
-            maxWidth: 62,
+            maxWidth: wide,
             minSize: 9,
             cls: 'tl-lbl tl-fmt',
             subCls: 'tl-sub',
@@ -102,7 +120,7 @@ export default function register(Board) {
             iconSize: 21,
             size: 13.5,
             gap: 2.5,
-            maxWidth: 62,
+            maxWidth: wide,
             minSize: 8.5,
             cls: 'tl-lbl',
             sub: null,
@@ -115,11 +133,11 @@ export default function register(Board) {
       const fwOpen = H.s('g', { class: 'tl-fw-open' }, root);
       const fw = H.s('g', { class: 'tl-fw' }, fwOpen);
       let d = circ(C, C, R.fw) + circ(C, C, R.fwIn);
-      for (const sl of m.slices) d += circ(...pol(R.at, sl.mid), R.hole);
+      for (const sl of m.slices) d += circ(...pol(R.at, sl.mid), hole);
       H.s('path', { d, 'fill-rule': 'evenodd', fill: `url(#${u}-fw)`, class: 'tl-fw-face' }, fw);
       for (const sl of m.slices) {
         const [x, y] = pol(R.at, sl.mid);
-        H.s('circle', { cx: f2(x), cy: f2(y), r: R.hole + 0.4, class: 'tl-bevel' }, fw);
+        H.s('circle', { cx: f2(x), cy: f2(y), r: hole + 0.4, class: 'tl-bevel' }, fw);
         // A small paint dot between the holes, as on many dials.
         const [dx, dy] = pol(R.at + 4, sl.a1);
         H.s('circle', { cx: f2(dx), cy: f2(dy), r: 2.1, class: 'tl-dot' }, fw);
@@ -159,12 +177,15 @@ export default function register(Board) {
         maxLines: 1,
         attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
       });
-      const kt = H.text(card, C, C + 22.6, m.key, { class: 'tl-keytext' });
-      const kw = kt.getComputedTextLength() + 13;
-      card.insertBefore(
-        H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 15.5, rx: 7.75, class: 'tl-key' }),
-        kt,
-      );
+      // The key that opened the wheel, when one did.
+      if (m.key) {
+        const kt = H.text(card, C, C + 22.6, m.key, { class: 'tl-keytext' });
+        const kw = kt.getComputedTextLength() + 13;
+        card.insertBefore(
+          H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 15.5, rx: 7.75, class: 'tl-key' }),
+          kt,
+        );
+      }
       // The clear cover over the card catches the light along its upper rim.
       H.s('path', { d: H.arc(R.card - 3, 292, 338), class: 'tl-cover' }, hub);
       H.s('path', { d: H.arc(R.card - 3, 112, 136), class: 'tl-cover tl-cover-lo' }, hub);
@@ -175,32 +196,6 @@ export default function register(Board) {
         H.s('path', { d: H.arc(79, s < 0 ? -56 : 40, s < 0 ? -40 : 56), class: 'tl-bell-arc' }, bell);
       }
     }
-
-    // Every voice goes through a gate that stays shut until its start time. A new gain node starts at 1, so
-    // without it a voice can click for one sample when its start falls exactly on a sample boundary.
-    function gate(ac, out, t) {
-      const g = ac.createGain();
-      g.gain.value = 0;
-      g.gain.setValueAtTime(1, t);
-      g.connect(out);
-      return g;
-    }
-    const gatedSounds = (sounds) =>
-      Object.fromEntries(
-        Object.entries(sounds).map(([k, fn]) => [
-          k,
-          (ac, out, t, X) =>
-            fn(
-              ac,
-              out,
-              t,
-              Object.assign({}, X, {
-                tone: (a, o, at, opt) => X.tone(a, gate(a, o, at), at, opt),
-                burst: (a, o, at, opt) => X.burst(a, gate(a, o, at), at, opt),
-              }),
-            ),
-        ]),
-      );
 
     Board.define({
       id: 'telefon',
@@ -384,7 +379,7 @@ export default function register(Board) {
         },
       },
 
-      sounds: gatedSounds({
+      sounds: {
         open(ac, out, t, X) {
           // The handset lifts: a plastic clack and a short, soft breath of dial tone.
           X.burst(ac, out, t, { type: 'bandpass', f: 1700, q: 1.6, dur: 0.035, gain: 0.15 });
@@ -414,7 +409,7 @@ export default function register(Board) {
           X.tone(ac, out, b, { f: 2240 * 2.37, dur: 0.16, gain: 0.011, a: 0.001 });
           X.tone(ac, out, b + 0.07, { f: 2240, dur: 0.24, gain: 0.014, a: 0.002 });
         },
-      }),
+      },
     });
   })();
 }
