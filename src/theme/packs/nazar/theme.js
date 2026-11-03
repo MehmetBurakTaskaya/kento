@@ -59,8 +59,11 @@ export default function register(Board) {
         },
         g,
       );
-      H.label(g, C, C - 14, m.title, { maxWidth: 92, size: 15.5, minSize: 10, maxLines: 1, cls: 'nz-title' });
-      H.label(g, C, C + 4, m.file, { maxWidth: 86, size: 11.5, minSize: 8.5, maxLines: 1, cls: 'nz-file' });
+      // Without a key the title and file sit lower, in the middle of the pupil.
+      const dy = m.key ? 0 : 8;
+      H.label(g, C, C - 14 + dy, m.title, { maxWidth: 104, size: 15.5, minSize: 9, maxLines: 1, cls: 'nz-title' });
+      H.label(g, C, C + 4 + dy, m.file, { maxWidth: 86, size: 11.5, minSize: 8.5, maxLines: 1, cls: 'nz-file' });
+      if (!m.key) return;
       const kw = 16 + m.key.length * 6.6;
       H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 17, rx: 8.5, class: 'nz-key' }, g);
       H.text(g, C, C + 23.9, m.key, { class: 'nz-keytext' });
@@ -223,7 +226,7 @@ export default function register(Board) {
             const [sx, sy] = polar(R.rim - 13, sl.mid - sl.step * 0.24);
             H.s('path', { d: SPARK, class: 'nz-spark' }, H.s('g', { transform: `translate(${f2(sx)} ${f2(sy)})` }, g));
             const c = H.s('g', { class: 'nz-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 22,
                 subSize: 13.5,
@@ -258,8 +261,10 @@ export default function register(Board) {
               bub += dot(x, y, f2(size));
               r += 9 + rand() * 7;
             }
-            for (let k = 0; k < 2; k++) {
-              const [x, y] = polar(R.rim - 5 - rand() * 4, sl.mid + (rand() - 0.5) * sl.step * 0.7);
+            // Strays near the rim: as many for a wide slice as for two narrow ones.
+            const strays = Math.max(2, Math.round(sl.step / 22));
+            for (let k = 0; k < strays; k++) {
+              const [x, y] = polar(R.rim - 5 - rand() * 4, sl.mid + (rand() - 0.5) * sl.step * 0.8);
               bub += dot(x, y, f2(0.7 + rand() * 0.8));
             }
           }
