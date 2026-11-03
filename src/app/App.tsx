@@ -2,14 +2,14 @@
 // The main window: a navigation rail (Home, Library, Automation, Settings) and the open page. It
 // follows the appearance and motion settings, listens to the core's events and shows the window
 // once painted.
-import { Suspense, useEffect } from 'react';
+import { Fragment, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Automation } from '../automation/Automation';
 import { Icon, type IconName } from '../components/Icon';
 import { Toasts } from '../components/Toasts';
 import { api, type Section } from '../ipc';
 import { useApp, type PanelTool } from '../state/store';
-import { modeFor, showTheme } from '../theme/registry';
+import { DEFAULT_THEME, modeFor, showTheme, themeEntry, useLook } from '../theme/registry';
 import { ToolPanel } from '../tools/ToolPanel';
 import { WebDialog } from '../web/WebDialog';
 import { WheelDemo, wheelDemoRequested } from '../wheel';
@@ -18,6 +18,7 @@ import { useFileInput } from './input';
 import { Library } from './Library';
 import { Settings } from './Settings';
 import { Setup } from './Setup';
+import { ThemeThumb } from './ThemePicker';
 import { isUpdateShortcut } from './UpdateSettings';
 import { WheelHost } from './WheelHost';
 
@@ -27,6 +28,24 @@ const NAV: { section: Section; icon: IconName; key: string; shortcut: string }[]
   { section: 'automation', icon: 'automation', key: 'nav.automation', shortcut: '3' },
   { section: 'settings', icon: 'settings', key: 'nav.settings', shortcut: ',' },
 ];
+
+/** The theme in use, at the foot of the rail: its wheel, small, and its name. It opens the theme picker. */
+function ThemeBadge() {
+  const { t } = useTranslation();
+  const { settings, showThemes } = useApp();
+  const id = settings?.theme ?? DEFAULT_THEME;
+  const { mode } = useLook(id, settings?.appearance ?? 'system');
+  const name = themeEntry(id).name;
+  const label = t('nav.theme', { name });
+  return (
+    <button type="button" className="rail-item rail-theme" title={label} aria-label={label} onClick={showThemes}>
+      <span className="rail-theme-thumb" aria-hidden="true">
+        <ThemeThumb id={id} mode={mode} />
+      </span>
+      <span>{name}</span>
+    </button>
+  );
+}
 
 export function App() {
   const { t } = useTranslation();
@@ -143,17 +162,19 @@ export function App() {
     <div className="shell">
       <nav className="rail" aria-label={t('nav.main')}>
         {NAV.map((item) => (
-          <button
-            key={item.section}
-            type="button"
-            className="rail-item"
-            aria-current={section === item.section ? 'page' : undefined}
-            aria-keyshortcuts={`${mac ? 'Meta' : 'Control'}+${item.shortcut}`}
-            onClick={() => setSection(item.section)}
-          >
-            <Icon name={item.icon} size={22} />
-            <span>{t(item.key)}</span>
-          </button>
+          <Fragment key={item.section}>
+            {item.section === 'settings' && <ThemeBadge />}
+            <button
+              type="button"
+              className="rail-item"
+              aria-current={section === item.section ? 'page' : undefined}
+              aria-keyshortcuts={`${mac ? 'Meta' : 'Control'}+${item.shortcut}`}
+              onClick={() => setSection(item.section)}
+            >
+              <Icon name={item.icon} size={22} />
+              <span>{t(item.key)}</span>
+            </button>
+          </Fragment>
         ))}
       </nav>
       <main className="content">

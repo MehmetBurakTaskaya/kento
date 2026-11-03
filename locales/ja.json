@@ -853,6 +853,7 @@
   "metadata.none": "このファイルにはほかのメタデータはありません。",
   "metadata.save": "コピーを保存",
   "nav.automation": "自動化",
+  "nav.theme": "テーマ: {name}",
   "automation.count": "{count, plural, other {# 件のルールが有効}}",
   "automation.pauseAll": "すべて一時停止",
   "automation.resumeAll": "すべて再開",

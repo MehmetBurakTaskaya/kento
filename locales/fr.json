@@ -853,6 +853,7 @@
   "metadata.none": "Ce fichier ne contient pas d’autres métadonnées.",
   "metadata.save": "Enregistrer une copie",
   "nav.automation": "Règles",
+  "nav.theme": "Thème : {name}",
   "automation.count": "{count, plural, one {# règle active} many {# de règles actives} other {# règles actives}}",
   "automation.pauseAll": "Tout suspendre",
   "automation.resumeAll": "Tout reprendre",

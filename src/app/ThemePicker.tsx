@@ -130,6 +130,12 @@ function CardStage({ id, mode, sample }: { id: string; mode: Mode; sample: Retur
   );
 }
 
+/** A theme's wheel, small and still, on its own background: the theme in use, in the window's rail. */
+export function ThemeThumb({ id, mode }: { id: string; mode: Mode }): JSX.Element {
+  const sample = useSample();
+  return <CardStage id={id} mode={mode} sample={sample} />;
+}
+
 /** The chosen theme's wheel, to try: it opens again after every apply or close. */
 function Preview({ id, appearance, settings }: { id: string; appearance: Settings['appearance']; settings: Settings }) {
   const { t } = useTranslation();
@@ -185,6 +191,14 @@ export function ThemePicker({
     themes.findIndex((theme) => theme.id === settings.theme),
   );
   const focusNext = useRef(false);
+  const revealTheme = useApp((state) => state.revealTheme);
+
+  // The theme in the rail brings the picker into view.
+  useEffect(() => {
+    if (!revealTheme) return;
+    document.getElementById(labelledBy)?.scrollIntoView({ block: 'start' });
+    useApp.setState({ revealTheme: false });
+  }, [revealTheme, labelledBy]);
 
   // Arrow keys move the choice, as in any radio group, and the focus follows it.
   useLayoutEffect(() => {

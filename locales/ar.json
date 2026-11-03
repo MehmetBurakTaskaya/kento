@@ -853,6 +853,7 @@
   "metadata.none": "لا يحمل هذا الملف أي بيانات تعريف أخرى.",
   "metadata.save": "حفظ نسخة",
   "nav.automation": "الأتمتة",
+  "nav.theme": "السمة: {name}",
   "automation.count": "{count, plural, zero {لا قواعد مفعّلة} one {قاعدة واحدة مفعّلة} two {قاعدتان مفعّلتان} few {# قواعد مفعّلة} many {# قاعدةً مفعّلة} other {# قاعدة مفعّلة}}",
   "automation.pauseAll": "إيقاف الكل مؤقتًا",
   "automation.resumeAll": "استئناف الكل",

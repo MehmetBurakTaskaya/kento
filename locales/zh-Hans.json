@@ -853,6 +853,7 @@
   "metadata.none": "此文件不含其他元数据。",
   "metadata.save": "保存副本",
   "nav.automation": "自动化",
+  "nav.theme": "主题：{name}",
   "automation.count": "{count, plural, other {已启用 # 条规则}}",
   "automation.pauseAll": "全部暂停",
   "automation.resumeAll": "全部继续",

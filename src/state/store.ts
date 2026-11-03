@@ -66,10 +66,13 @@ interface AppStore {
   news: UpdateNews | null;
   /** Settings › Updates should come into view once it is on screen. */
   revealUpdates: boolean;
+  /** Settings scrolls to the theme picker once (the theme in the rail asks for it). */
+  revealTheme: boolean;
   setBoot(boot: Bootstrap): void;
   setSection(section: Section): void;
   /** Opens Settings and brings its Updates group into view. */
   showUpdates(): void;
+  showThemes(): void;
   setNews(news: UpdateNews | null): void;
   update(patch: Partial<Settings>): Promise<void>;
   jobChanged(job: JobInfo): void;
@@ -114,6 +117,7 @@ export const useApp = create<AppStore>((set, get) => ({
   toasts: [],
   news: null,
   revealUpdates: false,
+  revealTheme: false,
   setBoot: (boot) =>
     set({
       boot,
@@ -124,6 +128,7 @@ export const useApp = create<AppStore>((set, get) => ({
     }),
   setSection: (section) => set({ section }),
   showUpdates: () => set({ section: 'settings', revealUpdates: true }),
+  showThemes: () => set({ section: 'settings', revealTheme: true }),
   setNews: (news) => set({ news }),
   update: async (patch) => {
     const current = get().settings;

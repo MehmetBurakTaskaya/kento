@@ -853,6 +853,7 @@
   "metadata.none": "Других метаданных в этом файле нет.",
   "metadata.save": "Сохранить копию",
   "nav.automation": "Сценарии",
+  "nav.theme": "Тема: {name}",
   "automation.count": "{count, plural, one {# правило включено} few {# правила включены} many {# правил включено} other {# правила включено}}",
   "automation.pauseAll": "Приостановить все",
   "automation.resumeAll": "Возобновить все",

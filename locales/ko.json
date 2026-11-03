@@ -853,6 +853,7 @@
   "metadata.none": "이 파일에는 다른 메타데이터가 없습니다.",
   "metadata.save": "사본 저장",
   "nav.automation": "자동화",
+  "nav.theme": "테마: {name}",
   "automation.count": "{count, plural, other {규칙 #개 켜짐}}",
   "automation.pauseAll": "모두 일시 중지",
   "automation.resumeAll": "모두 다시 시작",

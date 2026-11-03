@@ -853,6 +853,7 @@
   "metadata.none": "Bu dosyada başka meta veri yok.",
   "metadata.save": "Kopyayı kaydet",
   "nav.automation": "Otomasyon",
+  "nav.theme": "Tema: {name}",
   "automation.count": "{count, plural, one {# kural açık} other {# kural açık}}",
   "automation.pauseAll": "Tümünü duraklat",
   "automation.resumeAll": "Tümünü sürdür",
