@@ -2,7 +2,7 @@
 
 The default theme of Kento: a brushed-steel safe combination dial. This document is the source of truth for the app's tokens, components, motion and sound.
 
-Other themes (SPEC 5.20) implement the same component contract with their own tokens, wheel renderer, motion and sounds; the name, the app icon and the rules in sections 1, 8 and 9 hold for every theme.
+Other themes (SPEC 5.20, `src/theme/packs/`) draw the wheel through the theme contract (`docs/ARCHITECTURE.md`, decisions 49 to 53) with their own tokens, wheel renderer, motion, sounds and typefaces, and give the rest of the app their colours; the name, the app icon and the rules in sections 1, 8 and 9 hold for every theme.
 
 ## 1. Principles
 

@@ -288,6 +288,10 @@ Bir ya da birkaç dosyayı sürükle ve sürüklerken bir tuşa bas:
   üzerine yazmaz; orijinali yalnızca onayladığın Taşı işlemi taşır. Ayarlar → Çıktı her şeyi tek
   bir klasöre gönderebilir.
 - Tuşlar Ayarlar → Çark'tan değiştirilebilir.
+- **Temalar.** Çelik kadran Kasa, 51 temadan biri; her tema kendi rengi, hareketi ve sesiyle ayrı bir
+  çark: çevirmeli telefon kadranı, pikap, ikiye bölünmüş bir portakal, İznik çinisi bir rozet,
+  vitraylı bir gül pencere ve daha birçoğu. Ayarlar → Görünüm → Tema hepsini açık ya da koyu olarak,
+  denenebilir bir çarkla gösterir; seçtiğin tema her pencereyi hemen boyar.
 
 Windows'ta yönetici olarak çalışan bir programda başlayan sürüklemeyi Kento göremez, çünkü Windows
 ikisini birbirinden ayırır. Bunu aşmak için lütfen Kento'yu yönetici olarak çalıştırma.

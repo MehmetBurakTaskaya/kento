@@ -284,6 +284,10 @@ Drag one or more files, and while you drag, press a key:
   overwrites a file; only Move, which you confirm, moves the original. Settings → Output can send
   everything to one folder instead.
 - The keys can be changed in Settings → Wheel.
+- **Themes.** The steel dial, Kasa, is one of 51 themes, each a wheel of its own with its own
+  colours, motion and sounds: a rotary phone dial, a record player, a halved orange, an İznik tile
+  rosette, a stained-glass rose window and many more. Settings → Appearance → Theme shows them all
+  in light or dark with a wheel to try; the one you choose colours every window at once.
 
 On Windows, a drag that starts in a program running as administrator cannot be seen by Kento,
 because Windows keeps the two apart. Please do not run Kento as administrator to get around it.

@@ -71,7 +71,7 @@ The idea is inspired by existing apps that convert files through a "drag + modif
 
 The wheel is a brushed-steel safe combination dial in look, motion and sound: a knurled steel dial around a white enamel face, a vault handle at the hub, and locking bolts that are thrown when an action is applied. Grey steel, white enamel, black engraving and one tempered-blue accent.
 
-`design/DESIGN.md` is the design system: design tokens, component rules, animation timings and sound rules. The app icon is drawn from `design/icons/`. Other themes come later (5.20); the name and the app icon stay the same in every theme.
+`design/DESIGN.md` is the design system: design tokens, component rules, animation timings and sound rules. The app icon is drawn from `design/icons/`. Fifty other themes can be chosen (5.20); the name and the app icon stay the same in every theme.
 
 The name is **Kento**: short, said in one breath, the same in Turkish and English. Name searches are not trademark clearance; a trademark search comes before the first release.
 
@@ -566,7 +566,7 @@ Only the newest release stays on GitHub:
 
 ### 5.17 Settings (Ctrl+, / ⌘,)
 
-- Appearance: System / Light / Dark, and the theme (5.20; the default theme only until Phase 10).
+- Appearance: System / Light / Dark, and the theme (5.20): a card for every theme with its wheel, and the chosen theme's wheel to try.
 - Language: "System language" (default) or one of the 12 languages (see 5.19).
 - Drag modifiers and key combinations.
 - Global shortcuts: selection wheel, download (Ctrl+Shift+D, on by default; while it is on, the browser's own Ctrl+Shift+D does not reach the browser), window layouts.
@@ -670,7 +670,7 @@ Tests:
 
 ### 5.20 Themes
 
-The default theme is the steel safe dial (`design/DESIGN.md`). From Phase 1 the theming is pluggable, so adding a theme later needs no change elsewhere: a theme is a set of design tokens for light and dark, a wheel renderer (face, slices, hover, the apply effect), motion timings, a sound set and Home/shelf/toast styling. The app icon and the name stay the same in every theme.
+The default theme is the steel safe dial (`design/DESIGN.md`). From Phase 1 the theming is pluggable, so adding a theme later needs no change elsewhere: a theme is a set of design tokens for light and dark, a wheel renderer (face, slices, hover, the apply effect), motion timings, a sound set and typefaces; the rest of the app takes the theme's colours. The app icon and the name stay the same in every theme.
 
 Rules for every theme:
 
@@ -678,7 +678,14 @@ Rules for every theme:
 - WCAG AA contrast in light and dark, reduced-motion support, right-to-left mirroring and the 12 languages, like the default theme.
 - Sounds are synthesized or CC0, low by default, and follow the sound setting.
 
-**More themes (Phase 10).** Optional themes are added in Phase 10 under the same rules, each with its own wheel, palette, motion and sounds.
+**The themes.** Kento has 51 themes, each with its own name, the same in every language, listed in `src/theme/catalog.json` in the order Settings shows them: Kasa (the steel dial, the default), Ayar, Beton, Titan, Varak, Obsidyen, Damla, Serpinti, Atlas, Girdap, Yörünge, Halka, Pusula, Tezgâh, Portakal, Karpuz, Nar, Fırın, Akide, Baklava, Gündöndü, Ayaz, Kütük, Petek, Helezon, Dalga, Çini, Kilim, Nazar, Sema, Telve, Hedef, Ahize, Plak, Radar, Frekans, Saniye, Jeton, Piksel, Kare, Konfeti, Yaldız, Bom, Fırça, Tebeşir, Ozalit, Revzen, Kıvrım, Sedef, Mozaik, Serap. Every theme but Kasa is a pack (`src/theme/packs/`): its wheel drawn from the slices the app shows, its light and dark palettes, its timings (open within 200 ms plus a short stagger, an apply effect of up to about 700 ms), its open, tick and apply sounds and its typefaces. A saved theme that is no longer in the list falls back to Kasa.
+
+Choosing a theme:
+
+- Settings → Appearance → Theme shows every theme as a card with its wheel, small and at rest, in the light or dark the app shows; the cards are a radio group (arrow keys, Home, End, Space). Above them the chosen theme's wheel is live: pointing at a slice ticks, a click applies it with its effect and sound, and it opens again.
+- The choice applies at once, in Settings itself and in every window: the main window, the floating wheel, the shelf and the corner cards.
+- A theme changes the wheel completely, and the colours of the rest of the app: its palette's page, surface, border, text, accent, focus and status colours replace the steel ones. The layout of Home, Library, Settings, the shelf and the cards and the interface typeface stay the same, so every theme reads the same way.
+- Everything the wheel does stays the app's: pointing, the keys, rings of choices, paging, the back control, the description bubble, drag and drop and the menu for screen readers. In Windows High Contrast the steel wheel is shown, since it draws itself in the system's colours.
 
 ## 6. Security and known technical pitfalls
 

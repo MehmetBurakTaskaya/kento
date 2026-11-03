@@ -95,5 +95,5 @@ Progress against [SPEC.md](SPEC.md) section 9.
 - [ ] WinGet and Homebrew
 - [ ] Modern Windows 11 context menu
 - [ ] Touch support and ARM64
-- [ ] More themes (SPEC 5.20)
+- [x] Fifty more themes, chosen in Settings → Appearance (SPEC 5.20)
 - [ ] After v1.0 has users: apply to the SignPath Foundation's free code-signing program
