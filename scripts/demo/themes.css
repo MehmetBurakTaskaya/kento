@@ -25,81 +25,117 @@ body {
   inset: 0;
 }
 
-/* ---------------------------------------------------------------- Kasa and the count */
-.intro-wheel {
-  position: absolute;
-  inset-block-start: 120px;
-  inset-inline-start: 90px;
+/* ---------------------------------------------------------------- Kasa and the parade */
+.dial.is-revealed {
+  animation: reveal 280ms cubic-bezier(0.3, 0, 0.2, 1) both;
 }
-.intro-words {
+@keyframes reveal {
+  from {
+    clip-path: circle(0 at 250px 250px);
+  }
+  to {
+    clip-path: circle(1100px at 250px 250px);
+  }
+}
+.dial-wheel {
   position: absolute;
-  inset-block-start: 190px;
-  inset-inline-start: 530px;
-  display: grid;
-  gap: 6px;
-  justify-items: start;
+  inset-block-start: 60px;
+  inset-inline-start: 60px;
+}
+/* The name pops in under its wheel with every theme, below the wheel's own hint. */
+.dial-name {
+  position: absolute;
+  inset-block-start: 486px;
+  inset-inline-start: 60px;
+  inline-size: 380px;
+  font-size: 38px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  text-align: center;
+  animation: pop 240ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+}
+.dial-wheel.is-applied {
+  animation: jump 420ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+@keyframes jump {
+  40% {
+    transform: scale(1.06);
+  }
+}
+.dial-move {
+  position: absolute;
+  inset-block-start: 532px;
+  inset-inline-start: 60px;
+  inline-size: 380px;
+  font-size: 24px;
+  font-style: italic;
+  font-weight: 600;
+  text-align: center;
+  animation: pop 240ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.pitch {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: 104px;
+  inset-inline-start: 496px;
+  inline-size: 440px;
   opacity: 0;
   transform: translateY(10px);
   transition:
     opacity 400ms ease-out,
     transform 400ms ease-out;
 }
-.intro-words.is-on {
+.pitch.is-on {
   opacity: 1;
   transform: none;
 }
-.intro-words img {
-  inline-size: 64px;
-  block-size: 64px;
-  margin-block-end: 8px;
-}
-.intro-words h1 {
-  margin: 0;
-  font-size: 64px;
+.pitch .kicker {
+  margin: 0 0 10px;
+  font-size: 16px;
   font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.pitch h1 {
+  margin: 0 0 26px;
+  font-size: 64px;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
 }
-.intro-words p {
+.pitch ul {
+  display: grid;
+  gap: 14px;
   margin: 0;
-  font-size: 23px;
-  font-weight: 500;
-  opacity: 0.8;
+  padding: 0;
+  list-style: none;
 }
-
-/* ---------------------------------------------------------------- the parade */
-.parade.is-revealed {
-  animation: reveal 280ms cubic-bezier(0.3, 0, 0.2, 1) both;
+.pitch li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 22px;
+  font-weight: 550;
+  opacity: 0;
+  transform: translateX(-12px);
+  transition:
+    opacity 300ms ease-out,
+    transform 300ms ease-out;
 }
-@keyframes reveal {
-  from {
-    clip-path: circle(0 at 50% 46%);
-  }
-  to {
-    clip-path: circle(75% at 50% 46%);
-  }
+.pitch li.is-on {
+  opacity: 1;
+  transform: none;
 }
-.parade-wheel {
-  position: absolute;
-  inset-block-start: 56px;
-  inset-inline-start: 290px;
-}
-.parade-name {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-end: 34px;
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 1.1;
-  text-align: center;
-}
-.parade-count {
-  position: absolute;
-  inset-block-start: 22px;
-  inset-inline-end: 28px;
-  font-size: 18px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+.pitch li svg {
+  flex: none;
 }
 
 /* ---------------------------------------------------------------- six apply effects */
@@ -227,6 +263,15 @@ body {
   background: #ffffff;
   font-size: 16px;
   font-weight: 500;
+}
+.end .cta {
+  margin-block-start: 18px;
+  padding: 10px 22px;
+  border-radius: 24px;
+  background: #2a4ea6;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 650;
 }
 .end .url {
   margin-block-start: 14px;

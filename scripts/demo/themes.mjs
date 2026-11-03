@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
-// The themes reel of the README (scripts/record-demo.mjs --themes): every theme's wheel, drawn by the
-// app's own Wheel in the app's page. Kasa opens first beside the count, then the other themes follow
-// one another, slowly at first and then quicker; six of them apply a slice at once, each with its own
-// effect; all of them stand side by side; and the end card closes the loop. The module takes over the
-// page it is loaded into (`?surface=wheel`); `demo.play()` runs the reel once.
+// The themes reel of the README (scripts/record-demo.mjs --themes), in English and Turkish: every
+// theme's wheel, drawn by the app's own Wheel in the app's page, in the language of the page; the
+// theme names are the same in every language. Kasa opens beside the pitch; six themes each open,
+// sweep and apply a slice in their own way; more follow quickly, each name popping in under its wheel
+// while the pitch fills in beside it; six apply at once; all of them stand side by side; and the end
+// card asks for the download. The module takes over the page it is loaded into (`?surface=wheel`);
+// `demo.play()` runs the reel once.
 import { createElement as h } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
@@ -13,45 +15,71 @@ import { sample } from '/src/theme/shots.tsx';
 import { Wheel } from '/src/wheel/Wheel.tsx';
 import './themes.css';
 
+const THEMES = listThemes();
+const N = THEMES.length;
 const LANG = i18n.language === 'tr' ? 'tr' : 'en';
 const TEXT = {
   en: {
-    count: (n) => `${n} themes`,
-    line: 'Every one a wheel of its own',
-    motion: 'Each with its own motion',
+    kicker: 'Make it yours',
+    headline: `${N} different<br>themes`,
+    points: [
+      'Pick the one you like',
+      'Each with its own motion and sounds',
+      'Light or dark, every one',
+      'Switch any time, in one click',
+    ],
+    together: 'Same wheel, its own moves',
+    band: `${N} themes. Which one is yours?`,
     where: 'Settings → Appearance → Theme',
-    end: ['Free and open source', 'Works on your computer', 'Windows and macOS'],
+    end: ['Free and open source', `${N} themes`, 'Windows and macOS'],
+    cta: 'Download it free',
   },
   tr: {
-    count: (n) => `${n} tema`,
-    line: 'Her biri kendine ait bir çark',
-    motion: 'Her birinin kendi hareketi var',
+    kicker: 'Tarzını seç',
+    headline: `${N} farklı<br>tema`,
+    points: [
+      'Hangisini seversen onu seç',
+      'Her birinin kendi hareketi ve sesi',
+      'Her biri açık ya da koyu',
+      'İstediğin an, tek tıkla değiştir',
+    ],
+    together: 'Aynı çark, kendine has hareketler',
+    band: `${N} tema. Seninki hangisi?`,
     where: 'Ayarlar → Görünüm → Tema',
-    end: ['Ücretsiz ve açık kaynak', 'Bilgisayarında çalışır', 'Windows ve macOS'],
+    end: ['Ücretsiz ve açık kaynak', `${N} tema`, 'Windows ve macOS'],
+    cta: 'Ücretsiz indir',
   },
 }[LANG];
 
-const THEMES = listThemes();
-/** The parade after Kasa: a few opening and pointed at, then the rest at rest, quicker and then a
- *  theme a beat, never more than three a second. Neighbours differ, so each change reads. */
-const SLOW = ['portakal', 'telefon', 'iznik', 'vitray'];
-const MEDIUM = [
-  'piksel',
-  'ebru-a',
-  'pikap',
+/** Six themes that each open, sweep and apply a slice in turn, big: the most different moves, each
+ *  named as it plays. */
+const ACTS = [
+  ['ebru-a', { en: 'a splash of paint', tr: 'boya sıçraması' }],
+  ['popart', { en: 'a comic-book boom', tr: 'çizgi roman patlaması' }],
+  ['nar', { en: 'seeds spill out', tr: 'taneler saçılır' }],
+  ['piksel', { en: 'pixels fly', tr: 'pikseller uçuşur' }],
+  ['memphis', { en: 'confetti', tr: 'konfeti yağar' }],
+  ['simya-a', { en: 'a glow of gold', tr: 'altın bir ışık' }],
+];
+/** Then more, at rest and quicker: light, then a theme a beat in dark, never more than three a
+ *  second. Neighbours differ, so each change reads. The rest are in the line-up at the end. */
+const LIGHT = ['portakal', 'iznik', 'vitray', 'baklava', 'kilim', 'hologram', 'pusula', 'karpuz', 'lolipop', 'origami'];
+const DARK = [
+  'aycicegi',
+  'kartanesi',
+  'balpetegi',
+  'sema',
+  'dart',
+  'radar',
+  'kronograf',
+  'bauhaus',
+  'blueprint',
+  'kakma',
   'astro-b',
   'karatahta',
-  'baklava',
-  'memphis',
-  'kilim',
-  'hologram',
-  'pusula',
 ];
-const FAST = THEMES.map((theme) => theme.id).filter(
-  (id) => id !== 'steel' && !SLOW.includes(id) && !MEDIUM.includes(id),
-);
-/** Six apply effects side by side. */
-const APPLY = ['steel', 'ebru-a', 'telefon', 'pikap', 'memphis', 'simya-a'];
+/** Six more apply effects side by side, at once. */
+const APPLY = ['steel', 'telefon', 'ebru-b', 'pikap', 'pizza', 'artdeco'];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const element = (tag, className, parent, html = '') => {
@@ -61,20 +89,32 @@ const element = (tag, className, parent, html = '') => {
   parent?.appendChild(node);
   return node;
 };
+const CHECK =
+  '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 
 const reel = element('div', 'reel', document.body);
 const tools = () => sample('tools8');
 
-/** The theme's desk, text colours and display face. */
+/** The pitch beside the wheel: it stays through Kasa and the parade, in each theme's own text
+ *  colour, and its points come in one by one. */
+const pitch = element(
+  'div',
+  'pitch',
+  reel,
+  `<p class="kicker">${TEXT.kicker}</p><h1>${TEXT.headline}</h1><ul>${TEXT.points
+    .map((point) => `<li>${CHECK}<span>${point}</span></li>`)
+    .join('')}</ul>`,
+);
+const points = [...pitch.querySelectorAll('li')];
+
+/** The theme's desk and text colours. The names keep the reel's own face: the wheels show the
+ *  themes' faces, and one face reads more easily through 51 changes. */
 function looks(theme, mode) {
   const tokens = theme.tokens[mode];
-  const fonts = theme.wheel?.concept.fonts;
   return {
     desk: theme.wheel?.concept.palette[mode].desk ?? tokens.bg,
     text: tokens.text,
     muted: tokens['text-muted'],
-    accent: tokens.accent,
-    face: fonts?.display ?? fonts?.brand ?? 'inherit',
   };
 }
 
@@ -118,7 +158,7 @@ async function press(parent, ...keys) {
 const loaded = new Map();
 const ready = (async () => {
   for (const entry of THEMES) loaded.set(entry.id, await loadTheme(entry.id));
-  // Every face the wheels and the names use, before the first frame.
+  // Every face the wheels and the words use, before the first frame.
   const families = new Set(['IBM Plex Sans Variable']);
   for (const theme of loaded.values()) for (const family of theme.wheel?.concept.fonts.load ?? []) families.add(family);
   await Promise.all(
@@ -131,89 +171,94 @@ const ready = (async () => {
 
 // ---------------------------------------------------------------- scenes
 
-async function intro() {
-  const kasa = loaded.get('steel');
-  const look = looks(kasa, 'light');
-  const scene = element('section', 'scene intro', reel);
+/** A theme on its own desk: its wheel on the left, its name popping in under it, the pitch beside it
+ *  in its colours. */
+function showTheme(id, mode, preview, reveal = false) {
+  const theme = loaded.get(id);
+  const look = looks(theme, mode);
+  const scene = element('section', `scene dial${reveal ? ' is-revealed' : ''}`, reel);
   scene.style.background = look.desk;
-  const stage = element('div', 'intro-wheel', scene);
-  const words = element(
-    'div',
-    'intro-words',
-    scene,
-    `<img src="/design/icons/app.svg" alt=""><h1>${TEXT.count(THEMES.length)}</h1><p>${TEXT.line}</p>`,
+  const stage = element('div', 'dial-wheel', scene);
+  const name = element('div', 'dial-name', scene);
+  name.textContent = theme.name;
+  name.style.color = look.text;
+  pitch.style.color = look.text;
+  const wheel = mountWheel(stage, id, mode, 380, preview);
+  return { scene, stage, wheel };
+}
+
+/** Puts a theme on in place of the one shown; the one before leaves once this one covers it. */
+function next(shown, id, mode, preview, reveal = false) {
+  const now = showTheme(id, mode, preview, reveal);
+  setTimeout(
+    () => {
+      shown.wheel.root.unmount();
+      shown.scene.remove();
+    },
+    reveal ? 300 : 0,
   );
-  words.style.color = look.text;
-  const wheel = mountWheel(stage, 'steel', 'light', 360, 'live');
-  await sleep(500);
-  words.classList.add('is-on');
+  return now;
+}
+
+async function intro() {
+  const shown = showTheme('steel', 'light', 'live');
+  await sleep(450);
+  pitch.classList.add('is-on');
   // The dial goes round without resting long enough on a slice to open its ring.
-  await sleep(600);
+  await sleep(500);
   for (let i = 0; i < 6; i++) {
-    await press(stage, 'ArrowDown');
+    await press(shown.stage, 'ArrowDown');
+    if (i === 2) points[0].classList.add('is-on');
     await sleep(270);
   }
   await sleep(250);
-  return { scene, wheel };
+  return shown;
 }
 
-/** The parade: each theme on its own desk, the first few uncovered from the middle over the one
- *  before, the rest cut in. */
+/** Six themes, each uncovered from the middle of its wheel: it opens, sweeps two slices and applies
+ *  the next with its own effect. */
+async function acts(previous) {
+  let shown = previous;
+  points[1].classList.add('is-on');
+  for (const [i, [id, move]] of ACTS.entries()) {
+    const mode = i % 2 ? 'dark' : 'light';
+    shown = next(shown, id, mode, 'live', true);
+    await sleep(520);
+    for (let k = 0; k < 2; k++) {
+      await press(shown.stage, 'ArrowDown');
+      await sleep(170);
+    }
+    await press(shown.stage, 'ArrowDown', 'Enter');
+    // The wheel gives a little jump, and what it does is named under it.
+    shown.stage.classList.add('is-applied');
+    const named = element('div', 'dial-move', shown.scene);
+    named.textContent = move[LANG];
+    named.style.color = looks(loaded.get(id), mode).muted;
+    await sleep((loaded.get(id).wheel?.timings.apply(false) ?? 640) + 260);
+  }
+  return shown;
+}
+
+/** More themes at rest, quicker: light, then a theme a beat in dark. */
 async function parade(previous) {
   let shown = previous;
-  let number = 2;
-  const step = async (id, mode, hold, preview, keys = [], reveal = false) => {
-    const theme = loaded.get(id);
-    const look = looks(theme, mode);
-    const scene = element('section', `scene parade${reveal ? ' is-revealed' : ''}`, reel);
-    scene.style.background = look.desk;
-    const stage = element('div', 'parade-wheel', scene);
-    const name = element('div', 'parade-name', scene);
-    name.textContent = theme.name;
-    Object.assign(name.style, { color: look.text, fontFamily: look.face });
-    const count = element('div', 'parade-count', scene);
-    count.textContent = `${number++} / ${THEMES.length}`;
-    count.style.color = look.muted;
-    const wheel = mountWheel(stage, id, mode, 380, preview);
-    const gone = shown;
-    shown = { scene, wheel };
-    // The scene before leaves once this one covers it.
-    setTimeout(
-      () => {
-        gone.wheel.root.unmount();
-        gone.scene.remove();
-      },
-      reveal ? 300 : 0,
-    );
-    const begun = performance.now();
-    for (const [at, key] of keys) {
-      await sleep(at);
-      await press(stage, key);
-    }
-    await sleep(hold - (performance.now() - begun));
-  };
-  for (const [i, id] of SLOW.entries())
-    await step(
-      id,
-      i % 2 ? 'dark' : 'light',
-      1100,
-      'live',
-      [
-        [450, 'ArrowDown'],
-        [190, 'ArrowDown'],
-        [190, 'ArrowDown'],
-      ],
-      true,
-    );
-  for (const id of MEDIUM) await step(id, 'light', 450, 'still');
-  for (const id of FAST) await step(id, 'dark', 340, 'still');
+  points[2].classList.add('is-on');
+  for (const id of LIGHT) {
+    shown = next(shown, id, 'light', 'still');
+    await sleep(420);
+  }
+  points[3].classList.add('is-on');
+  for (const id of DARK) {
+    shown = next(shown, id, 'dark', 'still');
+    await sleep(340);
+  }
   return shown;
 }
 
 /** Six themes apply a slice one after another, then open again. */
 async function apply(previous) {
   const scene = element('section', 'scene apply', reel);
-  element('div', 'apply-title', scene).textContent = TEXT.motion;
+  element('div', 'apply-title', scene).textContent = TEXT.together;
   const cells = APPLY.map((id, i) => {
     const mode = i % 2 ? 'dark' : 'light';
     const look = looks(loaded.get(id), mode);
@@ -222,11 +267,12 @@ async function apply(previous) {
     const stage = element('div', 'apply-wheel', cell);
     const name = element('div', 'apply-name', cell);
     name.textContent = loaded.get(id).name;
-    Object.assign(name.style, { color: look.text, fontFamily: look.face });
+    name.style.color = look.text;
     let round = 0;
     const wheel = mountWheel(stage, id, mode, 200, 'live', () => setTimeout(() => wheel.render(++round), 120));
     return { stage, wheel };
   });
+  pitch.remove();
   previous.wheel.root.unmount();
   previous.scene.remove();
   await sleep(800);
@@ -250,15 +296,10 @@ async function all(previous) {
     cell.style.animationDelay = `${i * 22}ms`;
     return mountWheel(element('div', 'all-wheel', cell), entry.id, mode, 86, 'still');
   });
-  const band = element(
-    'div',
-    'all-band',
-    scene,
-    `<strong>${TEXT.count(THEMES.length)}</strong><span>${TEXT.where}</span>`,
-  );
+  const band = element('div', 'all-band', scene, `<strong>${TEXT.band}</strong><span>${TEXT.where}</span>`);
   for (const wheel of previous.wheels) wheel.root.unmount();
   previous.scene.remove();
-  await sleep(51 * 22 + 500);
+  await sleep(N * 22 + 500);
   band.classList.add('is-on');
   await sleep(2400);
   return { scene, wheels };
@@ -271,11 +312,11 @@ async function end(previous) {
     reel,
     `<img src="/design/icons/app.svg" alt=""><h1>Kento</h1><div class="facts">${TEXT.end
       .map((fact) => `<span>${fact}</span>`)
-      .join('')}</div><div class="url">github.com/MehmetBurakTaskaya/kento</div>`,
+      .join('')}</div><div class="cta">${TEXT.cta}</div><div class="url">github.com/MehmetBurakTaskaya/kento</div>`,
   );
   for (const wheel of previous.wheels) wheel.root.unmount();
   previous.scene.remove();
-  await sleep(2600);
+  await sleep(2800);
   return scene;
 }
 
@@ -286,8 +327,10 @@ async function play() {
   const mark = (name) => marks.push([name, (performance.now() - start) / 1000]);
   mark('intro');
   const first = await intro();
+  mark('acts');
+  const moved = await acts(first);
   mark('parade');
-  const last = await parade(first);
+  const last = await parade(moved);
   mark('apply');
   const six = await apply(last);
   mark('all');
