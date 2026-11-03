@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 // The faces this theme names (Baloo 2): Latin, Latin Extended and Cyrillic only,
 // from the Fontsource packages, registered under the family names the theme's code and styles use.
+// Baloo 2 has no Cyrillic, so the rounded Nunito answers for it inside the same family.
 import { registerFaces } from '../../host/fonts';
 import baloo2Latin from '@fontsource-variable/baloo-2/files/baloo-2-latin-wght-normal.woff2?url';
 import baloo2LatinExt from '@fontsource-variable/baloo-2/files/baloo-2-latin-ext-wght-normal.woff2?url';
+import nunitoCyrillic from '@fontsource-variable/nunito/files/nunito-cyrillic-wght-normal.woff2?url';
 
+// A stand-in joins a family only when it is registered with the family's own weights.
 registerFaces([
   {
     family: 'Baloo 2',
@@ -21,5 +24,10 @@ registerFaces([
           'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF',
       },
     ],
+  },
+  {
+    family: 'Baloo 2',
+    weight: '400 800',
+    sources: [{ url: nunitoCyrillic, range: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' }],
   },
 ]);

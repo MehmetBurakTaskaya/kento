@@ -21,7 +21,33 @@ export default function register(Board) {
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     }
-    const reducedMotion = () => document.documentElement.classList.contains('reduce-motion');
+    // The effect plays only while the wheel is applying: with reduced motion the app never sets it.
+    const applying = (root) => {
+      const wheel = root.closest('.wheel');
+      return !!wheel && wheel.classList.contains('is-applying');
+    };
+    // The widest label the slice holds around the point at radius R.lbl on its centre line: on each
+    // line the label covers, the distance to the nearer edge of the slice (between radii r0 and r1,
+    // less `pad`), so a slice on the side of the wheel, where text runs along the radius, gets more
+    // room than one at the top. Labels stay upright, so this is what fits whatever the angle.
+    const room = (H, sl, r0, r1, pad, twist = () => 0) => {
+      const [cx, cy] = H.polar(R.lbl, sl.mid);
+      const inside = (x, y) => {
+        const r = Math.hypot(x - 200, y - 200);
+        if (r < r0 || r > r1) return false;
+        const a = (Math.atan2(x - 200, 200 - y) * 180) / Math.PI - twist(r);
+        return (((a - sl.a0) % 360) + 360) % 360 <= sl.a1 - sl.a0;
+      };
+      let half = 66;
+      for (const y of [cy - 11, cy, cy + 11]) {
+        let left = 0;
+        let right = 0;
+        while (left < 66 + pad && inside(cx - left - 1, y)) left += 1;
+        while (right < 66 + pad && inside(cx + right + 1, y)) right += 1;
+        half = Math.min(half, Math.min(left, right) - pad);
+      }
+      return Math.max(44, 2 * half);
+    };
 
     // A segment: radial sides held `gap` apart, a rounded outer edge and a blunt inner tip.
     function segPath(H, r0, r1, a0, a1, gap, k) {
@@ -44,7 +70,9 @@ export default function register(Board) {
     function sacs(H, sl, rand, gap) {
       let d = '';
       const span = sl.a1 - sl.a0;
-      for (let k = 0; k < 22; k++) {
+      // As many sacs per degree whatever the number of segments.
+      const count = Math.round(22 * Math.min(4, span / 45));
+      for (let k = 0; k < count; k++) {
         const r = R.seg0 + 14 + rand() * (R.seg1 - R.seg0 - 22);
         const g = (((gap / 2 + 4) / r) * 180) / Math.PI;
         const a = sl.a0 + g + rand() * (span - 2 * g);
@@ -310,12 +338,13 @@ export default function register(Board) {
             H.s('path', { d: H.arc(R.seg1 - 7, sl.a0 + 7, sl.a1 - 7), class: 'pk-gloss' }, squeeze);
             if (sl.off) H.s('path', { d: segPath(H, R.seg0, R.seg1, sl.a0, sl.a1, gap, 9), class: 'pk-off' }, squeeze);
             const c = H.s('g', { class: 'pk-content' }, squeeze);
-            if (m.kind === 'convert' && sl.sub) {
+            const maxWidth = room(H, sl, R.seg0, R.seg1, 5);
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 25,
                 subSize: 13,
                 gap: -1,
-                maxWidth: 74,
+                maxWidth,
                 minSize: 11,
                 cls: 'pk-lbl pk-fmt',
                 subCls: 'pk-sub',
@@ -326,8 +355,8 @@ export default function register(Board) {
                 iconSize: 22,
                 size: 14.5,
                 gap: 2,
-                maxWidth: 74,
-                minSize: 9.5,
+                maxWidth,
+                minSize: 8.5,
                 cls: 'pk-lbl pk-word',
                 sub: null,
               });
@@ -345,8 +374,16 @@ export default function register(Board) {
             star += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
           }
           H.s('path', { d: star, class: 'pk-core-star' }, hub);
-          H.label(hub, 200, 184, m.title, { maxWidth: 88, size: 16.5, minSize: 11, cls: 'pk-title', maxLines: 1 });
-          H.label(hub, 200, 202, m.file, {
+          // Without a key (a ring opened from the menu) the name and the file sit in the middle.
+          const low = m.key ? 0 : 8;
+          H.label(hub, 200, 184 + low, m.title, {
+            maxWidth: 88,
+            size: 16.5,
+            minSize: 9,
+            cls: 'pk-title',
+            maxLines: 1,
+          });
+          H.label(hub, 200, 202 + low, m.file, {
             maxWidth: 82,
             size: 11.5,
             minSize: 9,
@@ -354,9 +391,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.4;
-          H.s('rect', { x: f2(200 - kw / 2), y: 212, width: f2(kw), height: 16, rx: 8, class: 'pk-key' }, hub);
-          H.text(hub, 200, 220.5, m.key, { class: 'pk-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.4;
+            H.s('rect', { x: f2(200 - kw / 2), y: 212, width: f2(kw), height: 16, rx: 8, class: 'pk-key' }, hub);
+            H.text(hub, 200, 220.5, m.key, { class: 'pk-keytext' });
+          }
         },
 
         update(root, m, st) {
@@ -377,7 +416,7 @@ export default function register(Board) {
         onSelect(root, m, i, H, t) {
           const g = root.querySelector(`.slice[data-slice="${i}"]`);
           root.querySelectorAll('.pk-fx').forEach((n) => (n.textContent = ''));
-          if (t == null && reducedMotion()) return;
+          if (t == null && !applying(root)) return;
           const fx = g.querySelector('.pk-fx');
           const sl = m.slices[i];
           const rand = rng(31 + i * 17);
