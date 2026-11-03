@@ -2,8 +2,9 @@
 // The model a theme draws from (contract.ts), made from the slices the app shows and the app's own
 // geometry, so a theme's slices sit exactly where the app's pointing and keys find them: the same
 // start angle, the same direction, mirrored the same way right to left, turned the same way when a
-// ring of choices unfolds from a slice. And the timings of a theme's wheel, from its motion.
-import type { SliceGeometry } from '../../wheel/geometry';
+// ring of choices unfolds from a slice, and with the mark of a slice that opens a ring where the steel
+// wheel puts its own. And the timings of a theme's wheel, from its motion.
+import { ringMarkAngle, type SliceGeometry } from '../../wheel/geometry';
 import type { WheelTimings } from '../../wheel/motion';
 import type { ThemeMotion, WheelModel } from './contract';
 
@@ -56,6 +57,7 @@ export function buildModel({ kind, lang, dir, title, file, key, slices, geometry
         mid: g.mid,
         step: g.step,
         ring: slice.ring,
+        mark: slice.ring ? ringMarkAngle(g, dir) : null,
         format: slice.format,
       };
     }),

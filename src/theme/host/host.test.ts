@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import catalog from '../catalog.json';
-import { hitTest, layoutSlices, offsetFor, polar as appPolar, type Direction } from '../../wheel/geometry';
+import {
+  hitTest,
+  layoutSlices,
+  offsetFor,
+  polar as appPolar,
+  ringMarkAngle,
+  type Direction,
+} from '../../wheel/geometry';
 import { definePack, DEFAULT_PAIRS } from './board';
 import { createHelpers, polar, sector } from './helpers';
 import { ICONS, iconMarkup } from './icons';
@@ -73,7 +80,34 @@ describe('the model a theme draws', () => {
     });
     expect(m).toMatchObject({ kind: 'convert', lang: 'tr', title: 'Dönüştür', file: 'foto.heic', key: 'Shift' });
     expect(m.slices[0]).toMatchObject({ i: 0, id: 'png', sub: 'Kayıpsız', icon: 'file', ring: true, format: true });
-    expect(m.slices[1]).toMatchObject({ i: 1, sub: null, icon: 'cutout', tip: '', off: true });
+    expect(m.slices[1]).toMatchObject({ i: 1, sub: null, icon: 'cutout', tip: '', off: true, mark: null });
+  });
+
+  it('puts the mark of a slice that opens a ring where the steel wheel does, towards the next slice', () => {
+    for (const dir of ['ltr', 'rtl'] as const)
+      for (const count of [1, 2, 3, 5, 8]) {
+        const geometry = layoutSlices(count, dir, offsetFor(100, 1, count, dir));
+        const m = buildModel({
+          kind: 'convert',
+          lang: 'en',
+          dir,
+          title: 'Convert',
+          file: 'photo.jpg',
+          key: 'Shift',
+          geometry,
+          slices: slices(count).map((slice, i) => ({ ...slice, ring: i % 2 === 0 })),
+        });
+        m.slices.forEach((slice, i) => {
+          if (!slice.ring) return expect(slice.mark).toBeNull();
+          expect(slice.mark).toBe(ringMarkAngle(geometry[i]!, dir));
+          // Inside the slice, off its centre line on the side of the next slice.
+          const toward = (slice.mark! - slice.mid) * (dir === 'rtl' ? -1 : 1);
+          expect(toward, `${dir} ${count} ${i}`).toBeGreaterThan(0);
+          expect(toward).toBeLessThan(slice.step / 2);
+          const [x, y] = appPolar(170, slice.mark!);
+          expect(hitTest(x, y, count, dir, offsetFor(100, 1, count, dir))).toBe(i);
+        });
+      }
   });
 });
 
@@ -145,6 +179,69 @@ describe('the drawing helpers', () => {
     expect(long.getAttribute('data-fit')).toBe('shortened');
     expect(long.getAttribute('aria-label')).toBe('Hintergrundentfernung');
     delete (SVGElement.prototype as { getComputedTextLength?: unknown }).getComputedTextLength;
+  });
+
+  it('mark a slice that opens a ring with a shape pointing outwards, mirrored right to left', () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const H = createHelpers();
+    for (const dir of ['ltr', 'rtl'] as const) {
+      const m = buildModel({
+        kind: 'convert',
+        lang: dir === 'rtl' ? 'ar' : 'en',
+        dir,
+        title: 'Convert',
+        file: 'photo.jpg',
+        key: 'Shift',
+        geometry: layoutSlices(4, dir),
+        slices: slices(4).map((slice, i) => ({ ...slice, ring: i === 1, off: false })),
+      });
+      expect(H.ringMark(svg, m.slices[0]!, m, { r: 170 })).toBeNull();
+      const mark = H.ringMark(svg, m.slices[1]!, m, { r: 170, size: 8, cls: 'x-mark' })!;
+      const [x, y] = polar(170, m.slices[1]!.mark!);
+      expect(mark.getAttribute('class')).toBe('ring-mark x-mark');
+      expect(mark.getAttribute('data-ring-mark')).toBe('1');
+      expect(mark.getAttribute('transform')).toBe(
+        `translate(${Math.round(x * 100) / 100} ${Math.round(y * 100) / 100}) rotate(${m.slices[1]!.mark})${
+          dir === 'rtl' ? ' scale(-1 1)' : ''
+        }`,
+      );
+      // Drawn pointing up, its point at the origin: the turn points it outwards.
+      expect(mark.querySelector('.ring-mark-body')!.getAttribute('d')).toBe('M0 0L4.8 8L-4.8 8Z');
+      expect(mark.querySelector('.ring-mark-halo')).toBeNull();
+    }
+    const m = buildModel({
+      kind: 'tools',
+      lang: 'en',
+      dir: 'ltr',
+      title: 'Tools',
+      file: 'photo.jpg',
+      key: '',
+      geometry: layoutSlices(2, 'ltr'),
+      slices: slices(2).map((slice) => ({ ...slice, ring: true, off: true })),
+    });
+    // Its own offset and the turn of a curved slice move it round; a chevron is a line with a halo.
+    const own = H.ringMark(svg, m.slices[0]!, m, { r: 150, offset: 20, turn: 5, shape: 'chevron', halo: 2 })!;
+    expect(own.getAttribute('class')).toBe('ring-mark is-off');
+    expect(own.getAttribute('transform')).toMatch(/ rotate\(25\)$/);
+    expect(own.getAttribute('data-turn')).toBe('5');
+    expect(own.querySelector('.ring-mark-halo.is-line')!.getAttribute('style')).toContain(
+      '--ring-mark-halo-width: 2px',
+    );
+    expect(own.querySelector('.ring-mark-body.is-line')).not.toBeNull();
+    const drawn = H.ringMark(svg, m.slices[1]!, m, { r: 150, shape: (size) => `M0 0h${size}` })!;
+    expect(drawn.querySelector('.ring-mark-body')!.getAttribute('d')).toBe('M0 0h7');
+    // A pixel arrow stays upright and on its grid: one pixel, then three, round its point's pixel.
+    const pixels = H.ringMark(svg, { ...m.slices[0]!, mark: 0 }, m, { r: 150, size: 8, shape: 'pixel', grid: 4 })!;
+    expect(pixels.getAttribute('class')).toBe('ring-mark is-pixel is-off');
+    expect(pixels.getAttribute('transform')).toBe('translate(202 54)');
+    expect(pixels.querySelector('.ring-mark-body')!.getAttribute('d')).toBe(
+      'M-2 -2h4v4h-4ZM-6 2h4v4h-4ZM-2 2h4v4h-4ZM2 2h4v4h-4Z',
+    );
+    // Along a diagonal, a staircase whose corner points the way.
+    const diagonal = H.ringMark(svg, { ...m.slices[0]!, mark: 45 }, m, { r: 150, size: 8, shape: 'pixel', grid: 4 })!;
+    expect(diagonal.querySelector('.ring-mark-body')!.getAttribute('d')).toBe(
+      'M-2 -2h4v4h-4ZM-6 -2h4v4h-4ZM-2 2h4v4h-4Z',
+    );
   });
 
   it('draw the app’s icons, a theme’s own first', () => {

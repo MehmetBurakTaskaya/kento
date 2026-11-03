@@ -40,6 +40,7 @@ import {
   polar,
   R,
   restAngle,
+  ringMarkAngle,
   sliceAt,
   toView,
   turnTo,
@@ -384,10 +385,7 @@ export function Wheel({
         flipIcon: dir === 'rtl' && !!item.icon && DIRECTIONAL.has(item.icon),
         disabled: item.disabled,
         dimmed: !!item.dimmed,
-        // Off the centre line, towards the next slice, where no label reaches.
-        ringMark: opensRing(item)
-          ? g.mid + (dir === 'rtl' ? -1 : 1) * Math.min(16, Math.max(6, g.step * 0.36))
-          : undefined,
+        ringMark: opensRing(item) ? ringMarkAngle(g, dir) : undefined,
         format,
         block: layoutBlock(
           { label: item.label, sublabel: item.sublabel, icon: !!item.icon, format },

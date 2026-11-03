@@ -99,8 +99,9 @@ export function ThemeFace(props: ThemeFaceProps): JSX.Element {
     const now = parts.current;
     if (!now) return;
     const { hover, selected, model } = latest.current;
-    now.root.querySelectorAll<SVGGElement>('.slice').forEach((g) => {
-      const i = Number(g.dataset.slice);
+    // A ring mark drawn outside its slice's group follows the slice too.
+    now.root.querySelectorAll<SVGGElement>('.slice, [data-ring-mark]').forEach((g) => {
+      const i = Number(g.dataset.slice ?? g.dataset.ringMark);
       g.classList.toggle('is-hover', i === hover);
       g.classList.toggle('is-selected', i === selected);
     });

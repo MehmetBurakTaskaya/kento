@@ -86,6 +86,66 @@
   }
 }
 
+/* The mark of a slice that opens a ring of choices (H.ringMark): muted at rest, full on the slice
+   pointed at, where it leans outwards, and in the selected text's colour on the chosen slice. A theme
+   restyles it through its own class or these properties: --ring-mark-color, -hover, -selected, -rest
+   (the resting opacity), -width (of a line), -halo and -halo-width. */
+.ring-mark {
+  color: var(--ring-mark-color, var(--wheel-text));
+  opacity: var(--ring-mark-rest, 0.72);
+  pointer-events: none;
+  transition:
+    opacity 110ms,
+    color 110ms;
+}
+.ring-mark-body {
+  fill: currentColor;
+  stroke: none;
+  transition: transform 140ms ease-out;
+}
+.ring-mark-body.is-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--ring-mark-width, 1.8px);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ring-mark-halo {
+  fill: var(--ring-mark-halo, var(--wheel-slice));
+  stroke: var(--ring-mark-halo, var(--wheel-slice));
+  stroke-width: calc(2 * var(--ring-mark-halo-width, 1.5px));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 140ms ease-out;
+}
+.ring-mark-halo.is-line {
+  fill: none;
+  stroke-width: calc(var(--ring-mark-width, 1.8px) + 2 * var(--ring-mark-halo-width, 1.5px));
+}
+.slice.is-hover .ring-mark,
+.ring-mark.is-hover {
+  color: var(--ring-mark-hover, var(--wheel-text));
+  opacity: 1;
+}
+.slice.is-hover .ring-mark:not(.is-pixel) > *,
+.ring-mark.is-hover:not(.is-pixel) > * {
+  transform: translateY(-1.5px);
+}
+.slice.is-selected .ring-mark,
+.ring-mark.is-selected {
+  color: var(--ring-mark-selected, var(--wheel-text-selected));
+  opacity: 1;
+}
+.slice.is-off .ring-mark,
+.ring-mark.is-off {
+  opacity: 0.35;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-mark > * {
+    transition: none;
+  }
+}
+
 /* Reduced motion: every theme falls back to a short fade. */
 .wheel.is-opening-reduced .wheel-svg {
   animation: fade-in 90ms linear both;

@@ -120,6 +120,34 @@ describe('a theme’s wheel in the app', () => {
     vi.useRealTimers();
   });
 
+  it('points at and chooses the mark of a slice that opens a ring, also outside its slice', () => {
+    const { theme, wheel } = pack();
+    wheel.render.mockImplementation((root: SVGGElement, m: WheelModel, H) => {
+      for (const sl of m.slices) H.s('path', { d: H.sector(60, 190, sl.a0, sl.a1) }, H.slice(root, sl, m));
+      const layer = H.s('g', { class: 'labels' }, root);
+      for (const sl of m.slices) H.ringMark(layer, sl, m, { r: 170 });
+    });
+    const m = buildModel({
+      kind: 'convert',
+      lang: 'en',
+      dir: 'ltr',
+      title: 'Convert',
+      file: 'photo.jpg',
+      key: 'Shift',
+      geometry: layoutSlices(3, 'ltr'),
+      slices: ['jpg', 'png', 'webp'].map((id) => ({ id, label: id, off: false, ring: id !== 'png', format: true })),
+    });
+    const props = { theme, mode: 'light' as const, model: m, generation: 0, applied: 0, denied: 0, reduced: false };
+    const view = render(<ThemeFace {...props} phase="still" hover={null} selected={null} />);
+    const shadow = view.container.querySelector('.wheel-theme')!.shadowRoot!;
+    const marks = [...shadow.querySelectorAll<SVGGElement>('.labels .ring-mark')];
+    expect(marks.map((mark) => mark.dataset.ringMark)).toEqual(['0', '2']);
+    view.rerender(<ThemeFace {...props} phase="still" hover={2} selected={0} />);
+    expect(marks[1]!.classList.contains('is-hover')).toBe(true);
+    expect(marks[0]!.classList.contains('is-selected')).toBe(true);
+    expect(marks[0]!.classList.contains('is-hover')).toBe(false);
+  });
+
   it('fades with reduced motion, rests without an animation as a still, and survives a theme that throws', () => {
     const { theme, wheel } = pack();
     const props = {

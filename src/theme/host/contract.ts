@@ -28,8 +28,12 @@ export interface ModelSlice {
   a1: number;
   mid: number;
   step: number;
-  /** The slice opens a ring of choices. */
+  /** The slice opens a ring of choices. The theme shows it with H.ringMark(): a small mark near the
+   *  rim pointing outwards, more choices lying beyond, the same meaning in every theme. */
   ring: boolean;
+  /** Where that mark sits, in degrees, or null when the slice opens no ring: off the centre line
+   *  towards the next slice, where no label reaches, as on the steel wheel; mirrored right to left. */
+  mark: number | null;
   /** A target format of the Convert wheel ("PNG"), drawn as a large label: the app shows formats
    *  without an icon, and with a sub-label only where it has one. */
   format: boolean;
@@ -57,6 +61,8 @@ export interface WheelState {
 }
 
 export interface ThemeWheel {
+  /** Draws the wheel, every slice in its H.slice() group, and the mark of each slice that opens a ring
+   *  with H.ringMark(), so the slices that hold more choices read the same in every theme. */
   render(root: SVGGElement, model: WheelModel, H: Helpers): void;
   update?(root: SVGGElement, model: WheelModel, state: WheelState, H: Helpers): void;
   /** `t` is set for a still frame of the open animation. */

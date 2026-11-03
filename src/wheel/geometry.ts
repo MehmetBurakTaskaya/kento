@@ -63,6 +63,12 @@ export function layoutSlices(count: number, dir: Direction, offset = 0): SliceGe
   });
 }
 
+/** Where the small mark of a slice that opens a ring of choices sits: off the slice's centre line
+ *  towards the next slice, where no label reaches, so it mirrors right to left with the slices. */
+export function ringMarkAngle(slice: SliceGeometry, dir: Direction): number {
+  return slice.mid + (dir === 'rtl' ? -1 : 1) * Math.min(16, Math.max(6, slice.step * 0.36));
+}
+
 /** At rest the dial parks on the boundary before slice 1, so its index never seems to choose a slice. */
 export function restAngle(count: number, dir: Direction, offset = 0): number {
   if (count <= 0) return offset;

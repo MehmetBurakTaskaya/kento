@@ -2,7 +2,8 @@
 // The drawing helpers a theme's wheel receives as `H`: SVG elements, the wheel's polar geometry in its
 // 400 x 400 space, and labels that shrink to fit their slice, wrap to two lines when that reads better
 // and, past the smallest size, end with an ellipsis so they never leave the slice. Labels are measured
-// in the document, so a wheel is drawn into a connected element once its fonts have loaded.
+// in the document, so a wheel is drawn into a connected element once its fonts have loaded. And the
+// mark of a slice that opens a ring of choices, which every theme draws in its own look.
 import { iconMarkup } from './icons';
 import type { ModelSlice, WheelModel } from './contract';
 
@@ -33,6 +34,34 @@ export interface BlockOptions extends Omit<LabelOptions, 'attrs' | 'maxLines'> {
   sub?: string | null;
 }
 
+/** The shared shapes of a ring mark, each pointing outwards. */
+export type RingMarkShape = 'arrow' | 'chevron' | 'double' | 'dart' | 'tag' | 'pixel';
+
+export interface RingMarkOptions {
+  /** The radius of the mark's point, its outer end: near the rim, inside the slice. */
+  r: number;
+  /** The mark's length along the radius; its width follows its shape. */
+  size?: number;
+  /** Degrees round from the slice's centre line towards the next slice, in place of the model's
+   *  (the steel wheel's); mirrored right to left. */
+  offset?: number;
+  /** Degrees the slice itself is turned at the mark's radius, in a theme whose slices curve: the mark
+   *  moves with it, so it stays on the same side of the slice as drawn. */
+  turn?: number;
+  /** One of the shared shapes, or the theme's own path drawn pointing up, its point at 0,0 and its
+   *  base at y = size; a function receives the size. */
+  shape?: RingMarkShape | string | ((size: number) => string);
+  /** Stroked rather than filled (a chevron is a line). */
+  line?: boolean;
+  /** For the pixel shape: the side of one pixel, and of the grid its pixels keep to (a third of the
+   *  size by default, with no grid). */
+  grid?: number;
+  /** A halo under the mark, `--ring-mark-halo` (the slice's colour), that lifts it off a busy ground;
+   *  a number sets its width. */
+  halo?: boolean | number;
+  cls?: string;
+}
+
 export interface Helpers {
   C: number;
   s<K extends keyof SVGElementTagNameMap>(tag: K, attrs?: Attrs, parent?: Element | null): SVGElementTagNameMap[K];
@@ -55,6 +84,9 @@ export interface Helpers {
     r: number,
     options?: BlockOptions,
   ): { label: SVGTextElement; icon?: SVGGElement; sub?: SVGTextElement };
+  /** The mark of a slice that opens a ring of choices, drawn into its slice group: null for a slice
+   *  that opens none. */
+  ringMark(parent: Element, slice: ModelSlice, model: WheelModel, options: RingMarkOptions): SVGGElement | null;
 }
 
 function element(tag: string, attrs: Attrs, parent: Element | null | undefined, ns: string | null): Element {
@@ -178,6 +210,109 @@ export function label(parent: Element, x: number, y: number, str: string, o: Lab
   return t;
 }
 
+/** The shared ring mark shapes, pointing up with the point at 0,0 and the base at y = l. */
+function markShape(shape: RingMarkShape, l: number): { d: string; line: boolean; evenodd?: boolean } {
+  const n = f2;
+  switch (shape) {
+    case 'chevron': {
+      const w = l * 0.78;
+      return { d: `M${n(-w)} ${n(l)}L0 0L${n(w)} ${n(l)}`, line: true };
+    }
+    case 'double': {
+      const w = l * 0.72;
+      const h = l * 0.55;
+      return { d: `M${n(-w)} ${n(h)}L0 0L${n(w)} ${n(h)}M${n(-w)} ${n(l)}L0 ${n(l - h)}L${n(w)} ${n(l)}`, line: true };
+    }
+    case 'dart': {
+      const w = l * 0.66;
+      return { d: `M0 0L${n(w)} ${n(l)}L0 ${n(l * 0.68)}L${n(-w)} ${n(l)}Z`, line: false };
+    }
+    case 'tag': {
+      // A luggage tag, its point outwards, with the hole for its string.
+      const w = l * 0.42;
+      const k = l * 0.36;
+      const h = l * 0.13;
+      const y = l * 0.4;
+      return {
+        d: `M0 0L${n(w)} ${n(k)}V${n(l)}H${n(-w)}V${n(k)}Z M0 ${n(y - h)}a${n(h)} ${n(h)} 0 1 0 0 ${n(2 * h)}a${n(h)} ${n(h)} 0 1 0 0 ${n(-2 * h)}Z`,
+        line: false,
+        evenodd: true,
+      };
+    }
+    default: {
+      const w = l * 0.6;
+      return { d: `M0 0L${n(w)} ${n(l)}L${n(-w)} ${n(l)}Z`, line: false };
+    }
+  }
+}
+
+/** A pixel arrow pointing at angle `at` turned to the nearest eighth, its pixels square to the page:
+ *  rows of one, three, five… pixels of side u, or along a diagonal a staircase whose corner points.
+ *  Drawn round its point's pixel, centred at 0,0. */
+function pixelArrow(at: number, rows: number, u: number): string {
+  const k = ((Math.round(at / 45) % 8) + 8) % 8;
+  const cells: [number, number][] = [];
+  for (let row = 0; row < rows; row++)
+    for (let i = -row; i <= row; i++)
+      if (k % 2 === 0) cells.push([i, row]);
+      else if (i <= 0) cells.push([i, row + i]);
+  // A quarter turn at a time keeps the pixels on the grid: x, y → -y, x.
+  const quarters = Math.floor(k / 2);
+  let d = '';
+  for (let [x, y] of cells) {
+    for (let q = 0; q < quarters; q++) [x, y] = [-y, x];
+    d += `M${f2((x - 0.5) * u)} ${f2((y - 0.5) * u)}h${f2(u)}v${f2(u)}h${f2(-u)}Z`;
+  }
+  return d;
+}
+
+/** Draws the mark of a slice that opens a ring of choices: a small shape near the rim pointing
+ *  outwards, off the centre line towards the next slice, mirrored right to left. The app's wheel sets
+ *  `is-hover` and `is-selected` on it as on its slice, wherever it is drawn. */
+export function ringMark(parent: Element, sl: ModelSlice, model: WheelModel, o: RingMarkOptions): SVGGElement | null {
+  if (!sl.ring) return null;
+  const { r, size = 7, shape = 'arrow', halo = false, cls = '' } = o;
+  const rtl = model.dir === 'rtl';
+  const from = o.offset === undefined && sl.mark !== null ? sl.mark : sl.mid + (rtl ? -1 : 1) * (o.offset ?? 16);
+  const at = from + (o.turn ?? 0);
+  const own = typeof shape === 'function' ? shape(size) : shape;
+  let [x, y] = polar(r, at);
+  let drawn: { d: string; line: boolean; evenodd?: boolean };
+  let place: string;
+  if (own === 'pixel') {
+    // Upright, round its point's pixel, which keeps to the grid when there is one.
+    const u = o.grid ?? size / 3;
+    [x, y] = polar(r - u / 2, at);
+    if (o.grid) [x, y] = [(Math.floor(x / u) + 0.5) * u, (Math.floor(y / u) + 0.5) * u];
+    drawn = { d: pixelArrow(at, Math.max(2, Math.round(size / u)), u), line: false };
+    place = `translate(${f2(x)} ${f2(y)})`;
+  } else {
+    const known = ['arrow', 'chevron', 'double', 'dart', 'tag'].includes(own);
+    drawn = known ? markShape(own as RingMarkShape, size) : { d: own, line: false };
+    place = `translate(${f2(x)} ${f2(y)}) rotate(${f2(at)})${rtl ? ' scale(-1 1)' : ''}`;
+  }
+  const line = o.line ?? drawn.line;
+  const g = s(
+    'g',
+    {
+      class: `ring-mark ${cls}`.trim() + (own === 'pixel' ? ' is-pixel' : '') + (sl.off ? ' is-off' : ''),
+      'data-ring-mark': sl.i,
+      'data-turn': o.turn ? f2(o.turn) : null,
+      transform: place,
+      'aria-hidden': 'true',
+    },
+    parent,
+  ) as SVGGElement;
+  const part = line ? ' is-line' : '';
+  const rule = drawn.evenodd ? 'evenodd' : null;
+  if (halo) {
+    const h = s('path', { d: drawn.d, class: `ring-mark-halo${part}`, 'fill-rule': rule }, g) as SVGPathElement;
+    if (typeof halo === 'number') h.style.setProperty('--ring-mark-halo-width', `${halo}px`);
+  }
+  s('path', { d: drawn.d, class: `ring-mark-body${part}`, 'fill-rule': rule }, g);
+  return g;
+}
+
 let uids = 0;
 
 /** The helpers for one theme: its icon overrides apply to H.icon(). */
@@ -265,6 +400,7 @@ export function createHelpers(icons?: Record<string, string>): Helpers {
         });
       return parts;
     },
+    ringMark,
   };
   return H;
 }
