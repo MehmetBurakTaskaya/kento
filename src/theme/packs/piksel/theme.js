@@ -43,10 +43,22 @@ export default function register(Board) {
       return 0;
     }
 
+    // A slice boundary is a ray from the centre; a cell is ink when the ray crosses it, using the
+    // thinnest stair-stepped line that stays connected at every angle (one cell wide even when the ray
+    // runs exactly between two columns, as it does with two or four slices).
+    function onRay(dx, dy, b) {
+      const ux = Math.sin((b * Math.PI) / 180);
+      const uy = -Math.cos((b * Math.PI) / 180);
+      if (dx * ux + dy * uy <= 0) return false;
+      const across = dx * -uy + dy * ux;
+      const half = (P / 2) * Math.max(Math.abs(ux), Math.abs(uy));
+      return across > -half && across <= half;
+    }
+
     // Classifies every grid cell: 'ink', rim and hub shades, or a slice index.
     function buildGrid(m) {
       const g = [];
-      const bounds = m.slices.map((sl) => sl.a0);
+      const bounds = m.n > 1 ? m.slices.map((sl) => sl.a0) : [];
       for (let r = 0; r < N; r++) {
         const row = [];
         for (let c = 0; c < N; c++) {
@@ -76,12 +88,7 @@ export default function register(Board) {
                       : 'rim';
           else if (d >= R.rimInk) k = 'ink';
           else if (d >= R.hubInk) {
-            let edge = false;
-            for (const b of bounds) {
-              const da = Math.abs(((((ang - b) % 360) + 540) % 360) - 180);
-              if ((da * Math.PI * d) / 180 < 4.7) edge = true;
-            }
-            k = edge ? 'ink' : owner(m, ang);
+            k = bounds.some((b) => onRay(dx, dy, b)) ? 'ink' : owner(m, ang);
           } else if (d >= R.hub) k = 'ink';
           else k = d >= 48 && lit > 0.55 ? 'hubH' : d >= 48 && lit < -0.6 ? 'hubL' : 'hub';
           row.push(k);
@@ -90,6 +97,110 @@ export default function register(Board) {
       }
       return g;
     }
+
+    // Whether a point (relative to the centre) lies m inside a slice, between radii rin and rout.
+    // Tests the slice's own angles, so it holds for any number of slices and any turn.
+    function inSlice(sl, rin, rout, m) {
+      const toRad = (a) => (a * Math.PI) / 180;
+      const step = sl.a1 - sl.a0;
+      const away = (a, rr) => (a < 90 ? rr * Math.sin(toRad(a)) : rr);
+      return (x, y) => {
+        const rr = Math.hypot(x, y);
+        if (rr < rin + m || rr > rout - m) return false;
+        if (step >= 359.9) return true;
+        const rel = ((((Math.atan2(x, -y) * 180) / Math.PI - sl.a0) % 360) + 360) % 360;
+        return rel <= step && away(rel, rr) >= m && away(step - rel, rr) >= m;
+      };
+    }
+
+    // How wide a level label may be: its lines, centred dy below the point at radius r on the slice's
+    // centre line and hh high on each side, must stay inside the slice.
+    function room(sl, r, dy, hh, rin, rout, cap, m = 4) {
+      const inside = inSlice(sl, rin, rout, m);
+      const cx = r * Math.sin((sl.mid * Math.PI) / 180);
+      const cy = -r * Math.cos((sl.mid * Math.PI) / 180) + dy;
+      const fits = (w) => [-1, 0, 1].every((u) => [-1, 0, 1].every((v) => inside(cx + u * w, cy + v * hh)));
+      if (fits(cap / 2)) return cap;
+      let lo = 0;
+      let hi = cap / 2;
+      for (let k = 0; k < 12; k++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      return Math.max(2 * lo, 40);
+    }
+
+    // Draws a slice's label block where it has the most room, at whichever of the given radii lets its
+    // lines be widest (outward where the slice runs up or down, nearer the middle where it runs
+    // across), then checks the lines as drawn and narrows them until they sit inside the slice. A label
+    // is never shortened to fit: if only an ellipsis would make it fit, the last whole one is kept.
+    // A single word too long for the slice goes a size smaller before it is shortened.
+    function fitBlock(H, parent, sl, radii, o, rin, rout, cap, m = 2) {
+      const inside = inSlice(sl, rin, rout, m);
+      const iconH = o.icon ? o.iconSize + o.gap : 0;
+      const sub = o.sub === undefined ? sl.sub : o.sub;
+      const subH = sub ? o.gap + o.subSize * 1.1 : 0;
+      const best = (lines) =>
+        radii
+          .map((r) => [r, room(sl, r, iconH / 2, (lines * o.size * 1.1 + subH) / 2, rin, rout, cap, m + 2)])
+          .reduce((a, b) => (b[1] > a[1] + 1 ? b : a));
+      const draw = (r, width) => {
+        parent.textContent = '';
+        return H.block(parent, sl, r, { ...o, maxWidth: width });
+      };
+      // How wide each line as drawn may be where it sits, and whether every line is within that.
+      const lines = (parts) => {
+        const spans = [...parts.label.querySelectorAll('tspan')];
+        const list = (spans.length ? spans : [parts.label]).map((line) => [line, parts.label]);
+        if (parts.sub) list.push([parts.sub, parts.sub]);
+        return list.map(([line, text]) => {
+          const hh = +text.getAttribute('font-size') * 0.42;
+          const cx = +text.getAttribute('x') - 200;
+          const cy = line.getStartPositionOfChar(0).y - 200;
+          const ok = (half) => [-1, 0, 1].every((u) => [-1, 1].every((v) => inside(cx + u * half, cy + v * hh)));
+          let allowed = cap;
+          if (!ok(cap / 2)) {
+            let lo = 0;
+            let hi = cap / 2;
+            for (let k = 0; k < 10; k++) {
+              const half = (lo + hi) / 2;
+              if (ok(half)) lo = half;
+              else hi = half;
+            }
+            allowed = 2 * lo;
+          }
+          return { width: line.getComputedTextLength(), allowed };
+        });
+      };
+      const shortened = () => !!parent.querySelector('[data-fit="shortened"]');
+      let [r, width] = best(1);
+      let parts = draw(r, width);
+      // A single long word that would need an ellipsis may go a size smaller first.
+      if (shortened()) {
+        o = { ...o, minSize: Math.max(8.5, o.minSize - 1.5) };
+        parts = draw(r, width);
+      }
+      for (let k = 0; k < 4 && !shortened(); k++) {
+        const drawn = lines(parts);
+        const over = drawn.filter((line) => line.width > line.allowed + 0.5);
+        if (!over.length) break;
+        const last = [r, width];
+        r = best(drawn.length - (parts.sub ? 1 : 0))[0];
+        width = Math.max(30, Math.min(width * 0.96, ...over.map((line) => line.allowed)));
+        parts = draw(r, width);
+        if (shortened()) {
+          [r, width] = last;
+          parts = draw(r, width);
+          break;
+        }
+      }
+      parts.r = r;
+      return parts;
+    }
+
+    // Neighbouring tiles alternate; an odd count gives the last tile a third tint so no two touch.
+    const tint = (i, n) => (n % 2 && i === n - 1 && n > 1 ? 'px-c' : i % 2 ? 'px-b' : 'px-a');
 
     // Cell (column, row) of the grid that holds a point.
     const cellAt = (x, y) => [Math.floor(x / P), Math.floor(y / P)];
@@ -102,14 +213,11 @@ export default function register(Board) {
 
     Board.define({
       id: 'piksel',
+      // One pixel face for everything: it carries every Turkish letter and Cyrillic.
       fonts: {
         brand: "'Pixelify Sans'",
-        display: "'Silkscreen'",
-        load: ["'Pixelify Sans'", "'Silkscreen'"],
-        credits: [
-          { family: 'Pixelify Sans', license: 'SIL Open Font License 1.1' },
-          { family: 'Silkscreen', license: 'SIL Open Font License 1.1' },
-        ],
+        load: ["'Pixelify Sans'"],
+        credits: [{ family: 'Pixelify Sans', license: 'SIL Open Font License 1.1' }],
       },
       motion: { open: 160, close: 110, stagger: 14, apply: 620 },
       palette: {
@@ -142,6 +250,7 @@ export default function register(Board) {
           'px-ink': '#1b1838',
           'px-a': '#ffffff',
           'px-b': '#d9edff',
+          'px-c': '#fff1c9',
           'px-hi': 'rgba(255, 255, 255, 0.9)',
           'px-lo': 'rgba(27, 24, 56, 0.16)',
           'px-hov-hi': '#fff6bf',
@@ -195,6 +304,7 @@ export default function register(Board) {
           'px-ink': '#0a0818',
           'px-a': '#2b2363',
           'px-b': '#3a2e85',
+          'px-c': '#203a6e',
           'px-hi': 'rgba(176, 158, 255, 0.3)',
           'px-lo': 'rgba(6, 4, 24, 0.5)',
           'px-hov-hi': '#9384f5',
@@ -223,6 +333,8 @@ export default function register(Board) {
       contrast: [
         ...Board.DEFAULT_PAIRS,
         ['wheel-text', 'px-b', 'text'],
+        ['wheel-text', 'px-c', 'text'],
+        ['px-sub', 'px-c', 'text'],
         ['px-sub', 'px-a', 'text'],
         ['px-sub', 'px-b', 'text'],
         ['px-sub', 'wheel-slice-hover', 'text'],
@@ -260,7 +372,7 @@ export default function register(Board) {
           for (const sl of m.slices) {
             const i = sl.i;
             const g = H.slice(root, sl, m);
-            g.classList.add(i % 2 ? 'px-b' : 'px-a');
+            g.classList.add(tint(i, m.n));
             s('path', { d: H.sector(R.hubInk - 6, R.rim, sl.a0, sl.a1), class: 'px-hit' }, g);
             const mine = (r, c) => at(r, c) === i;
             path(mine, 'px-fill', g);
@@ -270,28 +382,19 @@ export default function register(Board) {
             path((r, c) => mine(r, c) && !lit(r, c) && (!mine(r + 1, c) || !mine(r, c + 1)), 'px-edge-lo', g);
 
             const ink = s('g', { class: 'px-label' }, g);
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(ink, sl, R.lbl, {
-                size: 23,
-                subSize: 13.5,
-                gap: 4,
-                maxWidth: 78,
-                minSize: 11,
-                cls: 'px-lbl px-fmt',
-                subCls: 'px-sub',
-              });
-            } else {
-              H.block(ink, sl, R.lbl, {
-                icon: true,
-                iconSize: 24,
-                size: 14,
-                gap: 5,
-                maxWidth: 78,
-                minSize: 9,
-                cls: 'px-lbl px-word',
-                sub: null,
-              });
-            }
+            const wide = sl.step >= 70;
+            const o = sl.format
+              ? { size: sl.sub ? 24 : 27, subSize: 14, gap: 4, minSize: 12, cls: 'px-lbl px-fmt', subCls: 'px-sub' }
+              : {
+                  icon: true,
+                  iconSize: wide ? 28 : 22,
+                  size: wide ? 16 : 14,
+                  gap: 4,
+                  minSize: 9.5,
+                  cls: 'px-lbl px-word',
+                  sub: null,
+                };
+            fitBlock(H, ink, sl, [R.lbl, R.lbl + 5, R.lbl - 6, R.lbl - 12], o, R.hubInk, R.rimInk, 110);
 
             // The star that marks the applied slice: a plus of five cells on the rim.
             const [sx, sy] = H.polar((R.rim + R.ink) / 2, sl.mid);
@@ -320,10 +423,20 @@ export default function register(Board) {
             cls: 'px-title',
             maxLines: 1,
           });
-          H.label(hub, C, C + 2, m.file, { maxWidth: 92, size: 13, minSize: 9, cls: 'px-file', maxLines: 1 });
-          const kw = Math.max(44, 16 + m.key.length * 8);
-          s('path', { d: notch(C - kw / 2, C + 17, kw, 18, 3), class: 'px-key' }, hub);
-          H.text(hub, C, C + 26.5, m.key.toLocaleUpperCase(m.lang), { class: 'px-keytext' });
+          H.label(hub, C, C + (m.key ? 2 : 6), m.file, {
+            maxWidth: 92,
+            size: 13,
+            minSize: 9,
+            cls: 'px-file',
+            maxLines: 1,
+          });
+          if (m.key) {
+            const key = m.key.toLocaleUpperCase(m.lang);
+            const cap = s('path', { class: 'px-key' }, hub);
+            const text = H.text(hub, C, C + 26.5, key, { class: 'px-keytext' });
+            const kw = Math.max(44, Math.ceil(text.getComputedTextLength()) + 16);
+            cap.setAttribute('d', notch(C - kw / 2, C + 17, kw, 18, 3));
+          }
 
           // Bursts sit above everything, one per slice; update() arms the applied slice's burst.
           // The pixels fly out past the rim in a wide fan.
