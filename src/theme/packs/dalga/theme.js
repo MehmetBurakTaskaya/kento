@@ -17,10 +17,13 @@ export default function register(Board) {
     // A point at radius r and angle u (degrees) in a slice drawn upright (its middle at twelve o'clock).
     const L = (r, u, cx = 200, cy = 200) => `${f2(cx + r * Math.sin(rad(u)))} ${f2(cy - r * Math.cos(rad(u)))}`;
 
-    // The crest of one slice, upright: it rises from the rim at the slice's start, curls over at its
-    // end and hooks down just past the border into the next slice. `k` mirrors it for right-to-left.
-    function crest(k = 1, cx = 200, cy = 200) {
-      const p = (r, u) => L(r, u * k, cx, cy);
+    // One crest, upright: it rises from the rim at its start, curls over at its end and hooks down
+    // just past it. `h` is half its span in degrees (drawn for 22.5: a longer crest stretches its rise
+    // and keeps the curl the same size), `amp` its height, `k` mirrors it for right-to-left.
+    function crest(k = 1, h = 22.5, amp = 1, cx = 200, cy = 200) {
+      const shift = h - 22.5;
+      const along = (u) => (u <= -1 ? -h + ((u + 22.5) * (2 * h - 23.5)) / 21.5 : u + shift);
+      const p = (r, u) => L(R.rim + (r - R.rim) * amp, along(u) * k, cx, cy);
       const body =
         `M${p(R.rim, -22.5)}` +
         `C${p(173, -10)} ${p(191, -1)} ${p(197, 9)}` +
@@ -42,10 +45,25 @@ export default function register(Board) {
       return { body, lip, grooves, claws };
     }
 
+    // A slice's crests: one for a slice of about 45 degrees, more for a wider one, so the rim stays a
+    // ring of breaking waves with any number of slices. The crest at the slice's end (in reading
+    // order) is the full one; the others are smaller swells.
+    function crestsOf(sl, k) {
+      const per = Math.max(1, Math.floor(sl.step / 40));
+      const span = sl.step / per;
+      return Array.from({ length: per }, (_, j) => ({
+        at: sl.a0 + (j + 0.5) * span,
+        h: span / 2,
+        big: k > 0 ? j === per - 1 : j === 0,
+      }));
+    }
+
     // Carved wave lines across a slice: rows of humps, each row cut twice, like grooves in a block.
+    // The humps keep their width in a wider slice.
     function grooves(sl, rows) {
       let d = '';
-      for (const [rb, humps, amp] of rows) {
+      for (const [rb, base, amp] of rows) {
+        const humps = Math.max(1, Math.round((base * sl.step) / 45));
         for (const off of [0, 4.2]) {
           let line = '';
           const n = 36;
@@ -64,10 +82,10 @@ export default function register(Board) {
     Board.define({
       id: 'dalga',
       fonts: {
-        brand: "'Eczar'",
-        display: "'Eczar'",
-        load: ["'Eczar'"],
-        credits: [{ family: 'Eczar', license: 'SIL Open Font License 1.1' }],
+        brand: "'Alegreya Variable'",
+        display: "'Alegreya Variable'",
+        load: ["'Alegreya Variable'"],
+        credits: [{ family: 'Alegreya', license: 'SIL Open Font License 1.1' }],
       },
       motion: { open: 190, close: 120, stagger: 12, apply: 680 },
 
@@ -199,7 +217,6 @@ export default function register(Board) {
             { cx: C, cy: C, r: R.rim + 1, fill: `url(#${wid})`, class: 'dl-sea', 'aria-hidden': 'true' },
             root,
           );
-          const c = crest(k);
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
             H.s('path', { d: H.sector(R.hub, 199, sl.a0, sl.a1), class: 'dl-hit' }, g);
@@ -225,24 +242,30 @@ export default function register(Board) {
               },
               g,
             );
-            // The crest, drawn upright and turned to the slice; its anchor is the rim at the slice's middle.
-            const cg = H.s(
-              'g',
-              { class: 'dl-crest', style: `transform-origin: ${L(R.rim, sl.mid).replace(' ', 'px ')}px` },
-              g,
-            );
-            const rot = H.s('g', { transform: `rotate(${f2(sl.mid)} ${C} ${C})` }, cg);
-            H.s('path', { d: c.body, class: 'dl-crest-body' }, rot);
-            H.s('path', { d: c.grooves, class: 'dl-crest-grooves' }, rot);
-            H.s('path', { d: c.lip, class: 'dl-lip' }, rot);
-            H.s('path', { d: c.claws, class: 'dl-claws' }, rot);
+            // The crests, drawn upright and turned into place; each grows from the rim at its middle.
+            for (const w of crestsOf(sl, k)) {
+              const c = crest(k, w.h, w.big ? 1 : 0.74);
+              const cg = H.s(
+                'g',
+                { class: 'dl-crest', style: `transform-origin: ${L(R.rim, w.at).replace(' ', 'px ')}px` },
+                g,
+              );
+              const rot = H.s('g', { transform: `rotate(${f2(w.at)} ${C} ${C})` }, cg);
+              H.s('path', { d: c.body, class: 'dl-crest-body' }, rot);
+              H.s('path', { d: c.grooves, class: 'dl-crest-grooves' }, rot);
+              H.s('path', { d: c.lip, class: 'dl-lip' }, rot);
+              H.s('path', { d: c.claws, class: 'dl-claws' }, rot);
+            }
             const ink = H.s('g', { class: 'dl-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            // A wider slice (fewer slices) gives a long label more room.
+            const chord = 2 * R.label * Math.sin(rad(Math.min(sl.step, 180) / 2));
+            const room = Math.round(Math.max(74, Math.min(100, chord * 0.66)));
+            if (sl.format) {
               H.block(ink, sl, R.label, {
                 size: 22,
                 subSize: 12.5,
                 gap: 0.5,
-                maxWidth: 74,
+                maxWidth: room,
                 minSize: 9,
                 cls: 'dl-lbl',
                 subCls: 'dl-sub',
@@ -253,7 +276,7 @@ export default function register(Board) {
                 iconSize: 21,
                 size: 14,
                 gap: 3,
-                maxWidth: 72,
+                maxWidth: room - 2,
                 minSize: 9,
                 cls: 'dl-lbl dl-lbl-s',
                 sub: null,
@@ -266,8 +289,15 @@ export default function register(Board) {
           H.s('circle', { cx: C, cy: C, r: R.hub + 9, class: 'dl-halo' }, hub);
           H.s('circle', { cx: C, cy: C, r: R.hub, class: 'dl-disc' }, hub);
           H.s('circle', { cx: C, cy: C, r: R.hub - 5, class: 'dl-ring' }, hub);
-          H.label(hub, C, C - 14, m.title, { maxWidth: 90, size: 17, minSize: 10, cls: 'dl-title', maxLines: 1 });
-          H.label(hub, C, C + 5.5, m.file, {
+          const dy = m.key ? 0 : 9;
+          H.label(hub, C, C - 14 + dy, m.title, {
+            maxWidth: 90,
+            size: 17,
+            minSize: 10,
+            cls: 'dl-title',
+            maxLines: 1,
+          });
+          H.label(hub, C, C + 5.5 + dy, m.file, {
             maxWidth: 84,
             size: 11.5,
             minSize: 8.5,
@@ -275,9 +305,11 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.6;
-          H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 2, class: 'dl-key' }, hub);
-          H.text(hub, C, C + 26.4, m.key, { class: 'dl-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.6;
+            H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 17, rx: 2, class: 'dl-key' }, hub);
+            H.text(hub, C, C + 26.4, m.key, { class: 'dl-keytext' });
+          }
 
           H.s('g', { class: 'dl-fx', 'aria-hidden': 'true' }, root);
         },
@@ -296,10 +328,13 @@ export default function register(Board) {
           if (t == null && reducedMotion()) return;
           const sl = m.slices[i];
           const k = m.dir === 'rtl' ? -1 : 1;
+          // The spray flies off the slice's full crest, around its curl.
+          const big = crestsOf(sl, k).find((w) => w.big);
+          const curl = big.at + k * (big.h - 22.5);
           let seed = 41 + i * 7;
           const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
           for (let j = 0; j < 22; j++) {
-            const u = sl.mid + k * (-10 + rnd() * 38);
+            const u = curl + k * (-10 + rnd() * 38);
             const r0 = 188 + rnd() * 10;
             const [x, y] = L(r0, u).split(' ').map(Number);
             const out = 20 + rnd() * 38;
