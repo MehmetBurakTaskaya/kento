@@ -28,6 +28,7 @@
     "icons": "node scripts/icons.mjs",
     "pdfium": "node scripts/fetch-pdfium.mjs",
     "shots": "node scripts/shoot-app.mjs",
+    "shots:themes": "node scripts/shoot-themes.mjs",
     "demo": "node scripts/record-demo.mjs",
     "stats": "node scripts/stats.mjs"
   },

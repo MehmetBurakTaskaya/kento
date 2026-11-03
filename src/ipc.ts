@@ -1061,6 +1061,8 @@ export function browserApi(params: URLSearchParams): Api {
     ...DEFAULT_SETTINGS,
     language: known(params.get('lang')) ?? 'system',
     appearance: (params.get('appearance') as Appearance | null) ?? 'system',
+    // ?theme=<id> shows a theme (scripts/shoot-themes.mjs).
+    theme: params.get('theme') ?? DEFAULT_SETTINGS.theme,
   };
   const resolve = (s: Settings) => (s.language === 'system' ? 'en' : s.language);
   let paused = false;
