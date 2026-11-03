@@ -29,6 +29,7 @@
   "settings.appearance.light": "Clair",
   "settings.appearance.dark": "Sombre",
   "settings.appearance.theme": "Thème",
+  "settings.appearance.original": "{name} (original)",
   "settings.appearance.sample": "photo.jpg",
   "settings.appearance.try": "Pointez un secteur pour l’entendre, cliquez dessus pour l’appliquer ; la roue s’ouvre ensuite à nouveau.",
   "settings.language.title": "Langue",

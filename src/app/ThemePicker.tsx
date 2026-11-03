@@ -74,6 +74,7 @@ function Card({
   focusable: boolean;
   onChoose: () => void;
 }) {
+  const { t } = useTranslation();
   const [ref, seen] = useSeen<HTMLDivElement>();
   const sample = useSample();
   return (
@@ -95,7 +96,8 @@ function Card({
       {seen ? <CardStage id={entry.id} mode={mode} sample={sample} /> : <span className="theme-card-stage" />}
       <span className="theme-card-name">
         {checked && <Icon name="check" size={14} />}
-        {entry.name}
+        {/* The theme Kento was designed with, the one without a pack, says so. */}
+        {entry.pack === null ? t('settings.appearance.original', { name: entry.name }) : entry.name}
       </span>
     </div>
   );

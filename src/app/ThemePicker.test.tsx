@@ -56,7 +56,10 @@ describe('the theme picker', () => {
     show('telefon');
     const group = screen.getByRole('radiogroup', { name: 'Theme' });
     const radios = within(group).getAllByRole('radio');
-    expect(radios.map((radio) => radio.textContent)).toEqual(catalog.map((theme) => theme.name));
+    // The built-in theme says it is the original.
+    expect(radios.map((radio) => radio.textContent)).toEqual(
+      catalog.map((theme) => (theme.pack === null ? `${theme.name} (original)` : theme.name)),
+    );
     const checked = radios.filter((radio) => radio.getAttribute('aria-checked') === 'true');
     expect(checked.map((radio) => radio.textContent)).toEqual(['Ahize']);
     expect(radios.filter((radio) => radio.tabIndex === 0)).toEqual(checked);
@@ -65,7 +68,7 @@ describe('the theme picker', () => {
   it('chooses a theme with a click, Space, the arrow keys, Home and End', () => {
     const onChange = show('telefon');
     const group = screen.getByRole('radiogroup');
-    fireEvent.click(screen.getByRole('radio', { name: 'Kasa' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Kasa (original)' }));
     expect(onChange).toHaveBeenLastCalledWith('steel');
     fireEvent.keyDown(screen.getByRole('radio', { name: 'Plak' }), { key: ' ' });
     expect(onChange).toHaveBeenLastCalledWith('pikap');

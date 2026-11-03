@@ -29,6 +29,7 @@
   "settings.appearance.light": "Светлое",
   "settings.appearance.dark": "Тёмное",
   "settings.appearance.theme": "Тема",
+  "settings.appearance.original": "{name} (оригинальная)",
   "settings.appearance.sample": "фото.jpg",
   "settings.appearance.try": "Наведите на сектор, чтобы услышать его, и щёлкните, чтобы применить; затем колесо откроется снова.",
   "settings.language.title": "Язык",

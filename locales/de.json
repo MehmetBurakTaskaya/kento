@@ -29,6 +29,7 @@
   "settings.appearance.light": "Hell",
   "settings.appearance.dark": "Dunkel",
   "settings.appearance.theme": "Design",
+  "settings.appearance.original": "{name} (Original)",
   "settings.appearance.sample": "Foto.jpg",
   "settings.appearance.try": "Zeige auf ein Segment, um es zu hören, und klicke darauf, um es anzuwenden; danach öffnet sich das Rad wieder.",
   "settings.language.title": "Sprache",

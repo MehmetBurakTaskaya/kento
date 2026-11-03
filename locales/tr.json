@@ -29,6 +29,7 @@
   "settings.appearance.light": "Açık",
   "settings.appearance.dark": "Koyu",
   "settings.appearance.theme": "Tema",
+  "settings.appearance.original": "{name} (orijinal)",
   "settings.appearance.sample": "foto.jpg",
   "settings.appearance.try": "Bir dilimin üzerine gel, sesini duy; tıklayıp uygula. Ardından çark yeniden açılır.",
   "settings.language.title": "Dil",
