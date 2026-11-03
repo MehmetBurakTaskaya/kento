@@ -15,14 +15,32 @@ export default function register(Board) {
     const f2 = (n) => Math.round(n * 100) / 100;
     const rad = (a) => (a * Math.PI) / 180;
     const pol = (r, a) => [C + r * Math.sin(rad(a)), C - r * Math.cos(rad(a))];
-    // The sweep rests on the boundary before the first slice, so at rest it never seems to pick one.
-    const restAngle = (m) => ((m.dir === 'rtl' ? 1 : -1) * m.step) / 2;
-    // Contacts drawn on the scope at rest (angle, radius): between the labels, never on them.
-    const CONTACTS = [
-      [34, 172],
-      [158, 92],
-      [207, 170],
-      [304, 88],
+    const reducedMotion = () =>
+      document.documentElement.classList.contains('reduce-motion') ||
+      (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    // The sweep rests on the boundary before the first slice (in reading order), so at rest it never seems
+    // to pick one, however many slices there are and however a ring of choices is turned.
+    const restAngle = (m) => (m.dir === 'rtl' ? m.slices[0].a1 : m.slices[0].a0);
+    // The slice boundary nearest to an angle.
+    function boundaryNear(m, target) {
+      let best = target;
+      let gap = Infinity;
+      for (const sl of m.slices) {
+        const d = Math.abs(((((sl.a0 - target) % 360) + 540) % 360) - 180);
+        if (d < gap - 1e-6) {
+          gap = d;
+          best = sl.a0;
+        }
+      }
+      return best;
+    }
+    // Contacts drawn on the scope at rest: two in the outer band, where no label reaches, and two near the
+    // centre on bearing lines between slices, so none ever sits on a label.
+    const contactsFor = (m, sgn) => [
+      [sgn * 34, 172],
+      [boundaryNear(m, sgn * 158), 90],
+      [sgn * 207, 170],
+      [boundaryNear(m, sgn * 304), 90],
     ];
 
     function lockBrackets(g, x, y, w, h) {
@@ -50,6 +68,8 @@ export default function register(Board) {
     }
 
     function render(root, m, H) {
+      // Wider slices (fewer of them) give their labels more room, up to what the scope's band holds.
+      const wide = Math.min(100, 2 * R.lbl * Math.sin(rad(Math.min(m.step, 180) / 2)) * 0.78);
       const u = H.uid('radar');
       const sgn = m.dir === 'rtl' ? -1 : 1;
       const defs = H.s('defs', {}, root);
@@ -114,8 +134,8 @@ export default function register(Board) {
       }
 
       const contacts = H.s('g', { class: 'rd-contacts' }, root);
-      for (const [a, r] of CONTACTS) {
-        const [x, y] = pol(r, sgn * a);
+      for (const [a, r] of contactsFor(m, sgn)) {
+        const [x, y] = pol(r, a);
         H.s('circle', { cx: f2(x), cy: f2(y), r: 5.5, class: 'rd-c-glow' }, contacts);
         H.s('circle', { cx: f2(x), cy: f2(y), r: 2, class: 'rd-c-dot' }, contacts);
         H.s(
@@ -168,12 +188,13 @@ export default function register(Board) {
         H.s('circle', { cx: f2(x), cy: f2(y), r: 8, class: 'rd-ping' }, top);
         H.s('circle', { cx: f2(x), cy: f2(y), r: 8, class: 'rd-ping rd-ping-2' }, top);
         const ink = H.s('g', { class: 'rd-ink' }, top);
-        if (m.kind === 'convert' && sl.sub) {
+        // A format is printed large, with its second line where it has one; tools and actions get an icon.
+        if (sl.format) {
           H.block(ink, sl, R.lbl, {
             size: 19,
             subSize: 11.5,
             gap: 2.5,
-            maxWidth: 72,
+            maxWidth: wide,
             minSize: 8.5,
             cls: 'rd-lbl rd-fmt',
             subCls: 'rd-sub',
@@ -184,16 +205,26 @@ export default function register(Board) {
             iconSize: 20,
             size: 11.5,
             gap: 3,
-            maxWidth: 74,
+            maxWidth: wide,
             minSize: 8,
             cls: 'rd-lbl',
             sub: null,
           });
         }
+        // The lock frames the label it was drawn round, however wide.
+        let bw = 84;
+        let bh = 52;
+        try {
+          const box = ink.getBBox();
+          bw = Math.max(bw, box.width + 18);
+          bh = Math.max(bh, box.height + 14);
+        } catch {
+          // Not measurable (not on screen): the usual frame.
+        }
         const lock = H.s('g', { class: 'rd-lock' }, top);
-        H.s('path', { d: lockBrackets(null, x, y, 84, 52), class: 'rd-lock-halo' }, lock);
-        H.s('path', { d: lockBrackets(null, x, y, 84, 52), class: 'rd-lock-line' }, lock);
-        H.s('path', { d: pencilLoop(x, y, 48, 31), class: 'rd-pencil', pathLength: 100 }, top);
+        H.s('path', { d: lockBrackets(null, x, y, bw, bh), class: 'rd-lock-halo' }, lock);
+        H.s('path', { d: lockBrackets(null, x, y, bw, bh), class: 'rd-lock-line' }, lock);
+        H.s('path', { d: pencilLoop(x, y, bw / 2 + 6, bh / 2 + 5), class: 'rd-pencil', pathLength: 100 }, top);
         H.s('circle', { cx: f2(bx), cy: f2(by), r: 4.2, class: 'rd-target' }, top);
         H.s(
           'path',
@@ -230,12 +261,15 @@ export default function register(Board) {
         maxLines: 1,
         attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
       });
-      const kt = H.text(hub, C, C + 21.6, m.key, { class: 'rd-keytext' });
-      const kw = kt.getComputedTextLength() + 12;
-      hub.insertBefore(
-        H.s('rect', { x: f2(C - kw / 2), y: C + 14.5, width: f2(kw), height: 14.5, rx: 2, class: 'rd-key' }),
-        kt,
-      );
+      // The key that opened the wheel, when one did.
+      if (m.key) {
+        const kt = H.text(hub, C, C + 21.6, m.key, { class: 'rd-keytext' });
+        const kw = kt.getComputedTextLength() + 12;
+        hub.insertBefore(
+          H.s('rect', { x: f2(C - kw / 2), y: C + 14.5, width: f2(kw), height: 14.5, rx: 2, class: 'rd-key' }),
+          kt,
+        );
+      }
     }
 
     // The sweep follows the pointer the short way round and rests on a boundary.
@@ -257,36 +291,12 @@ export default function register(Board) {
         void sw.getBoundingClientRect();
         sw.style.transition = '';
       } else {
+        // With reduced motion the sweep jumps instead of swinging.
+        sw.style.transition = reducedMotion() ? 'transform 60ms linear' : '';
         sw.style.transform = `rotate(${f2(next)}deg)`;
       }
       root.classList.toggle('rd-aiming', target != null);
     }
-
-    // Every voice goes through a gate that stays shut until its start time. A new gain node starts at 1, so
-    // without it a voice can click for one sample when its start falls exactly on a sample boundary.
-    function gate(ac, out, t) {
-      const g = ac.createGain();
-      g.gain.value = 0;
-      g.gain.setValueAtTime(1, t);
-      g.connect(out);
-      return g;
-    }
-    const gatedSounds = (sounds) =>
-      Object.fromEntries(
-        Object.entries(sounds).map(([k, fn]) => [
-          k,
-          (ac, out, t, X) =>
-            fn(
-              ac,
-              out,
-              t,
-              Object.assign({}, X, {
-                tone: (a, o, at, opt) => X.tone(a, gate(a, o, at), at, opt),
-                burst: (a, o, at, opt) => X.burst(a, gate(a, o, at), at, opt),
-              }),
-            ),
-        ]),
-      );
 
     Board.define({
       id: 'radar',
@@ -421,7 +431,7 @@ export default function register(Board) {
       defs: '',
       wheel: { render, update },
 
-      sounds: gatedSounds({
+      sounds: {
         open(ac, out, t, X) {
           // The scope powers up: a low thump and a soft rising tone.
           X.tone(ac, out, t, { type: 'triangle', f: 90, f2: 70, dur: 0.06, gain: 0.06, a: 0.003 });
@@ -439,7 +449,7 @@ export default function register(Board) {
           X.tone(ac, out, t + 0.36, { f: 2360, f2: 2180, dur: 0.3, gain: 0.012, a: 0.004 });
           X.tone(ac, out, t + 0.6, { f: 1170, f2: 1090, dur: 0.6, gain: 0.022, a: 0.01 });
         },
-      }),
+      },
     });
   })();
 }
