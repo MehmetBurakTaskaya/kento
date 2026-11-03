@@ -2,7 +2,7 @@
 /* Hologram: a projected HUD with iridescent rings, chamfered cells and scanlines. */
 
 [data-concept='hologram'] {
-  --hg-face: var(--font-brand-face), 'Segoe UI', system-ui, sans-serif;
+  --hg-face: var(--font-brand-face), 'Segoe UI', 'Geeza Pro', system-ui, sans-serif;
   --radius: 4px;
   --radius-sm: 3px;
 }

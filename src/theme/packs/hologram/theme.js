@@ -27,6 +27,12 @@ export default function register(Board) {
       };
     }
 
+    // The width a label may take at radius r: the slice's chord there, less a margin, within a cap.
+    function roomAt(sl, r, margin, cap) {
+      const half = Math.min(sl.step / 2, 70);
+      return Math.max(40, Math.min(cap, 2 * r * Math.sin((half * Math.PI) / 180) - margin));
+    }
+
     // Radii in the 400 x 400 view box.
     const R = {
       disc: 188,
@@ -314,12 +320,13 @@ export default function register(Board) {
             s('path', { d: brackets(H, sl, R.cellIn - 3, R.cellOut + 3, 6, 9), class: 'hg-br' }, vis);
             // Ghosts behind the label for the colour split, then the label itself.
             const ink = s('g', { class: 'hg-ink' }, vis);
-            if (m.kind === 'convert' && sl.sub) {
+            const room = roomAt(sl, R.lbl, 22, 128);
+            if (sl.format) {
               H.block(ink, sl, R.lbl, {
                 size: 22,
                 subSize: 12,
                 gap: 2,
-                maxWidth: 76,
+                maxWidth: room,
                 minSize: 10,
                 cls: 'hg-lbl hg-fmt',
                 subCls: 'hg-sub',
@@ -330,7 +337,7 @@ export default function register(Board) {
                 iconSize: 23,
                 size: 13.5,
                 gap: 4,
-                maxWidth: 78,
+                maxWidth: room + 2,
                 minSize: 9,
                 cls: 'hg-lbl hg-word',
                 sub: null,
@@ -360,8 +367,10 @@ export default function register(Board) {
           s('circle', { cx: C, cy: C, r: R.hubRing, class: 'hg-hub-dash', stroke: `url(#${uid}-ir)` }, hub);
           s('circle', { cx: C, cy: C, r: R.hub, class: 'hg-hub-ring' }, hub);
           const ht = s('g', { class: 'hg-hub-ink' }, hub);
-          H.label(ht, C, C - 15, m.title, { maxWidth: 98, size: 16, minSize: 10, cls: 'hg-title', maxLines: 1 });
-          H.label(ht, C, C + 4, m.file, { maxWidth: 92, size: 11.5, minSize: 8.5, cls: 'hg-file', maxLines: 1 });
+          const dy = m.key ? 0 : 8;
+          H.label(ht, C, C - 15 + dy, m.title, { maxWidth: 98, size: 16, minSize: 10, cls: 'hg-title', maxLines: 1 });
+          H.label(ht, C, C + 4 + dy, m.file, { maxWidth: 92, size: 11.5, minSize: 8.5, cls: 'hg-file', maxLines: 1 });
+          if (!m.key) return;
           const kt = H.text(ht, C, C + 25, m.key.toUpperCase(), { class: 'hg-keytext' });
           const kw = kt.getComputedTextLength() + 16;
           const ky = C + 17.5;
