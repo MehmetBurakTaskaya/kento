@@ -4,7 +4,7 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-11-03
 
 ### Added
 
@@ -13,6 +13,13 @@ All notable changes to Kento are recorded here. The format follows
   to fruit, tiles, glass and paper. Settings → Appearance → Theme shows every theme's wheel and one
   to try; the choice colours every window (Home, Library, Settings, the shelf and the corner cards)
   at once, and the wheel opens as fast in every theme.
+- The theme in use is shown at the foot of the side bar; clicking it opens the themes in Settings.
+- In every theme, a slice that opens a ring of choices carries a small mark on its outer edge, as
+  the steel dial's arrowhead does.
+
+### Fixed
+
+- The Settings icon is now a gear; it looked like a sun.
 
 ## [1.0.2] - 2026-11-03
 
@@ -88,6 +95,6 @@ download the links you ask for.
   Portuguese, Arabic (right to left), Korean, Italian and Russian. Kento follows the system
   language, and Settings → Language changes it at once in every window.
 
-[Unreleased]: https://github.com/MehmetBurakTaskaya/kento/compare/v1.0.2...HEAD
+[1.1.0]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.1.0
 [1.0.2]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.0.2
 [1.0.0]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.0.0
