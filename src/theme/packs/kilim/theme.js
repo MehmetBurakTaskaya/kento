@@ -120,47 +120,53 @@ export default function register(Board) {
         }
       }
       // Motif cells, snapped to the grid round each slice's place in the band.
+      // Motif cells, snapped to the grid. The band holds a motif for about every 45 degrees, so a wheel of
+      // two slices is woven as densely as one of eight; the motifs follow one another round the band.
+      const snap = (r, a) => [
+        Math.round((C + r * Math.sin((a * Math.PI) / 180) - 2) / S) * S + 2,
+        Math.round((C - r * Math.cos((a * Math.PI) / 180) - 2) / S) * S + 2,
+      ];
+      const inBand = (x, y) => {
+        const r = Math.hypot(x - C, y - C);
+        return r > R.ring + 1 && r <= R.band;
+      };
+      const EYE = [
+        [0, -2],
+        [-1, -1],
+        [1, -1],
+        [-2, 0],
+        [0, 0, 1],
+        [2, 0],
+        [-1, 1],
+        [1, 1],
+        [0, 2],
+      ];
+      let woven = 0;
       P.motif = m.slices.map((sl) => {
-        const [px, py] = [
-          C + R.motif * Math.sin((sl.mid * Math.PI) / 180),
-          C - R.motif * Math.cos((sl.mid * Math.PI) / 180),
-        ];
-        const cx = Math.round((px - 2) / S) * S + 2;
-        const cy = Math.round((py - 2) / S) * S + 2;
-        const rows = MOTIFS[sl.i % MOTIFS.length];
         const main = [];
         const second = [];
-        rows.forEach((row, i) => {
-          [...row].forEach((ch, j) => {
-            if (ch === '.') return;
-            const x = cx + (j - 3) * S,
-              y = cy + (i - 3) * S;
-            const r = Math.hypot(x - C, y - C);
-            if (r <= R.ring + 1 || r > R.band) return;
-            (ch === '#' ? main : second).push([x, y]);
+        const k = Math.max(1, Math.round(sl.step / 45));
+        const span = sl.step / k;
+        for (let q = 0; q < k; q++) {
+          const at = sl.a0 + span * (q + 0.5);
+          const [cx, cy] = snap(R.motif, at);
+          const rows = MOTIFS[woven++ % MOTIFS.length];
+          rows.forEach((row, i) => {
+            [...row].forEach((ch, j) => {
+              if (ch === '.') return;
+              const x = cx + (j - 3) * S,
+                y = cy + (i - 3) * S;
+              if (inBand(x, y)) (ch === '#' ? main : second).push([x, y]);
+            });
           });
-        });
-        // Two small eyes flank the motif along the band.
-        for (const side of [-1, 1]) {
-          const a = sl.mid + side * 11.5;
-          const ex = Math.round((C + R.motif * Math.sin((a * Math.PI) / 180) - 2) / S) * S + 2;
-          const ey = Math.round((C - R.motif * Math.cos((a * Math.PI) / 180) - 2) / S) * S + 2;
-          for (const [dx, dy, two] of [
-            [0, -2],
-            [-1, -1],
-            [1, -1],
-            [-2, 0],
-            [0, 0, 1],
-            [2, 0],
-            [-1, 1],
-            [1, 1],
-            [0, 2],
-          ]) {
-            const x = ex + dx * S,
-              y = ey + dy * S;
-            const r = Math.hypot(x - C, y - C);
-            if (r <= R.ring + 1 || r > R.band) continue;
-            (two ? second : main).push([x, y]);
+          // Two small eyes flank the motif along the band.
+          for (const side of [-1, 1]) {
+            const [ex, ey] = snap(R.motif, at + side * Math.min(11.5, span * 0.27));
+            for (const [dx, dy, two] of EYE) {
+              const x = ex + dx * S,
+                y = ey + dy * S;
+              if (inBand(x, y)) (two ? second : main).push([x, y]);
+            }
           }
         }
         return { main, second };
@@ -223,8 +229,11 @@ export default function register(Board) {
         { d: cellsPath([...P.hub, ...P.hubRing, ...P.hubEdge]), class: 'kl-tex', fill: 'url(#kilim-weave)' },
         g,
       );
-      H.label(g, C, C - 13, m.title, { maxWidth: 76, size: 15, minSize: 10, maxLines: 1, cls: 'kl-title' });
-      H.label(g, C, C + 4, m.file, { maxWidth: 70, size: 11.5, minSize: 8.5, maxLines: 1, cls: 'kl-file' });
+      // Without a key the title and file sit lower, in the middle of the diamond.
+      const dy = m.key ? 0 : 8;
+      H.label(g, C, C - 13 + dy, m.title, { maxWidth: 86, size: 15, minSize: 9, maxLines: 1, cls: 'kl-title' });
+      H.label(g, C, C + 4 + dy, m.file, { maxWidth: 70, size: 11.5, minSize: 8.5, maxLines: 1, cls: 'kl-file' });
+      if (!m.key) return;
       const kw = 14 + m.key.length * 6.4;
       H.s('rect', { x: f2(C - kw / 2), y: C + 14, width: f2(kw), height: 16, class: 'kl-key' }, g);
       H.text(g, C, C + 22.4, m.key, { class: 'kl-keytext' });
@@ -391,7 +400,7 @@ export default function register(Board) {
               g,
             );
             const c = H.s('g', { class: 'kl-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
+            if (sl.format) {
               H.block(c, sl, R.lbl, {
                 size: 21,
                 subSize: 13,
