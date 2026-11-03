@@ -18,9 +18,24 @@ export default function register(Board) {
     const reducedMotion = () =>
       document.documentElement.classList.contains('reduce-motion') ||
       (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-    // The watch is held a little turned, so its crown (and the hand at rest) sits on the boundary before the
-    // first slice. Mirrored in right-to-left languages, where the hand also runs the other way.
-    const restAngle = (m) => ((m.dir === 'rtl' ? 1 : -1) * m.step) / 2;
+    // The watch is held a little turned: its crown, and the zero of its scales, sit at half past eleven
+    // (half past twelve right to left, where the hand also runs the other way), the same on every wheel.
+    const crownAngle = (m) => (m.dir === 'rtl' ? 22.5 : -22.5);
+    // The hand rests on the slice boundary nearest the crown, so at rest it never seems to choose, however
+    // many slices there are and however a ring of choices is turned. With eight slices that is the zero.
+    function restAngle(m) {
+      const target = crownAngle(m);
+      let best = target;
+      let gap = Infinity;
+      for (const sl of m.slices) {
+        const d = Math.abs(((((sl.a0 - target) % 360) + 540) % 360) - 180);
+        if (d < gap - 1e-6) {
+          gap = d;
+          best = target + ((((sl.a0 - target) % 360) + 540) % 360) - 180;
+        }
+      }
+      return best;
+    }
 
     // One run of the chrono hand: from rest to the slice, the time it takes and when it arrives (ms).
     function runFor(m, i) {
@@ -71,7 +86,10 @@ export default function register(Board) {
     function render(root, m, H) {
       const u = H.uid('kronograf');
       const sgn = m.dir === 'rtl' ? -1 : 1;
-      const rest = restAngle(m);
+      const zero = crownAngle(m);
+      // Wider slices (fewer of them) give their labels more room, up to what the dial between the subdial
+      // and the track holds.
+      const wide = Math.min(86, Math.max(70, 2 * R.lbl * Math.sin(rad(Math.min(m.step, 180) / 2)) * 0.8));
       root.__krArc = H.arc;
       const defs = H.s('defs', {}, root);
       defs.innerHTML = `
@@ -84,7 +102,7 @@ export default function register(Board) {
 
       // Crown and pushers stick out of the case; drawn first so the case overlaps their stems.
       const parts = H.s('g', { class: 'kr-parts' }, root);
-      const crown = H.s('g', { transform: `rotate(${f2(rest)} ${C} ${C})` }, parts);
+      const crown = H.s('g', { transform: `rotate(${f2(zero)} ${C} ${C})` }, parts);
       H.s('rect', { x: C - 5.5, y: C - 204, width: 11, height: 10, class: 'kr-stem', fill: `url(#${u}-knurl)` }, crown);
       H.s(
         'rect',
@@ -98,7 +116,7 @@ export default function register(Board) {
         [1, 'kr-push-start'],
         [-1, 'kr-push-stop'],
       ]) {
-        const g = H.s('g', { transform: `rotate(${f2(rest + sgn * side * 42)} ${C} ${C})` }, parts);
+        const g = H.s('g', { transform: `rotate(${f2(zero + sgn * side * 42)} ${C} ${C})` }, parts);
         const p = H.s('g', { class: cls }, g);
         H.s('rect', { x: C - 4, y: C - 204, width: 8, height: 10, class: 'kr-stem', fill: `url(#${u}-knurl)` }, p);
         H.s(
@@ -115,14 +133,14 @@ export default function register(Board) {
       H.s('circle', { cx: C, cy: C, r: R.caseIn + 0.4, class: 'kr-bezel' }, cs);
       let bt = '';
       for (let s = 6; s < 60; s += 1) {
-        const a = rest + sgn * s * 6;
+        const a = zero + sgn * s * 6;
         const [x0, y0] = pol(R.caseIn - 1, a);
         const [x1, y1] = pol(R.caseIn - (s % 5 === 0 ? 4 : 2.4), a);
         bt += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
       }
       H.s('path', { d: bt, class: 'kr-bez-ticks' }, cs);
       for (const v of TACHY) {
-        const a = rest + sgn * (3600 / v) * 6;
+        const a = zero + sgn * (3600 / v) * 6;
         const [x, y] = pol(176.6, a);
         const up = ((a % 360) + 360) % 360;
         const turn = up > 95 && up < 265 ? a + 180 : a;
@@ -134,7 +152,7 @@ export default function register(Board) {
       H.s('circle', { cx: C, cy: C, r: R.track + 1.5, fill: `url(#${u}-dial)`, class: 'kr-dial' }, root);
       let tr = '';
       for (let k = 0; k < 300; k++) {
-        const a = rest + sgn * k * 1.2;
+        const a = zero + sgn * k * 1.2;
         const len = k % 25 === 0 ? 9 : k % 5 === 0 ? 5.5 : 2.4;
         const [x0, y0] = pol(R.track, a);
         const [x1, y1] = pol(R.track - len, a);
@@ -174,12 +192,13 @@ export default function register(Board) {
       for (const sl of m.slices) {
         const c = H.s('g', { class: 'kr-ink' + (sl.off ? ' is-off' : ''), 'data-for': sl.i }, names);
         c.style.setProperty('--i', sl.i);
-        if (m.kind === 'convert' && sl.sub) {
+        // A format is printed large, with its second line where it has one; tools and actions get an icon.
+        if (sl.format) {
           H.block(c, sl, R.lbl, {
             size: 21,
             subSize: 12.5,
             gap: 1.5,
-            maxWidth: 70,
+            maxWidth: wide,
             minSize: 9,
             cls: 'kr-lbl kr-fmt',
             subCls: 'kr-sub',
@@ -190,7 +209,7 @@ export default function register(Board) {
             iconSize: 20,
             size: 13,
             gap: 3,
-            maxWidth: 72,
+            maxWidth: wide,
             minSize: 8.5,
             cls: 'kr-lbl',
             sub: null,
@@ -208,7 +227,7 @@ export default function register(Board) {
       H.s('path', { d: az, class: 'kr-azurage' }, hub);
       let ht = '';
       for (let k = 0; k < 30; k++) {
-        const a = rest + sgn * k * 12;
+        const a = zero + sgn * k * 12;
         const [x0, y0] = pol(R.hub - 1.5, a);
         const [x1, y1] = pol(R.hub - (k % 5 === 0 ? 7 : 4), a);
         ht += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
@@ -229,12 +248,15 @@ export default function register(Board) {
         maxLines: 1,
         attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
       });
-      const kt = H.text(hub, C, C + 22.4, m.key.toLocaleUpperCase('en'), { class: 'kr-keytext' });
-      const kw = kt.getComputedTextLength() + 12;
-      hub.insertBefore(
-        H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 15, rx: 3, class: 'kr-key' }),
-        kt,
-      );
+      // The key that opened the wheel, when one did.
+      if (m.key) {
+        const kt = H.text(hub, C, C + 22.4, m.key.toLocaleUpperCase('en'), { class: 'kr-keytext' });
+        const kw = kt.getComputedTextLength() + 12;
+        hub.insertBefore(
+          H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 15, rx: 3, class: 'kr-key' }),
+          kt,
+        );
+      }
       H.s('circle', { cx: C, cy: C, r: 2.6, class: 'kr-pin' }, hub);
       // Crystal: light on the glass.
       H.s('path', { d: H.arc(R.bezIn - 6, 296, 338), class: 'kr-glint' }, root);
@@ -253,38 +275,16 @@ export default function register(Board) {
       root.classList.toggle('kr-arrived', st.selected != null);
     }
 
-    // Every voice goes through a gate that stays shut until its start time. A new gain node starts at 1, so
-    // without it a voice can click for one sample when its start falls exactly on a sample boundary.
-    function gate(ac, out, t) {
-      const g = ac.createGain();
-      g.gain.value = 0;
-      g.gain.setValueAtTime(1, t);
-      g.connect(out);
-      return g;
-    }
-    const gatedSounds = (sounds) =>
-      Object.fromEntries(
-        Object.entries(sounds).map(([k, fn]) => [
-          k,
-          (ac, out, t, X) =>
-            fn(
-              ac,
-              out,
-              t,
-              Object.assign({}, X, {
-                tone: (a, o, at, opt) => X.tone(a, gate(a, o, at), at, opt),
-                burst: (a, o, at, opt) => X.burst(a, gate(a, o, at), at, opt),
-              }),
-            ),
-        ]),
-      );
-
     Board.define({
       id: 'kronograf',
       fonts: {
-        brand: "'Archivo'",
-        load: ["'Archivo'"],
-        credits: [{ family: 'Archivo', license: 'SIL Open Font License 1.1' }],
+        brand: "'Sofia Sans'",
+        display: "'Sofia Sans Condensed'",
+        load: ["'Sofia Sans Condensed'", "'Sofia Sans'"],
+        credits: [
+          { family: 'Sofia Sans Condensed', license: 'SIL Open Font License 1.1' },
+          { family: 'Sofia Sans', license: 'SIL Open Font License 1.1' },
+        ],
       },
       motion: { open: 180, close: 110, stagger: 9, apply: APPLY },
 
@@ -436,7 +436,7 @@ export default function register(Board) {
         },
       },
 
-      sounds: gatedSounds({
+      sounds: {
         open(ac, out, t, X) {
           // The case snaps open with a small metallic ring.
           X.burst(ac, out, t, { type: 'bandpass', f: 3400, q: 3, dur: 0.012, gain: 0.14 });
@@ -461,7 +461,7 @@ export default function register(Board) {
           X.burst(ac, out, at(k.arrive + 12), { type: 'lowpass', f: 1500, q: 1, dur: 0.02, gain: 0.07 });
           X.tone(ac, out, at(k.arrive - 10), { f: 3600, dur: 0.09, gain: 0.01, a: 0.001 });
         },
-      }),
+      },
     });
   })();
 }

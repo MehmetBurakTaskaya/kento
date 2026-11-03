@@ -54,8 +54,8 @@
 [data-concept='kronograf'] .kr-tachy {
   fill: var(--kr-bezel-ink);
   font-size: 7.4px;
+  font-family: var(--font-display);
   font-weight: 600;
-  font-stretch: 80%;
   letter-spacing: 0.02em;
 }
 [data-concept='kronograf'] .kr-bez-in {
@@ -146,17 +146,15 @@
 }
 [data-concept='kronograf'] .kr-lbl {
   font-weight: 600;
-  font-stretch: 88%;
 }
 [data-concept='kronograf'] .kr-fmt {
-  font-weight: 750;
-  font-stretch: 80%;
+  font-family: var(--font-display);
+  font-weight: 760;
   letter-spacing: 0.03em;
 }
 [data-concept='kronograf'] .kr-sub {
   fill: var(--kr-sub);
   font-weight: 500;
-  font-stretch: 90%;
 }
 [data-concept='kronograf'] .kr-ink.is-selected .kr-sub {
   fill: var(--wheel-text-selected);
@@ -225,8 +223,8 @@
 }
 [data-concept='kronograf'] .kr-title {
   fill: var(--kr-hub-ink);
+  font-family: var(--font-display);
   font-weight: 700;
-  font-stretch: 78%;
   letter-spacing: 0.1em;
 }
 [data-concept='kronograf'] .wheel:is(:lang(ar), :lang(ja), :lang(zh), :lang(ko)) .kr-title {
@@ -245,8 +243,8 @@
 [data-concept='kronograf'] .kr-keytext {
   fill: var(--kr-hub-ink);
   font-size: 8px;
+  font-family: var(--font-display);
   font-weight: 700;
-  font-stretch: 80%;
   letter-spacing: 0.14em;
 }
 [data-concept='kronograf'] .kr-pin {
