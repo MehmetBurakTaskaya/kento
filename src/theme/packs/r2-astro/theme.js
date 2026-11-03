@@ -81,7 +81,7 @@ export default function register(Board) {
     const labelZones = (m, r, twist = () => 0) =>
       m.slices.map((sl) => {
         const [x, y] = P(r, sl.mid + twist(r));
-        return m.kind === 'convert' && sl.sub ? [x, y, 40, 27] : [x, y, 44, 29];
+        return sl.format ? [x, y, 40, 27] : [x, y, 44, 29];
       });
     const inZone = (x, y, zones) => zones.some(([cx, cy, rx, ry]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1);
 
@@ -104,21 +104,24 @@ export default function register(Board) {
         cls: 'ast-file',
         maxLines: 1,
       });
-      const kw = 16 + m.key.length * 6.6;
-      const key = H.s('g', { class: 'ast-key' }, txt);
-      H.s(
-        'rect',
-        {
-          x: f1(C - kw / 2),
-          y: o.yKey - 9,
-          width: f1(kw),
-          height: 18,
-          rx: o.keyRx == null ? 4 : o.keyRx,
-          class: 'ast-keycap',
-        },
-        key,
-      );
-      H.text(key, C, o.yKey + 0.5, m.key, { class: 'ast-keytext' });
+      // A ring opened without a key shows none; the result pill still has its place.
+      if (m.key) {
+        const kw = 16 + m.key.length * 6.6;
+        const key = H.s('g', { class: 'ast-key' }, txt);
+        H.s(
+          'rect',
+          {
+            x: f1(C - kw / 2),
+            y: o.yKey - 9,
+            width: f1(kw),
+            height: 18,
+            rx: o.keyRx == null ? 4 : o.keyRx,
+            class: 'ast-keycap',
+          },
+          key,
+        );
+        H.text(key, C, o.yKey + 0.5, m.key, { class: 'ast-keytext' });
+      }
       if (m.kind === 'convert') {
         const res = H.s('g', { class: 'ast-result', 'data-max': o.wPill || 104 }, txt);
         H.s('rect', { x: C - 40, y: o.yKey - 10.5, width: 80, height: 21, rx: 10.5, class: 'ast-pill' }, res);
@@ -127,16 +130,21 @@ export default function register(Board) {
       return txt;
     }
 
+    // The extension a format slice gives the file ("PNG", "TAR.GZ"); choices such as a resolution or
+    // a category of files name no extension and show no result.
+    const extension = (sl) => (sl && !sl.off && sl.format && /^[A-Z0-9][A-Z0-9.]*$/.test(sl.label) ? sl.label : null);
+
     function updateResult(root, m, st, H) {
       const res = root.querySelector('.ast-result');
       if (!res) return;
       const cur = st.hover == null ? st.selected : st.hover;
-      const sl = cur == null ? null : m.slices[cur];
-      const on = !!(sl && !sl.off && sl.sub);
-      root.querySelector('.ast-hub').classList.toggle('has-result', on);
-      if (!on) return;
+      const ext = extension(cur == null ? null : m.slices[cur]);
+      root.querySelector('.ast-hub').classList.toggle('has-result', !!ext);
+      if (!ext) return;
       const t = res.querySelector('.ast-result-text');
-      t.textContent = m.file.replace(/\.[^.]+$/, '') + '.' + sl.id;
+      // The file name comes isolated for right-to-left text; the result is isolated again.
+      const name = m.file.replace(/[\u2066-\u2069]/g, '').replace(/\.[^.]+$/, '');
+      t.textContent = '\u2068' + name + '.' + ext.toLowerCase() + '\u2069';
       const max = +res.dataset.max;
       H.fitWidth(t, max - 22, 12, 9);
       const w = Math.min(max, t.getComputedTextLength() + 22);
@@ -148,7 +156,8 @@ export default function register(Board) {
     // Every slice: a generous hit area, the visible segment and a flash layer for the apply effect.
     function sliceLabel(H, g, sl, m, r, o = {}) {
       const c = H.s('g', { class: 'ast-content' }, g);
-      if (m.kind === 'convert' && sl.sub) {
+      // Formats are set large in the display face, with their second line where they have one.
+      if (sl.format) {
         H.block(c, sl, r, {
           size: o.fmt || 24,
           subSize: o.subSize || 11.5,
@@ -379,15 +388,39 @@ export default function register(Board) {
     const ATL_R = { 1: 2.5, 2: 1.85, 3: 1.3 };
     const ATL_SHIFT = { convert: 0, tools: 3, actions: 5 };
 
-    function atlasStars(sl, m) {
-      const pat = sl.id === 'more' ? ATL_CLUSTER : ATL_PATTERNS[(sl.i + ATL_SHIFT[m.kind]) % ATL_PATTERNS.length];
+    // A constellation keeps its shape in a wide slice: it spans at most what it spans on a wheel of
+    // seven, and the field stars fill the rest of the band.
+    const atlasHalf = (sl) => Math.min(sl.step / 2, 360 / 14) - 6;
+
+    // fit turns the constellation `d` degrees off the slice's centre line and lifts the inner edge of
+    // its band by the share `c`, to keep it off the slice's label (atlasFit).
+    function atlasStars(sl, m, fit = { d: 0, c: 0 }) {
+      const pat =
+        sl.id === 'more' ? ATL_CLUSTER : ATL_PATTERNS[(sl.i + (ATL_SHIFT[m.kind] ?? 0)) % ATL_PATTERNS.length];
       const sgn = m.dir === 'rtl' ? -1 : 1;
-      const half = m.step / 2 - 6;
+      const half = atlasHalf(sl);
+      const b0 = lerp(ATL.B0, ATL.B1, fit.c);
       const pts = pat.s.map(([u, v, mag]) => {
-        const [x, y] = P(lerp(ATL.B0, ATL.B1, v), sl.mid + sgn * u * half);
+        const [x, y] = P(lerp(b0, ATL.B1, v), sl.mid + fit.d + sgn * u * half);
         return { x, y, mag, r: ATL_R[mag] };
       });
       return { pts, edges: pat.e };
+    }
+
+    // Where a slice's constellation keeps clear of its label (box): on the centre line if it can,
+    // else turned a little within the slice, else in a narrower band nearer the border.
+    function atlasFit(sl, m, box) {
+      const clear = (fit) =>
+        atlasStars(sl, m, fit).pts.every((p) => {
+          const dx = Math.max(box.x - p.x, 0, p.x - box.x - box.width);
+          const dy = Math.max(box.y - p.y, 0, p.y - box.y - box.height);
+          return dx * dx + dy * dy >= (p.r + 3) ** 2;
+        });
+      const slack = Math.max(0, sl.step / 2 - 4 - atlasHalf(sl));
+      for (const c of [0, 0.25, 0.45, 0.6])
+        for (let d = 0; d <= slack; d += 1.5)
+          for (const sgn of d ? [1, -1] : [1]) if (clear({ d: sgn * d, c })) return { d: sgn * d, c };
+      return { d: 0, c: 0.6 };
     }
 
     // A soft band of the galaxy crossing the chart: an arc of a large off-center circle, filled with a
@@ -581,24 +614,6 @@ export default function register(Board) {
               tk += `M${pt(P(ATL.B0 - 6, k * 7.5))}L${pt(P(ATL.B0 - 6 + (k % 2 ? 2.5 : 4.5), k * 7.5))}`;
             s('path', { d: tk, class: 'atl-grat' }, sky);
 
-            const zones = labelZones(m, ATL.LBL);
-            const conStars = m.slices.flatMap((sl) => atlasStars(sl, m).pts);
-            const rand = rng(211 + m.kind.length * 37);
-            const field = ['', '', ''];
-            for (let k = 0, kept = 0; k < 1400 && kept < 110; k++) {
-              const r = Math.sqrt((ATL.HUB + 9) ** 2 + rand() * ((ATL.S0 - 3) ** 2 - (ATL.HUB + 9) ** 2));
-              const a = rand() * 360;
-              const [x, y] = P(r, a);
-              const mag = rand();
-              if (inZone(x, y, zones)) continue;
-              if (conStars.some((c) => Math.hypot(x - c.x, y - c.y) < 7)) continue;
-              if (m.slices.some((sl) => Math.abs(angDiff(a, sl.a0)) * rad(1) * r < 3.2)) continue;
-              kept++;
-              const cls = mag < 0.12 ? 0 : mag < 0.45 ? 1 : 2;
-              field[cls] += dotPath(x, y, [1.05, 0.72, 0.48][cls]);
-            }
-            field.forEach((d, k) => d && s('path', { d, class: 'atl-field atl-field-' + k }, sky));
-
             // Ink: the graduated border and the slice dividers.
             const ink = s('g', { class: 'atl-ink' }, root);
             const ringP = (r, cls, delay) => {
@@ -623,6 +638,7 @@ export default function register(Board) {
             }
 
             // Slices: segment, scale band on the border, constellation and label.
+            const conStars = [];
             for (const sl of m.slices) {
               const g = H.slice(root, sl, m);
               s('path', { d: H.sector(ATL.IN - 6, 197, sl.a0, sl.a1), class: 'ast-hit' }, g);
@@ -630,8 +646,14 @@ export default function register(Board) {
               s('path', { d: seg, class: 'ast-seg' }, g);
               s('path', { d: seg, class: 'ast-flash' }, g);
               s('path', { d: H.sector(ATL.S0 + 1.2, ATL.S1 - 1.2, sl.a0, sl.a1, 3), class: 'atl-scaleband' }, g);
-              const { pts, edges } = atlasStars(sl, m);
               const con = s('g', { class: 'atl-con' }, g);
+              // The label first: the constellation keeps clear of it.
+              const label = sliceLabel(H, g, sl, m, ATL.LBL, { fmt: 24, subSize: 11.5 });
+              const fit = atlasFit(sl, m, label.getBBox());
+              g.dataset.turn = f2(fit.d);
+              g.dataset.lift = f2(fit.c);
+              const { pts, edges } = atlasStars(sl, m, fit);
+              conStars.push(...pts);
               if (edges.length) {
                 let d = '';
                 for (const [a, b] of edges) {
@@ -649,8 +671,25 @@ export default function register(Board) {
               for (const p of pts) s('circle', { cx: f2(p.x), cy: f2(p.y), r: p.r, class: 'atl-cstar' }, stars);
               const br = pts.reduce((a, b) => (b.mag < a.mag ? b : a));
               s('path', { d: sparkle(br.x, br.y, 7, -0.25), class: 'atl-con-spark' }, con);
-              sliceLabel(H, g, sl, m, ATL.LBL, { fmt: 24, subSize: 11.5 });
             }
+
+            // Faint field stars in the sky, clear of the labels and of the constellations as placed.
+            const zones = labelZones(m, ATL.LBL);
+            const rand = rng(211 + m.kind.length * 37);
+            const field = ['', '', ''];
+            for (let k = 0, kept = 0; k < 1400 && kept < 110; k++) {
+              const r = Math.sqrt((ATL.HUB + 9) ** 2 + rand() * ((ATL.S0 - 3) ** 2 - (ATL.HUB + 9) ** 2));
+              const a = rand() * 360;
+              const [x, y] = P(r, a);
+              const mag = rand();
+              if (inZone(x, y, zones)) continue;
+              if (conStars.some((c) => Math.hypot(x - c.x, y - c.y) < 7)) continue;
+              if (m.slices.some((sl) => Math.abs(angDiff(a, sl.a0)) * rad(1) * r < 3.2)) continue;
+              kept++;
+              const cls = mag < 0.12 ? 0 : mag < 0.45 ? 1 : 2;
+              field[cls] += dotPath(x, y, [1.05, 0.72, 0.48][cls]);
+            }
+            field.forEach((d, k) => d && s('path', { d, class: 'atl-field atl-field-' + k }, sky));
 
             // Hub: the pole of the chart, with an equator hairline and the pole mark where the new star forms.
             const hub = s('g', { class: 'ast-hub atl-hub' }, root);
@@ -695,7 +734,7 @@ export default function register(Board) {
           onSelect(root, m, i, H, t) {
             const sl = m.slices[i];
             const g = root.querySelector(`.slice[data-slice="${i}"]`);
-            const pts = atlasStars(sl, m).pts;
+            const pts = atlasStars(sl, m, { d: +g.dataset.turn || 0, c: +g.dataset.lift || 0 }).pts;
             const n = pts.length;
             const S0 = 30;
             const STG = 18;
@@ -1362,6 +1401,40 @@ export default function register(Board) {
       return b;
     }
 
+    // How far a planet reaches from its centre: rings and moons reach past the ball.
+    const orrReach = (info) =>
+      info.kind === 'cluster'
+        ? 10.5
+        : info.kind === 'ring'
+          ? info.size * 1.95
+          : info.kind === 'moon'
+            ? info.size + 6.5
+            : info.size + 2.4;
+
+    // Where a slice's planet stands: on its own orbit at the slice's centre line, unless its label
+    // (box, drawn first) reaches there. Then a little along its orbit, or on another orbit, and only
+    // then further along, always inside its slice, so planets and words never touch however many
+    // slices there are and however long the words.
+    function orrSpot(sl, m, info, box) {
+      const reach = orrReach(info) + 6;
+      const clear = (r, a) => {
+        const [x, y] = P(r, a);
+        const dx = Math.max(box.x - x, 0, x - box.x - box.width);
+        const dy = Math.max(box.y - y, 0, y - box.y - box.height);
+        return dx * dx + dy * dy >= reach * reach;
+      };
+      const orbits = [info.r, ...ORR.ORBITS.filter((r) => r !== info.r).sort((a, b) => b - a)];
+      const side = (sl.i % 2 ? -1 : 1) * (m.dir === 'rtl' ? -1 : 1);
+      for (const limit of [10, 180])
+        for (const r of orbits) {
+          const room = Math.min(limit, sl.step / 2 - ((reach + 2) / r) * (180 / Math.PI));
+          for (let d = 0; d <= room; d += 2)
+            for (const sgn of d ? [side, -side] : [1])
+              if (clear(r, sl.mid + sgn * d)) return { r, a: sl.mid + sgn * d };
+        }
+      return { r: info.r, a: sl.mid };
+    }
+
     function orrRays(len) {
       let d = '';
       for (let k = 0; k < 16; k++) {
@@ -1603,21 +1676,25 @@ export default function register(Board) {
               s('path', { d: seg, class: 'ast-flash' }, g);
               s('path', { d: H.sector(ORR.R0 + 1, ORR.R1 - 1, sl.a0, sl.a1, 3), class: 'orr-band' }, g);
               const info = orrPlanet(sl);
-              s('path', { d: H.arc(info.r, sl.a0 + 3, sl.a1 - 3), class: 'orr-arc' }, g);
-              const [px, py] = P(info.r, sl.mid);
-              s(
-                'circle',
-                { cx: f2(px), cy: f2(py), r: f2(info.kind === 'cluster' ? 10.5 : info.size + 2.4), class: 'orr-ghost' },
-                g,
-              );
+              const orbit = s('path', { class: 'orr-arc' }, g);
+              const ghost = s('circle', { class: 'orr-ghost' }, g);
               const swing = s('g', { class: 'orr-swing' }, g);
+              // The label first: the planet keeps clear of it.
+              const label = sliceLabel(H, g, sl, m, ORR.LBL, { fmt: 23, subSize: 11.5 });
+              const spot = orrSpot(sl, m, info, label.getBBox());
+              g.dataset.orbit = f2(spot.r);
+              g.dataset.at = f2(spot.a);
+              orbit.setAttribute('d', H.arc(spot.r, sl.a0 + 3, sl.a1 - 3));
+              const [px, py] = P(spot.r, spot.a);
+              ghost.setAttribute('cx', f2(px));
+              ghost.setAttribute('cy', f2(py));
+              ghost.setAttribute('r', f2(info.kind === 'cluster' ? 10.5 : info.size + 2.4));
               const place = s(
                 'g',
-                { class: 'orr-planet', transform: `translate(${f2(px)} ${f2(py)}) rotate(${f1(sl.mid)})` },
+                { class: 'orr-planet', transform: `translate(${f2(px)} ${f2(py)}) rotate(${f1(spot.a)})` },
                 swing,
               );
               orrBody(H, place, info, plFill);
-              sliceLabel(H, g, sl, m, ORR.LBL, { fmt: 23, subSize: 11.5 });
             }
 
             const hub = s('g', { class: 'ast-hub orr-hub' }, root);
@@ -1652,18 +1729,19 @@ export default function register(Board) {
             const sl = m.slices[i];
             const g = root.querySelector(`.slice[data-slice="${i}"]`);
             const sgn = m.dir === 'rtl' ? -1 : 1;
-            const info = orrPlanet(sl);
+            // The planet starts where render() put it.
+            const from = { r: +g.dataset.orbit || orrPlanet(sl).r, a: g.dataset.at ? +g.dataset.at : sl.mid };
             const T1 = 90;
             const T2 = 460;
             const pos = (ms) => {
               if (ms < T1) {
                 const u = easeInOut(span(ms, 0, T1));
-                return { r: info.r, a: sl.mid + sgn * 7 * u, s: 1 + 0.18 * u };
+                return { r: from.r, a: from.a + sgn * 7 * u, s: 1 + 0.18 * u };
               }
               const q = span(ms, T1, T2);
               return {
-                r: ORR.SUN + 3 + (info.r - ORR.SUN - 3) * (1 - q) ** 2.2,
-                a: sl.mid + sgn * (7 + 200 * q ** 2.2),
+                r: ORR.SUN + 3 + (from.r - ORR.SUN - 3) * (1 - q) ** 2.2,
+                a: from.a + sgn * (7 + 200 * q ** 2.2),
                 s: 1.18 - 0.6 * q,
               };
             };
