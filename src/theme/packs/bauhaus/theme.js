@@ -12,12 +12,130 @@ export default function register(Board) {
     // Each slice owns one primary; three repeat round the wheel so neighbors always differ.
     const HUES = ['red', 'yellow', 'blue'];
     const hue = (i, n) => HUES[(n % 3 === 1 && i === n - 1 ? 1 : i) % 3];
-    // Where the three shapes rest, and where they go relative to an applied slice (degrees).
+    // Where the three shapes rest, measured from the first slice the way the slices run, and where they
+    // go relative to an applied slice (degrees). At rest the triangle sits on a boundary between two
+    // slices, so it never seems to choose one, however many slices there are and however a ring turns.
     const REST = { tri: 202, sq: 315, disc: 108 };
     const AIM = { tri: 0, sq: 142, disc: -128 };
-    const lowerWord = (t, lang) => (t == null ? t : t.toLocaleLowerCase(lang));
-    // Format names are Latin acronyms: plain lowercase, so ICO never becomes "ıco" in Turkish.
+    // Format names are Latin acronyms: plain lowercase, so ICO never becomes "ıco" in Turkish. A ring's
+    // title can be one ("JPG"), so any all-capital Latin word is treated the same way.
     const lowerFmt = (t) => t.toLowerCase();
+    // Scripts without case keep their text as it is, Latin words inside them included.
+    const lowerWord = (t, lang) =>
+      t == null || /^(ja|zh|ko|ar)/.test(lang) ? t : /^[A-Z0-9]{2,}$/.test(t) ? lowerFmt(t) : t.toLocaleLowerCase(lang);
+
+    // Whether a point (relative to the centre) lies m inside a slice, between radii rin and rout.
+    // Tests the slice's own angles, so it holds for any number of slices and any turn.
+    function inSlice(sl, rin, rout, m) {
+      const toRad = (a) => (a * Math.PI) / 180;
+      const step = sl.a1 - sl.a0;
+      const away = (a, rr) => (a < 90 ? rr * Math.sin(toRad(a)) : rr);
+      return (x, y) => {
+        const rr = Math.hypot(x, y);
+        if (rr < rin + m || rr > rout - m) return false;
+        if (step >= 359.9) return true;
+        const rel = ((((Math.atan2(x, -y) * 180) / Math.PI - sl.a0) % 360) + 360) % 360;
+        return rel <= step && away(rel, rr) >= m && away(step - rel, rr) >= m;
+      };
+    }
+
+    // How wide a level label may be: its lines, centred dy below the point at radius r on the slice's
+    // centre line and hh high on each side, must stay inside the slice.
+    function room(sl, r, dy, hh, rin, rout, cap, m = 4) {
+      const inside = inSlice(sl, rin, rout, m);
+      const cx = r * Math.sin((sl.mid * Math.PI) / 180);
+      const cy = -r * Math.cos((sl.mid * Math.PI) / 180) + dy;
+      const fits = (w) => [-1, 0, 1].every((u) => [-1, 0, 1].every((v) => inside(cx + u * w, cy + v * hh)));
+      if (fits(cap / 2)) return cap;
+      let lo = 0;
+      let hi = cap / 2;
+      for (let k = 0; k < 12; k++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      return Math.max(2 * lo, 40);
+    }
+
+    // Draws a slice's label block where it has the most room, at whichever of the given radii lets its
+    // lines be widest (outward where the slice runs up or down, nearer the middle where it runs
+    // across), then checks the lines as drawn and narrows them until they sit inside the slice. A label
+    // is never shortened to fit: if only an ellipsis would make it fit, the last whole one is kept.
+    // A single word too long for the slice goes a size smaller before it is shortened.
+    function fitBlock(H, parent, sl, radii, o, rin, rout, cap, m = 2) {
+      const inside = inSlice(sl, rin, rout, m);
+      const iconH = o.icon ? o.iconSize + o.gap : 0;
+      const sub = o.sub === undefined ? sl.sub : o.sub;
+      const subH = sub ? o.gap + o.subSize * 1.1 : 0;
+      const best = (lines) =>
+        radii
+          .map((r) => [r, room(sl, r, iconH / 2, (lines * o.size * 1.1 + subH) / 2, rin, rout, cap, m + 2)])
+          .reduce((a, b) => (b[1] > a[1] + 1 ? b : a));
+      const draw = (r, width) => {
+        parent.textContent = '';
+        return H.block(parent, sl, r, { ...o, maxWidth: width });
+      };
+      // How wide each line as drawn may be where it sits, and whether every line is within that.
+      const lines = (parts) => {
+        const spans = [...parts.label.querySelectorAll('tspan')];
+        const list = (spans.length ? spans : [parts.label]).map((line) => [line, parts.label]);
+        if (parts.sub) list.push([parts.sub, parts.sub]);
+        return list.map(([line, text]) => {
+          const hh = +text.getAttribute('font-size') * 0.42;
+          const cx = +text.getAttribute('x') - 200;
+          const cy = line.getStartPositionOfChar(0).y - 200;
+          const ok = (half) => [-1, 0, 1].every((u) => [-1, 1].every((v) => inside(cx + u * half, cy + v * hh)));
+          let allowed = cap;
+          if (!ok(cap / 2)) {
+            let lo = 0;
+            let hi = cap / 2;
+            for (let k = 0; k < 10; k++) {
+              const half = (lo + hi) / 2;
+              if (ok(half)) lo = half;
+              else hi = half;
+            }
+            allowed = 2 * lo;
+          }
+          return { width: line.getComputedTextLength(), allowed };
+        });
+      };
+      const shortened = () => !!parent.querySelector('[data-fit="shortened"]');
+      let [r, width] = best(1);
+      let parts = draw(r, width);
+      // A single long word that would need an ellipsis may go a size smaller first.
+      if (shortened()) {
+        o = { ...o, minSize: Math.max(8.5, o.minSize - 1.5) };
+        parts = draw(r, width);
+      }
+      for (let k = 0; k < 4 && !shortened(); k++) {
+        const drawn = lines(parts);
+        const over = drawn.filter((line) => line.width > line.allowed + 0.5);
+        if (!over.length) break;
+        const last = [r, width];
+        r = best(drawn.length - (parts.sub ? 1 : 0))[0];
+        width = Math.max(30, Math.min(width * 0.96, ...over.map((line) => line.allowed)));
+        parts = draw(r, width);
+        if (shortened()) {
+          [r, width] = last;
+          parts = draw(r, width);
+          break;
+        }
+      }
+      parts.r = r;
+      return parts;
+    }
+
+    function restAngles(m) {
+      const sign = m.dir === 'rtl' ? -1 : 1;
+      const base = m.slices.length ? m.slices[0].mid : 0;
+      const rest = {};
+      for (const key of Object.keys(REST)) rest[key] = base + sign * REST[key];
+      if (m.n > 1) {
+        const gap = (a, b) => Math.abs(((((a - b) % 360) + 540) % 360) - 180);
+        rest.tri = m.slices.map((sl) => sl.a0).reduce((a, b) => (gap(b, rest.tri) < gap(a, rest.tri) ? b : a));
+      }
+      return rest;
+    }
 
     // Turns an orbit group to an angle the short way round; angles accumulate so a shape never spins back.
     function turn(g, goal, animate) {
@@ -46,10 +164,14 @@ export default function register(Board) {
 
     Board.define({
       id: 'bauhaus',
+      // League Spartan has no Cyrillic; Jost, as geometric, draws those letters.
       fonts: {
-        brand: "'League Spartan'",
-        load: ["'League Spartan'"],
-        credits: [{ family: 'League Spartan', license: 'SIL Open Font License 1.1' }],
+        brand: "'League Spartan', 'Jost'",
+        load: ["'League Spartan', 'Jost'"],
+        credits: [
+          { family: 'League Spartan', license: 'SIL Open Font License 1.1' },
+          { family: 'Jost', license: 'SIL Open Font License 1.1' },
+        ],
       },
       motion: { open: 170, close: 110, stagger: 12, apply: 640 },
       palette: {
@@ -162,6 +284,8 @@ export default function register(Board) {
         render(root, m, H) {
           const s = H.s;
           const C = H.C;
+          const rest = restAngles(m);
+          root.__rest = rest;
 
           // A soft offset shadow, like a paper disc laid on the desk.
           s('circle', { cx: C + 5, cy: C + 7, r: R.face + 2, class: 'bh-drop' }, root);
@@ -171,7 +295,7 @@ export default function register(Board) {
           const sqOrbit = s('g', { class: 'bh-orbit bh-orbit-sq' }, back);
           const sqUp = s('g', { class: 'bh-upright' }, s('g', { class: 'bh-orbit-in' }, sqOrbit));
           s('rect', { x: C - 25, y: C - R.face - 28, width: 50, height: 50, class: 'bh-sq' }, sqUp);
-          turn(sqOrbit, REST.sq, false);
+          turn(sqOrbit, rest.sq, false);
 
           s('circle', { cx: C, cy: C, r: R.face, class: 'bh-face' }, root);
           for (const sl of m.slices) {
@@ -184,31 +308,22 @@ export default function register(Board) {
             s('path', { d: H.sector(R.band, R.face, sl.a0, sl.a1), class: 'bh-band' }, g);
             const ink = s('g', { class: 'bh-ink' }, g);
             const word = Object.assign({}, sl, {
-              label: m.kind === 'convert' && sl.sub ? lowerFmt(sl.label) : lowerWord(sl.label, m.lang),
+              label: sl.format ? lowerFmt(sl.label) : lowerWord(sl.label, m.lang),
               sub: lowerWord(sl.sub, m.lang),
             });
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(ink, word, R.lbl, {
-                size: 26,
-                subSize: 13.5,
-                gap: 1,
-                maxWidth: 76,
-                minSize: 12,
-                cls: 'bh-lbl bh-fmt',
-                subCls: 'bh-sub',
-              });
-            } else {
-              H.block(ink, word, R.lbl, {
-                icon: true,
-                iconSize: 24,
-                size: 15,
-                gap: 4,
-                maxWidth: 76,
-                minSize: 9.5,
-                cls: 'bh-lbl bh-word',
-                sub: null,
-              });
-            }
+            const wide = sl.step >= 70;
+            const o = sl.format
+              ? { size: sl.sub ? 26 : 30, subSize: 13.5, gap: 1, minSize: 12, cls: 'bh-lbl bh-fmt', subCls: 'bh-sub' }
+              : {
+                  icon: true,
+                  iconSize: wide ? 28 : 23,
+                  size: wide ? 17 : 15,
+                  gap: 4,
+                  minSize: 10,
+                  cls: 'bh-lbl bh-word',
+                  sub: null,
+                };
+            fitBlock(H, ink, word, [R.lbl, R.lbl + 6, R.lbl - 6, R.lbl - 12], o, R.hub, R.band, 116);
           }
 
           // The grid: radial rules between slices, the band's inner circle and the heavy rim.
@@ -225,18 +340,18 @@ export default function register(Board) {
 
           // Red disc and yellow triangle in front of the rim.
           const front = s('g', { class: 'bh-comp bh-comp-front', 'aria-hidden': 'true' }, root);
-          const orbitFront = (key) => {
+          const orbitFront = (key, angle) => {
             const g = s('g', { class: `bh-orbit bh-orbit-${key}` }, front);
-            turn(g, REST[key], false);
+            turn(g, angle, false);
             return s('g', { class: 'bh-orbit-in' }, g);
           };
-          s('circle', { cx: C, cy: C - R.face - 14, r: 18, class: 'bh-disc' }, orbitFront('disc'));
+          s('circle', { cx: C, cy: C - R.face - 14, r: 18, class: 'bh-disc' }, orbitFront('disc', rest.disc));
           // The triangle's tip touches the band; its base stands outside the rim.
           const tip = C - R.band + 4;
           s(
             'path',
             { d: `M${C} ${tip}L${C + 24} ${tip - 44}L${C - 24} ${tip - 44}Z`, class: 'bh-tri' },
-            orbitFront('tri'),
+            orbitFront('tri', rest.tri),
           );
 
           // Hub: a solid disc with the wheel's name, the file and the key on a yellow tag.
@@ -249,11 +364,20 @@ export default function register(Board) {
             cls: 'bh-title',
             maxLines: 1,
           });
-          H.label(hub, C, C + 3, m.file, { maxWidth: 84, size: 12, minSize: 9, cls: 'bh-file', maxLines: 1 });
-          const key = lowerWord(m.key, m.lang);
-          const kw = 14 + key.length * 7;
-          s('rect', { x: f2(C - kw / 2), y: C + 16, width: f2(kw), height: 17, class: 'bh-key' }, hub);
-          H.text(hub, C, C + 25.5, key, { class: 'bh-keytext' });
+          H.label(hub, C, C + (m.key ? 3 : 8), m.file, {
+            maxWidth: 84,
+            size: 12,
+            minSize: 9,
+            cls: 'bh-file',
+            maxLines: 1,
+          });
+          if (m.key) {
+            const tag = s('rect', { y: C + 16, height: 17, class: 'bh-key' }, hub);
+            const text = H.text(hub, C, C + 25.5, lowerWord(m.key, m.lang), { class: 'bh-keytext' });
+            const kw = Math.min(96, Math.ceil(text.getComputedTextLength()) + 16);
+            tag.setAttribute('x', f2(C - kw / 2));
+            tag.setAttribute('width', f2(kw));
+          }
         },
 
         // The shapes stay put while pointing; an applied slice draws them into a new composition.
@@ -264,7 +388,7 @@ export default function register(Board) {
           if (was === root.__sel) return;
           for (const key of Object.keys(REST)) {
             const g = root.querySelector(`.bh-orbit-${key}`);
-            const goal = sel ? sel.mid + (m.dir === 'rtl' ? -AIM[key] : AIM[key]) : REST[key];
+            const goal = sel ? sel.mid + (m.dir === 'rtl' ? -AIM[key] : AIM[key]) : root.__rest[key];
             turn(g, goal, !!sel);
           }
         },
