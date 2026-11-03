@@ -120,7 +120,8 @@ export default function register(Board) {
       const swing = H.s('g', { class: 'tz-swing' }, drop);
       const shadow = H.s('path', { class: 'tz-tag-shadow' }, swing);
       const tag = H.s('path', { class: 'tz-tag' }, swing);
-      const more = !sl.sub;
+      // A format is stamped large; a choice or "More…" in words, smaller and on up to two lines.
+      const more = !sl.format;
       const main = H.label(swing, x, 0, stamp(sl.label, m.lang), {
         maxWidth: 58,
         size: more ? 16 : 21,
@@ -296,14 +297,17 @@ export default function register(Board) {
         const [sx, sy] = H.polar(R_HUB - 10.5, a);
         screw(g, H, sx, sy, 2.6, 25 + k * 50);
       });
-      H.label(g, C, C - 16, stamp(m.title, m.lang), {
+      // Without a key the title and the file move down to the middle of the plate.
+      const dy = m.key ? 0 : 8;
+      H.label(g, C, C - 16 + dy, stamp(m.title, m.lang), {
         maxWidth: 86,
         size: 16,
         minSize: 10,
         maxLines: 1,
         cls: 'tz-stamp tz-hub-title',
       });
-      H.label(g, C, C + 3, m.file, { maxWidth: 88, size: 12, minSize: 9, maxLines: 1, cls: 'tz-hub-file' });
+      H.label(g, C, C + 3 + dy, m.file, { maxWidth: 88, size: 12, minSize: 9, maxLines: 1, cls: 'tz-hub-file' });
+      if (!m.key) return;
       const kw = 14 + m.key.length * 6.4;
       H.s('rect', { x: f2(C - kw / 2), y: C + 17, width: f2(kw), height: 18, rx: 4, class: 'tz-key-side' }, g);
       H.s('rect', { x: f2(C - kw / 2), y: C + 15, width: f2(kw), height: 17, rx: 4, class: 'tz-key' }, g);
