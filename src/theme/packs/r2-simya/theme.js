@@ -52,6 +52,8 @@ export default function register(Board) {
     }
     const dotPath = (x, y, r) => `M${f2(x - r)} ${f2(y)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
     const polyD = (pts, close) => 'M' + pts.map((p) => `${f2(p[0])} ${f2(p[1])}`).join('L') + (close ? 'Z' : '');
+    // Textures only need a tenth of a unit.
+    const polyD1 = (pts, close) => 'M' + pts.map((p) => `${f1(p[0])} ${f1(p[1])}`).join('L') + (close ? 'Z' : '');
     function rhombus(H, r, a, len, wid) {
       const da = ((wid / r) * 180) / Math.PI;
       return polyD([H.polar(r + len, a), H.polar(r, a + da), H.polar(r - len, a), H.polar(r, a - da)], true);
@@ -84,7 +86,7 @@ export default function register(Board) {
       el.style.strokeDasharray = `${(b - a).toFixed(4)} 3`;
       el.style.strokeDashoffset = (-a).toFixed(4);
     }
-    // A polyline as a filled ribbon whose width at point k is width(k).
+    // A polyline as a filled ribbon whose width at point k is width(k); a texture, so to a tenth of a unit.
     function ribbon(pts, width) {
       const n = pts.length - 1;
       const left = [];
@@ -99,7 +101,7 @@ export default function register(Board) {
         left.push([p[0] + ox, p[1] + oy]);
         right.push([p[0] - ox, p[1] - oy]);
       });
-      return polyD(left.concat(right.reverse()), true);
+      return polyD1(left.concat(right.reverse()), true);
     }
     // Label centers, so textures can keep away from them.
     const labelCenters = (H, m, r) => m.slices.map((sl) => H.polar(r, sl.mid));
@@ -174,13 +176,112 @@ export default function register(Board) {
     ];
 
     // ------------------------------------------------------------------ shared wheel
+    // A Convert format names its file's new extension when its label is that extension in capitals ("JPG",
+    // "TAR.GZ"); the choices of a ring ("Normal", "150 dpi") do not, and preview no file name.
+    const plain = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    function extension(sl) {
+      if (!sl || !sl.format || sl.off) return null;
+      const label = sl.label.trim();
+      if (!label || label !== label.toLocaleUpperCase('en') || plain(label) !== plain(sl.id)) return null;
+      return label.toLowerCase();
+    }
+    // The dragged file under its new extension; the app hands the name isolated (U+2068 … U+2069).
+    function renamed(file, ext) {
+      const iso = /^\u2068([\s\S]*)\u2069$/.exec(file);
+      const name = (iso ? iso[1] : file).replace(/\.[^.]+$/, '') + '.' + ext;
+      return iso ? '\u2068' + name + '\u2069' : name;
+    }
+
+    // The boxes a slice's content covers: its icon and each line of its labels, as [x, y, w, h].
+    function boxes(fit) {
+      const out = [];
+      for (const ico of fit.querySelectorAll('.ico')) {
+        const t = /translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\)/.exec(ico.getAttribute('transform') || '');
+        if (t) out.push([+t[1], +t[2], 24 * t[3], 24 * t[3]]);
+      }
+      for (const text of fit.querySelectorAll('text')) {
+        const size = +text.getAttribute('font-size') || 12;
+        const x = +text.getAttribute('x');
+        let y = +text.getAttribute('y');
+        const spans = text.querySelectorAll('tspan');
+        for (const line of spans.length ? spans : [text]) {
+          if (line !== text) y += +line.getAttribute('dy') || 0;
+          const w = line.getComputedTextLength();
+          out.push([x - w / 2, y - size * 0.52, w, size * 1.04]);
+        }
+      }
+      return out;
+    }
+
+    // Keeps each slice's content inside its segment: clear of the hub ring and its node, the outer ring
+    // and the dividers. A block that does not fit (a long German word, two lines in a narrow slice) moves
+    // out or in along its slice's centre line, and only when that is not enough is it drawn smaller. All
+    // boxes are read first and all moves written after, so the text is laid out once.
+    function settle(items, m, H, rIn, rOut) {
+      const pad = 3;
+      const measured = items.map((it) => ({ ...it, rects: boxes(it.fit) }));
+      for (const { fit, sl, r, rects } of measured) {
+        if (!rects.length) continue;
+        const [px, py] = H.polar(r, sl.mid);
+        const ux = Math.sin((sl.mid * Math.PI) / 180);
+        const uy = -Math.cos((sl.mid * Math.PI) / 180);
+        const a0 = (sl.a0 * Math.PI) / 180;
+        const a1 = (sl.a1 * Math.PI) / 180;
+        const sides =
+          m.n > 1
+            ? [
+                [Math.cos(a0), Math.sin(a0)],
+                [-Math.cos(a1), -Math.sin(a1)],
+              ]
+            : [];
+        const over = (s, d) => {
+          let worst = -Infinity;
+          for (const [x, y, w, h] of rects) {
+            const x0 = px + (x - px) * s + ux * d - C;
+            const y0 = py + (y - py) * s + uy * d - C;
+            const x1 = x0 + w * s;
+            const y1 = y0 + h * s;
+            const nx = Math.max(x0, Math.min(0, x1));
+            const ny = Math.max(y0, Math.min(0, y1));
+            worst = Math.max(worst, rIn + pad - Math.hypot(nx, ny));
+            for (const [cx, cy] of [
+              [x0, y0],
+              [x1, y0],
+              [x0, y1],
+              [x1, y1],
+            ]) {
+              worst = Math.max(worst, Math.hypot(cx, cy) - (rOut - pad));
+              for (const [sx, sy] of sides) worst = Math.max(worst, pad - (cx * sx + cy * sy));
+            }
+          }
+          return worst;
+        };
+        if (over(1, 0) <= 0) continue;
+        let best = { s: 1, d: 0, v: over(1, 0) };
+        search: for (const s of [1, 0.95, 0.9, 0.86, 0.82]) {
+          for (let k = 1; k <= 48; k++) {
+            const d = (k % 2 ? 1 : -1) * Math.ceil(k / 2);
+            const v = over(s, d);
+            if (v <= 0) {
+              best = { s, d, v };
+              break search;
+            }
+            if (v < best.v - 0.5) best = { s, d, v };
+          }
+        }
+        const ex = (1 - best.s) * px + ux * best.d;
+        const ey = (1 - best.s) * py + uy * best.d;
+        fit.setAttribute('transform', `matrix(${f2(best.s)} 0 0 ${f2(best.s)} ${f2(ex)} ${f2(ey)})`);
+      }
+    }
+
     // V describes one variant: geometry, the hooks that draw its parts, and its apply effect.
     function makeWheel(V) {
       const G = V.geo;
       function sealContent(holder, m, sl, H) {
         holder.textContent = '';
         if (!sl) return;
-        if (m.kind === 'convert' && sl.sub) {
+        if (sl.format) {
           H.label(holder, 0, 0.5, sl.label, {
             maxWidth: G.sealText,
             size: V.sealFont,
@@ -193,8 +294,8 @@ export default function register(Board) {
         }
       }
       function captionText(m, sl) {
-        if (m.kind === 'convert' && sl.sub) return m.file.replace(/\.[^.]+$/, '') + '.' + sl.id;
-        return sl.label;
+        const ext = extension(sl);
+        return ext && m.file ? renamed(m.file, ext) : sl.label;
       }
 
       return {
@@ -215,19 +316,26 @@ export default function register(Board) {
           V.hub(hub, ctx);
           s('g', { class: 's2-fx-below' }, hub);
           const txt = s('g', { class: 's2-hub-text' }, hub);
-          H.label(txt, C, C - 19, m.title, {
+          // With nothing under them (no key, no result to preview) the title and the file sit lower, in the middle.
+          const results = m.slices.some(extension);
+          const dy = m.key || results ? 0 : 10;
+          H.label(txt, C, C - 19 + dy, m.title, {
             maxWidth: 118,
             size: V.titleFont,
             minSize: 13,
             cls: 's2-title',
             maxLines: 1,
           });
-          H.label(txt, C, C + 3, m.file, { maxWidth: 110, size: 12, minSize: 9, cls: 's2-file', maxLines: 1 });
-          const kw = 16 + m.key.length * 6.8;
-          const key = s('g', { class: 's2-key' }, txt);
-          s('rect', { x: f1(C - kw / 2), y: C + 18, width: f1(kw), height: 18, rx: 4, class: 's2-keycap' }, key);
-          H.text(key, C, C + 27.5, m.key, { class: 's2-keytext' });
-          if (m.kind === 'convert') {
+          if (m.file)
+            H.label(txt, C, C + 3 + dy, m.file, { maxWidth: 110, size: 12, minSize: 9, cls: 's2-file', maxLines: 1 });
+          // The key that opened the wheel, on a cap; none when the wheel came from a shortcut or a menu.
+          if (m.key) {
+            const kw = 16 + m.key.length * 6.8;
+            const key = s('g', { class: 's2-key' }, txt);
+            s('rect', { x: f1(C - kw / 2), y: C + 18, width: f1(kw), height: 18, rx: 4, class: 's2-keycap' }, key);
+            H.text(key, C, C + 27.5, m.key, { class: 's2-keytext' });
+          }
+          if (results) {
             const res = s('g', { class: 's2-result' }, txt);
             s('rect', { x: C - 40, y: C + 16, width: 80, height: 23, rx: 11.5, class: 's2-pill' }, res);
             H.text(res, C, C + 28, '', { class: 's2-result-text' });
@@ -255,6 +363,7 @@ export default function register(Board) {
           s('g', { class: 's2-fx-above' }, hub);
 
           // Slices.
+          const items = [];
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
             const segD = H.sector(G.rin + 2, G.rout - 2, sl.a0, sl.a1, G.gap);
@@ -279,30 +388,37 @@ export default function register(Board) {
             s('g', { class: 's2-glyph-glow', html: gm }, gi);
             s('g', { class: 's2-glyph-ink', html: gm }, gi);
             V.node(g, sl, ctx);
+            // A Convert format is its name in the display face, large, with its sub-label where it has
+            // one; everything else an icon over its label. Wider slices give a label more room.
             const c = s('g', { class: 's2-content' }, g);
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(c, sl, G.lbl, {
+            const fit = s('g', {}, c);
+            const chord = sl.step >= 180 ? Infinity : 2 * G.lbl * Math.sin((sl.step * Math.PI) / 360) * 0.8;
+            const maxWidth = Math.max(80, Math.min(116, chord));
+            if (sl.format) {
+              H.block(fit, sl, G.lbl, {
                 size: V.fmtFont,
                 subSize: 12,
                 gap: 0,
-                maxWidth: 80,
+                maxWidth,
                 minSize: 13,
                 cls: 's2-lbl s2-fmt',
                 subCls: 's2-sub',
               });
             } else {
-              H.block(c, sl, G.lbl, {
+              H.block(fit, sl, G.lbl, {
                 icon: true,
                 iconSize: 24,
                 size: 14.5,
                 gap: 4,
-                maxWidth: 80,
+                maxWidth,
                 minSize: 9.5,
                 cls: 's2-lbl s2-word',
                 sub: null,
               });
             }
+            items.push({ fit, sl, r: G.lbl });
           }
+          settle(items, m, H, G.rin + 5, G.rout - 1);
           V.openFx(s('g', { class: 's2-fx' }, root), ctx);
         },
 
@@ -310,12 +426,12 @@ export default function register(Board) {
           const res = root.querySelector('.s2-result');
           if (res) {
             const cur = st.hover ?? st.selected;
-            const sl = cur == null ? null : m.slices[cur];
-            const on = !!(sl && !sl.off && sl.sub);
+            const ext = cur == null ? null : extension(m.slices[cur]);
+            const on = !!(ext && m.file);
             root.querySelector('.s2-hubc').classList.toggle('has-result', on);
             if (on) {
               const t = res.querySelector('.s2-result-text');
-              t.textContent = m.file.replace(/\.[^.]+$/, '') + '.' + sl.id;
+              t.textContent = renamed(m.file, ext);
               H.fitWidth(t, 98, 12.5, 9);
               const w = Math.min(118, t.getComputedTextLength() + 22);
               const pill = res.querySelector('.s2-pill');
@@ -526,17 +642,26 @@ export default function register(Board) {
       motion: { open: 190, close: 120, stagger: 14, apply: 660 },
       timing: { hubOut: [220, 330], cap: [470, 620], glint: [470, 660] },
       texture(tex, ctx) {
-        const { m, H, G } = ctx;
         // Marble veins: long strands along one grain direction, meandering at two scales, each with a thin
-        // companion that drifts off it; broken around the labels and the hub. Strong on porcelain, gone on lapis.
+        // companion that drifts off it; broken around the labels and the hub. Strong on porcelain, gone on
+        // lapis: where the palette hides them (the dark face) they are not drawn at all.
+        const scope = tex.closest('[data-concept]');
+        if (!scope || scope.style.getPropertyValue('--s2-vein-opacity').trim() !== '0') A.veins(tex, ctx);
+        // Pyrite flecks, the gold that lapis carries.
+        dustLayer(tex, ctx, { seed: 97, count: 60, keep: 37, r0: 0.45, r1: 0.75, glint: 19 });
+      },
+      veins(tex, ctx) {
+        const { m, H, G } = ctx;
         const rand = rng(41 + m.kind.length * 17);
         const centers = labelCenters(H, m, G.lbl);
         const grain = ((30 + rand() * 14) * Math.PI) / 180;
         const [gx, gy, nx, ny] = [Math.cos(grain), Math.sin(grain), -Math.sin(grain), Math.cos(grain)];
+        // A point every 6 units is enough for curves this long; the swell keeps its length in units.
+        const STEP = 6;
         const strand = (off, amp, freq, ph, s0, s1, w0, w1) => {
           const segs = [];
           let cur = [];
-          for (let d = s0; d <= s1; d += 4.5) {
+          for (let d = s0; d <= s1; d += STEP) {
             const o = off + amp * Math.sin(d * freq + ph) + amp * 0.35 * Math.sin(d * freq * 3.3 + ph * 1.7);
             const x = C + gx * d + nx * o;
             const y = C + gy * d + ny * o;
@@ -549,7 +674,8 @@ export default function register(Board) {
           }
           if (cur.length > 1) segs.push(cur);
           // Each piece is a ribbon whose width swells and thins along the grain, as marble veins do.
-          return segs.map((p) => ribbon(p, (k) => w0 + w1 * (0.5 + 0.5 * Math.sin(k * 0.23 + ph * 2)) ** 2)).join('');
+          const swell = (0.23 * STEP) / 4.5;
+          return segs.map((p) => ribbon(p, (k) => w0 + w1 * (0.5 + 0.5 * Math.sin(k * swell + ph * 2)) ** 2)).join('');
         };
         const vg = H.s('g', { class: 's2-veins' }, tex);
         [-142, -70, 8, 84, 150].forEach((off, k) => {
@@ -573,8 +699,6 @@ export default function register(Board) {
             vg,
           );
         });
-        // Pyrite flecks, the gold that lapis carries.
-        dustLayer(tex, ctx, { seed: 97, count: 60, keep: 37, r0: 0.45, r1: 0.75, glint: 19 });
       },
       ink(ink, ctx) {
         const { m, H, G, ccw } = ctx;
@@ -583,10 +707,13 @@ export default function register(Board) {
         drawRing(ink, H, G.rin, 's2-ring', '12ms', ccw);
         drawRing(ink, H, G.rout, 's2-ring s2-ring-gold', '36ms', ccw);
         drawRing(ink, H, G.rim, 's2-rim', '48ms', ccw);
+        // Twelve ticks a slice, the longer ones on its joints and quarters, counted from its first joint
+        // so they stay in step with a turned ring of choices.
         let ticks = '';
         const nt = m.n * 12;
+        const from = m.slices.length ? m.slices[0].a0 : 0;
         for (let k = 0; k < nt; k++) {
-          const a = (k * 360) / nt;
+          const a = from + (k * 360) / nt;
           const [x1, y1] = H.polar(192, a);
           const [x2, y2] = H.polar(k % 3 === 0 ? 196.5 : 194.5, a);
           ticks += `M${f1(x1)} ${f1(y1)}L${f1(x2)} ${f1(y2)}`;
@@ -913,6 +1040,19 @@ export default function register(Board) {
     };
 
     // ================================================================== C · Obsidian & moonsilver
+    // The cut: the rim is a regular polygon with an even number of facets per slice and ten or more in
+    // all, so the stone keeps its cut with two or three slices instead of turning into a square. A facet
+    // is centred on every slice joint and every slice middle, and the corners follow the slices, so a
+    // turned ring of choices turns its stone with it.
+    function cut(m, G) {
+      const f = 2 * Math.max(1, Math.round(7 / Math.max(1, m.n)));
+      const facet = m.step / f;
+      const base = m.slices.length ? m.slices[0].a0 : -m.step / 2;
+      const verts = [];
+      for (let k = 0; k < m.n * f; k++) verts.push(base + (k + 0.5) * facet);
+      return { facet, base, verts, ap: G.rv * Math.cos(((facet / 2) * Math.PI) / 180) };
+    }
+
     const C_ = {
       id: 'simya-c',
       geo: {
@@ -953,19 +1093,16 @@ export default function register(Board) {
         return { sel: id + '-sel' };
       },
       prepare(ctx) {
-        // Two facets per slice: the rim is a regular polygon with its corners a quarter step from each slice middle.
         const { m, G } = ctx;
-        const ap = G.rv * Math.cos(((m.step / 4) * Math.PI) / 180);
-        ctx.ap = ap;
-        const verts = [];
-        for (let k = 0; k < m.n * 2; k++) verts.push(-m.step / 4 + (k * m.step) / 2 + m.step / 2);
-        ctx.verts = verts;
+        Object.assign(ctx, cut(m, G));
         if (ctx.wrap) {
-          const pct = verts.map((a) => {
+          const pct = ctx.verts.map((a) => {
             const [x, y] = polarAt(50, 50, (G.rv / 400) * 100, a);
             return `${f2(x)}% ${f2(y)}%`;
           });
           ctx.wrap.style.setProperty('--s2-facets', `polygon(${pct.join(',')})`);
+          // The round shadow under the stone stays inside its flats, so no disc shows between the corners.
+          ctx.wrap.style.setProperty('--s2-stone-inset', `${f2(((C - ctx.ap + 1) / 400) * 100)}%`);
         }
       },
       texture(tex, ctx) {
@@ -973,7 +1110,7 @@ export default function register(Board) {
         dustLayer(tex, ctx, { seed: 211, count: 26, keep: 38, r0: 0.35, r1: 0.5, glint: 4, glintSize: 3.2 });
       },
       ink(ink, ctx) {
-        const { m, H, G, ccw } = ctx;
+        const { H, G, ccw } = ctx;
         const V = (a) => H.polar(G.rv, a);
         const rimPts = ctx.verts.map(V);
         const rim = H.s(
@@ -982,10 +1119,11 @@ export default function register(Board) {
           ink,
         );
         rim.style.setProperty('--d', '30ms');
-        // The crown: a zigzag between the inner circle (at slice middles and joints) and the rim corners.
+        // The crown: a zigzag between the inner circle (at the middle of every facet, slice joints and
+        // slice middles among them) and the rim corners.
         const z = [];
-        for (let j = 0; j <= m.n * 4; j++) {
-          const a = -m.step / 2 + (j * m.step) / 4;
+        for (let j = 0; j <= ctx.verts.length * 2; j++) {
+          const a = ctx.base + (j * ctx.facet) / 2;
           z.push(j % 2 ? H.polar(G.rv, a) : H.polar(G.rout, a));
         }
         const crown = H.s('path', { d: polyD(ccw ? z.reverse() : z), class: 's2-crown s2-draw', pathLength: 1 }, ink);
@@ -1036,26 +1174,22 @@ export default function register(Board) {
       },
       bandSeg(sl, ctx) {
         const { H, G, m } = ctx;
-        const ap = G.rv * Math.cos(((m.step / 4) * Math.PI) / 180);
-        const pts = [
-          H.polar(ap - 1, sl.a0 + 1),
-          H.polar(G.rv - 1.5, sl.mid - m.step / 4),
-          H.polar(G.rv - 1.5, sl.mid + m.step / 4),
-          H.polar(ap - 1, sl.a1 - 1),
-        ];
+        const { ap, facet } = cut(m, G);
+        const pts = [H.polar(ap - 1, sl.a0 + 1)];
+        for (let a = sl.a0 + facet / 2; a < sl.a1; a += facet) pts.push(H.polar(G.rv - 1.5, a));
+        pts.push(H.polar(ap - 1, sl.a1 - 1));
         const [x4, y4] = H.polar(G.rout + 1.5, sl.a1 - 1);
         const [x5, y5] = H.polar(G.rout + 1.5, sl.a0 + 1);
-        return `${polyD(pts)}L${f2(x4)} ${f2(y4)}A${G.rout + 1.5} ${G.rout + 1.5} 0 0 0 ${f2(x5)} ${f2(y5)}Z`;
+        const big = sl.a1 - sl.a0 - 2 > 180 ? 1 : 0;
+        return `${polyD(pts)}L${f2(x4)} ${f2(y4)}A${G.rout + 1.5} ${G.rout + 1.5} 0 ${big} 0 ${f2(x5)} ${f2(y5)}Z`;
       },
       edge(sl, ctx) {
         const { H, G, m } = ctx;
-        const ap = G.rv * Math.cos(((m.step / 4) * Math.PI) / 180);
-        return polyD([
-          H.polar(ap - 0.4, sl.a0 + 2.5),
-          H.polar(G.rv - 0.6, sl.mid - m.step / 4),
-          H.polar(G.rv - 0.6, sl.mid + m.step / 4),
-          H.polar(ap - 0.4, sl.a1 - 2.5),
-        ]);
+        const { ap, facet } = cut(m, G);
+        const pts = [H.polar(ap - 0.4, sl.a0 + 2.5)];
+        for (let a = sl.a0 + facet / 2; a < sl.a1; a += facet) pts.push(H.polar(G.rv - 0.6, a));
+        pts.push(H.polar(ap - 0.4, sl.a1 - 2.5));
+        return polyD(pts);
       },
       hatch: () => hatchLines(7.5, 1) + hatchLines(7.5, -1),
       glyph: (i) => HABITS[i % HABITS.length],

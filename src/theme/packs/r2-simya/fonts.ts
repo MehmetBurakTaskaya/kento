@@ -125,3 +125,14 @@ registerFaces([
     ],
   },
 ]);
+
+// Alegreya Sans is static, and Varak sets its labels, file name and sub-labels in the medium weight,
+// which the host's loading (regular and bold) does not reach. The pack loads it here, before any wheel,
+// so the first wheel measures its labels in it rather than in a fallback; a face that never comes holds
+// the pack back one second at most.
+if (typeof document !== 'undefined' && document.fonts) {
+  await Promise.race([
+    document.fonts.load("500 16px 'Alegreya Sans'", 'AaĞşıЖ').catch(() => null),
+    new Promise((resolve) => window.setTimeout(resolve, 1000)),
+  ]);
+}

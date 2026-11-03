@@ -71,7 +71,7 @@
 [data-concept='simya-c'] .wheel::before {
   content: '';
   position: absolute;
-  inset: 3.5%;
+  inset: var(--s2-stone-inset, 3.5%);
   border-radius: 50%;
   z-index: -2;
   background: var(--s2-face-lo);
