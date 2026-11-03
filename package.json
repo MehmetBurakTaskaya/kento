@@ -1,7 +1,7 @@
 {
   "name": "kento",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Drag a file, press a modifier key, drop it on the wheel: local file conversion and tools for Windows and macOS.",
   "author": "Mehmet Burak Taşkaya",
   "license": "MIT",
