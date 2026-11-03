@@ -399,7 +399,7 @@ export default function register(Board) {
           });
           if (m.key) {
             const tag = s('rect', { y: C + 17, height: 17, class: 'pa-key' }, hub);
-            const text = H.text(hub, C, C + 26, caps(m.key, m.lang), { class: 'pa-keytext' });
+            const text = H.text(hub, C, C + 26, caps(m.key, 'en'), { class: 'pa-keytext' });
             const kw = Math.min(92, Math.ceil(text.getComputedTextLength()) + 16);
             tag.setAttribute('x', f2(C - kw / 2));
             tag.setAttribute('width', f2(kw));

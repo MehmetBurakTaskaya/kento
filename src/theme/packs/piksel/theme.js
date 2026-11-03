@@ -440,7 +440,8 @@ export default function register(Board) {
             maxLines: 1,
           });
           if (m.key) {
-            const key = m.key.toLocaleUpperCase(m.lang);
+            // Key names keep Latin capitals in every language (SHIFT, never SHİFT in Turkish).
+            const key = m.key.toLocaleUpperCase('en');
             const cap = s('path', { class: 'px-key' }, hub);
             const text = H.text(hub, C, C + 26.5, key, { class: 'px-keytext' });
             const kw = Math.max(44, Math.ceil(text.getComputedTextLength()) + 16);

@@ -43,7 +43,7 @@ function RuleRow({
           <bdi>{name}</bdi>
         </strong>
         <span>
-          {describeFilter(rule.filter, t, lang)} · {describeAction(rule.action, t, lang, view.targets, recipes)}
+          {describeFilter(rule.filter, t, lang)} · {describeAction(rule.action, t, view.targets, recipes)}
         </span>
         <span className="rule-path">
           <span className="muted">{t('automation.rule.folder')}</span>

@@ -4,6 +4,13 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- In Turkish, file extensions keep their usual capitals: folder rules show HEIC and ZIP, not HEİC and
+  ZİP, and the Piksel, Yaldız and Bom themes write the key under the hub as SHIFT, not SHİFT.
+
 ## [1.1.0] - 2026-11-03
 
 ### Added
@@ -95,6 +102,7 @@ download the links you ask for.
   Portuguese, Arabic (right to left), Korean, Italian and Russian. Kento follows the system
   language, and Settings → Language changes it at once in every window.
 
+[Unreleased]: https://github.com/MehmetBurakTaskaya/kento/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.1.0
 [1.0.2]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.0.2
 [1.0.0]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.0.0

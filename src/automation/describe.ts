@@ -3,18 +3,22 @@
 // Compress under 2 MB"), what a rule takes and what it does. Shared by the Automation page and
 // the wheel's Favorites ring.
 import type { TFunction } from 'i18next';
-import { formatBytes, isolate, upper } from '../i18n/format';
+import { formatBytes, isolate } from '../i18n/format';
 import type { ConvertFormat, Recipe, RecipeStep, Rule, RuleAction, RuleFilter } from '../ipc';
 
 /** A format's label, as the catalog writes it ("TAR.GZ"), or its id in capitals. */
-export function formatLabel(id: string, targets: ConvertFormat[], lang: string): string {
-  return targets.find((target) => target.id === id)?.label ?? upper(id, lang);
+export function formatLabel(id: string, targets: ConvertFormat[]): string {
+  return targets.find((target) => target.id === id)?.label ?? code(id);
 }
+
+/** A format id or a file extension in capitals, the same in every language: HEIC and ZIP, never
+ *  HEİC and ZİP as Turkish capitals would make them. */
+const code = (text: string) => text.toUpperCase();
 
 export function describeStep(step: RecipeStep, t: TFunction, lang: string, targets: ConvertFormat[] = []): string {
   switch (step.kind) {
     case 'convert':
-      return t('recipes.step.convert', { format: formatLabel(step.to, targets, lang) });
+      return t('recipes.step.convert', { format: formatLabel(step.to, targets) });
     case 'crop':
       return t('recipes.step.crop', { width: step.width, height: step.height });
     case 'resize':
@@ -35,7 +39,7 @@ export function describeSteps(steps: RecipeStep[], t: TFunction, lang: string, t
 /** "PNG, JPG · named Screenshot* · at least 100 kB", or "All files". */
 export function describeFilter(filter: RuleFilter, t: TFunction, lang: string): string {
   const parts = [
-    filter.extensions.length > 0 && isolate(filter.extensions.map((ext) => upper(ext, lang)).join(', ')),
+    filter.extensions.length > 0 && isolate(filter.extensions.map(code).join(', ')),
     filter.pattern && t('automation.filter.pattern', { pattern: isolate(filter.pattern) }),
     filter.minSize != null && t('automation.filter.min', { size: formatBytes(filter.minSize, lang) }),
     filter.maxSize != null && t('automation.filter.max', { size: formatBytes(filter.maxSize, lang) }),
@@ -43,16 +47,10 @@ export function describeFilter(filter: RuleFilter, t: TFunction, lang: string): 
   return parts.length ? parts.join(' · ') : t('automation.filter.all');
 }
 
-export function describeAction(
-  action: RuleAction,
-  t: TFunction,
-  lang: string,
-  targets: ConvertFormat[],
-  recipes: Recipe[],
-): string {
+export function describeAction(action: RuleAction, t: TFunction, targets: ConvertFormat[], recipes: Recipe[]): string {
   switch (action.kind) {
     case 'convert':
-      return t('automation.action.convert', { format: formatLabel(action.to, targets, lang) });
+      return t('automation.action.convert', { format: formatLabel(action.to, targets) });
     case 'tool':
       return t(`tool.${action.tool}`);
     case 'recipe':

@@ -391,7 +391,7 @@ export default function register(Board) {
           });
           if (m.key) {
             const plate = s('path', { class: 'ad-key' }, hub);
-            const text = H.text(hub, C, C + 24, caps(m.key, m.lang), { class: 'ad-keytext' });
+            const text = H.text(hub, C, C + 24, caps(m.key, 'en'), { class: 'ad-keytext' });
             const kw = Math.min(90, Math.ceil(text.getComputedTextLength()) + 16);
             const x0 = C - kw / 2;
             const y0 = C + 16;
