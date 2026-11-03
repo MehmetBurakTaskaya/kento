@@ -2,8 +2,8 @@
 /* Vitray: a rose window of coloured glass in lead and stone. */
 
 [data-concept='vitray'] {
-  --vt-caps: var(--font-display-face), 'Times New Roman', serif;
-  --vt-book: var(--font-brand-face), Georgia, serif;
+  --vt-caps: var(--font-display-face), var(--font-brand-face), 'Segoe UI', 'Geeza Pro', serif;
+  --vt-book: var(--font-brand-face), 'Segoe UI', 'Geeza Pro', serif;
   --radius: 8px;
 }
 [data-concept='vitray'] .wheel {

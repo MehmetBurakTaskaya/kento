@@ -11,7 +11,12 @@ export default function register(Board) {
     const f2 = (n) => Math.round(n * 100) / 100;
 
     if (typeof document !== 'undefined' && document.fonts) {
-      for (const f of ["600 16px 'Cinzel'", "700 16px 'Cinzel'", "500 16px 'Grenze'", "600 16px 'Grenze'"]) {
+      for (const f of [
+        "600 16px 'Cinzel'",
+        "700 16px 'Cinzel'",
+        "500 16px 'Vollkorn Variable'",
+        "600 16px 'Vollkorn Variable'",
+      ]) {
         document.fonts.load(f, 'AaĞşı').catch(() => null);
       }
     }
@@ -34,6 +39,17 @@ export default function register(Board) {
     const MULLION = 3.6; // half the width of the stone between two petals
     const MED = ['cobalt', 'ruby', 'emerald', 'violet'];
     const SIDE = ['ruby', 'cobalt', 'violet', 'emerald'];
+    // Colours go round the rose in turn; a last pane that would meet the first in the same colour
+    // takes another one.
+    function glassOf(list, i, n) {
+      return list[n > 1 && n % list.length === 1 && i === n - 1 ? 2 : i % list.length];
+    }
+    // The medallion grows with its petal: eight narrow lancets hold a small one under an eye, two to
+    // four wide lobes a large one. Returns its radius, the radius of its centre and whether the eye fits.
+    function medallion(sl) {
+      const r = sl.step >= 100 ? 48 : sl.step >= 70 ? 43 : 38;
+      return { r, at: r > 40 ? 124 : 122, eye: r <= 40 };
+    }
 
     // A point at radius r, `off` units to the side of the line at angle a (positive = clockwise).
     function offsetPt(H, r, a, off) {
@@ -73,12 +89,12 @@ export default function register(Board) {
     Board.define({
       id: ID,
       fonts: {
-        brand: "'Grenze'",
+        brand: "'Vollkorn Variable'",
         display: "'Cinzel'",
-        load: ["'Cinzel'", "'Grenze'"],
+        load: ["'Cinzel'", "'Vollkorn Variable'"],
         credits: [
           { family: 'Cinzel', license: 'SIL Open Font License 1.1' },
-          { family: 'Grenze', license: 'SIL Open Font License 1.1' },
+          { family: 'Vollkorn', license: 'SIL Open Font License 1.1' },
         ],
       },
       motion: { open: 180, close: 120, stagger: 14, apply: 680 },
@@ -307,8 +323,9 @@ export default function register(Board) {
           // Petals.
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
-            const med = MED[sl.i % MED.length];
-            const side = SIDE[sl.i % SIDE.length];
+            const med = glassOf(MED, sl.i, m.n);
+            const side = glassOf(SIDE, sl.i, m.n);
+            const md = medallion(sl);
             s('path', { d: H.sector(R.hubStone - 2, R.ring, sl.a0, sl.a1), class: 'vt-hit' }, g);
             const shape = petal(H, sl);
             const clipId = `${uid}-p${sl.i}`;
@@ -316,10 +333,11 @@ export default function register(Board) {
             const glass = s('g', { class: 'vt-glass', 'clip-path': `url(#${clipId})` }, g);
             s('path', { d: shape, fill: `url(#${uid}-d-${side})` }, glass);
             // Side panes left and right of the medallion, as wedges from its centre.
-            const [mx, my] = H.polar(R.med, sl.mid);
+            const [mx, my] = H.polar(md.at, sl.mid);
+            const reach = 260;
             const wedge = (a0, a1) => {
-              const p0 = [mx + 120 * Math.sin(H.rad(a0)), my - 120 * Math.cos(H.rad(a0))];
-              const p1 = [mx + 120 * Math.sin(H.rad(a1)), my - 120 * Math.cos(H.rad(a1))];
+              const p0 = [mx + reach * Math.sin(H.rad(a0)), my - reach * Math.cos(H.rad(a0))];
+              const p1 = [mx + reach * Math.sin(H.rad(a1)), my - reach * Math.cos(H.rad(a1))];
               return `M${f2(mx)} ${f2(my)}L${P(p0)}L${P(p1)}Z`;
             };
             s(
@@ -328,49 +346,50 @@ export default function register(Board) {
               glass,
             );
             const [ex, ey] = H.polar(R.eye, sl.mid);
-            s('circle', { cx: f2(ex), cy: f2(ey), r: R.eyeR, fill: `url(#${uid}-gold)` }, glass);
-            s('circle', { cx: f2(mx), cy: f2(my), r: R.medR, fill: `url(#${uid}-m-${med})`, class: 'vt-med' }, glass);
+            if (md.eye) s('circle', { cx: f2(ex), cy: f2(ey), r: R.eyeR, fill: `url(#${uid}-gold)` }, glass);
+            s('circle', { cx: f2(mx), cy: f2(my), r: md.r, fill: `url(#${uid}-m-${med})`, class: 'vt-med' }, glass);
             // Lead: the cames between the panes, then the medallion ring.
             let cames = '';
             for (const a of [50, 130, -50, -130]) {
-              const [x0, y0] = [mx + R.medR * Math.sin(H.rad(sl.mid + a)), my - R.medR * Math.cos(H.rad(sl.mid + a))];
-              const [x1, y1] = [mx + 120 * Math.sin(H.rad(sl.mid + a)), my - 120 * Math.cos(H.rad(sl.mid + a))];
+              const [x0, y0] = [mx + md.r * Math.sin(H.rad(sl.mid + a)), my - md.r * Math.cos(H.rad(sl.mid + a))];
+              const [x1, y1] = [mx + reach * Math.sin(H.rad(sl.mid + a)), my - reach * Math.cos(H.rad(sl.mid + a))];
               cames += `M${f2(x0)} ${f2(y0)}L${f2(x1)} ${f2(y1)}`;
             }
-            const [ax, ay] = H.polar(R.med + R.medR, sl.mid);
-            const [bx, by] = H.polar(R.eye - R.eyeR, sl.mid);
-            const [cx2, cy2] = H.polar(R.med - R.medR, sl.mid);
+            const [ax, ay] = H.polar(md.at + md.r, sl.mid);
+            const [bx, by] = H.polar(md.eye ? R.eye - R.eyeR : R.apex, sl.mid);
+            const [cx2, cy2] = H.polar(md.at - md.r, sl.mid);
             const [dx2, dy2] = H.polar(R.inner - 4, sl.mid);
             cames += `M${f2(ax)} ${f2(ay)}L${f2(bx)} ${f2(by)}M${f2(cx2)} ${f2(cy2)}L${f2(dx2)} ${f2(dy2)}`;
             s('path', { d: cames, class: 'vt-came' }, glass);
-            s('circle', { cx: f2(ex), cy: f2(ey), r: R.eyeR, class: 'vt-came' }, glass);
-            s('circle', { cx: f2(mx), cy: f2(my), r: R.medR, class: 'vt-came vt-med-ring' }, glass);
+            if (md.eye) s('circle', { cx: f2(ex), cy: f2(ey), r: R.eyeR, class: 'vt-came' }, glass);
+            s('circle', { cx: f2(mx), cy: f2(my), r: md.r, class: 'vt-came vt-med-ring' }, glass);
             s('path', { d: shape, class: 'vt-shade' }, glass);
             // Light falls on the glass round the medallion; the medallion keeps its colour for the lettering.
-            const disc = `M${f2(mx - R.medR)} ${f2(my)}a${R.medR} ${R.medR} 0 1 0 ${2 * R.medR} 0a${R.medR} ${R.medR} 0 1 0 ${-2 * R.medR} 0Z`;
+            const disc = `M${f2(mx - md.r)} ${f2(my)}a${md.r} ${md.r} 0 1 0 ${2 * md.r} 0a${md.r} ${md.r} 0 1 0 ${-2 * md.r} 0Z`;
             s('path', { d: shape + disc, 'fill-rule': 'evenodd', class: 'vt-glow' }, glass);
             s('path', { d: disc, class: 'vt-medglow' }, glass);
             s('path', { d: shape, class: 'vt-lead' }, g);
             s('path', { d: petal(H, sl, 2.2), class: 'vt-gilt' }, g);
-            s('circle', { cx: f2(mx), cy: f2(my), r: R.medR + 0.5, class: 'vt-halo' }, g);
+            s('circle', { cx: f2(mx), cy: f2(my), r: md.r + 0.5, class: 'vt-halo' }, g);
             const ink = s('g', { class: 'vt-ink' }, g);
-            if (m.kind === 'convert' && sl.sub) {
-              H.block(ink, sl, R.med, {
-                size: 20,
-                subSize: 12.5,
+            const big = md.r > 40;
+            if (sl.format) {
+              H.block(ink, sl, md.at, {
+                size: big ? 24 : 20,
+                subSize: big ? 13.5 : 12.5,
                 gap: 1,
-                maxWidth: 60,
+                maxWidth: 2 * md.r - 12,
                 minSize: 10,
                 cls: 'vt-lbl vt-fmt',
                 subCls: 'vt-sub',
               });
             } else {
-              H.block(ink, sl, R.med, {
+              H.block(ink, sl, md.at, {
                 icon: true,
-                iconSize: 21,
-                size: 12.5,
+                iconSize: big ? 24 : 21,
+                size: big ? 14 : 12.5,
                 gap: 3,
-                maxWidth: 60,
+                maxWidth: 2 * md.r - 10,
                 minSize: 8.5,
                 cls: 'vt-lbl vt-word',
                 sub: null,
@@ -394,21 +413,25 @@ export default function register(Board) {
           s('path', { d: hubLead, class: 'vt-came' }, hub);
           s('circle', { cx: C, cy: C, r: R.hub - 9, class: 'vt-came vt-hub-inner' }, hub);
           s('circle', { cx: C, cy: C, r: R.hub, class: 'vt-lead' }, hub);
-          H.label(hub, C, C - 13, m.title, { maxWidth: 92, size: 14, minSize: 9, cls: 'vt-title', maxLines: 1 });
-          H.label(hub, C, C + 6, m.file, { maxWidth: 84, size: 12, minSize: 8.5, cls: 'vt-file', maxLines: 1 });
-          const kt = H.text(hub, C, C + 25, m.key, { class: 'vt-keytext' });
-          const kw = kt.getComputedTextLength() + 14;
-          hub.insertBefore(
-            s('rect', { x: f2(C - kw / 2), y: C + 17.5, width: f2(kw), height: 15, rx: 7.5, class: 'vt-key' }),
-            kt,
-          );
+          const dy = m.key ? 0 : 8;
+          H.label(hub, C, C - 13 + dy, m.title, { maxWidth: 92, size: 14, minSize: 9, cls: 'vt-title', maxLines: 1 });
+          H.label(hub, C, C + 6 + dy, m.file, { maxWidth: 84, size: 12, minSize: 8.5, cls: 'vt-file', maxLines: 1 });
+          if (m.key) {
+            const kt = H.text(hub, C, C + 25, m.key, { class: 'vt-keytext' });
+            const kw = kt.getComputedTextLength() + 14;
+            hub.insertBefore(
+              s('rect', { x: f2(C - kw / 2), y: C + 17.5, width: f2(kw), height: 15, rx: 7.5, class: 'vt-key' }),
+              kt,
+            );
+          }
           const over = s('g', { class: 'vt-fx-over', 'aria-hidden': 'true' }, root);
           for (const sl of m.slices) {
-            const [mx, my] = H.polar(R.med, sl.mid);
-            const med = MED[sl.i % MED.length];
+            const md = medallion(sl);
+            const [mx, my] = H.polar(md.at, sl.mid);
+            const med = glassOf(MED, sl.i, m.n);
             const fu = s('g', { class: 'vt-fxs', 'data-i': sl.i }, under);
             const gid = `${uid}-b${sl.i}`;
-            const [sx, sy] = H.polar(R.med - R.medR - 2, sl.mid);
+            const [sx, sy] = H.polar(md.at - md.r - 2, sl.mid);
             const lg = s(
               'linearGradient',
               { id: gid, gradientUnits: 'userSpaceOnUse', x1: f2(sx), y1: f2(sy), x2: C, y2: C },
@@ -432,8 +455,8 @@ export default function register(Board) {
             let rays = '';
             for (let k = 0; k < 12; k++) {
               const a = H.rad(k * 30 + 15);
-              const r0 = R.medR + 5,
-                r1 = R.medR + (k % 2 ? 15 : 24);
+              const r0 = md.r + 5,
+                r1 = md.r + (k % 2 ? 15 : 24);
               rays += `M${f2(mx + r0 * Math.sin(a))} ${f2(my - r0 * Math.cos(a))}L${f2(mx + r1 * Math.sin(a))} ${f2(my - r1 * Math.cos(a))}`;
             }
             s('path', { d: rays, class: 'vt-rays' }, fo);
@@ -447,7 +470,7 @@ export default function register(Board) {
           root.querySelectorAll('.vt-fxs').forEach((el) => el.classList.toggle('is-on', +el.dataset.i === sel));
           const pool = root.querySelector('.vt-pool');
           if (pool)
-            pool.style.setProperty('--pool', sel == null ? 'transparent' : `var(--g-${MED[sel % MED.length]}-beam)`);
+            pool.style.setProperty('--pool', sel == null ? 'transparent' : `var(--g-${glassOf(MED, sel, m.n)}-beam)`);
         },
       },
 
