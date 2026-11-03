@@ -47,6 +47,15 @@ plain browser. `?files=demo` and `?library=demo` fill Home and the Library with 
 `npm run shots` takes screenshots of the pages in English, Turkish and the two test languages into
 `artifacts/app-shots`.
 
+`npm run demo` remakes the README's demo GIFs (`docs/images/kento-demo.gif` and
+`kento-demo-tr.gif`) and its screenshots (`docs/images/kento-*.webp`) from the same stand-in.
+`scripts/demo/stage.html` is a plain desktop of our own around Kento's real windows (the floating
+wheel, the corner card, the shelf and the main window, each the app in a frame);
+`scripts/demo/stand-in.mjs` adds sample files from the real catalog and lets the stage play the
+core's part; `scripts/record-demo.mjs` plays the storyboard in headless Chromium, three times
+slower than life, and FFmpeg (on the PATH) turns the frames into GIFs. Run it again after a visible
+change to the wheel or the pages; `--gif`, `--stills` and `--lang en` make only part of it.
+
 A bundled build (`npm run tauri build` with the installer or the disk image) also signs the update
 files and needs `TAURI_SIGNING_PRIVATE_KEY`. For a local test, make a throwaway key with
 `npx tauri signer generate`; releases are signed by CI only (see [docs/RELEASING.md](docs/RELEASING.md)

@@ -1,0 +1,463 @@
+/* SPDX-License-Identifier: MIT */
+/* The demo stage: a plain desktop of our own round Kento's real windows, in the tokens of
+   design/DESIGN.md (steel greys, white, one tempered blue; IBM Plex Sans). */
+
+:root {
+  --text: #15181c;
+  --muted: #555c67;
+  --surface: #ffffff;
+  --border: #dcdfe4;
+  --border-strong: #aab1ba;
+  --accent: #2a4ea6;
+  --hover: #dbe2ec;
+  --keycap: #e8ebef;
+  --keycap-text: #2b3036;
+  --shadow: rgba(26, 34, 48, 0.18);
+  --desk: radial-gradient(120% 100% at 18% 0%, #f8f9fa 0%, #e7eaee 52%, #d4d9df 100%);
+  --font: 'IBM Plex Sans Variable', 'IBM Plex Sans', 'Segoe UI', sans-serif;
+}
+.is-dark {
+  --text: #eef0f3;
+  --muted: #a3abb6;
+  --surface: #1f2226;
+  --border: #32373e;
+  --border-strong: #58606a;
+  --accent: #89a7f5;
+  --hover: #2d333b;
+  --keycap: #30353c;
+  --keycap-text: #dfe4ea;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --desk: radial-gradient(120% 100% at 18% 0%, #353a40 0%, #1f2226 52%, #121417 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: #d4d9df;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+#stage {
+  position: relative;
+  inline-size: 960px;
+  block-size: 600px;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--desk);
+}
+#stage.is-still {
+  background: transparent;
+}
+.desk {
+  position: absolute;
+  inset: 0;
+  background: var(--desk);
+}
+.desk.is-dark {
+  opacity: 0;
+}
+.desk.is-dark.is-on {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------- the folder window */
+.folder {
+  position: absolute;
+  inset-inline-start: 24px;
+  inset-block-start: 24px;
+  inline-size: 436px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px var(--shadow),
+    0 12px 32px var(--shadow);
+  transition: opacity 300ms;
+}
+.folder-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  block-size: 48px;
+  padding-inline: 16px;
+  border-block-end: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 600;
+}
+.folder-head svg {
+  color: var(--accent);
+}
+.folder-head .count {
+  margin-inline-start: auto;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 100px);
+  grid-auto-rows: 108px;
+  gap: 4px;
+  padding: 12px;
+  min-block-size: 356px;
+}
+.tile {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  padding-block-start: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition:
+    background 160ms,
+    border-color 160ms,
+    opacity 400ms,
+    transform 400ms;
+}
+.tile.is-selected {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--hover);
+}
+.tile.is-new {
+  opacity: 0;
+  transform: scale(0.85);
+}
+.tile.is-new.is-shown {
+  opacity: 1;
+  transform: none;
+}
+.tile.is-dragged {
+  opacity: 0.45;
+}
+.thumb {
+  display: grid;
+  place-items: center;
+  inline-size: 64px;
+  block-size: 64px;
+}
+.thumb canvas {
+  inline-size: 64px;
+  block-size: 48px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+.tile .name {
+  max-inline-size: 94px;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 16px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Kento's windows */
+/* Short fades and cuts: in a GIF every blended frame of a large area costs as much as a new
+   picture. */
+iframe {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.surface {
+  opacity: 0;
+  transition:
+    opacity 180ms,
+    translate 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.surface.is-cut {
+  transition: none;
+}
+.surface.is-shown {
+  opacity: 1;
+}
+.surface.shelf {
+  translate: 40px 0;
+}
+.surface.shelf.is-shown {
+  translate: 0 0;
+}
+.window {
+  position: absolute;
+  inset-inline-start: 19px;
+  inset-block-start: 12px;
+  inline-size: 922px;
+  block-size: 504px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow:
+    0 2px 4px var(--shadow),
+    0 20px 48px var(--shadow);
+  opacity: 0;
+  transition: opacity 140ms;
+}
+.window.is-shown {
+  opacity: 1;
+}
+.window-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  block-size: 30px;
+  padding-inline: 12px;
+  border-block-end: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.window-head img {
+  inline-size: 16px;
+  block-size: 16px;
+}
+.window iframe {
+  position: static;
+  display: block;
+  inline-size: 920px;
+  block-size: 472px;
+}
+
+/* ---------------------------------------------------------------- pointer and drag */
+.pointer {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 50;
+  inline-size: 24px;
+  block-size: 30px;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+  will-change: transform;
+}
+.click {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 49;
+  inline-size: 36px;
+  block-size: 36px;
+  margin: -18px 0 0 -18px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+}
+.click.is-on {
+  animation: click 360ms ease-out;
+}
+@keyframes click {
+  from {
+    opacity: 0.9;
+    scale: 0.3;
+  }
+  to {
+    opacity: 0;
+    scale: 1;
+  }
+}
+.ghost {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 48;
+  opacity: 0;
+  transform-origin: 0 0;
+  transition:
+    opacity 160ms,
+    scale 160ms;
+  will-change: translate;
+}
+.ghost.is-on {
+  opacity: 0.92;
+}
+.ghost.is-on.is-over {
+  opacity: 0.55;
+  scale: 0.75;
+}
+.ghost .thumb {
+  position: absolute;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+.ghost .thumb:nth-child(2) {
+  translate: 5px -5px;
+  z-index: -1;
+}
+.ghost .thumb:nth-child(3) {
+  translate: 10px -10px;
+  z-index: -2;
+}
+.ghost .badge {
+  position: absolute;
+  inset: -8px -8px auto auto;
+  display: grid;
+  place-items: center;
+  min-inline-size: 22px;
+  block-size: 22px;
+  padding-inline: 6px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- captions */
+.caption {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 40;
+  block-size: 72px;
+}
+.line {
+  position: absolute;
+  inset-inline-start: 30px;
+  inset-block-start: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  block-size: 36px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  translate: 0 8px;
+  transition:
+    opacity 240ms,
+    translate 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.line::before {
+  content: '';
+  inline-size: 4px;
+  block-size: 26px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.line.is-on {
+  opacity: 1;
+  translate: 0 0;
+}
+.line.is-off {
+  opacity: 0;
+  translate: 0 -6px;
+}
+.keys {
+  position: absolute;
+  inset-inline-end: 30px;
+  inset-block-start: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 200ms;
+}
+.keys.is-on {
+  opacity: 1;
+}
+.key {
+  display: grid;
+  place-items: center;
+  min-inline-size: 64px;
+  block-size: 40px;
+  padding-inline: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--keycap) 60%, #fff), var(--keycap));
+  box-shadow:
+    0 3px 0 var(--border-strong),
+    0 4px 10px var(--shadow);
+  color: var(--keycap-text);
+  font-size: 17px;
+  font-weight: 600;
+  transition:
+    translate 90ms,
+    box-shadow 90ms;
+}
+.keys.is-down .key {
+  translate: 0 2px;
+  box-shadow:
+    0 1px 0 var(--border-strong),
+    0 2px 6px var(--shadow);
+}
+.keys .plus,
+.keys .note {
+  color: var(--muted);
+  font-size: 14px;
+}
+.chip {
+  position: absolute;
+  inset-inline-end: 30px;
+  inset-block-start: 18px;
+  display: flex;
+  align-items: center;
+  block-size: 36px;
+  padding-inline: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  background: var(--surface);
+  font-size: 17px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 160ms;
+}
+.chip.is-on {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------- title and end cards */
+.card {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: radial-gradient(120% 100% at 18% 0%, #f8f9fa 0%, #e7eaee 52%, #d4d9df 100%);
+  color: #15181c;
+  text-align: center;
+  /* Cards come and go with a cut. */
+  opacity: 0;
+}
+.card.is-on {
+  opacity: 1;
+}
+.card img {
+  inline-size: 128px;
+  block-size: 128px;
+  margin-block-end: 6px;
+}
+.card h1 {
+  margin: 0;
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.card .tagline {
+  margin: 0;
+  color: #2b3036;
+  font-size: 24px;
+  font-weight: 500;
+}
+.card .facts {
+  display: flex;
+  gap: 10px;
+  margin-block-start: 14px;
+}
+.card .facts span {
+  padding: 7px 14px;
+  border: 1px solid #aab1ba;
+  border-radius: 18px;
+  background: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+}
+.card .url {
+  margin-block-start: 14px;
+  color: #2a4ea6;
+  font-size: 19px;
+  font-weight: 600;
+}
