@@ -8,11 +8,40 @@ export default function register(Board) {
 
     const f2 = (n) => Math.round(n * 100) / 100;
     const ID = 'lolipop';
-    // Radii in the 400 x 400 view box. The arms twist by TW degrees from the hub to the rim,
-    // centered on the label radius, so every label still sits on its slice's own angle.
+    // Radii in the 400 x 400 view box. The arms twist by TW degrees from the hub to the rim: flat
+    // through the labels, curling toward the hub and the rim, so every label sits on its slice's own
+    // angle with the whole width of its arm.
     const R = { hub: 46, disc: 176, lbl: 111, crack: 151 };
-    const TW = 32;
-    const tw = (r) => TW * ((r - R.hub) / (R.disc - R.hub) - 0.5);
+    const TW = 40;
+    const tw = (r) => {
+      const u = Math.max(-1, Math.min(1, (r - R.lbl) / (R.disc - R.lbl)));
+      return (TW / 2) * Math.sign(u) * Math.abs(u) ** 2.2;
+    };
+    // The widest label the slice holds around the point at radius R.lbl on its centre line: on each
+    // line the label covers, the distance to the nearer edge of the slice (between radii r0 and r1,
+    // less `pad`), so a slice on the side of the wheel, where text runs along the radius, gets more
+    // room than one at the top. Labels stay upright, so this is what fits whatever the angle.
+    const room = (H, sl, r0, r1, pad, twist = () => 0) => {
+      const [cx, cy] = H.polar(R.lbl, sl.mid);
+      const inside = (x, y) => {
+        const r = Math.hypot(x - 200, y - 200);
+        if (r < r0 || r > r1) return false;
+        const a = (Math.atan2(x - 200, 200 - y) * 180) / Math.PI - twist(r);
+        return (((a - sl.a0) % 360) + 360) % 360 <= sl.a1 - sl.a0;
+      };
+      let half = 66;
+      for (const y of [cy - 11, cy, cy + 11]) {
+        let left = 0;
+        let right = 0;
+        while (left < 66 + pad && inside(cx - left - 1, y)) left += 1;
+        while (right < 66 + pad && inside(cx + right + 1, y)) right += 1;
+        half = Math.min(half, Math.min(left, right) - pad);
+      }
+      return Math.max(44, 2 * half);
+    };
+    // Four candy colours in turn; a wheel of 5 (or 9) slices ends on the third, so that no two
+    // neighbours, the last and the first among them, share a colour.
+    const family = (k, n) => (n % 4 === 1 && k === n - 1 ? 3 : (k % 4) + 1);
     const STICK = 135; // the stick leaves the candy toward the lower right
 
     function rng(seed) {
@@ -25,7 +54,11 @@ export default function register(Board) {
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     }
-    const reducedMotion = () => document.documentElement.classList.contains('reduce-motion');
+    // The effect plays only while the wheel is applying: with reduced motion the app never sets it.
+    const applying = (root) => {
+      const wheel = root.closest('.wheel');
+      return !!wheel && wheel.classList.contains('is-applying');
+    };
     const dot = (x, y, r) =>
       `M${f2(x - r)} ${f2(y)}a${f2(r)} ${f2(r)} 0 1 0 ${f2(2 * r)} 0a${f2(r)} ${f2(r)} 0 1 0 ${f2(-2 * r)} 0Z`;
     const star = (x, y, s) =>
@@ -47,7 +80,8 @@ export default function register(Board) {
     // The crack across an arm at radius R.crack, from its a0 edge to its a1 edge.
     function crackPts(H, sl) {
       const pts = [];
-      const n = 7;
+      // One tooth every six degrees or so, so a wide arm cracks as finely as a narrow one.
+      const n = Math.max(7, Math.round((sl.a1 - sl.a0) / 6));
       for (let k = 0; k <= n; k++) {
         const a = sl.a0 + ((sl.a1 - sl.a0) * k) / n;
         const r = R.crack + (k === 0 || k === n ? 0 : k % 2 ? 5 : -4);
@@ -55,14 +89,24 @@ export default function register(Board) {
       }
       return pts;
     }
+    // An arc of radius r over `span` degrees to the point `to`, centred on angle `mid` (twisted): a
+    // wheel of one slice goes round the whole circle, which one arc command cannot draw.
+    function arcTo(H, r, span, mid, to, sweep) {
+      const flag = span > 180 ? 1 : 0;
+      if (span < 359.9) return `A${r} ${r} 0 ${flag} ${sweep} ${f2(to[0])} ${f2(to[1])}`;
+      const [mx, my] = H.polar(r, mid);
+      return `A${r} ${r} 0 0 ${sweep} ${f2(mx)} ${f2(my)}A${r} ${r} 0 0 ${sweep} ${f2(to[0])} ${f2(to[1])}`;
+    }
     function armPath(H, sl, r0, r1) {
       const a = edge(H, sl.a0, r0, r1);
       const b = edge(H, sl.a1, r0, r1).reverse();
+      const span = sl.a1 - sl.a0;
       return (
         line(a) +
-        `A${r1} ${r1} 0 0 1 ${f2(b[0][0])} ${f2(b[0][1])}` +
+        arcTo(H, r1, span, sl.mid + tw(r1), b[0], 1) +
         line(b.slice(1), 'L') +
-        `A${r0} ${r0} 0 0 0 ${f2(a[0][0])} ${f2(a[0][1])}Z`
+        arcTo(H, r0, span, sl.mid + tw(r0), a[0], 0) +
+        'Z'
       );
     }
     // The arm broken in two along the crack.
@@ -73,7 +117,8 @@ export default function register(Board) {
         line(a) +
         line(crackPts(H, sl).slice(1), 'L') +
         line(b.slice(1), 'L') +
-        `A${R.hub} ${R.hub} 0 0 0 ${f2(a[0][0])} ${f2(a[0][1])}Z`
+        arcTo(H, R.hub, sl.a1 - sl.a0, sl.mid + tw(R.hub), a[0], 0) +
+        'Z'
       );
     }
     function outerPiece(H, sl) {
@@ -81,7 +126,7 @@ export default function register(Board) {
       const b = edge(H, sl.a1, R.crack, R.disc, 4).reverse();
       return (
         line(a) +
-        `A${R.disc} ${R.disc} 0 0 1 ${f2(b[0][0])} ${f2(b[0][1])}` +
+        arcTo(H, R.disc, sl.a1 - sl.a0, sl.mid + tw(R.disc), b[0], 1) +
         line(b.slice(1), 'L') +
         line(crackPts(H, sl).reverse().slice(1), 'L') +
         'Z'
@@ -290,7 +335,7 @@ export default function register(Board) {
 
           for (const sl of m.slices) {
             const g = H.slice(root, sl, m);
-            const fam = (sl.i % 4) + 1;
+            const fam = family(sl.i, m.n);
             g.style.setProperty('--arm', `var(--lp-c${fam})`);
             g.style.setProperty('--arm-h', `var(--lp-h${fam})`);
             const t = H.rad(sl.mid);
@@ -309,7 +354,9 @@ export default function register(Board) {
             H.s(
               'path',
               {
-                d: `M${f2(q0x)} ${f2(q0y)}A${R.disc - 9} ${R.disc - 9} 0 0 1 ${f2(q1x)} ${f2(q1y)}`,
+                d:
+                  `M${f2(q0x)} ${f2(q0y)}` +
+                  arcTo(H, R.disc - 9, sl.a1 - sl.a0 - 12, sl.mid + tw(R.disc - 9), [q1x, q1y], 1),
                 class: 'lp-rimlight',
               },
               lift,
@@ -318,26 +365,25 @@ export default function register(Board) {
             H.s('path', { d: armPath(H, sl, R.hub, R.disc), fill: `url(#${uid}-gloss)`, class: 'lp-sheen' }, lift);
             if (sl.off) H.s('path', { d: armPath(H, sl, R.hub, R.disc), class: 'lp-off' }, lift);
             const c = H.s('g', { class: 'lp-content' }, lift);
-            if (m.kind === 'convert' && sl.sub) {
-              const parts = H.block(c, sl, R.lbl, {
+            const maxWidth = room(H, sl, R.hub, R.disc, 5, tw);
+            if (sl.format) {
+              H.block(c, sl, R.lbl, {
                 size: 27,
                 subSize: 13,
                 gap: -1,
-                maxWidth: 68,
+                maxWidth,
                 minSize: 11,
                 cls: 'lp-lbl lp-fmt',
                 subCls: 'lp-sub',
               });
-              // The sub-label sits where the swirl narrows the arm a little, so it gets less room.
-              if (parts.sub) H.fitWidth(parts.sub, 60, +parts.sub.getAttribute('font-size'), 10);
             } else {
               H.block(c, sl, R.lbl, {
                 icon: true,
                 iconSize: 22,
                 size: 15,
                 gap: 2,
-                maxWidth: 60,
-                minSize: 9.5,
+                maxWidth,
+                minSize: 8.5,
                 cls: 'lp-lbl lp-word',
                 sub: null,
               });
@@ -376,8 +422,10 @@ export default function register(Board) {
           // The hub: a round of plain candy with the name, the file and the key.
           const hub = H.s('g', { class: 'lp-hub' }, root);
           H.s('circle', { cx: 200, cy: 200, r: R.hub, class: 'lp-core' }, hub);
-          H.label(hub, 200, 184, m.title, { maxWidth: 80, size: 17, minSize: 11, cls: 'lp-title', maxLines: 1 });
-          H.label(hub, 200, 201, m.file, {
+          // Without a key (a ring opened from the menu) the name and the file sit in the middle.
+          const low = m.key ? 0 : 8;
+          H.label(hub, 200, 184 + low, m.title, { maxWidth: 80, size: 17, minSize: 9, cls: 'lp-title', maxLines: 1 });
+          H.label(hub, 200, 201 + low, m.file, {
             maxWidth: 76,
             size: 12,
             minSize: 9,
@@ -385,15 +433,17 @@ export default function register(Board) {
             maxLines: 1,
             attrs: { direction: 'ltr', 'unicode-bidi': 'plaintext' },
           });
-          const kw = 14 + m.key.length * 6.3;
-          H.s('rect', { x: f2(200 - kw / 2), y: 210, width: f2(kw), height: 16, rx: 8, class: 'lp-key' }, hub);
-          H.text(hub, 200, 218.5, m.key, { class: 'lp-keytext' });
+          if (m.key) {
+            const kw = 14 + m.key.length * 6.3;
+            H.s('rect', { x: f2(200 - kw / 2), y: 210, width: f2(kw), height: 16, rx: 8, class: 'lp-key' }, hub);
+            H.text(hub, 200, 218.5, m.key, { class: 'lp-keytext' });
+          }
         },
 
         // Sugar crystals burst from the crack and twinkle away; built for the effect only.
         onSelect(root, m, i, H, t) {
           root.querySelectorAll('.lp-fx').forEach((n) => (n.textContent = ''));
-          if (t == null && reducedMotion()) return;
+          if (t == null && !applying(root)) return;
           const g = root.querySelector(`.slice[data-slice="${i}"]`);
           const sl = m.slices[i];
           const fx = g.querySelector('.lp-fx');
