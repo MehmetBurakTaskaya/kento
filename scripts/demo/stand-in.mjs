@@ -426,16 +426,21 @@ export function demoStandIn(api) {
         : [],
     automationView: async () => automationView(await base.automationView()),
     webNeeds: async () => null,
-    webProbe: async (url) => ({
-      url,
-      site: 'other',
-      kind: 'video',
-      title: TEXT.video,
-      duration: 754.3,
-      heights: [2160, 1440, 1080, 720, 480, 360],
-      thumbnail: false,
-      images: [],
-    }),
+    // The link is read for a moment, as it is for real, so the dialog shows its reading state on
+    // purpose rather than for a single frame.
+    webProbe: async (url) => {
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      return {
+        url,
+        site: 'other',
+        kind: 'video',
+        title: TEXT.video,
+        duration: 754.3,
+        heights: [2160, 1440, 1080, 720, 480, 360],
+        thumbnail: false,
+        images: [],
+      };
+    },
     shelfView: async () => ({ items: shelf, history: [] }),
     toastCards: async () => [],
     onDrag: hold('drag'),

@@ -437,7 +437,8 @@ async function clickMain(selector, ms = 600) {
   target.click();
 }
 
-const railItem = (index) => main.contentDocument.querySelectorAll('.rail-item')[index];
+/** Home, Library, Automation and Settings; the theme badge above Settings is not counted. */
+const railItem = (index) => main.contentDocument.querySelectorAll('.rail-item:not(.rail-theme)')[index];
 const store = async () => (await kento(main).store()).useApp;
 
 function darken(on) {
@@ -551,8 +552,10 @@ async function tools() {
   );
   if (portrait) await clickMain(portrait, 650);
   await sleep(900);
-  (await store()).getState().closePanel();
+  // The window fades first; the editor closes once it is gone, so Home never shows behind it.
+  const app = await store();
   show(mainWindow, false);
+  setTimeout(() => app.getState().closePanel(), 300);
 }
 
 async function actions() {

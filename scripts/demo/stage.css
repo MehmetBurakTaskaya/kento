@@ -44,7 +44,9 @@ body {
   position: relative;
   inline-size: 960px;
   block-size: 600px;
-  overflow: hidden;
+  /* Clip, not hidden: a focused element can scroll a hidden box, which once left the end card
+     12 px short of the bottom. */
+  overflow: clip;
   color: var(--text);
   background: var(--desk);
 }
