@@ -661,10 +661,11 @@ async function library() {
 }
 
 async function dark() {
+  // The caption changes as the page does: on the click, not before it and not after.
   await openPage(3);
+  say(TEXT.caption.dark);
   await sleep(350);
   const buttons = [...main.contentDocument.querySelectorAll('.segmented button')];
-  say(TEXT.caption.dark);
   await clickMain(buttons[2], 600);
   darken(true);
   await sleep(1100);

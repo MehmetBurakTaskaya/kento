@@ -355,24 +355,26 @@ function recipes(list) {
 const LIBRARY = (
   turkish
     ? [
-        ['balon.jpg', 'convert', 'balon.heic', 20_000],
-        ['klip.mp4', 'convert', 'klip.mov', 95_000],
+        ['klip.mp4', 'convert', 'klip.mov', 20_000],
+        ['balon.jpg', 'convert', 'balon.heic', 95_000],
         ['rapor.pdf', 'convert', 'rapor.docx', 400_000],
-        [`${TEXT.video}.mp4`, 'download', null, 2_400_000],
+        [`${TEXT.video}.mp4`, 'download', null, 2_400_000, 312_840_192],
         ['liman - kırpılmış.jpg', 'tool', 'liman.jpg', 7_200_000],
         ['sunum - 1.png', 'convert', 'sunum.pptx', 86_400_000],
       ]
     : [
-        ['sunrise.jpg', 'convert', 'sunrise.heic', 20_000],
-        ['clip.mp4', 'convert', 'clip.mov', 95_000],
+        ['clip.mp4', 'convert', 'clip.mov', 20_000],
+        ['sunrise.jpg', 'convert', 'sunrise.heic', 95_000],
         ['report.pdf', 'convert', 'report.docx', 400_000],
-        [`${TEXT.video}.mp4`, 'download', null, 2_400_000],
+        [`${TEXT.video}.mp4`, 'download', null, 2_400_000, 312_840_192],
         ['harbor - cropped.jpg', 'tool', 'harbor.jpg', 7_200_000],
         ['slides - 1.png', 'convert', 'slides.pptx', 86_400_000],
       ]
-).map(([name, origin, source, age], index) => ({
+).map(([name, origin, source, age, size], index) => ({
   id: 100 - index,
   ...entry(origin === 'download' ? home(TEXT.downloadsFolder, 'Kento', name) : at(name)),
+  // A 4K download is far bigger than the clip converted in the tour.
+  ...(size && { size }),
   created: Date.now() - age,
   origin,
   source,
