@@ -1,2 +1,111 @@
 /* SPDX-License-Identifier: MIT */
 /* The editors of Cut out parts, Remove pauses, Add music, Fade and volume, Remove noise, Merge audio and Make a ringtone. */
+
+/* A note that matters now: a ringtone shortened to its limit, a crossfade held back. */
+.sound-note {
+  padding-inline-start: 8px;
+  border-inline-start: 3px solid var(--warning);
+}
+
+/* A video's sound shows as a waveform in Remove pauses and Fade and volume; under the picture it
+   takes less height than an audio file's. */
+.editor:not([data-audio]):has(.sound-pauses, .sound-fade) .timeline[data-wave] .timeline-track {
+  block-size: 88px;
+}
+
+/* ---------------------------------------------------------------- Remove pauses */
+/* The count keeps its room while a search runs, so the controls below stay put. */
+.sound-pauses {
+  display: grid;
+  gap: 4px;
+  min-block-size: 3.4em;
+  align-content: start;
+}
+
+/* ---------------------------------------------------------------- Fade and volume */
+.sound-fade {
+  display: grid;
+  gap: 14px;
+}
+/* The fades are ramps over the timeline: the shaded corner above the line is what the fade takes
+   away. The timeline runs left to right in every language, so the ramps do too. */
+.editor:has(.sound-fade) .timeline-span {
+  border: 0;
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 1px),
+    var(--accent) calc(50% - 1px) calc(50% + 1px),
+    color-mix(in srgb, var(--accent) 24%, transparent) calc(50% + 1px)
+  );
+}
+.editor:has(.sound-fade) .timeline-span[data-current] {
+  background: linear-gradient(
+    to top left,
+    transparent calc(50% - 1px),
+    var(--accent) calc(50% - 1px) calc(50% + 1px),
+    color-mix(in srgb, var(--accent) 24%, transparent) calc(50% + 1px)
+  );
+}
+/* The picture's fade, previewed: black over the video as deep as the fade at the playhead. */
+.sound-fade-black {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: var(--fade, 0);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- Add music */
+.music-card {
+  display: grid;
+  gap: 6px;
+  min-inline-size: 0;
+}
+.music-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-inline-size: 0;
+}
+.music-name .file-name {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  font-weight: 600;
+}
+.music-name .muted {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+/* The music's waveform with its start point; like the timeline it runs left to right. */
+.music-strip {
+  position: relative;
+  block-size: 56px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+  touch-action: none;
+}
+.music-strip .waveform {
+  color: var(--accent);
+}
+.music-played,
+.music-skipped,
+.music-offset {
+  position: absolute;
+  inset-block: 0;
+  pointer-events: none;
+}
+.music-played {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.music-skipped {
+  inset-inline-start: 0;
+  background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+}
+.music-offset {
+  inline-size: 2px;
+  margin-inline-start: -1px;
+  background: var(--accent);
+}
