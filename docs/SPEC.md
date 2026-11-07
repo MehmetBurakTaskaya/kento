@@ -342,12 +342,12 @@ Each tool opens in its own small window or panel, shows a preview and saves the 
 - **Redact video:** rectangles are hidden with color, blur or pixelation during chosen time ranges, or erased: filled in from the pixels around them (FFmpeg `delogo`), for the user's own marks such as a date stamp or their logo.
 - **Merge videos** also takes a transition between clips: fade, through black, slide or wipe, 0.2 to 2 seconds (never more than a third of the shorter of the two clips), with the sound crossfading. The clips overlap for each transition, so the result is shorter by that much.
 - **Make vertical:** a 1080×1920 H.264/AAC MP4 for short-video apps, from the whole video or a selection. Either a 9:16 window of the picture, placed by dragging, or the whole picture across the width over a blurred, enlarged copy of itself or a color. The editor says when the result runs past common short-video lengths (60 seconds, 3 minutes).
-- **Cut out parts** (video and audio): ranges marked on the timeline are taken out and the rest is joined, with a few milliseconds of fade at every cut so the sound never clicks.
-- **Remove pauses** (video and audio): quiet gaps are found (a threshold in dB, a shortest pause, a margin kept on both sides) and shown on the timeline with the time saved before anything is written; then they are cut out.
-- **Add music:** a piece of music mixed under the video's own sound or replacing it, each with its level; the music can step back while someone speaks (sidechain compression), start later in the song, repeat, and fade in and out.
+- **Cut out parts** (video and audio): ranges marked on the timeline (I and O, then Add or M) are taken out and the rest is joined, with a few milliseconds of fade at every cut so the sound never clicks. Every audio track of a video is cut; subtitles and chapters are left out, since their times would no longer match.
+- **Remove pauses** (video and audio): quiet gaps are found (a threshold in dB, a shortest pause, a margin kept on both sides) and shown on the timeline over the waveform with the time saved before anything is written; then they are cut out. A pause at the very start or end goes entirely.
+- **Add music:** a piece of music (chosen in the editor, or an audio file dragged in together with the video) mixed under the video's own sound or replacing it, each with its level; the music can step back while someone speaks (sidechain compression), start later in the song, repeat, and fade in and out. The picture is copied; the result has one sound track, the first track mixed with the music. The preview plays the music beside the video.
 - **Add text or logo:** text (typeface, size, color, outline or a box behind it) and pictures placed on the frame, each with its opacity and time range. Text is drawn by the page into a picture of the result's own pixels, so the editor shows exactly what the video gets, in every script.
-- **Fade and volume** (video and audio): fades in and out over chosen seconds (for video, the picture from and to black too) and a level raised or lowered, with a limiter so a louder result never clips.
-- **Remove noise** (video and audio): FFT noise reduction in three strengths, optionally with the lowest rumble filtered out.
+- **Fade and volume** (video and audio): fades in and out over up to 10 seconds (for video, the picture from and to black too) and a level raised or lowered by up to 20 dB, with a limiter so a louder result never clips. The fades show as ramps on the timeline and the preview plays at the chosen level, as loud as the player can go.
+- **Remove noise** (video and audio): FFT noise reduction in three strengths, optionally with the lowest rumble filtered out (below about 80 Hz). The change is heard in the saved file.
 - **Rotate video:** quarter and half turns, mirrored or flipped.
 - **Reverse and loop:** backwards (the sound too), a boomerang (forwards and back, silent) or the clip repeated up to ten times.
 - **Color and look:** ready looks (black and white, warm, cool, vivid, faded, vintage) and brightness, contrast, saturation and warmth, with a live preview.
@@ -360,8 +360,8 @@ Each tool opens in its own small window or panel, shows a preview and saves the 
 - **Audio channels:** mono/stereo conversion, left/right level and a channel preview.
 - **Redact audio:** selected ranges are replaced with a beep or silence.
 - **Audio to video:** a video with a waveform, spectrum, frequency bars or a still image.
-- **Merge audio:** audio files in the chosen order, overlapping by a crossfade of up to 10 seconds.
-- **Make a ringtone:** up to 40 seconds of a song or of a video's sound, faded in and out, as M4R or MP3.
+- **Merge audio:** audio files in the chosen order, overlapping by a crossfade of up to 10 seconds (never more than half the shortest file). The first file sets the format, sample rate and channels; cover art is left out.
+- **Make a ringtone:** up to 40 seconds of a song or of a video's sound (the selection never grows past that), faded in and out over half a second, as M4R (AAC in an MPEG-4 file) or MP3.
 
 On the Tools wheel, Make vertical, Rotate video, Reverse and loop, Color and look, Remove noise and Stabilize video carry rings of quick choices that run at once; "Other…" and a plain drop open the editor.
 
