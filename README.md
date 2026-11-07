@@ -49,21 +49,29 @@ Every job runs on your computer and writes a new file next to the original.
 
 **Video**
 
-- **Cut:** keep the part you want, or split a video at your markers, into equal parts or every few
-  seconds, and keep only the parts you choose.
-- **Reshape:** crop to 9:16 for shorts and stories, to 1:1, 4:5 or 16:9, or to any area you draw;
-  play it from 0.25× to 4× with the voice at its own pitch; join clips into one.
+- **Cut:** keep the part you want, cut out the parts you mark, take the pauses out of someone
+  speaking, or split a video at your markers, into equal parts or every few seconds.
+- **Make it vertical:** a 1080 × 1920 video for shorts and stories, cropped where you choose or laid
+  over a blurred copy of itself; or crop to 1:1, 4:5, 16:9 or any area you draw.
+- **Sound:** add music under the voice (it steps back while someone speaks) or in place of the
+  sound, fade in and out, make it louder or quieter, remove noise, or take the sound away.
+- **Add:** text in four typefaces and your logo, each where and when you want it; join clips with a
+  fade, a slide or a wipe; burn in subtitles.
+- **Change:** play it from 0.25× to 4× with the voice at its own pitch, backwards, as a boomerang or
+  on a loop; turn or mirror it; give it a look or adjust its colors; steady a shaky video.
 - **Hide:** blur, pixelate or cover faces, number plates and logos, each only for the seconds it is
-  on screen.
-- **And:** burn in subtitles, remove the sound, save frames as pictures, make a GIF, take out the
-  MP3, convert between MP4, MOV, MKV and WEBM, and compress to a size such as "under 25 MB".
+  on screen, or erase a date stamp or a mark of your own.
+- **And:** save frames as pictures, make a GIF, take out the MP3, convert between MP4, MOV, MKV and
+  WEBM, and compress to a size such as "under 25 MB".
 
 **Audio**
 
 - **Even out the loudness** for a podcast, a music service or broadcast (EBU R128), measured first
   and applied in a second pass.
-- **Edit:** keep the part you want and trim the silence at its ends, make it mono or stereo or
-  balance left and right, and bleep or mute words.
+- **Edit:** keep the part you want, cut out parts or the pauses, fade in and out, change the
+  volume, remove hiss and hum, make it mono or stereo or balance left and right, and bleep or mute
+  words.
+- **Join** recordings with a crossfade, and **make a ringtone** of up to 40 seconds as M4R or MP3.
 - **Make a video of it:** a waveform, a spectrum, bars or a picture, ready to post.
 - **Convert** between MP3, M4A, WAV, FLAC, OGG, OPUS and more, or compress it.
 
@@ -174,14 +182,14 @@ Media tools.
 
 ## Tools
 
-31 tools, most of them on the Tools wheel:
+44 tools, most of them on the Tools wheel:
 
 | For | Tools |
 | --- | --- |
 | Images | Edit image (size, rotation, brightness, contrast, saturation), Mark up, Add frame, Crop image, Make a collage, Redact image, Remove background |
 | PDF | Split PDF, Edit PDF (reorder, rotate and remove pages), Merge PDFs, PDF from images |
-| Video | Remove audio, Trim video, Crop video area, Change video speed, Merge videos, Extract frames, Split video, Redact video, Burn in subtitles |
-| Audio | Normalize loudness, Trim audio, Audio channels, Redact audio, Audio to video |
+| Video | Trim video, Cut out parts, Make vertical, Add music, Add text or logo, Remove pauses, Crop video area, Change video speed, Merge videos (with transitions), Extract frames, Split video, Redact video, Fade and volume, Remove noise, Rotate video, Color and look, Reverse and loop, Stabilize video, Remove audio, Burn in subtitles |
+| Audio | Normalize loudness, Trim audio, Cut out parts, Remove pauses, Fade and volume, Remove noise, Audio channels, Redact audio, Audio to video, Merge audio, Make a ringtone |
 | Several kinds | Compress, Metadata, Extract text, Read QR codes, Extract archive, Make a QR code |
 
 - **Compress** takes images, video, audio and PDF, by quality, by ratio or to a target size such as
@@ -457,6 +465,7 @@ kento convert photo.heic --to jpg
 kento convert report.docx notes.md --to pdf --out PDFs
 kento tool compress video.mp4 --target-size 25MB
 kento tool merge-pdf part1.pdf part2.pdf
+kento tool merge-video a.mp4 b.mp4 --transition fade --seconds 1
 kento recipe run Instagram photo.jpg
 kento routes heic
 ```
@@ -467,7 +476,7 @@ window. Results go next to each file, or into the `--out` folder, which Kento cr
 | Command | Does |
 | --- | --- |
 | `kento convert FILES… --to FORMAT` | converts each file |
-| `kento tool TOOL FILES…` | runs a tool: `compress` (`--quality 1–100`, `--ratio 5–95` or `--target-size`), `mute`, `normalize`, `merge-video`, `extract`, `merge-pdf`, `images-to-pdf` (`--page fit\|a4\|letter`, `--margin`), `read-qr` (`--format txt\|csv\|json`) |
+| `kento tool TOOL FILES…` | runs a tool: `compress` (`--quality 1–100`, `--ratio 5–95` or `--target-size`), `mute`, `normalize`, `denoise` (`--strength light\|medium\|strong`, `--rumble`), `remove-pauses` (`--threshold DB`, `--min-length S`, `--keep S`), `stabilize` (`--strength`), `rotate-video` (`--turn right\|left\|half`, `--mirror`, `--flip`), `merge-video` (`--transition fade\|fade-black\|slide\|wipe`, `--seconds 0.2–2`), `merge-audio` (`--crossfade 0–10`), `extract`, `merge-pdf`, `images-to-pdf` (`--page fit\|a4\|letter`, `--margin`), `read-qr` (`--format txt\|csv\|json`) |
 | `kento recipe list`, `kento recipe run RECIPE FILES…` | lists or runs your recipes |
 | `kento formats`, `kento routes FORMAT` | lists the formats, or what one converts to and from |
 | `kento help COMMAND` | explains a command |

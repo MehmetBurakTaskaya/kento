@@ -49,22 +49,32 @@ Her iş senin bilgisayarında çalışır ve orijinalin yanına yeni bir dosya y
 
 **Video**
 
-- **Kes:** istediğin kısmı al ya da videoyu koyduğun işaretlerden, eşit parçalara veya birkaç
-  saniyede bir böl ve yalnızca seçtiğin parçaları tut.
-- **Biçimlendir:** kısa videolar ve hikâyeler için 9:16'ya, 1:1'e, 4:5'e, 16:9'a ya da çizdiğin
-  herhangi bir alana kırp; 0,25× ile 4× arasında oynat, ses kendi tonunda kalsın; klipleri tek
-  videoda birleştir.
-- **Gizle:** yüzleri, plakaları ve logoları bulanıklaştır, pikselle ya da kapat; her birini yalnızca
-  ekranda olduğu saniyeler boyunca.
-- **Dahası:** altyazı göm, sesi kaldır, kareleri görsel olarak kaydet, GIF yap, MP3'ünü çıkar, MP4,
-  MOV, MKV ve WEBM arasında dönüştür, "25 MB'ın altı" gibi bir boyuta sıkıştır.
+- **Kes:** istediğin kısmı al, işaretlediğin parçaları çıkar, konuşan birinin duraklamalarını
+  kaldır ya da videoyu koyduğun işaretlerden, eşit parçalara veya birkaç saniyede bir böl.
+- **Dikey yap:** kısa videolar ve hikâyeler için 1080 × 1920; seçtiğin yerden kırpılmış ya da
+  kendi bulanık kopyasının üzerinde. Ya da 1:1'e, 4:5'e, 16:9'a veya çizdiğin herhangi bir alana
+  kırp.
+- **Ses:** konuşmanın altına müzik ekle (biri konuşurken kısılır) ya da sesi müzikle değiştir,
+  yumuşakça aç ve kapat, sesi yükselt ya da alçalt, gürültüyü azalt veya sesi tamamen kaldır.
+- **Ekle:** dört yazı tipinde metin ve logonu, her birini istediğin yere ve zamana koy; klipleri
+  erime, kaydırma ya da silme geçişiyle birleştir; altyazı göm.
+- **Değiştir:** 0,25× ile 4× arasında oynat, ses kendi tonunda kalsın; tersten, bumerang ya da
+  döngü olarak oynat; döndür ya da aynala; bir görünüm seç ya da renklerini ayarla; titreyen bir
+  videoyu sabitle.
+- **Gizle:** yüzleri, plakaları ve logoları bulanıklaştır, pikselle ya da kapat, her birini
+  yalnızca ekranda olduğu saniyeler boyunca; ya da bir tarih damgasını veya kendi işaretini sil.
+- **Dahası:** kareleri görsel olarak kaydet, GIF yap, MP3'ünü çıkar, MP4, MOV, MKV ve WEBM arasında
+  dönüştür, "25 MB'ın altı" gibi bir boyuta sıkıştır.
 
 **Ses**
 
 - **Ses yüksekliğini dengele:** podcast, müzik servisi ya da yayın için (EBU R128); önce ölçer,
   sonra ikinci geçişte uygular.
-- **Düzenle:** istediğin kısmı al ve uçlarındaki sessizliği kırp, mono ya da stereo yap veya sağ ve
-  sol dengesini ayarla, kelimeleri bip sesiyle ya da sessizlikle örtün.
+- **Düzenle:** istediğin kısmı al, parçaları ya da duraklamaları çıkar, yumuşakça aç ve kapat, ses
+  düzeyini değiştir, hışırtıyı ve uğultuyu azalt, mono ya da stereo yap veya sağ ve sol dengesini
+  ayarla, kelimeleri bip sesiyle ya da sessizlikle ört.
+- **Birleştir:** kayıtları çapraz geçişle tek dosya yap; **zil sesi yap:** en çok 40 saniyelik bir
+  bölümü M4R ya da MP3 olarak kaydet.
 - **Videoya çevir:** dalga formu, spektrum, çubuklar ya da bir resimle, paylaşmaya hazır.
 - **Dönüştür:** MP3, M4A, WAV, FLAC, OGG, OPUS ve daha fazlası arasında; ya da sıkıştır.
 
@@ -175,14 +185,14 @@ Görüntü Uzantıları ya da Medya araçları gerekir.
 
 ## Araçlar
 
-31 araç, çoğu Araçlar çarkında:
+44 araç, çoğu Araçlar çarkında:
 
 | Ne için | Araçlar |
 | --- | --- |
 | Görseller | Görseli düzenle (boyut, döndürme, parlaklık, kontrast, doygunluk), İşaretle, Çerçeve ekle, Görseli kırp, Kolaj oluştur, Görselde gizle, Arka planı kaldır |
 | PDF | PDF'yi böl, PDF'yi düzenle (sayfaları sırala, döndür, çıkar), PDF'leri birleştir, Görsellerden PDF |
-| Video | Videonun sesini kaldır, Videoyu kes, Video alanını kırp, Video hızını değiştir, Videoları birleştir, Video karelerini çıkar, Videoyu böl, Videoda gizle, Altyazı göm |
-| Ses | Ses seviyesini normalize et, Sesi kes, Ses kanalları, Seste gizle, Sesten video |
+| Video | Videoyu kes, Parça çıkar, Dikey video yap, Müzik ekle, Yazı ya da logo ekle, Duraklamaları kaldır, Video alanını kırp, Video hızını değiştir, Videoları birleştir (geçişlerle), Video karelerini çıkar, Videoyu böl, Videoda gizle, Ses ve yumuşak geçiş, Gürültüyü azalt, Videoyu döndür, Renk ve görünüm, Ters oynat ve döngü, Videoyu sabitle, Videonun sesini kaldır, Altyazı göm |
+| Ses | Ses seviyesini normalize et, Sesi kes, Parça çıkar, Duraklamaları kaldır, Ses ve yumuşak geçiş, Gürültüyü azalt, Ses kanalları, Seste gizle, Sesten video, Sesleri birleştir, Zil sesi yap |
 | Birçok tür | Sıkıştır, Meta veri, Metni çıkar, QR kod oku, Arşivi aç, QR kod oluştur |
 
 - **Sıkıştır** görselleri, videoyu, sesi ve PDF'yi kaliteye, orana ya da "25 MB'ın altı" gibi bir
@@ -462,6 +472,7 @@ kento convert photo.heic --to jpg
 kento convert report.docx notes.md --to pdf --out PDFs
 kento tool compress video.mp4 --target-size 25MB
 kento tool merge-pdf part1.pdf part2.pdf
+kento tool merge-video a.mp4 b.mp4 --transition fade --seconds 1
 kento recipe run Instagram photo.jpg
 kento routes heic
 ```
@@ -473,7 +484,7 @@ gider.
 | Komut | Ne yapar |
 | --- | --- |
 | `kento convert DOSYALAR… --to BİÇİM` | her dosyayı dönüştürür |
-| `kento tool ARAÇ DOSYALAR…` | bir araç çalıştırır: `compress` (`--quality 1–100`, `--ratio 5–95` ya da `--target-size`), `mute`, `normalize`, `merge-video`, `extract`, `merge-pdf`, `images-to-pdf` (`--page fit\|a4\|letter`, `--margin`), `read-qr` (`--format txt\|csv\|json`) |
+| `kento tool ARAÇ DOSYALAR…` | bir araç çalıştırır: `compress` (`--quality 1–100`, `--ratio 5–95` ya da `--target-size`), `mute`, `normalize`, `denoise` (`--strength light\|medium\|strong`, `--rumble`), `remove-pauses` (`--threshold DB`, `--min-length SN`, `--keep SN`), `stabilize` (`--strength`), `rotate-video` (`--turn right\|left\|half`, `--mirror`, `--flip`), `merge-video` (`--transition fade\|fade-black\|slide\|wipe`, `--seconds 0.2–2`), `merge-audio` (`--crossfade 0–10`), `extract`, `merge-pdf`, `images-to-pdf` (`--page fit\|a4\|letter`, `--margin`), `read-qr` (`--format txt\|csv\|json`) |
 | `kento recipe list`, `kento recipe run TARİF DOSYALAR…` | tariflerini listeler ya da çalıştırır |
 | `kento formats`, `kento routes BİÇİM` | biçimleri listeler ya da bir biçimin neye dönüştüğünü ve nelerden ona dönüşüldüğünü gösterir |
 | `kento help KOMUT` | bir komutu anlatır |

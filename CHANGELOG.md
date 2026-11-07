@@ -6,6 +6,30 @@ All notable changes to Kento are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Make vertical:** a 1080 × 1920 video for short-video apps from a whole video or a part of it,
+  either a 9:16 window you place on the picture or the whole picture over a blurred copy of itself
+  or a color.
+- **Cut out parts** and **Remove pauses**, for video and audio: take out the parts you mark, or the
+  quiet gaps Kento finds and shows on the timeline before anything is cut, and join the rest.
+- **Add music:** mixed under a video's own sound or replacing it, stepping back while someone
+  speaks, from any point of the song, repeated if it is shorter, fading in and out.
+- **Add text or logo:** text in four typefaces with an outline or a box, and pictures, placed and
+  sized on the video, each with its opacity and its own time.
+- **Fade and volume** and **Remove noise**, for video and audio.
+- **Rotate video**, **Reverse and loop** (backwards, a boomerang or repeated), **Color and look**
+  (ready looks and sliders, previewed exactly) and **Stabilize video**.
+- **Merge audio**, with an optional crossfade, and **Make a ringtone** (up to 40 seconds as M4R or
+  MP3).
+- Redact video can erase a small mark of your own, such as a date stamp or your logo, by filling it
+  in from what is around it.
+- Merge videos takes a transition between clips: fade, through black, slide or wipe.
+- Quick choices on the Tools wheel turn, mirror, reverse, make a boomerang, make vertical, apply a
+  look, remove noise or stabilize at once.
+- The command line runs Remove noise, Remove pauses, Stabilize video, Rotate video and Merge audio,
+  and Merge videos with a transition; folder rules can remove noise or pauses.
+
 ### Fixed
 
 - Trim audio saves again: every trim ended in an error, with or without removing the silence.
