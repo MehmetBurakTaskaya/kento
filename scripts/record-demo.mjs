@@ -11,10 +11,11 @@
 // (scripts/demo/themes.mjs) is recorded the same way, in the app's own page.
 //
 //   npm run demo                      everything, in English and Turkish
-//   npm run demo -- --gif             only the GIFs: docs/images/kento-demo.gif and kento-demo-tr.gif
+//   npm run demo -- --gif             only the GIFs: docs/images/kento-demo.gif and kento-demo-tr.gif,
+//                                     the tour followed by the themes reel
 //   npm run demo -- --stills          only the screenshots
 //   npm run demo -- --stills --names crop-video,normalize   only these screenshots
-//   npm run demo -- --themes          only the themes reel: docs/images/kento-themes.gif and -tr.gif
+//   npm run demo -- --themes          only the themes reel's frames, in artifacts/demo/themes-<lang>
 //   npm run demo -- --lang tr         one language
 //   npm run demo -- --config file     another Vite config file
 //
@@ -163,15 +164,41 @@ async function record(lang, reel = false) {
   await page.close();
   if (frames.length < 2) throw new Error(`${lang}: the screencast gave ${frames.length} frames`);
 
-  // Each frame stands until the next one; the last until the end of the take.
-  const list = ['ffconcat version 1.0'];
-  frames.forEach((frame, i) => {
-    const next = frames[i + 1]?.time ?? end;
-    list.push(`file '${frame.file}'`, `duration ${Math.max(0.001, next - frame.time).toFixed(4)}`);
-  });
-  list.push(`file '${frames[frames.length - 1].file}'`);
-  writeFileSync(path.join(dir, 'frames.ffconcat'), `${list.join('\n')}\n`);
+  writeList(dir, timed(frames, end));
   console.log(`${lang}: ${frames.length} frames over ${length.toFixed(1)} s`);
+  // The scenes' marks count from the start of play(), the frames from the screencast's clock;
+  // both end together, which ties the two.
+  const offset = end - length;
+  return { dir, frames, end, scenes: marks.map(([name, at]) => [name, offset + at]) };
+}
+
+/** Each frame with how long it stands: until the next one, the last until `end`. */
+function timed(frames, end, prefix = '') {
+  return frames.map((frame, i) => ({
+    file: `${prefix}${frame.file}`,
+    duration: Math.max(0.001, (frames[i + 1]?.time ?? end) - frame.time),
+  }));
+}
+
+function writeList(dir, entries) {
+  const list = ['ffconcat version 1.0'];
+  for (const { file, duration } of entries) list.push(`file '${file}'`, `duration ${duration.toFixed(4)}`);
+  list.push(`file '${entries[entries.length - 1].file}'`);
+  writeFileSync(path.join(dir, 'frames.ffconcat'), `${list.join('\n')}\n`);
+}
+
+/** The tour without its end card, then the themes reel, which ends on the download card: one GIF,
+ *  so nobody has to scroll to a second one. */
+function joined(lang, tour, reel) {
+  const dir = path.join(work, `joined-${lang}`);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const cut = tour.scenes.find(([name]) => name === 'end')?.[1] ?? tour.end;
+  const kept = tour.frames.filter((frame) => frame.time < cut);
+  writeList(dir, [
+    ...timed(kept, cut, `../${path.basename(tour.dir)}/`),
+    ...timed(reel.frames, reel.end, `../${path.basename(reel.dir)}/`),
+  ]);
   return dir;
 }
 
@@ -286,8 +313,13 @@ try {
   for (const lang of languages) {
     const suffix = lang === 'en' ? '' : `-${lang}`;
     if (!only || only === 'stills') await stills(lang);
-    if (!only || only === 'gif') gif(await record(lang), path.join(images, `kento-demo${suffix}.gif`));
-    if (only === 'themes') gif(await record(lang, true), path.join(images, `kento-themes${suffix}.gif`));
+    if (!only || only === 'gif') {
+      const tour = await record(lang);
+      const reel = await record(lang, true);
+      gif(joined(lang, tour, reel), path.join(images, `kento-demo${suffix}.gif`));
+    }
+    // The reel alone, for the website's own video.
+    if (only === 'themes') await record(lang, true);
   }
 } finally {
   await browser.close();
