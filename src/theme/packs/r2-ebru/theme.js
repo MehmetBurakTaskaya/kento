@@ -1191,6 +1191,80 @@ export default function register(Board) {
     })();
     const hubC = `<circle cx="${C}" cy="${C}" r="${R0 - 7}" class="eb-hr eb-hr-1"/><circle cx="${C}" cy="${C}" r="${R0 - 10}" class="eb-hr eb-hr-g"/><circle cx="${C}" cy="${C}" r="${R0 - 12.5}" class="eb-hr eb-hr-2"/>`;
 
+    // ================================================================ sound
+    // A's voices are drops of paint falling into the bath, B's the airbrush and its spatter. Every gain
+    // starts silent and ramps, and every source is stopped, so nothing clicks. Each voice's `v` sets its
+    // level, balanced by measurement against the other themes.
+
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    function filter(ac, type, f, q) {
+      const n = ac.createBiquadFilter();
+      n.type = type;
+      n.frequency.value = f;
+      n.Q.value = q;
+      return n;
+    }
+    // A drop into liquid: the bubble it traps rings and rises in pitch as it closes (a falling `rise`
+    // is a drop pulled off the surface). Paint is thicker than water, so the ring is short and round;
+    // a low drop swells over about a cycle, which keeps its start round instead of thumping.
+    function plip(ac, out, t, f, gain, d = 0.04, rise = 1.8) {
+      const o = ac.createOscillator();
+      o.frequency.setValueAtTime(f, t);
+      o.frequency.exponentialRampToValueAtTime(f * rise, t + d);
+      o.connect(gate(ac, out, t, Math.min(0.004, 1 / f), 0, d, gain));
+      o.start(t);
+      o.stop(t + d + 0.04);
+    }
+    // Air through the nozzle: noise in a band that drifts from f to f2, held for a while, its top
+    // softened so the hiss never turns sharp.
+    function hiss(ac, out, t, X, { f, f2 = f, q = 1, a = 0.01, hold = 0, d = 0.1, gain = 0.05 }) {
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      src.loop = true;
+      const band = filter(ac, 'bandpass', f, q);
+      band.frequency.setValueAtTime(f, t);
+      band.frequency.exponentialRampToValueAtTime(f2, t + a + hold + d);
+      src
+        .connect(band)
+        .connect(filter(ac, 'lowpass', 6000, 0.7))
+        .connect(gate(ac, out, t, a, hold, d, gain));
+      src.start(t, Math.random() * 0.5);
+      src.stop(t + a + hold + d + 0.05);
+    }
+    // Specks of paint landing: tiny clicks at random, rate(s) of them a second at s seconds in, through
+    // a band that gives them the patter of fine drops.
+    function specks(ac, out, t, dur, rate, { f = 2800, q = 0.9, gain = 0.1 } = {}) {
+      const sr = ac.sampleRate;
+      const buf = ac.createBuffer(1, Math.ceil(dur * sr), sr);
+      const data = buf.getChannelData(0);
+      for (let s = 0; ;) {
+        s += -Math.log(1 - Math.random()) / Math.max(1, rate(s));
+        if (s > dur - 0.003) break;
+        const i = Math.floor(s * sr);
+        const len = 10 + Math.floor(Math.random() * 30);
+        const k = 0.3 + 0.7 * Math.random();
+        for (let j = 0; j < len; j++) data[i + j] += k * (Math.random() * 2 - 1) * (1 - j / len);
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src
+        .connect(filter(ac, 'bandpass', f, q))
+        .connect(filter(ac, 'lowpass', 6000, 0.7))
+        .connect(gate(ac, out, t, 0.002, dur, 0.01, gain));
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+
     // ================================================================ variants
     const FONTS = {
       a: {
@@ -1251,19 +1325,69 @@ export default function register(Board) {
         palette: palA,
         contrast: pairs(4, true),
         sounds: {
+          // A fat drop lands in the bath with a round bloop, its rebound droplet falls back into the
+          // middle, and the ripples lap away.
           open(ac, out, t, X) {
-            X.tone(ac, out, t, { type: 'sine', f: 380, f2: 1150, dur: 0.07, gain: 0.12, a: 0.002 });
-            X.burst(ac, out, t, { type: 'lowpass', f: 900, f2: 280, q: 0.7, dur: 0.14, gain: 0.05, a: 0.01 });
+            const v = 0.66;
+            plip(ac, out, t, 330, 0.16 * v, 0.09, 2.1);
+            X.burst(ac, out, t, { type: 'bandpass', f: 1100, f2: 420, q: 0.8, dur: 0.06, gain: 0.08 * v, a: 0.002 });
+            X.burst(ac, out, t + 0.03, {
+              type: 'bandpass',
+              f: 700,
+              f2: 380,
+              q: 1.3,
+              dur: 0.24,
+              gain: 0.03 * v,
+              a: 0.05,
+            });
+            plip(ac, out, t + 0.13, 1050, 0.06 * v, 0.03, 1.6);
           },
+          // One drop of paint falls into the bath: a short plip, never quite the same twice.
           tick(ac, out, t, X) {
-            X.tone(ac, out, t, { type: 'sine', f: 1450, f2: 2250, dur: 0.025, gain: 0.06, a: 0.001 });
+            const v = 0.81;
+            const d = 0.03 + Math.random() * 0.012;
+            plip(ac, out, t + 0.001, 620 + Math.random() * 280, 0.08 * v, d, 1.7 + Math.random() * 0.4);
+            X.burst(ac, out, t, { type: 'lowpass', f: 1600, q: 0.7, dur: 0.005, gain: 0.03 * v });
           },
+          // A drop sinks into the bath with a deeper plip, and its rings run out over the water.
+          enter(ac, out, t, X) {
+            const v = 0.52;
+            plip(ac, out, t, 430, 0.11 * v, 0.065, 2.3);
+            X.burst(ac, out, t + 0.02, {
+              type: 'bandpass',
+              f: 900,
+              f2: 420,
+              q: 1.6,
+              dur: 0.16,
+              gain: 0.025 * v,
+              a: 0.03,
+            });
+          },
+          // Back out: the brush lifts a drop off the surface (a falling pop) and a last drip falls from it.
+          leave(ac, out, t) {
+            const v = 0.82;
+            plip(ac, out, t, 1250, 0.07 * v, 0.04, 0.55);
+            plip(ac, out, t + 0.085, 820, 0.04 * v, 0.028, 1.8);
+          },
+          // The fat drop slaps the slice 34 ms in: a wet splat round a deep bubble, the droplets it
+          // throws patter down round the stain, and a last drip falls while it dries.
           success(ac, out, t, X) {
-            X.burst(ac, out, t, { type: 'lowpass', f: 2400, f2: 260, q: 0.9, dur: 0.11, gain: 0.16, a: 0.002 });
-            X.tone(ac, out, t, { type: 'sine', f: 190, f2: 70, dur: 0.09, gain: 0.12, a: 0.002 });
-            X.tone(ac, out, t + 0.08, { type: 'sine', f: 1300, f2: 2100, dur: 0.03, gain: 0.05, a: 0.001 });
-            X.tone(ac, out, t + 0.13, { type: 'sine', f: 1700, f2: 2500, dur: 0.025, gain: 0.04, a: 0.001 });
-            X.tone(ac, out, t + 0.24, { type: 'sine', f: 1046.5, dur: 0.55, gain: 0.04, a: 0.01 });
+            const v = 0.8;
+            const hit = t + 0.034;
+            X.burst(ac, out, hit, { type: 'lowpass', f: 3200, f2: 380, q: 0.9, dur: 0.11, gain: 0.2 * v, a: 0.002 });
+            X.tone(ac, out, hit, { f: 230, f2: 140, dur: 0.07, gain: 0.08 * v, a: 0.002 });
+            plip(ac, out, hit + 0.004, 250, 0.15 * v, 0.1, 2.2);
+            [0.075, 0.1, 0.12, 0.15, 0.17, 0.2, 0.235, 0.27].forEach((d, k) =>
+              plip(
+                ac,
+                out,
+                hit + d + Math.random() * 0.012,
+                850 + Math.random() * 900,
+                0.06 * v * (1 - k * 0.08),
+                0.025,
+              ),
+            );
+            plip(ac, out, t + 0.5, 700, 0.035 * v, 0.04, 1.9);
           },
         },
       },
@@ -1296,18 +1420,58 @@ export default function register(Board) {
           ['wheel-sub', 'wheel-slice-hover', 'text'],
         ]),
         sounds: {
+          // The airbrush is tried: the valve clicks, a short burst of mist, a few specks landing.
           open(ac, out, t, X) {
-            X.burst(ac, out, t, { type: 'bandpass', f: 5200, f2: 3600, q: 0.8, dur: 0.09, gain: 0.06, a: 0.01 });
-            X.tone(ac, out, t, { type: 'sine', f: 520, f2: 880, dur: 0.06, gain: 0.05, a: 0.003 });
+            const v = 0.85;
+            X.burst(ac, out, t, { type: 'bandpass', f: 1700, q: 3, dur: 0.006, gain: 0.14 * v });
+            hiss(ac, out, t + 0.008, X, { f: 3400, f2: 2500, q: 0.9, a: 0.015, hold: 0.05, d: 0.12, gain: 0.05 * v });
+            specks(ac, out, t + 0.03, 0.22, (s) => 90 * (1 - s / 0.22), { gain: 0.12 * v });
           },
+          // A breath of mist and a speck of paint on the slice, a little different each time.
           tick(ac, out, t, X) {
-            X.burst(ac, out, t, { type: 'highpass', f: 6500, q: 0.7, dur: 0.022, gain: 0.05, a: 0.001 });
+            const v = 1.36;
+            const f = 2300 + Math.random() * 1200;
+            hiss(ac, out, t, X, { f, f2: f * 0.75, q: 1.2, a: 0.004, d: 0.03, gain: 0.08 * v });
+            X.tone(ac, out, t + 0.01 + Math.random() * 0.014, {
+              f: 1900 + Math.random() * 1300,
+              dur: 0.006,
+              gain: 0.025 * v,
+              a: 0.0008,
+            });
           },
+          // The nozzle opens over the ring: a click, a puff of mist that rises, a dusting of specks.
+          enter(ac, out, t, X) {
+            const v = 0.81;
+            X.burst(ac, out, t, { type: 'bandpass', f: 1700, q: 3, dur: 0.005, gain: 0.1 * v });
+            hiss(ac, out, t + 0.004, X, { f: 1500, f2: 3800, q: 1.1, a: 0.05, hold: 0.02, d: 0.12, gain: 0.05 * v });
+            specks(ac, out, t + 0.06, 0.12, () => 60, { f: 3200, gain: 0.08 * v });
+          },
+          // Back out: the puff falls away and the nozzle closes with a click.
+          leave(ac, out, t, X) {
+            const v = 1.12;
+            hiss(ac, out, t, X, { f: 3600, f2: 1600, q: 1.1, a: 0.012, d: 0.12, gain: 0.05 * v });
+            X.burst(ac, out, t + 0.12, { type: 'bandpass', f: 1500, q: 3, dur: 0.005, gain: 0.16 * v });
+          },
+          // The airbrush bursts: a thump of air, the spray hissing while its mist drifts, a few heavy
+          // spits from the nozzle, and a patter of fine drops that thins out as the stain settles.
           success(ac, out, t, X) {
-            X.burst(ac, out, t, { type: 'bandpass', f: 4800, f2: 2600, q: 0.9, dur: 0.3, gain: 0.1, a: 0.015 });
-            X.burst(ac, out, t, { type: 'lowpass', f: 900, q: 0.7, dur: 0.06, gain: 0.06, a: 0.002 });
-            X.tone(ac, out, t + 0.3, { type: 'triangle', f: 1320, dur: 0.05, gain: 0.04, a: 0.002 });
-            X.tone(ac, out, t + 0.34, { type: 'sine', f: 1760, dur: 0.35, gain: 0.025, a: 0.01 });
+            const v = 0.62;
+            X.burst(ac, out, t, { type: 'bandpass', f: 700, q: 0.7, dur: 0.05, gain: 0.08 * v, a: 0.003 });
+            hiss(ac, out, t, X, { f: 3800, f2: 2200, q: 0.8, a: 0.012, hold: 0.18, d: 0.42, gain: 0.07 * v });
+            [0.03, 0.065, 0.1].forEach((d, k) =>
+              X.burst(ac, out, t + d + Math.random() * 0.01, {
+                type: 'bandpass',
+                f: 1800,
+                f2: 700,
+                q: 0.8,
+                dur: 0.03,
+                gain: (0.09 - k * 0.02) * v,
+                a: 0.001,
+              }),
+            );
+            specks(ac, out, t + 0.02, 0.62, (s) => (s < 0.2 ? 420 : 420 * Math.max(0, 1 - (s - 0.2) / 0.4)), {
+              gain: 0.16 * v,
+            });
           },
         },
       },
