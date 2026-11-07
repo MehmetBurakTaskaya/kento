@@ -174,6 +174,185 @@ export default function register(Board) {
       return d + 'Z';
     }
 
+    // Sounds: comic-book effects drawn sample by sample at the context's rate into one stereo buffer
+    // per sound, so a tick costs two nodes however fast the pointer sweeps and every call can differ a
+    // little; the opening and the applying sound alike each time, so they are drawn once per rate and
+    // kept (`keep`). Each buffer starts and ends at zero and its gain opens from silence, so nothing
+    // clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(2, n, sr);
+        const ch = [buf.getChannelData(0), buf.getChannelData(1)];
+        draw(ch, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (const d of ch) for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // White noise, -1 to 1, from a fresh seed each time.
+    function white() {
+      let s = (random() * 4294967295) >>> 0 || 1;
+      return () => {
+        s ^= s << 13;
+        s ^= s >>> 17;
+        s ^= s << 5;
+        return (s | 0) / 2147483648;
+      };
+    }
+    // A state-variable filter that stays stable while its frequency moves. Returns the band-pass at
+    // unity peak; the low-pass is left on `lp`. Its coefficients are worked out again only when the
+    // frequency has moved by a fifth of a percent, which no ear can follow.
+    function svf() {
+      let a = 0;
+      let b = 0;
+      let at = 0;
+      let qa = 0;
+      let g = 0;
+      let k = 1;
+      let h = 1;
+      const f = (x, hz, q, sr) => {
+        if (q !== qa || Math.abs(hz - at) > at * 0.002) {
+          at = hz;
+          qa = q;
+          g = Math.tan((Math.PI * Math.min(hz, sr * 0.45)) / sr);
+          k = 1 / q;
+          h = 1 / (1 + g * (g + k));
+        }
+        const v1 = h * (a + g * (x - b));
+        const v2 = b + g * v1;
+        a = 2 * v1 - a;
+        b = 2 * v2 - b;
+        f.lp = v2;
+        return k * v1;
+      };
+      return f;
+    }
+    // Adds v to the stereo buffer at sample i, placed by pan (-1 left to 1 right).
+    function put(ch, i, v, pan) {
+      ch[0][i] += v * Math.min(1, 1 - pan);
+      ch[1][i] += v * Math.min(1, 1 + pan);
+    }
+    // Runs fn(i, s, u, end) over len seconds from at, inside the buffer: the sample, seconds in, 0..1
+    // progress and a fade over the last fifth.
+    function span(ch, sr, at, len, fn) {
+      const i0 = Math.round(at * sr);
+      const m = Math.min(Math.round(len * sr), ch[0].length - i0);
+      for (let i = 0; i < m; i++) fn(i0 + i, i / sr, i / m, Math.min(1, (m - i) / (0.2 * m)));
+    }
+    // A cartoon boop: a round tone that drops in pitch the instant it sounds, a little rubbery.
+    function boop(ch, sr, at, f, { len = 0.06, drop = 1.7, gain = 1, pan = 0 }) {
+      let ph = 0;
+      span(ch, sr, at, len, (i, s, u, end) => {
+        ph += (2 * Math.PI * f * (1 + (drop - 1) * Math.exp(-s / 0.007))) / sr;
+        const e = Math.min(1, s / 0.001) * Math.exp(-s / (len * 0.3)) * end;
+        put(ch, i, gain * e * (Math.sin(ph) + 0.25 * Math.sin(2 * ph)), pan);
+      });
+    }
+    // A balloon popping: a snap of noise through a band that leaps upward and a squeak of air.
+    function pop(ch, sr, at, gain) {
+      const rnd = white();
+      const band = svf();
+      let ph = 0;
+      span(ch, sr, at, 0.045, (i, s, u, end) => {
+        ph += (2 * Math.PI * 520 * 2.2 ** Math.min(1, s / 0.012)) / sr;
+        const snap = band(rnd(), 900 * 3 ** Math.min(1, s / 0.02), 2.5, sr) * Math.exp(-s / 0.006);
+        const squeak = 0.5 * Math.sin(ph) * Math.exp(-s / 0.008);
+        put(ch, i, gain * Math.min(1, s / 0.0005) * end * (2.5 * snap + squeak), 0);
+      });
+    }
+    // A spring let go: a tone that wobbles in pitch as it settles.
+    function boing(ch, sr, at, f, len, gain) {
+      let ph = 0;
+      span(ch, sr, at, len, (i, s, u, end) => {
+        ph += (2 * Math.PI * f * (1 + 0.1 * Math.sin(2 * Math.PI * 16 * s) * Math.exp(-s / 0.09))) / sr;
+        const e = Math.min(1, s / 0.004) * Math.exp(-s / (len * 0.35)) * end;
+        put(ch, i, gain * e * (Math.sin(ph) + 0.3 * Math.sin(2 * ph) + 0.15 * Math.sin(3 * ph)), 0);
+      });
+    }
+    // A slap: the panel jolted, a short smack of mid-range noise.
+    function smack(ch, sr, at, gain) {
+      const rnd = white();
+      const band = svf();
+      span(ch, sr, at, 0.03, (i, s, u, end) =>
+        put(ch, i, gain * Math.min(1, s / 0.0004) * Math.exp(-s / 0.005) * end * band(rnd(), 1700, 0.9, sr), 0),
+      );
+    }
+    // Overdrive: a cheap rational stand-in for tanh, flat at ±1 beyond ±3.
+    const drive = (x) => (x > 3 ? 1 : x < -3 ? -1 : (x * (27 + x * x)) / (27 + 9 * x * x));
+    // A drum hit pushed into saturation, its pitch falling from a punch into a body small speakers can
+    // still play, never below about 115 Hz. Its level and its punch fade by a factor every sample.
+    function boom(ch, sr, at, len, gain) {
+      const fall = Math.exp(-1 / (0.13 * sr));
+      const drop = Math.exp(-1 / (0.03 * sr));
+      let ph = 0;
+      let e = 1;
+      let punch = 135;
+      span(ch, sr, at, len, (i, s, u, end) => {
+        ph += (2 * Math.PI * (115 + punch)) / sr;
+        put(ch, i, (gain * drive(2.8 * e * Math.min(1, s / 0.0015) * end * Math.sin(ph))) / drive(2.8), 0);
+        e *= fall;
+        punch *= drop;
+      });
+    }
+    // The burst blowing up: noise darkening fast and crushed by overdrive, debris crackling in it, a
+    // little different in each ear so it fills the space.
+    function crash(ch, sr, at, len, gain) {
+      const side = [white(), white()].map((rnd) => ({ rnd, lp: svf() }));
+      const fall = Math.exp(-1 / (0.14 * sr));
+      const dark = Math.exp(-1 / (0.1 * sr));
+      let e = 1;
+      let bright = 1;
+      span(ch, sr, at, len, (i, s, u, end) => {
+        const level = 2 * e * Math.min(1, s / 0.002) * end;
+        const debris = random() < (160 * bright) / sr ? 6 * (random() - 0.5) : 0;
+        for (let c = 0; c < 2; c++) {
+          const { rnd, lp } = side[c];
+          lp(rnd() + debris, 700 + 3800 * bright, 0.8, sr);
+          ch[c][i] += (gain * drive(level * lp.lp)) / drive(2);
+        }
+        e *= fall;
+        bright *= dark;
+      });
+    }
+    // Air whipping past: noise through a band sliding up or down, with a slide whistle along.
+    function zip(ch, sr, at, len, f0, f1, gain, { pan = 0, whistle = null } = {}) {
+      const rnd = white();
+      const band = svf();
+      let ph = 0;
+      span(ch, sr, at, len, (i, s, u, end) => {
+        const e = Math.sin(Math.PI * Math.min(1, u * 1.3)) ** 2 * end;
+        let v = band(rnd(), f0 * (f1 / f0) ** u, 2.2, sr);
+        if (whistle) {
+          ph += (2 * Math.PI * whistle[0] * (whistle[1] / whistle[0]) ** u) / sr;
+          v += whistle[2] * Math.sin(ph + 0.4 * Math.sin(2 * Math.PI * 9 * s));
+        }
+        put(ch, i, gain * e * v, pan);
+      });
+    }
+    // The pop palette: C major pentatonic, two octaves.
+    const POP = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: 'popart',
       // Lettering: Bangers for the big words, Playpen Sans for the small ones (both with every Turkish
@@ -418,18 +597,42 @@ export default function register(Board) {
       },
 
       sounds: {
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 3200, f2: 900, q: 1.2, dur: 0.09, gain: 0.12, a: 0.01 });
+        open(ac, out, t) {
+          // The speech balloon pops up: a cartoon pop and a springy boing as it overshoots.
+          play(ac, out, t, 0.28, 0.05, KEPT.open, (ch, sr) => {
+            pop(ch, sr, 0, 1.4);
+            boing(ch, sr, 0.015, 392, 0.25, 0.3);
+          });
         },
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 620, f2: 1500, dur: 0.022, gain: 0.06, a: 0.002 });
+        tick(ac, out, t) {
+          // A panel floods with colour: a rubbery comic boop on a bright note, never twice the same.
+          const f = POP[Math.floor(random() * POP.length)];
+          const drop = 1.55 + 0.35 * random();
+          const pan = (random() - 0.5) * 0.4;
+          play(ac, out, t, 0.06, 0.035, null, (ch, sr) => boop(ch, sr, 0, f, { len: 0.04, drop, pan }));
         },
-        success(ac, out, t, X) {
-          // A soft thump, a little crash and a rising zing.
-          X.tone(ac, out, t, { f: 150, f2: 48, dur: 0.14, gain: 0.16, a: 0.002 });
-          X.burst(ac, out, t, { type: 'lowpass', f: 900, q: 0.8, dur: 0.06, gain: 0.12 });
-          X.burst(ac, out, t + 0.01, { type: 'highpass', f: 4000, q: 0.6, dur: 0.16, gain: 0.04 });
-          X.tone(ac, out, t + 0.06, { type: 'triangle', f: 700, f2: 2100, dur: 0.18, gain: 0.04, a: 0.01 });
+        enter(ac, out, t) {
+          // Zip! A cartoon whoosh up into the ring, with a slide whistle.
+          play(ac, out, t, 0.17, 0.037, null, (ch, sr) =>
+            zip(ch, sr, 0, 0.16, 700, 3200, 1, { whistle: [620, 1400, 0.35] }),
+          );
+        },
+        leave(ac, out, t) {
+          // Zip back down: the whoosh and the whistle falling.
+          play(ac, out, t, 0.16, 0.04, null, (ch, sr) =>
+            zip(ch, sr, 0, 0.15, 3000, 750, 0.85, { whistle: [1300, 560, 0.3] }),
+          );
+        },
+        success(ac, out, t) {
+          // BOOM: the panel jolts with a slap and a punchy hit, the jagged burst blows up with a crunch,
+          // and the impact lines whoosh out to both sides.
+          play(ac, out, t, 0.7, 0.047, KEPT.success, (ch, sr) => {
+            smack(ch, sr, 0, 1);
+            boom(ch, sr, 0, 0.55, 1);
+            crash(ch, sr, 0.03, 0.6, 0.8);
+            zip(ch, sr, 0.07, 0.32, 900, 4500, 0.35, { pan: -0.6 });
+            zip(ch, sr, 0.085, 0.32, 1000, 5000, 0.35, { pan: 0.6 });
+          });
         },
       },
     });

@@ -88,6 +88,120 @@ export default function register(Board) {
       );
     }
 
+    // Sounds: a projection's blips, glitches and shimmer, drawn sample by sample at the context's rate
+    // into one stereo buffer per sound, so a tick costs two nodes however fast the pointer sweeps and
+    // every call can differ a little; the opening and the applying sound alike each time, so they are
+    // drawn once per rate and kept (`keep`). Each buffer starts and ends at zero and its gain opens
+    // from silence, so nothing clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(2, n, sr);
+        const ch = [buf.getChannelData(0), buf.getChannelData(1)];
+        draw(ch, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (const d of ch) for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // A sine table read by phase in turns: several times cheaper than Math.sin, and as clean.
+    const SINE = Float32Array.from({ length: 4097 }, (v, i) => Math.sin((2 * Math.PI * i) / 4096));
+    const sine = (p) => {
+      const x = (p - Math.floor(p)) * 4096;
+      const i = x | 0;
+      return SINE[i] + (SINE[i + 1] - SINE[i]) * (x - i);
+    };
+    // Runs fn(i, s, u, end) over len seconds from at, inside the buffer: the sample, seconds in, 0..1
+    // progress and a fade over the last fifth.
+    function span(ch, sr, at, len, fn) {
+      const i0 = Math.round(at * sr);
+      const m = Math.min(Math.round(len * sr), ch[0].length - i0);
+      for (let i = 0; i < m; i++) fn(i0 + i, i / sr, i / m, Math.min(1, (m - i) / (0.2 * m)));
+    }
+    // Adds v to the stereo buffer at sample i, placed by pan (-1 left to 1 right).
+    function put(ch, i, v, pan) {
+      ch[0][i] += v * Math.min(1, 1 - pan);
+      ch[1][i] += v * Math.min(1, 1 + pan);
+    }
+    // The mirage's notes: a whole-tone scale on C, with no home note to settle on.
+    const WHOLE = [261.63, 293.66, 329.63, 369.99, 415.3, 466.16];
+    const note = (k) => WHOLE[((k % 6) + 6) % 6] * 2 ** Math.floor(k / 6);
+    // A projected blip: a sine phase-modulated at twice its pitch, bright for an instant and then clean.
+    function blip(ch, sr, at, f, { len = 0.03, index = 1.2, gain = 1, pan = 0 }) {
+      span(ch, sr, at, len, (i, s, u, end) => {
+        const p = f * s;
+        const e = Math.min(1, s / 0.001) * Math.exp(-s / (len * 0.3)) * end;
+        put(ch, i, gain * e * sine(p + (index / 6.283) * Math.exp(-s / 0.006) * sine(2 * p)), pan);
+      });
+    }
+    // A torn strip of the picture: a buzzy burst whose samples are held and coarsely stepped like a
+    // dropped frame, then smoothed below the shrill top.
+    function glitch(ch, sr, at, f, { len = 0.022, gain = 1, pan = 0 }) {
+      let a = 0;
+      let b = 0;
+      let x1 = 0;
+      let y1 = 0;
+      const g = Math.tan((Math.PI * 6000) / sr);
+      const pole = 1 - (2 * Math.PI * 150) / sr;
+      const hold = Math.max(1, Math.round(sr / 5500));
+      let held = 0;
+      let k = 0;
+      span(ch, sr, at, len, (i, s, u, end) => {
+        if (k++ % hold === 0) held = Math.round(4 * sine(f * s + (3 / 6.283) * sine(1.5 * f * s))) / 4;
+        // A state-variable low-pass at 6 kHz takes the hard edges off the steps, and a one-pole
+        // high-pass at 150 Hz the thump a lopsided burst would leave.
+        const v1 = (a + g * (held - b)) / (1 + g * (g + 1.4));
+        const v2 = b + g * v1;
+        a = 2 * v1 - a;
+        b = 2 * v2 - b;
+        y1 = v2 - x1 + pole * y1;
+        x1 = v2;
+        put(ch, i, gain * Math.min(1, s / 0.001) * end * y1, pan);
+      });
+    }
+    // The projection's shimmer: notes split into a cyan and a pink copy, a hair apart in pitch and set
+    // left and right, flickering a little like a picture made of light.
+    function shimmer(ch, sr, at, len, notes, { gain = 1, rise = 0.01, dip = null }) {
+      let flick = 1;
+      let aim = 1;
+      let k = 0;
+      const step = Math.round(sr / 45);
+      span(ch, sr, at, len, (i, s, u, end) => {
+        if (k++ % step === 0) aim = 0.8 + 0.2 * random();
+        flick += (aim - flick) * 0.004;
+        let e = gain * Math.min(1, s / rise) * Math.exp(-s / (len * 0.35)) * end * flick;
+        if (dip && s > dip[0] && s < dip[1]) e *= 1 - 0.4 * Math.sin((Math.PI * (s - dip[0])) / (dip[1] - dip[0]));
+        let l = 0;
+        let r = 0;
+        for (const f of notes) {
+          l += sine(f * 0.9977 * s);
+          r += sine(f * 1.0023 * s);
+        }
+        ch[0][i] += e * l;
+        ch[1][i] += e * r;
+      });
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: ID,
       fonts: {
@@ -460,33 +574,75 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A soft power-up.
-        open(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'sine', f: 220, f2: 880, dur: 0.12, gain: 0.04, a: 0.02 });
-          X.tone(ac, out, t + 0.01, { type: 'triangle', f: 440, f2: 1760, dur: 0.1, gain: 0.015, a: 0.02 });
-          X.burst(ac, out, t, { type: 'highpass', f: 5500, q: 0.6, dur: 0.1, gain: 0.02, a: 0.03 });
-          X.tone(ac, out, t + 0.12, { type: 'sine', f: 1320, dur: 0.05, gain: 0.025, a: 0.003 });
+        // The projection flickers on: a crackle of the projector, a rising power-up that dims once and
+        // steadies, then the picture's shimmer.
+        open(ac, out, t) {
+          play(ac, out, t, 0.55, 0.014, KEPT.open, (ch, sr) => {
+            glitch(ch, sr, 0, note(9), { len: 0.014, gain: 1.6 });
+            let p = 0;
+            span(ch, sr, 0, 0.2, (i, s, u, end) => {
+              p += (260 * 4 ** Math.min(1, s / 0.12)) / sr;
+              // On over 60 ms, a dip to half at 85 ms, steady from 120 ms, as the picture does.
+              const on =
+                s < 0.06
+                  ? (s / 0.06) * 0.8
+                  : s < 0.085
+                    ? 0.8 - 14 * (s - 0.06)
+                    : Math.min(1, 0.45 + 15.7 * (s - 0.085));
+              put(ch, i, on * end * sine(p + 0.15 * sine(2 * p)), 0);
+            });
+            shimmer(ch, sr, 0.1, 0.45, [note(12), note(14), note(16)], { gain: 0.35, rise: 0.03 });
+          });
         },
-        // A short digital blip.
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'square', f: 1560, dur: 0.012, gain: 0.014, a: 0.001 });
-          X.tone(ac, out, t, { type: 'sine', f: 3120, dur: 0.01, gain: 0.02, a: 0.001 });
+        // The brackets lock on: a soft blip and its colour-split ghost a moment later in the other ear.
+        tick(ac, out, t) {
+          const f = note(12 + Math.floor(random() * 6));
+          const side = random() < 0.5 ? -0.3 : 0.3;
+          play(ac, out, t, 0.05, 0.017, null, (ch, sr) => {
+            blip(ch, sr, 0, f, { len: 0.018, index: 1.6, pan: side });
+            blip(ch, sr, 0.011, f * 1.006, { len: 0.018, index: 1.6, gain: 0.45, pan: -side });
+          });
         },
-        // Glitch stutter, then a clean rebuild chime.
-        success(ac, out, t, X) {
-          [
-            [0, 1500],
-            [0.034, 4200],
-            [0.061, 2400],
-            [0.1, 6000],
-            [0.142, 3100],
-          ].forEach(([dt, f]) => X.burst(ac, out, t + dt, { type: 'bandpass', f, q: 3, dur: 0.016, gain: 0.06 }));
-          X.tone(ac, out, t + 0.02, { type: 'square', f: 720, f2: 280, dur: 0.03, gain: 0.015, a: 0.001 });
-          X.tone(ac, out, t + 0.085, { type: 'square', f: 960, f2: 420, dur: 0.025, gain: 0.012, a: 0.001 });
-          X.tone(ac, out, t + 0.3, { type: 'sine', f: 880, dur: 0.16, gain: 0.04, a: 0.004 });
-          X.tone(ac, out, t + 0.3, { type: 'sine', f: 886, dur: 0.14, gain: 0.015, a: 0.004 });
-          X.tone(ac, out, t + 0.39, { type: 'sine', f: 1320, dur: 0.26, gain: 0.04, a: 0.004 });
-          X.tone(ac, out, t + 0.39, { type: 'sine', f: 1327, dur: 0.22, gain: 0.015, a: 0.004 });
+        // Into a ring: three blips stepping up the whole-tone scale, each with a grain of static.
+        enter(ac, out, t) {
+          play(ac, out, t, 0.14, 0.0095, null, (ch, sr) =>
+            [14, 16, 18].forEach((k, j) => {
+              blip(ch, sr, j * 0.045, note(k), { len: 0.035, gain: 0.8 + j * 0.1, pan: -0.2 + j * 0.2 });
+              glitch(ch, sr, j * 0.045, note(k - 6), { len: 0.01, gain: 0.15 });
+            }),
+          );
+        },
+        // Back out: three blips stepping down.
+        leave(ac, out, t) {
+          play(ac, out, t, 0.14, 0.0097, null, (ch, sr) =>
+            [16, 14, 12].forEach((k, j) => {
+              blip(ch, sr, j * 0.045, note(k), { len: 0.035, gain: 1 - j * 0.15, pan: 0.2 - j * 0.2 });
+              glitch(ch, sr, j * 0.045, note(k - 6), { len: 0.01, gain: 0.12 });
+            }),
+          );
+        },
+        // The cell tears apart: a stutter of crushed glitches, one for each jump of the strips, then a
+        // rising tone rides the scan line down and the rebuilt picture shimmers in, flickering once.
+        success(ac, out, t) {
+          play(ac, out, t, 1.12, 0.043, KEPT.success, (ch, sr) => {
+            [0, 0.034, 0.084, 0.134, 0.193, 0.252, 0.319, 0.378].forEach((when, k) =>
+              glitch(ch, sr, when, note(6 + Math.floor(random() * 13)), {
+                len: 0.016 + 0.012 * random(),
+                gain: 1 - k * 0.06,
+                pan: k % 2 ? 0.5 : -0.5,
+              }),
+            );
+            let p = 0;
+            span(ch, sr, 0.397, 0.19, (i, s, u) => {
+              p += (700 * 3 ** u) / sr;
+              put(ch, i, 0.25 * Math.sin(Math.PI * u) ** 2 * sine(p), 0);
+            });
+            shimmer(ch, sr, 0.41, 0.7, [note(12), note(14), note(16), note(18)], {
+              gain: 0.3,
+              rise: 0.008,
+              dip: [0.038, 0.064],
+            });
+          });
         },
       },
     });
