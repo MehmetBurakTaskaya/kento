@@ -443,15 +443,14 @@ impl<'b> Job<'_, 'b> {
         if boxes.is_empty() {
             return Err(Error::Other("there is nothing to hide".into()));
         }
-        if hide == Hide::Erase {
-            return Err(later());
-        }
+        let filter = redaction(&boxes, hide, (video.width, video.height))
+            .ok_or_else(|| Error::Other("the areas are too small to erase".into()))?;
         self.filter(
             input,
             &probe,
             Video::Encode {
                 keep_codec: true,
-                filter: Some(redaction(&boxes, hide)),
+                filter: Some(filter),
             },
             Audio::Copy,
             true,
@@ -1016,20 +1015,43 @@ fn even(value: f64) -> u32 {
     (value.max(0.0) as u32) / 2 * 2
 }
 
-/// The filters that hide `boxes` (each with its start and end) on the picture.
-fn redaction(boxes: &[(Rect, f64, f64)], hide: Hide) -> String {
-    if let Hide::Color { rgb: [r, g, b] } = hide {
-        return boxes
-            .iter()
-            .map(|(rect, start, end)| {
-                format!(
-                    "drawbox=x={}:y={}:w={}:h={}:color=0x{r:02X}{g:02X}{b:02X}:t=fill:\
-                     enable='between(t,{start:.3},{end:.3})'",
-                    rect.x, rect.y, rect.w, rect.h
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(",");
+/// The filters that hide `boxes` (each with its start and end) on a picture of `frame` pixels.
+/// None when erasing and no area keeps any pixels inside the frame's border.
+fn redaction(boxes: &[(Rect, f64, f64)], hide: Hide, frame: (u32, u32)) -> Option<String> {
+    let enable = |start: &f64, end: &f64| format!("enable='between(t,{start:.3},{end:.3})'");
+    match hide {
+        Hide::Color { rgb: [r, g, b] } => {
+            return Some(
+                boxes
+                    .iter()
+                    .map(|(rect, start, end)| {
+                        format!(
+                            "drawbox=x={}:y={}:w={}:h={}:color=0x{r:02X}{g:02X}{b:02X}:t=fill:{}",
+                            rect.x,
+                            rect.y,
+                            rect.w,
+                            rect.h,
+                            enable(start, end)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+        }
+        Hide::Erase => {
+            let chain: Vec<String> = boxes
+                .iter()
+                .filter_map(|(rect, start, end)| {
+                    let (x, y, w, h) = erasable(rect, frame)?;
+                    Some(format!(
+                        "delogo=x={x}:y={y}:w={w}:h={h}:{}",
+                        enable(start, end)
+                    ))
+                })
+                .collect();
+            return (!chain.is_empty()).then(|| chain.join(","));
+        }
+        Hide::Blur | Hide::Pixelate => {}
     }
     // Each area: a copy of the frame is cropped to it, blurred or pixelated, and laid back over
     // the frame while its span lasts.
@@ -1046,13 +1068,24 @@ fn redaction(boxes: &[(Rect, f64, f64)], hide: Hide) -> String {
         let Rect { x, y, w, h } = *rect;
         graph.push_str(&format!(
             "split[k{i}][c{i}];[c{i}]crop={w}:{h}:{x}:{y},{effect}[e{i}];\
-             [k{i}][e{i}]overlay={x}:{y}:enable='between(t,{start:.3},{end:.3})'"
+             [k{i}][e{i}]overlay={x}:{y}:{}",
+            enable(start, end)
         ));
         if i + 1 < boxes.len() {
             graph.push_str(&format!("[m{}];", i + 1));
         }
     }
-    graph
+    Some(graph)
+}
+
+/// The part of `rect` that `delogo` can fill: it draws the area from the row and column of
+/// pixels just outside it, so the area keeps one pixel away from every edge of the frame.
+fn erasable(rect: &Rect, (width, height): (u32, u32)) -> Option<(u32, u32, u32, u32)> {
+    let x = rect.x.max(1);
+    let y = rect.y.max(1);
+    let right = (rect.x + rect.w).min(width.saturating_sub(1));
+    let bottom = (rect.y + rect.h).min(height.saturating_sub(1));
+    (right > x && bottom > y).then(|| (x, y, right - x, bottom - y))
 }
 
 /// A strong box blur. The radii stay below what boxblur allows for the area (half its shorter
@@ -1407,9 +1440,15 @@ mod tests {
             w: 40,
             h: 30,
         };
-        let color = redaction(&[(rect, 1.0, 2.0)], Hide::Color { rgb: [255, 0, 16] });
+        let frame = (160, 90);
+        let color = redaction(
+            &[(rect, 1.0, 2.0)],
+            Hide::Color { rgb: [255, 0, 16] },
+            frame,
+        )
+        .unwrap();
         assert!(color.contains("drawbox=x=10:y=20:w=40:h=30:color=0xFF0010:t=fill"));
-        let blurred = redaction(&[(rect, 1.0, 2.0), (rect, 3.0, 4.0)], Hide::Blur);
+        let blurred = redaction(&[(rect, 1.0, 2.0), (rect, 3.0, 4.0)], Hide::Blur, frame).unwrap();
         assert!(blurred.starts_with("split[k0][c0]"));
         assert!(blurred.contains("[m1];[m1]split[k1][c1]"));
         assert!(blurred.contains("boxblur=luma_radius=14:luma_power=3:chroma_radius=6"));
@@ -1417,7 +1456,36 @@ mod tests {
             !blurred.ends_with(']'),
             "the last overlay is the graph's output"
         );
-        let pixelated = redaction(&[(rect, 0.0, 1.0)], Hide::Pixelate);
+        let pixelated = redaction(&[(rect, 0.0, 1.0)], Hide::Pixelate, frame).unwrap();
         assert!(pixelated.contains("scale=10:8:flags=area,scale=40:30:flags=neighbor"));
+    }
+
+    #[test]
+    fn erases_inside_the_frames_border() {
+        let frame = (160, 90);
+        let rect = |x, y, w, h| Rect { x, y, w, h };
+        let erased = redaction(
+            &[
+                (rect(10, 20, 40, 30), 1.0, 2.0),
+                (rect(0, 0, 160, 90), 0.0, 5.0),
+                (rect(120, 60, 40, 30), 0.5, 1.5),
+            ],
+            Hide::Erase,
+            frame,
+        )
+        .unwrap();
+        assert_eq!(
+            erased,
+            "delogo=x=10:y=20:w=40:h=30:enable='between(t,1.000,2.000)',\
+             delogo=x=1:y=1:w=158:h=88:enable='between(t,0.000,5.000)',\
+             delogo=x=120:y=60:w=39:h=29:enable='between(t,0.500,1.500)'"
+        );
+        assert_eq!(erasable(&rect(0, 0, 2, 2), frame), Some((1, 1, 1, 1)));
+        assert_eq!(erasable(&rect(158, 88, 2, 2), frame), Some((158, 88, 1, 1)));
+        assert_eq!(
+            redaction(&[(rect(0, 40, 2, 2), 0.0, 1.0)], Hide::Erase, (2, 90)),
+            None,
+            "nothing is left inside the border of a frame two pixels wide"
+        );
     }
 }
