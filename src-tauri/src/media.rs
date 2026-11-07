@@ -302,3 +302,45 @@ pub(crate) fn job(
     });
     (target, work)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use kento_engines::media::{RingFormat, Span};
+
+    /// A ringtone is named after its song and has the ringtone's own extension.
+    #[test]
+    fn names_ringtones_after_the_song() {
+        let dir = PathBuf::from("Müzik");
+        for (format, extension) in [(RingFormat::M4r, "m4r"), (RingFormat::Mp3, "mp3")] {
+            let tool = Tool::Ringtone {
+                span: Span {
+                    start: 0.0,
+                    end: 30.0,
+                },
+                fade: true,
+                format,
+            };
+            let (target, _) = job(
+                tool,
+                vec![dir.join("şarkı 🎵.flac")],
+                catalog::format("flac").unwrap(),
+                dir.clone(),
+                "ringtone",
+                kento_engines::Tools::default(),
+            );
+            let Target::File {
+                stem,
+                extension: written,
+                ..
+            } = target
+            else {
+                panic!("a ringtone is one file");
+            };
+            assert_eq!(
+                format!("{stem}.{written}"),
+                format!("şarkı 🎵 - ringtone.{extension}")
+            );
+        }
+    }
+}
