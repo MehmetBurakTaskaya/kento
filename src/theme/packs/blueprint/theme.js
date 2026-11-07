@@ -63,6 +63,168 @@ export default function register(Board) {
       return `M${f2(p[0])} ${f2(p[1])}L${f2(q[0])} ${f2(q[1])}`;
     }
 
+    // Sounds: pencil, pen and set square on a drawing, drawn sample by sample at the context's rate
+    // into one stereo buffer per sound, so a tick costs two nodes however fast the pointer sweeps and
+    // every call can differ a little; the opening and the applying sound alike each time, so they are
+    // drawn once per rate and kept (`keep`). Each buffer starts and ends at zero and its gain opens
+    // from silence, so nothing clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(2, n, sr);
+        const ch = [buf.getChannelData(0), buf.getChannelData(1)];
+        draw(ch, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (const d of ch) for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // White noise, -1 to 1, from a fresh seed each time.
+    function white() {
+      let s = (random() * 4294967295) >>> 0 || 1;
+      return () => {
+        s ^= s << 13;
+        s ^= s >>> 17;
+        s ^= s << 5;
+        return (s | 0) / 2147483648;
+      };
+    }
+    // A state-variable filter that stays stable while its frequency moves. Returns the band-pass at
+    // unity peak; the low-pass is left on `lp`. Its coefficients are worked out again only when the
+    // frequency has moved by a fifth of a percent, which no ear can follow.
+    function svf() {
+      let a = 0;
+      let b = 0;
+      let at = 0;
+      let qa = 0;
+      let g = 0;
+      let k = 1;
+      let h = 1;
+      const f = (x, hz, q, sr) => {
+        if (q !== qa || Math.abs(hz - at) > at * 0.002) {
+          at = hz;
+          qa = q;
+          g = Math.tan((Math.PI * Math.min(hz, sr * 0.45)) / sr);
+          k = 1 / q;
+          h = 1 / (1 + g * (g + k));
+        }
+        const v1 = h * (a + g * (x - b));
+        const v2 = b + g * v1;
+        a = 2 * v1 - a;
+        b = 2 * v2 - b;
+        f.lp = v2;
+        return k * v1;
+      };
+      return f;
+    }
+    // Adds v to the stereo buffer at sample i, placed by pan (-1 left to 1 right).
+    function put(ch, i, v, pan) {
+      ch[0][i] += v * Math.min(1, 1 - pan);
+      ch[1][i] += v * Math.min(1, 1 + pan);
+    }
+    // Runs fn(i, s, u, end) over len seconds from at, inside the buffer: the sample, seconds in, 0..1
+    // progress and a fade over the last fifth.
+    function span(ch, sr, at, len, fn) {
+      const i0 = Math.round(at * sr);
+      const m = Math.min(Math.round(len * sr), ch[0].length - i0);
+      for (let i = 0; i < m; i++) fn(i0 + i, i / sr, i / m, Math.min(1, (m - i) / (0.2 * m)));
+    }
+    // How fast a hand rules a line: slow off the mark, quickest before the middle, easing out.
+    const pace = (u) => Math.sin(Math.PI * u ** 0.8) ** 1.5;
+    // A hard pencil drawn along a rule: a fine, even hiss of graphite on the paper's grain, brighter and
+    // smoother than chalk, following the hand. `round` swings it once round a small circle; a smooth
+    // edge (`grain` and `tooth` low) slides instead of drawing.
+    function graphite(
+      ch,
+      sr,
+      at,
+      len,
+      { f0 = 3000, f1 = f0, gain = 1, pan = 0, round = 0, grain = 0.35, tooth = 300 },
+    ) {
+      const rnd = white();
+      const band = svf();
+      const top = svf();
+      const glide = 1 - Math.exp((-2 * Math.PI * 400) / sr);
+      const step = Math.round(sr / 900);
+      let k = 0;
+      let bump = 1;
+      let aim = 1;
+      span(ch, sr, at, len, (i, s, u) => {
+        if (k++ % step === 0) aim = 1 + grain * rnd();
+        bump += (aim - bump) * glide;
+        const v = pace(u);
+        const catches = random() < (tooth * v) / sr ? 3 * rnd() : 0;
+        const f = f0 * (f1 / f0) ** u * (1 + round * Math.sin(2 * Math.PI * u));
+        top(band(rnd() + catches, f, 1.3, sr), 6500, 0.6, sr);
+        put(ch, i, gain * v * bump * top.lp, pan);
+      });
+    }
+    // The pencil's point set down on the sheet: a crisp, tiny tick with the faint ring of its barrel.
+    function nib(ch, sr, at, { f = 3800, gain = 1, pan = 0 }) {
+      const rnd = white();
+      const band = svf();
+      span(ch, sr, at, 0.02, (i, s, u, end) => {
+        const click = s < 0.0005 ? rnd() * (1 - s / 0.0005) : 0;
+        const ring = 0.3 * Math.sin(2 * Math.PI * 2900 * s) * Math.exp(-s / 0.0025) * Math.min(1, s / 0.0003);
+        put(ch, i, gain * end * (3 * band(click, f, 1.5, sr) + ring), pan);
+      });
+    }
+    // A plastic set square put down: a light, hollow tock.
+    function square(ch, sr, at, { f = 1150, gain = 1, pan = 0 }) {
+      const rnd = white();
+      span(ch, sr, at, 0.06, (i, s, u, end) => {
+        const w = 2 * Math.PI * f * s;
+        const v =
+          Math.sin(w) * Math.exp(-s / 0.016) +
+          0.45 * Math.sin(2.41 * w) * Math.exp(-s / 0.008) +
+          0.2 * Math.sin(3.73 * w) * Math.exp(-s / 0.004) +
+          (s < 0.001 ? 0.3 * rnd() : 0);
+        put(ch, i, gain * Math.min(1, s / 0.0004) * end * v, pan);
+      });
+    }
+    // A marking pencil: softer, lower and waxier than graphite, catching now and then.
+    function wax(ch, sr, at, len, { gain = 1, pan = 0 }) {
+      const rnd = white();
+      const band = svf();
+      const top = svf();
+      span(ch, sr, at, len, (i, s, u) => {
+        const v = pace(u);
+        const catches = random() < (140 * v) / sr ? 4 * rnd() : 0;
+        top(band(rnd() + catches, 1500, 0.8, sr), 3500, 0.6, sr);
+        put(ch, i, gain * v * top.lp, pan);
+      });
+    }
+    // The sheet laid on the board: a soft, low settle of paper.
+    function sheet(ch, sr, at, len, gain) {
+      const rnd = white();
+      const band = svf();
+      const top = svf();
+      span(ch, sr, at, len, (i, s, u) => {
+        top(band(rnd(), 500, 0.7, sr), 1200, 0.6, sr);
+        put(ch, i, gain * Math.sin(Math.PI * u ** 0.5) ** 2 * top.lp, 0);
+      });
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: ID,
       fonts: {
@@ -391,25 +553,51 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A drafting sheet laid flat on the table.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'lowpass', f: 900, f2: 300, q: 0.7, dur: 0.12, gain: 0.2, a: 0.012 });
-          X.burst(ac, out, t + 0.01, { type: 'bandpass', f: 4200, q: 1.2, dur: 0.07, gain: 0.025, a: 0.02 });
+        // A set square put down on the sheet and the slice lines ruled out from the centre in pencil.
+        open(ac, out, t) {
+          play(ac, out, t, 0.32, 0.041, KEPT.open, (ch, sr) => {
+            sheet(ch, sr, 0, 0.07, 0.6);
+            square(ch, sr, 0.012, { gain: 0.8 });
+            graphite(ch, sr, 0.04, 0.22, { f0: 2800, f1: 3600 });
+            graphite(ch, sr, 0.07, 0.2, { f0: 3100, gain: 0.5, pan: 0.3 });
+          });
         },
-        // A precise pen tick against a straightedge.
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'highpass', f: 4200, q: 0.8, dur: 0.008, gain: 0.12 });
-          X.tone(ac, out, t, { type: 'sine', f: 2450, dur: 0.014, gain: 0.03, a: 0.0008 });
+        // Hatching: the pencil's point set down with a crisp tick and a short stroke, never twice the same.
+        tick(ac, out, t) {
+          const pan = (random() - 0.5) * 0.3;
+          play(ac, out, t, 0.05, 0.122, null, (ch, sr) => {
+            nib(ch, sr, 0, { f: 3300 + 900 * random(), pan });
+            graphite(ch, sr, 0.002, 0.02 + 0.01 * random(), { f0: 3000 + 800 * random(), gain: 0.6, pan });
+          });
         },
-        // The dimension line hisses out, two arrowheads tick, a pencil check, a soft stamp.
-        success(ac, out, t, X) {
-          X.burst(ac, out, t + 0.02, { type: 'bandpass', f: 3200, f2: 5200, q: 3, dur: 0.22, gain: 0.05, a: 0.03 });
-          X.burst(ac, out, t + 0.22, { type: 'highpass', f: 4600, q: 0.8, dur: 0.008, gain: 0.11 });
-          X.burst(ac, out, t + 0.27, { type: 'highpass', f: 4300, q: 0.8, dur: 0.008, gain: 0.1 });
-          X.burst(ac, out, t + 0.37, { type: 'bandpass', f: 2600, f2: 3600, q: 2.2, dur: 0.035, gain: 0.07 });
-          X.burst(ac, out, t + 0.415, { type: 'bandpass', f: 3400, f2: 4400, q: 2.2, dur: 0.05, gain: 0.08 });
-          X.tone(ac, out, t + 0.5, { type: 'sine', f: 170, f2: 110, dur: 0.1, gain: 0.12, a: 0.003 });
-          X.burst(ac, out, t + 0.5, { type: 'lowpass', f: 700, q: 0.7, dur: 0.05, gain: 0.08 });
+        // Into a ring: the compass point pressed in and a short arc scribed round it.
+        enter(ac, out, t) {
+          play(ac, out, t, 0.18, 0.042, null, (ch, sr) => {
+            nib(ch, sr, 0, { f: 4000 });
+            graphite(ch, sr, 0.012, 0.15, { f0: 2600, f1: 3400 });
+          });
+        },
+        // Back out: the rule slid off the sheet and set down with a light tock.
+        leave(ac, out, t) {
+          play(ac, out, t, 0.17, 0.041, null, (ch, sr) => {
+            graphite(ch, sr, 0, 0.085, { f0: 1700, f1: 2100, grain: 0.05, tooth: 0 });
+            square(ch, sr, 0.095, { f: 1300, gain: 0.6 });
+          });
+        },
+        // The slice dimensioned: two extension ticks, the arc drawn out both ways, the arrowheads, a
+        // balloon circled, and a tick in marking pencil.
+        success(ac, out, t) {
+          play(ac, out, t, 0.6, 0.073, KEPT.success, (ch, sr) => {
+            nib(ch, sr, 0, {});
+            nib(ch, sr, 0.025, { f: 3500, gain: 0.7 });
+            graphite(ch, sr, 0.08, 0.22, { f0: 2900, f1: 3500, pan: -0.35 });
+            graphite(ch, sr, 0.08, 0.22, { f0: 3000, f1: 3600, pan: 0.35 });
+            nib(ch, sr, 0.29, { pan: -0.35 });
+            nib(ch, sr, 0.305, { f: 3600, pan: 0.35 });
+            graphite(ch, sr, 0.3, 0.16, { f0: 2800, round: 0.15 });
+            wax(ch, sr, 0.4, 0.045, {});
+            wax(ch, sr, 0.448, 0.095, {});
+          });
         },
       },
     });

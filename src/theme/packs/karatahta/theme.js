@@ -90,6 +90,142 @@ export default function register(Board) {
     // Radii in the 400 x 400 view box.
     const R = { shadow: 203, frameOut: 197, frameIn: 185, rim: 175, hub: 63, hit0: 66, hit1: 175.5, lbl: 127 };
 
+    // Sounds: chalk on slate, drawn sample by sample at the context's rate. One buffer per sound keeps
+    // a tap to two nodes however fast the pointer sweeps, and lets every tap differ a little; the
+    // opening and the applying sound alike each time, so they are drawn once per rate and kept
+    // (`keep`). Each buffer starts and ends at zero and its gain opens from silence, so nothing clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(1, n, sr);
+        const d = buf.getChannelData(0);
+        draw(d, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // White noise, -1 to 1, from a fresh seed each time.
+    function white() {
+      let s = (random() * 4294967295) >>> 0 || 1;
+      return () => {
+        s ^= s << 13;
+        s ^= s >>> 17;
+        s ^= s << 5;
+        return (s | 0) / 2147483648;
+      };
+    }
+    // A state-variable filter that stays stable while its frequency moves. Returns the band-pass at
+    // unity peak; the low-pass is left on `lp`. Its coefficients are worked out again only when the
+    // frequency has moved by a fifth of a percent, which no ear can follow.
+    function svf() {
+      let a = 0;
+      let b = 0;
+      let at = 0;
+      let qa = 0;
+      let g = 0;
+      let k = 1;
+      let h = 1;
+      const f = (x, hz, q, sr) => {
+        if (q !== qa || Math.abs(hz - at) > at * 0.002) {
+          at = hz;
+          qa = q;
+          g = Math.tan((Math.PI * Math.min(hz, sr * 0.45)) / sr);
+          k = 1 / q;
+          h = 1 / (1 + g * (g + k));
+        }
+        const v1 = h * (a + g * (x - b));
+        const v2 = b + g * v1;
+        a = 2 * v1 - a;
+        b = 2 * v2 - b;
+        f.lp = v2;
+        return k * v1;
+      };
+      return f;
+    }
+    // Runs fn(i, s, u, end) over len seconds from at, inside the buffer: the sample, seconds in, 0..1
+    // progress and a fade over the last fifth.
+    function span(d, sr, at, len, fn) {
+      const i0 = Math.round(at * sr);
+      const m = Math.min(Math.round(len * sr), d.length - i0);
+      for (let i = 0; i < m; i++) fn(i0 + i, i / sr, i / m, Math.min(1, (m - i) / (0.2 * m)));
+    }
+    // How fast a hand draws a quick line: slow off the mark, quickest before the middle, easing out.
+    const pace = (u) => Math.sin(Math.PI * u ** 0.8) ** 1.5;
+    // Chalk dragged over slate: grit breaking off the stick at random moments, never at a steady rate
+    // (a steady stick-slip is what squeals), over a faint dry hiss; denser and louder where the hand is
+    // fastest, and kept below the shrill top. `turn` swings the colour round a drawn circle.
+    function chalk(d, sr, at, len, { f = 1900, rate = 1500, gain = 1, turn = 0 }) {
+      const rnd = white();
+      const band = svf();
+      const top = svf();
+      span(d, sr, at, len, (i, s, u) => {
+        const v = pace(u);
+        const grit = random() < (rate * v) / sr ? (random() < 0.5 ? -1 : 1) * (0.25 + 1.5 * random() ** 2) : 0;
+        top(band(7 * grit + 0.3 * v * rnd(), f * (1 + turn * Math.sin(2 * Math.PI * u)), 0.8, sr), 4200, 0.6, sr);
+        d[i] += gain * (0.3 + 0.7 * v) * top.lp;
+      });
+    }
+    // The chalk's tip knocking on the slate: a dry click with a small thump of the board behind it.
+    function tap(d, sr, at, { f = 2400, body = 260, gain = 1, thump = 1 }) {
+      const rnd = white();
+      const band = svf();
+      span(d, sr, at, 0.045, (i, s, u, end) => {
+        const click = s < 0.0012 ? rnd() * (1 - s / 0.0012) : 0;
+        const board =
+          0.55 * Math.sin(2 * Math.PI * body * s) * Math.exp(-s / 0.011) +
+          0.25 * Math.sin(2 * Math.PI * 2.3 * body * s) * Math.exp(-s / 0.005);
+        d[i] += gain * end * (3 * band(click, f, 1.2, sr) + thump * Math.min(1, s / 0.0006) * board);
+      });
+    }
+    // A felt eraser swept over the slate: a soft, dull rub that wavers with the hand.
+    function felt(d, sr, at, len, gain) {
+      const rnd = white();
+      const band = svf();
+      const dull = svf();
+      const glide = 1 - Math.exp((-2 * Math.PI * 30) / sr);
+      const step = Math.round(sr / 28);
+      let k = 0;
+      let wob = 1;
+      let aim = 1;
+      span(d, sr, at, len, (i, s, u) => {
+        if (k++ % step === 0) aim = 1 + 0.45 * rnd();
+        wob += (aim - wob) * glide;
+        dull(band(rnd(), 650, 0.6, sr), 1600, 0.6, sr);
+        d[i] += gain * Math.sin(Math.PI * u) ** 2 * wob * dull.lp;
+      });
+    }
+    // Chalk dust drifting off the board: the faintest breath of air.
+    function dust(d, sr, at, len, gain) {
+      const rnd = white();
+      const band = svf();
+      const dull = svf();
+      span(d, sr, at, len, (i, s, u) => {
+        dull(band(rnd(), 1500, 0.5, sr), 3000, 0.6, sr);
+        d[i] += gain * Math.sin(Math.PI * u ** 0.6) ** 2 * dull.lp;
+      });
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: ID,
       fonts: {
@@ -479,34 +615,44 @@ export default function register(Board) {
       },
 
       sounds: {
-        // An eraser drawn across the slate.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 520, f2: 1100, q: 0.9, dur: 0.16, gain: 0.16, a: 0.035 });
-          X.burst(ac, out, t + 0.02, { type: 'highpass', f: 3200, q: 0.6, dur: 0.1, gain: 0.025, a: 0.03 });
-        },
-        // A dry tap of chalk on slate.
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 1900, q: 1.6, dur: 0.016, gain: 0.16 });
-          X.tone(ac, out, t, { type: 'triangle', f: 760, f2: 520, dur: 0.02, gain: 0.035, a: 0.001 });
-        },
-        // The circle scratched round the word in short grains, then the chalk lifts with a tap.
-        success(ac, out, t, X) {
-          const grains = [0, 0.035, 0.07, 0.1, 0.135, 0.165, 0.2, 0.232, 0.265, 0.3, 0.33, 0.36];
-          grains.forEach((dt, k) => {
-            const f = 2600 + ((k * 677) % 1900);
-            X.burst(ac, out, t + dt, {
-              type: 'bandpass',
-              f,
-              f2: f * 1.18,
-              q: 2.4,
-              dur: 0.03,
-              gain: 0.07 + (k % 3) * 0.015,
-              a: 0.004,
-            });
+        // The dividers chalked out from the hub: a tap, two quick dry strokes and a breath of dust.
+        open(ac, out, t) {
+          play(ac, out, t, 0.4, 0.028, KEPT.open, (d, sr) => {
+            tap(d, sr, 0, { f: 2300, body: 240 });
+            chalk(d, sr, 0.006, 0.17, { f: 1800, rate: 1500 });
+            chalk(d, sr, 0.05, 0.16, { f: 1500, rate: 1100, gain: 0.6 });
+            dust(d, sr, 0.13, 0.25, 0.12);
           });
-          X.tone(ac, out, t + 0.14, { type: 'sine', f: 3150, f2: 2950, dur: 0.05, gain: 0.008, a: 0.01 });
-          X.burst(ac, out, t + 0.4, { type: 'lowpass', f: 900, q: 0.8, dur: 0.05, gain: 0.2 });
-          X.tone(ac, out, t + 0.4, { type: 'triangle', f: 330, f2: 220, dur: 0.06, gain: 0.05, a: 0.002 });
+        },
+        // A dry tap of chalk on slate and the flick of its arrow, never twice the same.
+        tick(ac, out, t) {
+          const r = random();
+          play(ac, out, t, 0.07, 0.038, null, (d, sr) => {
+            tap(d, sr, 0, { f: 2000 + 700 * r, body: 220 + 80 * random(), gain: 1.4, thump: 0.4 });
+            chalk(d, sr, 0.003, 0.022 + 0.014 * random(), { f: 1700 + 500 * random(), rate: 1700, gain: 0.5 });
+          });
+        },
+        // A chalk arrowhead struck in two short strokes into the ring.
+        enter(ac, out, t) {
+          play(ac, out, t, 0.16, 0.024, null, (d, sr) => {
+            tap(d, sr, 0, { f: 2400, body: 250, gain: 0.8 });
+            chalk(d, sr, 0.002, 0.045, { f: 1800, rate: 1700, gain: 0.9 });
+            tap(d, sr, 0.075, { f: 2700, body: 280, gain: 0.6 });
+            chalk(d, sr, 0.077, 0.05, { f: 2100, rate: 1700, gain: 0.9 });
+          });
+        },
+        // Back out: one swipe of the felt eraser.
+        leave(ac, out, t) {
+          play(ac, out, t, 0.2, 0.051, null, (d, sr) => felt(d, sr, 0, 0.19, 1));
+        },
+        // The circle scratched round the word in one quick turn, then the chalk lifts with a tap and the
+        // dust drifts off.
+        success(ac, out, t) {
+          play(ac, out, t, 0.75, 0.027, KEPT.success, (d, sr) => {
+            chalk(d, sr, 0, 0.4, { f: 1900, rate: 1700, turn: 0.12 });
+            tap(d, sr, 0.385, { f: 2200, body: 250, gain: 0.8 });
+            dust(d, sr, 0.23, 0.42, 0.25);
+          });
         },
       },
     });

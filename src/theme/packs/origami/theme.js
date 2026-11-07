@@ -68,6 +68,124 @@ export default function register(Board) {
       return seg(r0, Math.max(r0, t0)) + seg(Math.min(r1, t1), r1);
     }
 
+    // Sounds: paper, drawn sample by sample at the context's rate. One buffer per sound keeps a flick
+    // to two nodes however fast the pointer sweeps, and lets every flick differ a little; the opening
+    // and the applying sound alike each time, so they are drawn once per rate and kept (`keep`). Each
+    // buffer starts and ends at zero and its gain opens from silence, so nothing clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(1, n, sr);
+        const d = buf.getChannelData(0);
+        draw(d, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // White noise, -1 to 1, from a fresh seed each time.
+    function white() {
+      let s = (random() * 4294967295) >>> 0 || 1;
+      return () => {
+        s ^= s << 13;
+        s ^= s >>> 17;
+        s ^= s << 5;
+        return (s | 0) / 2147483648;
+      };
+    }
+    // A state-variable filter that stays stable while its frequency moves. Returns the band-pass at
+    // unity peak; the low-pass is left on `lp`. Its coefficients are worked out again only when the
+    // frequency has moved by a fifth of a percent, which no ear can follow.
+    function svf() {
+      let a = 0;
+      let b = 0;
+      let at = 0;
+      let qa = 0;
+      let g = 0;
+      let k = 1;
+      let h = 1;
+      const f = (x, hz, q, sr) => {
+        if (q !== qa || Math.abs(hz - at) > at * 0.002) {
+          at = hz;
+          qa = q;
+          g = Math.tan((Math.PI * Math.min(hz, sr * 0.45)) / sr);
+          k = 1 / q;
+          h = 1 / (1 + g * (g + k));
+        }
+        const v1 = h * (a + g * (x - b));
+        const v2 = b + g * v1;
+        a = 2 * v1 - a;
+        b = 2 * v2 - b;
+        f.lp = v2;
+        return k * v1;
+      };
+      return f;
+    }
+    // Runs fn(i, s, u, end) over len seconds from at, inside the buffer: the sample, seconds in, 0..1
+    // progress and a fade over the last fifth.
+    function span(d, sr, at, len, fn) {
+      const i0 = Math.round(at * sr);
+      const m = Math.min(Math.round(len * sr), d.length - i0);
+      for (let i = 0; i < m; i++) fn(i0 + i, i / sr, i / m, Math.min(1, (m - i) / (0.2 * m)));
+    }
+    // Paper crackling as it bends: the fibres snap at random moments, a few loudly, most faintly, in a
+    // wide bright band. `shape` sets how busy it is over its length.
+    function crinkle(d, sr, at, len, { rate = 900, f = 3200, gain = 1, shape = (u) => Math.sin(Math.PI * u) }) {
+      const rnd = white();
+      const band = svf();
+      const top = svf();
+      span(d, sr, at, len, (i, s, u, end) => {
+        const v = shape(u);
+        const snap = random() < (rate * v) / sr ? (random() < 0.5 ? -1 : 1) * (0.15 + 2.5 * random() ** 3) : 0;
+        top(band(8 * snap + 0.05 * v * rnd(), f, 0.6, sr), 7000, 0.6, sr);
+        d[i] += gain * end * top.lp;
+      });
+    }
+    // Air pushed by a moving sheet: a smooth band of noise sliding with the sheet, loudest where it
+    // moves fastest (`peak`, 0..1 along it).
+    function swish(d, sr, at, len, { f0, f1 = f0, gain = 1, peak = 0.5 }) {
+      const rnd = white();
+      const band = svf();
+      span(d, sr, at, len, (i, s, u) => {
+        const e =
+          u < peak
+            ? Math.sin((Math.PI / 2) * (u / peak)) ** 2
+            : Math.cos((Math.PI / 2) * ((u - peak) / (1 - peak))) ** 2;
+        d[i] += gain * e * band(rnd(), f0 * (f1 / f0) ** u, 0.8, sr);
+      });
+    }
+    // A stiff pleat flicked straight: a soft thwap of air with the paper's own snap in it.
+    function flap(d, sr, at, gain) {
+      const rnd = white();
+      const band = svf();
+      span(d, sr, at, 0.04, (i, s, u, end) => {
+        const air = band(rnd(), 650, 1.4, sr) * Math.exp(-s / 0.008);
+        const thud = 0.5 * Math.sin(2 * Math.PI * 190 * s) * Math.exp(-s / 0.007);
+        d[i] += gain * end * Math.min(1, s / 0.0008) * (2 * air + thud);
+      });
+      crinkle(d, sr, at, 0.012, { rate: 2500, gain: 0.5 * gain });
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: ID,
       fonts: {
@@ -356,32 +474,50 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A paper fan opening: a quick run of soft ticks over a swish.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 900, f2: 2400, q: 0.9, dur: 0.14, gain: 0.09, a: 0.02 });
-          for (let k = 0; k < 7; k++)
-            X.burst(ac, out, t + 0.012 + k * 0.017, {
-              type: 'bandpass',
-              f: 2600 + k * 120,
-              q: 2.2,
-              dur: 0.008,
-              gain: 0.05,
-            });
+        // A paper fan snapping open: a swish with a quick run of pleats crackling out, and a last flap.
+        open(ac, out, t) {
+          play(ac, out, t, 0.32, 0.016, KEPT.open, (d, sr) => {
+            swish(d, sr, 0, 0.22, { f0: 700, f1: 2200, peak: 0.35, gain: 1.8 });
+            for (let k = 0; k < 8; k++)
+              crinkle(d, sr, 0.01 + k * 0.011 + 0.004 * random(), 0.014, { rate: 2200, gain: 0.3 + k * 0.03 });
+            flap(d, sr, 0.2, 0.5);
+          });
         },
-        // A light paper tap.
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 1500, q: 1.1, dur: 0.012, gain: 0.11 });
-          X.burst(ac, out, t, { type: 'highpass', f: 6000, q: 0.7, dur: 0.005, gain: 0.03 });
+        // A pleat lifted: a light, crisp flick of paper, never twice the same.
+        tick(ac, out, t) {
+          const f = 1500 + 1000 * random();
+          play(ac, out, t, 0.05, 0.009, null, (d, sr) => {
+            swish(d, sr, 0, 0.035, { f0: f, f1: f * 1.3, peak: 0.25 });
+            crinkle(d, sr, 0.002, 0.018, { rate: 1500 + 1500 * random(), f: 2800 + 800 * random() });
+          });
         },
-        // Crinkle, the swish of the fold, a crease pressed flat, the pleat flicking open.
-        success(ac, out, t, X) {
-          [0, 0.018, 0.031, 0.05, 0.066, 0.083].forEach((dt, k) =>
-            X.burst(ac, out, t + dt, { type: 'highpass', f: 3800 + (k % 3) * 900, q: 0.8, dur: 0.007, gain: 0.06 }),
-          );
-          X.burst(ac, out, t + 0.08, { type: 'bandpass', f: 700, f2: 3000, q: 1.2, dur: 0.16, gain: 0.1, a: 0.03 });
-          X.tone(ac, out, t + 0.27, { type: 'sine', f: 150, f2: 95, dur: 0.07, gain: 0.1, a: 0.002 });
-          X.burst(ac, out, t + 0.27, { type: 'lowpass', f: 1200, q: 0.7, dur: 0.03, gain: 0.12 });
-          X.burst(ac, out, t + 0.42, { type: 'bandpass', f: 2200, f2: 3200, q: 1.5, dur: 0.05, gain: 0.07, a: 0.004 });
+        // Into a ring: a sheet folded over with a swish and its crease pressed flat.
+        enter(ac, out, t) {
+          play(ac, out, t, 0.2, 0.0076, null, (d, sr) => {
+            swish(d, sr, 0, 0.12, { f0: 600, f1: 1800, peak: 0.7 });
+            crinkle(d, sr, 0.105, 0.03, { rate: 3500, shape: (u) => 1 - u });
+            flap(d, sr, 0.108, 0.4);
+          });
+        },
+        // Back out: the crease lets go with a crackle and the sheet swings open.
+        leave(ac, out, t) {
+          play(ac, out, t, 0.2, 0.009, null, (d, sr) => {
+            crinkle(d, sr, 0, 0.035, { rate: 1600, shape: (u) => 1 - u });
+            swish(d, sr, 0.02, 0.15, { f0: 1800, f1: 700, peak: 0.3 });
+            flap(d, sr, 0.155, 0.3);
+          });
+        },
+        // The pleat folds over with a swish, its crease is pressed edge-on, and it swings open and
+        // flaps out on its coloured side.
+        success(ac, out, t) {
+          play(ac, out, t, 0.62, 0.021, KEPT.success, (d, sr) => {
+            swish(d, sr, 0, 0.26, { f0: 700, f1: 2400, peak: 0.8 });
+            crinkle(d, sr, 0.235, 0.04, { rate: 4000, shape: (u) => 1 - u });
+            flap(d, sr, 0.24, 0.6);
+            swish(d, sr, 0.25, 0.31, { f0: 2200, f1: 800, peak: 0.25 });
+            flap(d, sr, 0.42, 0.8);
+            crinkle(d, sr, 0.54, 0.04, { rate: 900, gain: 0.6 });
+          });
         },
       },
     });

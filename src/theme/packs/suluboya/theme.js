@@ -198,6 +198,135 @@ export default function register(Board) {
       return smooth(pts);
     }
 
+    // Sounds: bristles, water and pigment, drawn sample by sample at the context's rate. One buffer
+    // per sound keeps a dab to two nodes however fast the pointer sweeps, and lets every dab differ a
+    // little; the opening and the applying sound alike each time, so they are drawn once per rate and
+    // kept (`keep`). Each buffer starts and ends at zero and its gain opens from silence, so nothing
+    // clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(1, n, sr);
+        const d = buf.getChannelData(0);
+        draw(d, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // White noise, -1 to 1, from a fresh seed each time.
+    function white() {
+      let s = (random() * 4294967295) >>> 0 || 1;
+      return () => {
+        s ^= s << 13;
+        s ^= s >>> 17;
+        s ^= s << 5;
+        return (s | 0) / 2147483648;
+      };
+    }
+    // A state-variable filter that stays stable while its frequency moves. Returns the band-pass at
+    // unity peak; the low-pass is left on `lp`. Its coefficients are worked out again only when the
+    // frequency has moved by a fifth of a percent, which no ear can follow.
+    function svf() {
+      let a = 0;
+      let b = 0;
+      let at = 0;
+      let qa = 0;
+      let g = 0;
+      let k = 1;
+      let h = 1;
+      const f = (x, hz, q, sr) => {
+        if (q !== qa || Math.abs(hz - at) > at * 0.002) {
+          at = hz;
+          qa = q;
+          g = Math.tan((Math.PI * Math.min(hz, sr * 0.45)) / sr);
+          k = 1 / q;
+          h = 1 / (1 + g * (g + k));
+        }
+        const v1 = h * (a + g * (x - b));
+        const v2 = b + g * v1;
+        a = 2 * v1 - a;
+        b = 2 * v2 - b;
+        f.lp = v2;
+        return k * v1;
+      };
+      return f;
+    }
+    // A smooth rise over the first `rise` of a sound and a fall over the rest, 0 to 1 and back.
+    const hump = (u, rise) =>
+      u < rise ? Math.sin((Math.PI / 2) * (u / rise)) ** 2 : Math.cos((Math.PI / 2) * ((u - rise) / (1 - rise))) ** 2;
+    // Bristles dragged over cold-press paper: noise through a band that moves with the stroke, its level
+    // jostled by the paper's tooth, over a soft low body where the brush is wet. Water dulls the top.
+    function bristles(d, sr, at, len, { f0, f1 = f0, q = 0.9, tooth = 0.5, wet = 0.4, rise = 0.2, gain = 1 }) {
+      const rnd = white();
+      const band = svf();
+      const body = svf();
+      const dull = svf();
+      const top = 2.2 * Math.max(f0, f1);
+      const i0 = Math.round(at * sr);
+      const m = Math.round(len * sr);
+      const step = Math.round(sr / 230);
+      const glide = 1 - Math.exp((-2 * Math.PI * 180) / sr);
+      let bump = 1;
+      let aim = 1;
+      for (let i = 0; i < m && i0 + i < d.length; i++) {
+        const u = i / m;
+        if (i % step === 0) aim = 1 + tooth * rnd();
+        bump += (aim - bump) * glide;
+        const x = rnd();
+        dull(band(x, f0 * (f1 / f0) ** u, q, sr) + wet * body(x, 430, 0.8, sr), top, 0.7, sr);
+        d[i0 + i] += gain * hump(u, rise) * bump * dull.lp;
+      }
+    }
+    // A bubble of water: a sine whose pitch rises as the bubble closes, gone in a few hundredths.
+    function plip(d, sr, at, f0, f1, len, gain) {
+      const i0 = Math.round(at * sr);
+      const m = Math.round(len * sr);
+      let ph = 0;
+      for (let i = 0; i < m && i0 + i < d.length; i++) {
+        const s = i / sr;
+        ph += (2 * Math.PI * f0 * (f1 / f0) ** Math.min(1, (1.5 * i) / m)) / sr;
+        d[i0 + i] += gain * Math.min(1, s / 0.0015) * Math.exp(-s / (len * 0.28)) * Math.sin(ph);
+      }
+    }
+    // Water spreading through wet pigment: a hush that sinks and slows as the bloom widens, with a
+    // faint fizz where the paper drinks it in.
+    function bloom(d, sr, at, len, gain) {
+      const rnd = white();
+      const band = svf();
+      const fizz = svf();
+      const dull = svf();
+      const i0 = Math.round(at * sr);
+      const m = Math.round(len * sr);
+      for (let i = 0; i < m && i0 + i < d.length; i++) {
+        const s = i / sr;
+        const e = Math.min(1, s / 0.11) ** 2 * Math.exp(-Math.max(0, s - 0.11) / 0.2) * hump(i / m, 0.02);
+        const crack = random() < (340 * Math.exp(-s / 0.22)) / sr ? (0.4 + random()) * 9 : 0;
+        dull(band(rnd(), 760 + 1650 * Math.exp(-s / 0.17), 1.1, sr) + 0.5 * fizz(crack, 2700, 1.4, sr), 2800, 0.7, sr);
+        d[i0 + i] += gain * e * dull.lp;
+      }
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: 'suluboya',
       fonts: {
@@ -441,19 +570,47 @@ export default function register(Board) {
       },
 
       sounds: {
-        open(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 700, f2: 1500, dur: 0.05, gain: 0.05, a: 0.002 });
-          X.burst(ac, out, t + 0.01, { type: 'lowpass', f: 1200, q: 0.7, dur: 0.12, gain: 0.05, a: 0.02 });
+        open(ac, out, t) {
+          // A loaded brush laid on damp paper in one broad stroke as the washes spread: a soft wet swish.
+          play(ac, out, t, 0.42, 0.036, KEPT.open, (d, sr) => {
+            bristles(d, sr, 0, 0.36, { f0: 850, f1: 1650, q: 0.8, tooth: 0.55, wet: 0.7, rise: 0.3 });
+            plip(d, sr, 0.19, 880, 1320, 0.05, 0.1);
+          });
         },
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 2600, q: 1.4, dur: 0.025, gain: 0.07, a: 0.004 });
+        tick(ac, out, t) {
+          // A dab of pigment: the bristles touch the paper with a tiny wet plip, never twice the same.
+          const f = 1500 + 700 * random();
+          const p = 950 + 450 * random();
+          play(ac, out, t, 0.08, 0.021, null, (d, sr) => {
+            bristles(d, sr, 0, 0.006, { f0: 2600, q: 0.8, tooth: 0, wet: 0, rise: 0.3, gain: 1.6 });
+            bristles(d, sr, 0, 0.045 + 0.02 * random(), { f0: f, f1: f * 0.8, q: 1, tooth: 0.5, rise: 0.05 });
+            plip(d, sr, 0.004 + 0.008 * random(), p, p * 1.4, 0.03, 0.18 + 0.15 * random());
+          });
         },
-        success(ac, out, t, X) {
-          // A drop lands (a quick rising blip), then the wash spreads (a soft, falling swish) and a faint bell.
-          X.tone(ac, out, t, { f: 520, f2: 1350, dur: 0.06, gain: 0.07, a: 0.002 });
-          X.tone(ac, out, t + 0.07, { f: 900, f2: 1700, dur: 0.04, gain: 0.025, a: 0.002 });
-          X.burst(ac, out, t + 0.05, { type: 'bandpass', f: 1800, f2: 500, q: 0.8, dur: 0.5, gain: 0.05, a: 0.08 });
-          X.tone(ac, out, t + 0.12, { f: 1319, dur: 0.6, gain: 0.025, a: 0.01 });
+        enter(ac, out, t) {
+          // The brush dipped into the water jar: a soft plunk and a swirl of water round the bristles.
+          play(ac, out, t, 0.25, 0.019, null, (d, sr) => {
+            plip(d, sr, 0, 430, 760, 0.075, 0.5);
+            plip(d, sr, 0.055, 820, 1250, 0.04, 0.2);
+            bristles(d, sr, 0.02, 0.2, { f0: 650, f1: 1050, q: 1.2, tooth: 0.9, wet: 0.8, rise: 0.25 });
+          });
+        },
+        leave(ac, out, t) {
+          // The brush lifted out of the jar: a light drag of the bristles and two drips falling back.
+          play(ac, out, t, 0.23, 0.023, null, (d, sr) => {
+            bristles(d, sr, 0, 0.065, { f0: 1700, f1: 2300, q: 0.9, tooth: 0.4, wet: 0.3, rise: 0.2 });
+            plip(d, sr, 0.075, 1200, 1750, 0.035, 0.35);
+            plip(d, sr, 0.165, 1000, 1500, 0.035, 0.22);
+          });
+        },
+        success(ac, out, t) {
+          // A drop of water lands in the wash, and the bloom creeps out through the pigment and slows as it dries.
+          play(ac, out, t, 0.95, 0.107, KEPT.success, (d, sr) => {
+            bristles(d, sr, 0, 0.014, { f0: 900, q: 0.7, tooth: 0, wet: 1, rise: 0.15, gain: 0.8 });
+            plip(d, sr, 0.002, 620, 1180, 0.065, 0.6);
+            plip(d, sr, 0.07, 1250, 1800, 0.04, 0.2);
+            bloom(d, sr, 0.05, 0.85, 0.85);
+          });
         },
       },
     });
