@@ -280,12 +280,9 @@ impl<'b> Job<'_, 'b> {
 
     /// The first input sets the size (others are scaled to fit and padded, keeping their
     /// shape), the frame rate and mono or stereo; the sound is resampled to 48 kHz, and inputs
-    /// without sound get silence. The result has the first input's format with that format's
-    /// encoders.
+    /// without sound get silence. The clips meet with `transition` (see `merge_graph`). The
+    /// result has the first input's format with that format's encoders.
     fn merge(&self, transition: Transition) -> Result<Vec<PathBuf>> {
-        if transition.kind != super::TransitionKind::Cut {
-            return Err(later());
-        }
         let inputs = self.run.inputs;
         let probes = inputs
             .iter()
@@ -293,57 +290,43 @@ impl<'b> Job<'_, 'b> {
             .collect::<Result<Vec<_>>>()?;
         let container = self.container(&inputs[0], &probes[0])?;
         let first = probes[0].video().ok_or_else(no_video)?;
-        let (w, h) = (
-            even(first.width as f64).max(2),
-            even(first.height as f64).max(2),
-        );
-        let rate = first
-            .rate
-            .clone()
-            .filter(|_| first.fps <= 240.0)
-            .unwrap_or_else(|| "30".to_owned());
-        let sound = probes.iter().any(|probe| probe.audio().is_some());
-        let layout = match probes[0].audio() {
-            Some(audio) if audio.channels == 1 => "mono",
-            _ => "stereo",
+        let canvas = Canvas {
+            width: even(first.width as f64).max(2),
+            height: even(first.height as f64).max(2),
+            rate: first
+                .rate
+                .clone()
+                .filter(|_| first.fps <= 240.0)
+                .unwrap_or_else(|| "30".to_owned()),
+            layout: match probes[0].audio() {
+                Some(audio) if audio.channels == 1 => "mono",
+                _ => "stereo",
+            },
+            sound: probes.iter().any(|probe| probe.audio().is_some()),
         };
-        let mut graph = String::new();
-        let mut pads = String::new();
+        let name = |i: usize| inputs[i].file_name().unwrap_or_default().to_string_lossy();
+        let mut clips = Vec::with_capacity(probes.len());
         for (i, probe) in probes.iter().enumerate() {
-            let video = probe.video().ok_or_else(|| {
-                Error::Other(format!(
-                    "{} has no video",
-                    inputs[i].file_name().unwrap_or_default().to_string_lossy()
-                ))
-            })?;
-            graph.push_str(&format!(
-                "[{i}:{}]scale={w}:{h}:force_original_aspect_ratio=decrease:force_divisible_by=2,\
-                 pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={rate},format=yuv420p[v{i}];",
-                video.index
-            ));
-            pads.push_str(&format!("[v{i}]"));
-            if sound {
-                match probe.audio() {
-                    Some(audio) => graph.push_str(&format!(
-                        "[{i}:{}]aresample=48000,\
-                         aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts={layout}[a{i}];",
-                        audio.index
-                    )),
-                    None => graph.push_str(&format!(
-                        "anullsrc=channel_layout={layout}:sample_rate=48000,\
-                         atrim=duration={}[a{i}];",
-                        secs(probe.info.duration)
-                    )),
-                }
-                pads.push_str(&format!("[a{i}]"));
+            let video = probe
+                .video()
+                .ok_or_else(|| Error::Other(format!("{} has no video", name(i))))?;
+            let length = probe.info.duration;
+            // A transition is placed by the clips' lengths; a cut needs none.
+            if transition.kind != super::TransitionKind::Cut
+                && (!length.is_finite() || length < MIN_CLIP)
+            {
+                return Err(Error::Other(format!(
+                    "{} has no length to make a transition with",
+                    name(i)
+                )));
             }
+            clips.push(Clip {
+                video: video.index,
+                audio: probe.audio().map(|audio| audio.index),
+                length,
+            });
         }
-        graph.push_str(&format!(
-            "{pads}concat=n={}:v=1:a={}[v]{}",
-            probes.len(),
-            u8::from(sound),
-            if sound { "[a]" } else { "" }
-        ));
+        let (graph, span) = merge_graph(&clips, &canvas, transition);
         let mut cmd = Cmd::new();
         for input in inputs {
             cmd.input(input);
@@ -351,7 +334,7 @@ impl<'b> Job<'_, 'b> {
         let recipe = Recipe {
             container,
             video: Video::Graph,
-            audio: if sound {
+            audio: if canvas.sound {
                 Audio::Graph { keep_codec: false }
             } else {
                 Audio::Drop
@@ -359,7 +342,6 @@ impl<'b> Job<'_, 'b> {
             subtitles: false,
             graph: Some(graph),
         };
-        let span = probes.iter().map(|probe| probe.info.duration).sum();
         self.encode(
             cmd,
             &probes[0],
@@ -771,6 +753,179 @@ impl<'b> Job<'_, 'b> {
         )?;
         Ok(self.dest())
     }
+}
+
+/// The shortest clip Merge videos makes a transition with: the transitions are placed by the
+/// clips' lengths.
+const MIN_CLIP: f64 = 0.01;
+/// How long a transition of Merge videos lasts at most and at least (before short clips shorten
+/// it), in seconds.
+const TRANSITION: (f64, f64) = (0.2, 2.0);
+
+/// What Merge videos needs of one clip: its picture's and sound's streams and its length.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct Clip {
+    pub video: usize,
+    pub audio: Option<usize>,
+    /// Seconds, as ffprobe gives the file's duration.
+    pub length: f64,
+}
+
+/// What the first clip sets for the whole result.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct Canvas {
+    pub width: u32,
+    pub height: u32,
+    /// The frame rate as FFmpeg writes it (`30000/1001`).
+    pub rate: String,
+    /// `mono` or `stereo`.
+    pub layout: &'static str,
+    /// Some clip has sound, so every clip gets a sound stream.
+    pub sound: bool,
+}
+
+impl Canvas {
+    /// Clip `i`'s picture scaled to fit the canvas, padded, square-pixelled and at its rate (the
+    /// `fps` filter open for more options).
+    fn fit(&self, i: usize, clip: &Clip) -> String {
+        let Canvas {
+            width: w,
+            height: h,
+            rate,
+            ..
+        } = self;
+        format!(
+            "[{i}:{}]scale={w}:{h}:force_original_aspect_ratio=decrease:force_divisible_by=2,\
+             pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={rate}",
+            clip.video
+        )
+    }
+
+    /// Clip `i`'s sound at 48 kHz in the canvas's layout, or silence as long as the clip, before
+    /// `then` (filters that start with a comma, or nothing) and the label `[a<i>]`.
+    fn audio(&self, i: usize, clip: &Clip, resample: &str, then: &str) -> String {
+        let layout = self.layout;
+        match clip.audio {
+            Some(index) => format!(
+                "[{i}:{index}]aresample=48000{resample},\
+                 aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts={layout}{then}[a{i}];"
+            ),
+            None => format!(
+                "anullsrc=channel_layout={layout}:sample_rate=48000,\
+                 atrim=duration={}[a{i}];",
+                secs(clip.length)
+            ),
+        }
+    }
+}
+
+/// FFmpeg's `xfade` transition for a kind; none for a cut.
+fn xfade(kind: super::TransitionKind) -> Option<&'static str> {
+    use super::TransitionKind as Kind;
+    match kind {
+        Kind::Cut => None,
+        Kind::Fade => Some("fade"),
+        Kind::FadeBlack => Some("fadeblack"),
+        Kind::Slide => Some("slideleft"),
+        Kind::Wipe => Some("wipeleft"),
+    }
+}
+
+/// How long neighbouring clips overlap, pair by pair: the chosen seconds within 0.2 to 2, and
+/// never more than a third of the shorter of the two, so that a short clip still shows on its own
+/// between the transitions on either side of it.
+pub(super) fn overlaps(seconds: f64, lengths: &[f64]) -> Vec<f64> {
+    let (least, most) = TRANSITION;
+    let wanted = if seconds.is_finite() {
+        seconds.clamp(least, most)
+    } else {
+        super::Transition::default().seconds
+    };
+    lengths
+        .windows(2)
+        .map(|pair| wanted.min(pair[0].min(pair[1]) / 3.0))
+        .collect()
+}
+
+/// The `-filter_complex` graph of Merge videos, with its `[v]` (and with sound `[a]`) output,
+/// and the result's length in seconds.
+///
+/// A cut joins the clips with `concat`. A transition chains `xfade` from clip to clip and
+/// `acrossfade` of the same length for the sound: each starts where the result so far ends, less
+/// its overlap, so the result lasts the clips' lengths less every overlap. xfade needs inputs
+/// alike in size, pixel format, frame rate and time base (`settb`), and every clip is padded or
+/// cut to exactly its probed length, picture (`tpad`, `trim`) and sound (`apad`, `atrim`) alike,
+/// so that the offsets hold and the sound stays with the picture; both start at 0 (`fps` and
+/// `aresample` fill or trim the start), as a stream that starts late in its file would otherwise
+/// slip. Each clip lasts at least `MIN_CLIP` when there is a transition.
+pub(super) fn merge_graph(
+    clips: &[Clip],
+    canvas: &Canvas,
+    transition: Transition,
+) -> (String, f64) {
+    let mut graph = String::new();
+    let Some(kind) = xfade(transition.kind).filter(|_| clips.len() > 1) else {
+        let mut pads = String::new();
+        for (i, clip) in clips.iter().enumerate() {
+            graph.push_str(&format!("{},format=yuv420p[v{i}];", canvas.fit(i, clip)));
+            pads.push_str(&format!("[v{i}]"));
+            if canvas.sound {
+                graph.push_str(&canvas.audio(i, clip, "", ""));
+                pads.push_str(&format!("[a{i}]"));
+            }
+        }
+        graph.push_str(&format!(
+            "{pads}concat=n={}:v=1:a={}[v]{}",
+            clips.len(),
+            u8::from(canvas.sound),
+            if canvas.sound { "[a]" } else { "" }
+        ));
+        return (graph, clips.iter().map(|clip| clip.length).sum());
+    };
+    for (i, clip) in clips.iter().enumerate() {
+        let length = secs(clip.length);
+        graph.push_str(&format!(
+            "{}:start_time=0,format=yuv420p,tpad=stop_mode=clone:stop_duration={length},\
+             trim=duration={length},settb=AVTB[v{i}];",
+            canvas.fit(i, clip)
+        ));
+        if canvas.sound {
+            graph.push_str(&canvas.audio(
+                i,
+                clip,
+                ":async=1:first_pts=0",
+                &format!(",apad=whole_dur={length},atrim=duration={length}"),
+            ));
+        }
+    }
+    let lengths: Vec<f64> = clips.iter().map(|clip| clip.length).collect();
+    let overlaps = overlaps(transition.seconds, &lengths);
+    let mut end = lengths[0];
+    let (mut video, mut audio) = ("v0".to_owned(), "a0".to_owned());
+    for (k, overlap) in overlaps.iter().enumerate() {
+        let i = k + 1;
+        let (next_video, next_audio) = if i + 1 == clips.len() {
+            ("v".to_owned(), "a".to_owned())
+        } else {
+            (format!("x{i}"), format!("y{i}"))
+        };
+        let offset = end - overlap;
+        graph.push_str(&format!(
+            "[{video}][v{i}]xfade=transition={kind}:duration={}:offset={}[{next_video}];",
+            secs(*overlap),
+            secs(offset)
+        ));
+        if canvas.sound {
+            graph.push_str(&format!(
+                "[{audio}][a{i}]acrossfade=d={}[{next_audio}];",
+                secs(*overlap)
+            ));
+        }
+        end = offset + lengths[i];
+        (video, audio) = (next_video, next_audio);
+    }
+    graph.pop();
+    (graph, end)
 }
 
 /// A tool whose engine is not written yet.

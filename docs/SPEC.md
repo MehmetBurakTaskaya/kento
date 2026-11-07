@@ -340,7 +340,7 @@ Each tool opens in its own small window or panel, shows a preview and saves the 
 - **Extract frames:** frames at chosen timestamps are saved as PNG.
 - **Split video:** at markers (M), into equal parts or by intervals; parts can be kept or dropped.
 - **Redact video:** rectangles are hidden with color, blur or pixelation during chosen time ranges, or erased: filled in from the pixels around them (FFmpeg `delogo`), for the user's own marks such as a date stamp or their logo.
-- **Merge videos** also takes a transition between clips: fade, through black, slide or wipe, 0.2 to 2 seconds, with the sound crossfading.
+- **Merge videos** also takes a transition between clips: fade, through black, slide or wipe, 0.2 to 2 seconds (never more than a third of the shorter of the two clips), with the sound crossfading. The clips overlap for each transition, so the result is shorter by that much.
 - **Make vertical:** a 1080×1920 H.264/AAC MP4 for short-video apps, from the whole video or a selection. Either a 9:16 window of the picture, placed by dragging, or the whole picture across the width over a blurred, enlarged copy of itself or a color. The editor says when the result runs past common short-video lengths (60 seconds, 3 minutes).
 - **Cut out parts** (video and audio): ranges marked on the timeline are taken out and the rest is joined, with a few milliseconds of fade at every cut so the sound never clicks.
 - **Remove pauses** (video and audio): quiet gaps are found (a threshold in dB, a shortest pause, a margin kept on both sides) and shown on the timeline with the time saved before anything is written; then they are cut out.
