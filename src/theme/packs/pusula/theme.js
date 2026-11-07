@@ -38,6 +38,280 @@ export default function register(Board) {
     // the first one, so it never seems to pick a slice. Mirrored in right-to-left languages.
     const restAngle = (m) => origin(m) + ((m.dir === 'rtl' ? 1 : -1) * m.step) / 2;
 
+    // A voice is drawn sample by sample into a short buffer: struck modes (each a sine dying away at its own
+    // rate), filtered noise and contact clicks, so it plays from one source node however rich it is. A buffer
+    // is drawn once and kept for its sample rate. A voice with variants plays one at random (never the same
+    // twice running) a little faster or slower, so a quick sweep never repeats itself.
+    // Envelopes start and end at zero and a DC blocker runs last, so nothing clicks and nothing rumbles.
+    const TAU = 2 * Math.PI;
+    const drawnSounds = new Map();
+    let noiseSeed = 1;
+    // Seeded white noise from -1 to 1.
+    function noise(seed) {
+      let x = seed >>> 0 || 1;
+      return () => (x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 2147483648 - 1;
+    }
+    // Envelopes for hiss(), of t seconds and u (0 to 1) into it: a hit rises in a seconds and falls by 1/e
+    // every tau seconds; a swell rises to its peak at p and falls back to zero.
+    const hit = (a, tau) => (t) => (t < a ? Math.sin((Math.PI / 2) * (t / a)) ** 2 : Math.exp((a - t) / tau));
+    const swell = (p) => (t, u) =>
+      (u < p ? Math.sin((Math.PI / 2) * (u / p)) : Math.cos((Math.PI / 2) * ((u - p) / (1 - p)))) ** 2;
+    // A struck mode from t0: a sine at f Hz falling by 1/e every tau seconds after an attack of o.a seconds (a
+    // long one swells like a bowed note). o.to glides the pitch there with time constant o.glide, or o.freq(t)
+    // sets it outright. A tone that does not die by itself lasts o.len seconds under o.env, an envelope as for
+    // hiss().
+    function mode(d, sr, t0, f, amp, tau, o = {}) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.ceil((o.len ?? tau * 7) * sr));
+      const att = Math.max(1, (o.a ?? 0.0007) * sr);
+      const tail = 0.002 * sr;
+      const k = Math.exp(-1 / (tau * sr));
+      let c = 1,
+        s = 0,
+        cw = 1,
+        sw = 0,
+        env = amp;
+      for (let i = 0; i < n; i++) {
+        if (i % 32 === 0) {
+          const t = i / sr;
+          const fi = o.freq ? o.freq(t) : o.to ? o.to + (f - o.to) * Math.exp(-t / (o.glide ?? 0.03)) : f;
+          cw = Math.cos((TAU * fi) / sr);
+          sw = Math.sin((TAU * fi) / sr);
+          const m = 1 / Math.hypot(c, s);
+          c *= m;
+          s *= m;
+        }
+        const nc = c * cw - s * sw;
+        s = c * sw + s * cw;
+        c = nc;
+        let g = env;
+        if (i < att) g *= 0.5 - 0.5 * Math.cos((Math.PI * i) / att);
+        if (n - i < tail) g *= (n - i) / tail;
+        if (o.env) g *= o.env(i / sr, i / n);
+        d[i0 + i] += g * s;
+        env *= k;
+      }
+    }
+    // A contact click at t0: a windowed burst of `cycles` cycles at f Hz, its energy around f.
+    function tap(d, sr, t0, f, amp, cycles = 1.5) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.round((cycles / f) * sr) + 1);
+      for (let i = 0; i < n; i++) {
+        const u = i / (n - 1);
+        d[i0 + i] += amp * (0.5 - 0.5 * Math.cos(TAU * u)) * Math.sin(TAU * cycles * (u - 0.5));
+      }
+    }
+    // Filtered noise for dur seconds from t0: a band at o.f Hz (all below it with o.type 'low'), swept to o.to
+    // along o.path (0 to 1, straight unless given), resonance o.q, shaped by o.env (a quick hit unless given)
+    // and o.am. o.grain from 0 to 1 thins it into a crackle of separate grains, as grit, paper and leaf make.
+    function hiss(d, sr, t0, dur, amp, o = {}) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.round(dur * sr));
+      const rnd = noise((noiseSeed += 7919));
+      const env = o.env ?? hit(0.002, dur / 4);
+      const k = 1 / (o.q ?? 1);
+      const fade = 0.003 * sr;
+      let a1 = 0,
+        a2 = 0,
+        a3 = 0,
+        z1 = 0,
+        z2 = 0;
+      for (let i = 0; i < n; i++) {
+        const u = i / n;
+        if (i % 16 === 0) {
+          const f = o.to ? o.f * (o.to / o.f) ** (o.path ? o.path(u) : u) : o.f;
+          const g = Math.tan((Math.PI * Math.min(f, 0.45 * sr)) / sr);
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        let x = rnd();
+        if (o.grain) x = Math.abs(rnd()) < o.grain ? x / Math.sqrt(o.grain) : 0;
+        // A state-variable filter, stable however fast its frequency moves.
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        const y = o.type === 'low' ? v2 : k * v1;
+        const t = i / sr;
+        d[i0 + i] += amp * y * env(t, u) * (o.am ? o.am(t) : 1) * Math.min(1, (n - i) / fade);
+      }
+    }
+    // A voice drawn by draw(d, sr, v, r) into dur seconds at o.gain: o.vary variants (v, each with seeded noise
+    // r of its own) played o.rate faster or slower at random; o.next(last) may choose the variant instead. Its
+    // key starts with the theme's id: the first sound of a theme draws the rest of its voices in idle moments
+    // after the wheel has opened, so applying a slice never waits for a drawing.
+    const drawers = new Map();
+    function drawn(key, dur, draw, o = {}) {
+      const vary = o.vary ?? 1;
+      const theme = key.split(':')[0];
+      let last = -1;
+      const pick = () => {
+        if (vary < 2) return 0;
+        const v = Math.floor(Math.random() * (last < 0 ? vary : vary - 1));
+        return last >= 0 && v >= last ? v + 1 : v;
+      };
+      const make = (ac, v) => {
+        const sr = ac.sampleRate;
+        const id = `${key}:${v}:${sr}`;
+        let buf = drawnSounds.get(id);
+        if (buf) return buf;
+        buf = ac.createBuffer(1, Math.ceil(dur * sr), sr);
+        const d = buf.getChannelData(0);
+        draw(d, sr, v, noise(v * 7919 + 101));
+        // A DC blocker, the voice's gain and a fade over its last moments.
+        const R = Math.exp((-TAU * 20) / sr);
+        const fade = Math.max(1, (o.fade ?? 0.004) * sr);
+        let x1 = 0,
+          y1 = 0;
+        for (let i = 0; i < d.length; i++) {
+          y1 = d[i] - x1 + R * y1;
+          x1 = d[i];
+          const left = d.length - 1 - i;
+          d[i] = (o.gain ?? 1) * y1 * (left < fade ? Math.sin((Math.PI / 2) * (left / fade)) ** 2 : 1);
+        }
+        drawnSounds.set(id, buf);
+        return buf;
+      };
+      if (!drawers.has(theme)) drawers.set(theme, { list: [], rates: new Set() });
+      for (let v = 0; v < vary; v++) drawers.get(theme).list.push((ac) => make(ac, v));
+      return (ac, out, t) => {
+        const v = o.next ? o.next(last) : pick();
+        last = v;
+        const buf = make(ac, v);
+        const all = drawers.get(theme);
+        if (!all.rates.has(ac.sampleRate)) {
+          all.rates.add(ac.sampleRate);
+          const queue = [...all.list];
+          const idle = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : setTimeout(f, 20));
+          // A drawing takes up to a few milliseconds: only when the page has that much time to spare.
+          const next = (spare) => {
+            if (!queue.length) return;
+            if (!spare || spare.timeRemaining() > 8) queue.shift()(ac);
+            idle(next);
+          };
+          setTimeout(() => idle(next), 400);
+        }
+        const src = ac.createBufferSource();
+        src.buffer = buf;
+        src.playbackRate.value = 1 + (o.rate ?? 0) * (2 * Math.random() - 1);
+        src.connect(out);
+        src.start(t);
+        src.stop(t + buf.duration / src.playbackRate.value + 0.02);
+      };
+    }
+    // The needle's swing is a breath of air through a narrow band that follows its angle, as loud as it swings
+    // fast; where it turns back, its jewel pivot ticks. The chart is paper: a dry crackle of grains.
+    function pivot(d, sr, t, amp) {
+      tap(d, sr, t, 3600, amp);
+      mode(d, sr, t, 2490, amp * 0.25, 0.006);
+    }
+    const paper = (d, sr, t, dur, amp, f, env) => hiss(d, sr, t, dur, amp, { f, q: 1.2, grain: 0.35, env });
+    // The needle settling on its bearing: past it, back, and still, as its swing eases do.
+    const overshoot = (u) => 1 - Math.exp(-5 * u) * Math.cos(9 * u);
+
+    const SOUNDS = {
+      // The chart unfolds with a papery rustle, and the needle swings in, wobbling to rest with small ticks on its
+      // pivot (its swings of 111, 22, 8 and 2 degrees, as the open animation draws them).
+      open: drawn(
+        'pusula:open',
+        0.36,
+        (d, sr) => {
+          paper(d, sr, 0, 0.19, 0.06, 2500, swell(0.3));
+          hiss(d, sr, 0, 0.17, 0.04, { f: 700, q: 0.8, grain: 0.5, env: swell(0.4) });
+          for (const [t, dur, k, f0, f1] of [
+            [0.073, 0.068, 1, 1400, 2600],
+            [0.141, 0.044, 0.31, 2600, 2000],
+            [0.185, 0.034, 0.15, 2000, 2300],
+            [0.219, 0.024, 0.05, 2300, 2200],
+          ])
+            hiss(d, sr, t, dur, 0.07 * k, { f: f0, to: f1, q: 4, env: swell(0.5) });
+          pivot(d, sr, 0.141, 0.18);
+          pivot(d, sr, 0.185, 0.14);
+          pivot(d, sr, 0.219, 0.07);
+        },
+        { fade: 0.06, gain: 0.689 },
+      ),
+      // The needle swings to the slice: a quick breath of air that bends as it overshoots, a whisper of chart
+      // paper and a tiny tick of the pivot.
+      tick: drawn(
+        'pusula:tick',
+        0.06,
+        (d, sr, v, r) => {
+          const f = 2100 * (1 + 0.05 * r());
+          hiss(d, sr, 0, 0.04, 0.05, { f: f * 0.7, to: f, q: 5, path: overshoot, env: swell(0.35) });
+          paper(d, sr, 0, 0.022, 0.015, 3200, swell(0.3));
+          pivot(d, sr, 0.03, 0.14);
+        },
+        { vary: 6, rate: 0.03, fade: 0.012, gain: 1.22 },
+      ),
+      // The chart turns to a new bearing: a quick slide of paper, then the needle swings over with a firm tick.
+      enter: drawn(
+        'pusula:enter',
+        0.22,
+        (d, sr, v, r) => {
+          hiss(d, sr, 0, 0.11, 0.05, { f: 1800, to: 2600, q: 1.2, grain: 0.35, env: swell(0.5) });
+          hiss(d, sr, 0.05, 0.1, 0.06, {
+            f: 1500,
+            to: 2400 * (1 + 0.03 * r()),
+            q: 4,
+            path: overshoot,
+            env: swell(0.4),
+          });
+          pivot(d, sr, 0.15, 0.3);
+          mode(d, sr, 0.15, 1400, 0.03, 0.012);
+        },
+        { vary: 3, fade: 0.04, gain: 0.524 },
+      ),
+      // Back to the last bearing: the paper slides the other way and the needle swings back with a lighter tick.
+      leave: drawn(
+        'pusula:leave',
+        0.2,
+        (d, sr, v, r) => {
+          hiss(d, sr, 0, 0.1, 0.045, { f: 2600, to: 1800, q: 1.2, grain: 0.35, env: swell(0.5) });
+          hiss(d, sr, 0.04, 0.09, 0.05, {
+            f: 2600,
+            to: 1700 * (1 + 0.03 * r()),
+            q: 4,
+            path: overshoot,
+            env: swell(0.4),
+          });
+          pivot(d, sr, 0.125, 0.24);
+          mode(d, sr, 0.125, 1900, 0.025, 0.01);
+        },
+        { vary: 3, fade: 0.04, gain: 0.583 },
+      ),
+      // The bearing is stamped onto the chart with a firm papery thump, the needle locks with three small shakes on
+      // its pivot, and the brass case hums a short note.
+      success: drawn(
+        'pusula:success',
+        1,
+        (d, sr) => {
+          mode(d, sr, 0, 180, 0.08, 0.03, { a: 0.002 });
+          mode(d, sr, 0, 410, 0.04, 0.02, { a: 0.0015 });
+          hiss(d, sr, 0, 0.06, 0.12, { f: 1500, q: 0.7, env: hit(0.001, 0.02) });
+          paper(d, sr, 0, 0.05, 0.08, 3500, hit(0.001, 0.012));
+          for (const [t, a] of [
+            [0.076, 0.14],
+            [0.171, 0.09],
+            [0.266, 0.05],
+          ]) {
+            hiss(d, sr, t - 0.03, 0.04, a * 0.3, { f: 2000, q: 4, env: swell(0.6) });
+            pivot(d, sr, t, a);
+          }
+          for (const [k, a, tau] of [
+            [1, 0.09, 0.32],
+            [1.004, 0.03, 0.3],
+            [2.76, 0.02, 0.12],
+            [5.4, 0.006, 0.05],
+          ])
+            mode(d, sr, 0.076, 698.5 * k, a, tau, { a: 0.004 });
+        },
+        { fade: 0.25, gain: 0.737 },
+      ),
+    };
+
     Board.define({
       id: 'pusula',
       fonts: {
@@ -330,24 +604,7 @@ export default function register(Board) {
         },
       },
 
-      sounds: {
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 2400, f2: 800, q: 0.9, dur: 0.09, gain: 0.16, a: 0.006 });
-          X.tone(ac, out, t + 0.012, { type: 'triangle', f: 240, f2: 190, dur: 0.06, gain: 0.07, a: 0.002 });
-        },
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 3300, f2: 2950, dur: 0.022, gain: 0.07, a: 0.001 });
-          X.burst(ac, out, t, { type: 'highpass', f: 6200, q: 0.8, dur: 0.008, gain: 0.05 });
-        },
-        success(ac, out, t, X) {
-          // Two light strikes of a small bell: inharmonic partials that die away at different rates.
-          for (const s of [0, 0.19]) {
-            X.tone(ac, out, t + s, { f: 988, dur: 0.62, gain: 0.085, a: 0.003 });
-            X.tone(ac, out, t + s, { f: 988 * 2.76, dur: 0.3, gain: 0.03, a: 0.002 });
-            X.tone(ac, out, t + s, { f: 988 * 5.4, dur: 0.12, gain: 0.012, a: 0.001 });
-          }
-        },
-      },
+      sounds: SOUNDS,
     });
   })();
 }
