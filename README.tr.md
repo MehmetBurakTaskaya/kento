@@ -21,6 +21,12 @@
 </p>
 
 <p align="center">
+  <strong>Normalde bir web sitesinde aradığın küçük işler, kendi bilgisayarında:</strong><br>
+  HEIC fotoğrafı JPG yapmak, videonun en iyi kısmını kesip dikey yapmak, podcast sesini dengelemek,
+  bir yüzü ya da plakayı gizlemek, bir bağlantıdaki videoyu kaydetmek, sunumu PDF yapmak.
+</p>
+
+<p align="center">
   <a href="https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-Windows-x64-Setup.exe"><img src="https://img.shields.io/badge/Windows-Kurulum%20dosyas%C4%B1-2a4ea6?style=for-the-badge" alt="Windows için indir: kurulum dosyası"></a>
   <a href="https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-Windows-x64-Portable.zip"><img src="https://img.shields.io/badge/Windows-Ta%C5%9F%C4%B1nabilir%20ZIP-2a4ea6?style=for-the-badge" alt="Windows için indir: taşınabilir ZIP"></a>
   <a href="https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-macOS-Universal.dmg"><img src="https://img.shields.io/badge/macOS-Disk%20g%C3%B6r%C3%BCnt%C3%BCs%C3%BC-2a4ea6?style=for-the-badge" alt="macOS için indir: disk görüntüsü"></a>
@@ -36,6 +42,53 @@ Explorer'da, Finder'da ya da herhangi bir uygulamada bir dosyayı sürüklerken 
 imlecin altında çelik bir kasa kadranı açılır. Dosyayı bir dilime bırak; Kento onu orada,
 orijinalin yanına yeni bir kopya olarak dönüştürür. **Ctrl** (Mac'te ⌘) bunun yerine araçları,
 **Alt** (⌃) ise dosya işlemlerini açar. Hiçbir şey bir yere yüklenmez, orijinal olduğu gibi kalır.
+
+## Neler yapar
+
+Her iş senin bilgisayarında çalışır ve orijinalin yanına yeni bir dosya yazar.
+
+**Video**
+
+- **Kes:** istediğin kısmı al ya da videoyu koyduğun işaretlerden, eşit parçalara veya birkaç
+  saniyede bir böl ve yalnızca seçtiğin parçaları tut.
+- **Biçimlendir:** kısa videolar ve hikâyeler için 9:16'ya, 1:1'e, 4:5'e, 16:9'a ya da çizdiğin
+  herhangi bir alana kırp; 0,25× ile 4× arasında oynat, ses kendi tonunda kalsın; klipleri tek
+  videoda birleştir.
+- **Gizle:** yüzleri, plakaları ve logoları bulanıklaştır, pikselle ya da kapat; her birini yalnızca
+  ekranda olduğu saniyeler boyunca.
+- **Dahası:** altyazı göm, sesi kaldır, kareleri görsel olarak kaydet, GIF yap, MP3'ünü çıkar, MP4,
+  MOV, MKV ve WEBM arasında dönüştür, "25 MB'ın altı" gibi bir boyuta sıkıştır.
+
+**Ses**
+
+- **Ses yüksekliğini dengele:** podcast, müzik servisi ya da yayın için (EBU R128); önce ölçer,
+  sonra ikinci geçişte uygular.
+- **Düzenle:** istediğin kısmı al ve uçlarındaki sessizliği kırp, mono ya da stereo yap veya sağ ve
+  sol dengesini ayarla, kelimeleri bip sesiyle ya da sessizlikle örtün.
+- **Videoya çevir:** dalga formu, spektrum, çubuklar ya da bir resimle, paylaşmaya hazır.
+- **Dönüştür:** MP3, M4A, WAV, FLAC, OGG, OPUS ve daha fazlası arasında; ya da sıkıştır.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/kento-crop-video-tr.webp" alt="9:16 oranı seçili Video alanını kırp: şafakta balonların göründüğü yatay bir videonun ortasında dikey bir çerçeve, sonuç 608 × 1080 piksel"><br><sub>Kısa videolar ve hikâyeler için dikey 9:16</sub></td>
+    <td align="center"><img src="docs/images/kento-redact-video-tr.webp" alt="Pikselleştir seçili Videoda gizle: köşedeki kamera tarih damgasının üzerine çizilmiş bir alan, videonun tamamı boyunca gizli"><br><sub>Pikselleştirilmiş bir tarih damgası</sub></td>
+    <td align="center"><img src="docs/images/kento-normalize-tr.webp" alt="Bir röportajın dalga formu üzerinde Ses seviyesini normalize et; hedeflerden -16 LUFS ile Podcast seçili"><br><sub>Podcast için dengelenmiş bir röportaj</sub></td>
+  </tr>
+</table>
+
+**Web'den:** bir bağlantıyı yapıştır ya da tarayıcıdan sürükle; videoyu, yalnızca sesini, bir
+fotoğraf gönderisinin resimlerini ya da kapak görselini istediğin kalitede kaydet.
+
+**Görseller:** HEIC'ten JPG'ye ve diğer bütün yaygın biçimlere dönüştür; kırp, boyutlandır, döndür,
+renkleri ayarla, işaretle, çerçevele, kolaj yap, bölümlerini gizle, arka planı kaldır, görseldeki
+metni oku, QR kod oku ya da oluştur.
+
+**Belgeler ve PDF:** ofis belgelerini, tabloları ve sunumları PDF'ye ve PDF'den geri dönüştür,
+sunumu slayt başına bir görsele, PDF'deki tabloları bir tabloya çevir; PDF'leri böl, birleştir,
+sayfalarını sırala, döndür ve sıkıştır, görsellerden PDF yap.
+
+**Kendi kendine:** klasör kuralları bir klasöre gelen her yeni dosyayı işler, tarifler adımları bir
+ad altında birleştirir, komut satırı da hepsini betiklerden çalıştırır.
 
 ## Üç tuş, üç çark
 

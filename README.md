@@ -21,6 +21,12 @@
 </p>
 
 <p align="center">
+  <strong>The small jobs you would otherwise look for a website to do, on your own computer:</strong><br>
+  a HEIC photo to JPG, the best part of a video cut out and made vertical, a podcast's sound evened
+  out, a face or a number plate hidden, the video behind a link saved, slides turned into a PDF.
+</p>
+
+<p align="center">
   <a href="https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-Windows-x64-Setup.exe"><img src="https://img.shields.io/badge/Windows-Installer-2a4ea6?style=for-the-badge" alt="Download for Windows: the installer"></a>
   <a href="https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-Windows-x64-Portable.zip"><img src="https://img.shields.io/badge/Windows-Portable%20ZIP-2a4ea6?style=for-the-badge" alt="Download for Windows: the portable ZIP"></a>
   <a href="https://github.com/MehmetBurakTaskaya/kento/releases/latest/download/Kento-macOS-Universal.dmg"><img src="https://img.shields.io/badge/macOS-Disk%20image-2a4ea6?style=for-the-badge" alt="Download for macOS: the disk image"></a>
@@ -36,6 +42,52 @@ While you drag a file in Explorer, Finder or any other app, press **Shift**: a s
 opens under the pointer. Drop the file on a slice and Kento converts it on the spot, into a new
 copy next to the original. **Ctrl** (⌘ on a Mac) opens the tools instead and **Alt** (⌃) the file
 actions. Nothing is uploaded anywhere, and the original stays as it was.
+
+## What it does
+
+Every job runs on your computer and writes a new file next to the original.
+
+**Video**
+
+- **Cut:** keep the part you want, or split a video at your markers, into equal parts or every few
+  seconds, and keep only the parts you choose.
+- **Reshape:** crop to 9:16 for shorts and stories, to 1:1, 4:5 or 16:9, or to any area you draw;
+  play it from 0.25× to 4× with the voice at its own pitch; join clips into one.
+- **Hide:** blur, pixelate or cover faces, number plates and logos, each only for the seconds it is
+  on screen.
+- **And:** burn in subtitles, remove the sound, save frames as pictures, make a GIF, take out the
+  MP3, convert between MP4, MOV, MKV and WEBM, and compress to a size such as "under 25 MB".
+
+**Audio**
+
+- **Even out the loudness** for a podcast, a music service or broadcast (EBU R128), measured first
+  and applied in a second pass.
+- **Edit:** keep the part you want and trim the silence at its ends, make it mono or stereo or
+  balance left and right, and bleep or mute words.
+- **Make a video of it:** a waveform, a spectrum, bars or a picture, ready to post.
+- **Convert** between MP3, M4A, WAV, FLAC, OGG, OPUS and more, or compress it.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/kento-crop-video.webp" alt="Crop video area with the 9:16 ratio chosen: a tall frame over the middle of a landscape video of balloons at dawn, the result 608 × 1080 pixels"><br><sub>Vertical 9:16 for shorts and stories</sub></td>
+    <td align="center"><img src="docs/images/kento-redact-video.webp" alt="Redact video with Pixelate chosen: an area drawn over a camera's date stamp in the corner, hidden for the whole video"><br><sub>A date stamp pixelated</sub></td>
+    <td align="center"><img src="docs/images/kento-normalize.webp" alt="Normalize loudness over an interview's waveform, with Podcasts at -16 LUFS chosen among the targets"><br><sub>An interview evened out for a podcast</sub></td>
+  </tr>
+</table>
+
+**From the web:** paste a link, or drag it out of the browser, to save the video, only its sound, a
+photo post's pictures or a thumbnail, in the quality you choose.
+
+**Pictures:** HEIC to JPG and every other common format, crop, resize, rotate, adjust the colours,
+mark up, frame, make a collage, hide parts, remove the background, read the text in a picture and
+read or make QR codes.
+
+**Documents and PDF:** office documents, spreadsheets and slides to PDF and back, slides to a
+picture per slide, PDF tables to a spreadsheet; split, merge, reorder, rotate and compress PDFs, and
+make one from pictures.
+
+**On its own:** folder rules handle each new file in a folder, recipes chain steps under one name,
+and the command line runs it all from scripts.
 
 ## Three keys, three wheels
 
