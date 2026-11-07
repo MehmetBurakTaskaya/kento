@@ -937,6 +937,7 @@
   "automation.field.recipe": "Rezept",
   "automation.field.noRecipes": "Noch keine Rezepte: Erstelle zuerst eines unter „Rezepte“.",
   "automation.field.tool": "Werkzeug",
+  "automation.field.toolUsual": "The tool runs with its usual settings.",
   "automation.field.output": "Ergebnisse speichern in",
   "automation.field.moveTo": "Dateien verschieben nach",
   "automation.field.moveNote": "Verschieben nimmt die Datei selbst aus dem überwachten Ordner; am Ziel wird nichts überschrieben.",

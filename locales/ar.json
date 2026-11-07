@@ -937,6 +937,7 @@
   "automation.field.recipe": "الوصفة",
   "automation.field.noRecipes": "لا توجد وصفات بعد: أنشئ واحدة في «الوصفات» أولًا.",
   "automation.field.tool": "الأداة",
+  "automation.field.toolUsual": "The tool runs with its usual settings.",
   "automation.field.output": "وضع النتائج في",
   "automation.field.moveTo": "نقل الملفات إلى",
   "automation.field.moveNote": "يُخرج النقل الملف نفسه من المجلد المراقَب؛ ولا يُكتب فوق أي شيء في الوجهة.",

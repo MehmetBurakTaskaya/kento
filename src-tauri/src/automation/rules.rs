@@ -10,8 +10,9 @@ use serde::{Deserialize, Serialize};
 pub const VERSION: u32 = 1;
 /// The longest rule name, in characters.
 pub const MAX_NAME: usize = 80;
-/// The tools a rule can run: the ones that run at once from the wheel, without choices.
-pub const TOOLS: [&str; 2] = ["extract", "mute"];
+/// The tools a rule can run: the ones that run at once from the wheel, without choices, and Remove
+/// noise and Remove pauses with their usual choices.
+pub const TOOLS: [&str; 4] = ["extract", "mute", "denoise", "remove-pauses"];
 
 /// What automation.json holds.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -464,7 +464,7 @@ On first use a short notice appears: "Only download content you have the right t
 **Folder automation:** a folder is watched and rules are defined. Each rule has three parts:
 
 - Filter: extension, name pattern, size.
-- Action: convert, tool, recipe or move.
+- Action: convert, tool (Extract archive, Remove audio, and Remove noise and Remove pauses with their usual settings), recipe or move.
 - Output folder.
 
 Example: "Convert PNGs that land in the Screenshots folder to WEBP and put them in Optimized."

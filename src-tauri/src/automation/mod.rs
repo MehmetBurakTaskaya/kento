@@ -282,6 +282,8 @@ enum Work {
     Convert(&'static Format, &'static Format),
     Extract(&'static Format),
     Mute(&'static Format),
+    /// A media tool with its usual choices, on a video or a sound.
+    Media(kento_engines::media::Tool, &'static Format),
     Recipe(Box<recipe::Recipe>, &'static Format, recipe::Plan),
 }
 
@@ -315,6 +317,23 @@ fn decide(
         }
         Action::Tool { tool } if tool == "extract" => Work::Extract(of_kind(Category::Archive)?),
         Action::Tool { tool } if tool == "mute" => Work::Mute(of_kind(Category::Video)?),
+        Action::Tool { tool } if tool == "denoise" || tool == "remove-pauses" => {
+            use kento_engines::media::{Pauses, Strength, Tool};
+            let from = format
+                .filter(|format| matches!(format.category, Category::Video | Category::Audio))
+                .ok_or(unsupported)?;
+            let tool = if tool == "denoise" {
+                Tool::Denoise {
+                    strength: Strength::Medium,
+                    rumble: false,
+                }
+            } else {
+                Tool::RemovePauses {
+                    pauses: Pauses::default(),
+                }
+            };
+            Work::Media(tool, from)
+        }
         Action::Tool { .. } => return Err(unsupported),
         Action::Recipe { recipe: id } => {
             let recipe = recipe(id).ok_or_else(|| {
@@ -362,6 +381,7 @@ fn start_job(
         Work::Mute(from) => {
             crate::media::submit(&ctx, kento_engines::media::Tool::Mute, vec![source], from)
         }
+        Work::Media(tool, from) => crate::media::submit(&ctx, tool, vec![source], from),
         Work::Recipe(recipe, from, plan) => recipes::submit(&ctx, &recipe, source, from, plan),
     })
 }
@@ -751,6 +771,38 @@ mod tests {
         ));
         assert_eq!(
             skipped(decide(&mute, format("mp3"), none, "en")),
+            "automation.skipped.unsupported"
+        );
+    }
+
+    #[test]
+    fn noise_and_pauses_go_with_their_usual_choices() {
+        use kento_engines::media::{Pauses, Strength, Tool};
+        let format = |id: &str| catalog::format(id);
+        let none = |_: &str| None;
+        let denoise = Action::Tool {
+            tool: "denoise".into(),
+        };
+        for id in ["mp4", "mp3"] {
+            assert!(matches!(
+                decide(&denoise, format(id), none, "en"),
+                Ok(Work::Media(Tool::Denoise { strength: Strength::Medium, rumble: false }, from))
+                    if from.id == id
+            ));
+        }
+        let pauses = Action::Tool {
+            tool: "remove-pauses".into(),
+        };
+        assert!(matches!(
+            decide(&pauses, format("wav"), none, "en"),
+            Ok(Work::Media(Tool::RemovePauses { pauses }, _)) if pauses == Pauses::default()
+        ));
+        assert_eq!(
+            skipped(decide(&pauses, format("png"), none, "en")),
+            "automation.skipped.unsupported"
+        );
+        assert_eq!(
+            skipped(decide(&denoise, None, none, "en")),
             "automation.skipped.unsupported"
         );
     }

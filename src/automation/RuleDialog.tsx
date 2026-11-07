@@ -344,6 +344,7 @@ export function RuleDialog({
             </select>
           </label>
         )}
+        {action.kind === 'tool' && <p className="muted">{t('automation.field.toolUsual')}</p>}
         {action.kind === 'move' && <p className="muted">{t('automation.field.moveNote')}</p>}
       </fieldset>
 

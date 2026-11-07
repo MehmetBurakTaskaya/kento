@@ -937,6 +937,7 @@
   "automation.field.recipe": "レシピ",
   "automation.field.noRecipes": "レシピはまだありません。先に「レシピ」で作成してください。",
   "automation.field.tool": "ツール",
+  "automation.field.toolUsual": "The tool runs with its usual settings.",
   "automation.field.output": "結果の保存先",
   "automation.field.moveTo": "ファイルの移動先",
   "automation.field.moveNote": "移動では、ファイルそのものが監視対象のフォルダーから移動されます。移動先のファイルが上書きされることはありません。",

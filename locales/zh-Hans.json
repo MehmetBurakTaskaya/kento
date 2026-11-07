@@ -937,6 +937,7 @@
   "automation.field.recipe": "配方",
   "automation.field.noRecipes": "尚无配方：请先在“配方”中创建一个。",
   "automation.field.tool": "工具",
+  "automation.field.toolUsual": "The tool runs with its usual settings.",
   "automation.field.output": "结果保存到",
   "automation.field.moveTo": "将文件移动到",
   "automation.field.moveNote": "移动会将文件本身移出被监视的文件夹；不会覆盖目标位置的任何内容。",

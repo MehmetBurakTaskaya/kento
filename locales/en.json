@@ -937,6 +937,7 @@
   "automation.field.recipe": "Recipe",
   "automation.field.noRecipes": "No recipes yet: make one under Recipes first.",
   "automation.field.tool": "Tool",
+  "automation.field.toolUsual": "The tool runs with its usual settings.",
   "automation.field.output": "Put the results in",
   "automation.field.moveTo": "Move the files to",
   "automation.field.moveNote": "Move takes the file itself out of the watched folder; nothing at the destination is overwritten.",

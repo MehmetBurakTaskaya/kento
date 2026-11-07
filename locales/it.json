@@ -937,6 +937,7 @@
   "automation.field.recipe": "Ricetta",
   "automation.field.noRecipes": "Ancora nessuna ricetta: creane prima una in «Ricette».",
   "automation.field.tool": "Strumento",
+  "automation.field.toolUsual": "The tool runs with its usual settings.",
   "automation.field.output": "Metti i risultati in",
   "automation.field.moveTo": "Sposta i file in",
   "automation.field.moveNote": "«Sposta» toglie il file stesso dalla cartella sorvegliata; nella destinazione non viene sovrascritto nulla.",

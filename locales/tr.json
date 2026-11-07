@@ -937,6 +937,7 @@
   "automation.field.recipe": "Tarif",
   "automation.field.noRecipes": "Henüz tarif yok: önce Tarifler bölümünde bir tane oluştur.",
   "automation.field.tool": "Araç",
+  "automation.field.toolUsual": "Araç olağan ayarlarıyla çalışır.",
   "automation.field.output": "Sonuçların gideceği klasör",
   "automation.field.moveTo": "Dosyaların taşınacağı klasör",
   "automation.field.moveNote": "Taşı, dosyanın kendisini izlenen klasörden alır; hedefteki hiçbir dosyanın üzerine yazılmaz.",

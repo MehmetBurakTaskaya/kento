@@ -937,6 +937,7 @@
   "automation.field.recipe": "Receita",
   "automation.field.noRecipes": "Nenhuma receita ainda: crie uma em “Receitas” primeiro.",
   "automation.field.tool": "Ferramenta",
+  "automation.field.toolUsual": "The tool runs with its usual settings.",
   "automation.field.output": "Pôr os resultados em",
   "automation.field.moveTo": "Mover os arquivos para",
   "automation.field.moveNote": "Mover tira o próprio arquivo da pasta observada; nada no destino é substituído.",

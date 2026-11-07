@@ -937,6 +937,7 @@
   "automation.field.recipe": "Рецепт",
   "automation.field.noRecipes": "Рецептов пока нет: сначала создайте рецепт в разделе «Рецепты».",
   "automation.field.tool": "Инструмент",
+  "automation.field.toolUsual": "The tool runs with its usual settings.",
   "automation.field.output": "Куда сохранять результаты",
   "automation.field.moveTo": "Куда перемещать файлы",
   "automation.field.moveNote": "Перемещение забирает сам файл из отслеживаемой папки; в месте назначения ничего не перезаписывается.",
