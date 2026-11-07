@@ -77,7 +77,12 @@ Every job runs on your computer and writes a new file next to the original.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/images/kento-crop-video.webp" alt="Crop video area with the 9:16 ratio chosen: a tall frame over the middle of a landscape video of balloons at dawn, the result 608 × 1080 pixels"><br><sub>Vertical 9:16 for shorts and stories</sub></td>
+    <td align="center"><img src="docs/images/kento-make-vertical.webp" alt="Make vertical with Blurred background chosen: a landscape video of balloons at dawn, and beside it the 1080 × 1920 result with the whole picture over a blurred copy of itself"><br><sub>A landscape video made vertical</sub></td>
+    <td align="center"><img src="docs/images/kento-add-overlay.webp" alt="Add text or logo: the title Sunrise over the valley in white with a dark outline over the video, with its typeface, size, colors and placement beside it"><br><sub>A title over the video</sub></td>
+    <td align="center"><img src="docs/images/kento-remove-pauses.webp" alt="Remove pauses over an interview's waveform: 13 pauses marked in red, 22.5 seconds shorter, with the settings for what counts as a pause"><br><sub>The pauses of an interview, found</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/kento-add-music.webp" alt="Add music: a song mixed under a video at -6 dB, played again if it ends first, and lowered while someone speaks"><br><sub>A song under the video, quieter under speech</sub></td>
     <td align="center"><img src="docs/images/kento-redact-video.webp" alt="Redact video with Pixelate chosen: an area drawn over a camera's date stamp in the corner, hidden for the whole video"><br><sub>A date stamp pixelated</sub></td>
     <td align="center"><img src="docs/images/kento-normalize.webp" alt="Normalize loudness over an interview's waveform, with Podcasts at -16 LUFS chosen among the targets"><br><sub>An interview evened out for a podcast</sub></td>
   </tr>

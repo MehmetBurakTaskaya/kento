@@ -80,7 +80,12 @@ Her iş senin bilgisayarında çalışır ve orijinalin yanına yeni bir dosya y
 
 <table>
   <tr>
-    <td align="center"><img src="docs/images/kento-crop-video-tr.webp" alt="9:16 oranı seçili Video alanını kırp: şafakta balonların göründüğü yatay bir videonun ortasında dikey bir çerçeve, sonuç 608 × 1080 piksel"><br><sub>Kısa videolar ve hikâyeler için dikey 9:16</sub></td>
+    <td align="center"><img src="docs/images/kento-make-vertical-tr.webp" alt="Bulanık arka plan seçili Dikey video yap: şafakta balonların göründüğü yatay bir video ve yanında görüntünün tamamının bulanık bir kopyasının üzerinde durduğu 1080 × 1920 sonuç"><br><sub>Dikeye çevrilen yatay bir video</sub></td>
+    <td align="center"><img src="docs/images/kento-add-overlay-tr.webp" alt="Yazı ya da logo ekle: videonun üzerinde koyu konturlu beyaz Vadide gün doğumu başlığı, yanında yazı tipi, boyutu, renkleri ve yerleşimi"><br><sub>Videonun üzerinde bir başlık</sub></td>
+    <td align="center"><img src="docs/images/kento-remove-pauses-tr.webp" alt="Bir röportajın dalga formu üzerinde Duraklamaları kaldır: kırmızıyla işaretli 13 duraklama, 22,5 saniye daha kısa sonuç ve neyin duraklama sayılacağının ayarları"><br><sub>Bir röportajın bulunan duraklamaları</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/kento-add-music-tr.webp" alt="Müzik ekle: -6 dB düzeyinde videonun altına karıştırılan, önce biterse yeniden çalan ve biri konuşurken kısılan bir şarkı"><br><sub>Videonun altında, konuşmada kısılan bir şarkı</sub></td>
     <td align="center"><img src="docs/images/kento-redact-video-tr.webp" alt="Pikselleştir seçili Videoda gizle: köşedeki kamera tarih damgasının üzerine çizilmiş bir alan, videonun tamamı boyunca gizli"><br><sub>Pikselleştirilmiş bir tarih damgası</sub></td>
     <td align="center"><img src="docs/images/kento-normalize-tr.webp" alt="Bir röportajın dalga formu üzerinde Ses seviyesini normalize et; hedeflerden -16 LUFS ile Podcast seçili"><br><sub>Podcast için dengelenmiş bir röportaj</sub></td>
   </tr>
