@@ -367,15 +367,65 @@ export interface Area {
   width: number;
   height: number;
 }
-export type Hide = { kind: 'color'; rgb: [number, number, number] } | { kind: 'blur' } | { kind: 'pixelate' };
+/** `erase` fills the area in from the pixels around it (video only): for a mark of the user's own. */
+export type Hide =
+  { kind: 'color'; rgb: [number, number, number] } | { kind: 'blur' } | { kind: 'pixelate' } | { kind: 'erase' };
 
-/** The 13 media tools and their choices (SPEC 5.5); times in seconds, areas in video pixels. */
+/** Make vertical's 9:16 frame: a window of the picture (`center` 0 to 1 across it), or the whole
+ *  picture across the width over a blurred copy of itself or a colour. */
+export type VerticalFill = { kind: 'crop'; center: number } | { kind: 'blur' } | { kind: 'color'; rgb: Rgb };
+
+/** Quieter than `threshold` dB for at least `minLength` seconds is a pause; `keep` seconds of it
+ *  stay on both sides. */
+export interface Pauses {
+  threshold: number;
+  minLength: number;
+  keep: number;
+}
+
+/** Add music: levels in dB (0 keeps it), `offset` seconds into the music, fades in seconds. */
+export interface Mix {
+  music: number;
+  original: number;
+  replace: boolean;
+  duck: boolean;
+  offset: number;
+  repeat: boolean;
+  fadeIn: number;
+  fadeOut: number;
+}
+
+/** A picture over the video: a file of the user's, or text the page drew as a PNG (base64). */
+export interface Layer {
+  source: { kind: 'image'; path: string } | { kind: 'picture'; png: string };
+  area: Area;
+  /** 0 to 1. */
+  opacity: number;
+  /** The whole video when null. */
+  span: Span | null;
+}
+
+export type Strength = 'light' | 'medium' | 'strong';
+export type TransitionKind = 'cut' | 'fade' | 'fade-black' | 'slide' | 'wipe';
+export type Turn = 'none' | 'right' | 'half' | 'left';
+export type LoopMode = 'reverse' | 'boomerang' | 'repeat';
+export type Look = 'none' | 'black-white' | 'warm' | 'cool' | 'vivid' | 'faded' | 'vintage';
+/** Adjust color's sliders, each -100 to 100. */
+export interface Grade {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  warmth: number;
+}
+
+/** The media tools and their choices (SPEC 5.5); times in seconds, areas in video pixels. */
 export type MediaTool =
   | { tool: 'mute' }
   | { tool: 'trim-video'; span: Span }
   | { tool: 'crop-video'; area: Area }
   | { tool: 'speed'; factor: number }
-  | { tool: 'merge-video' }
+  /** The clips overlap by `seconds` (0.2 to 2) at each transition other than a cut. */
+  | { tool: 'merge-video'; transition?: { kind: TransitionKind; seconds: number } }
   | { tool: 'frames'; at: number[] }
   | {
       tool: 'split-video';
@@ -395,7 +445,26 @@ export type MediaTool =
       visual: { kind: 'waveform' } | { kind: 'spectrum' } | { kind: 'bars' } | { kind: 'image'; path: string };
     }
   /** `size`: percent of the usual subtitle size, 50 to 250. Paths: the video and its subtitles. */
-  | { tool: 'burn-subtitles'; size: number; position: 'bottom' | 'top' };
+  | { tool: 'burn-subtitles'; size: number; position: 'bottom' | 'top' }
+  /** A 1080 × 1920 MP4 of `span` (the whole video when null). */
+  | { tool: 'make-vertical'; span: Span | null; fill: VerticalFill }
+  | { tool: 'cut-out'; spans: Span[] }
+  | { tool: 'remove-pauses'; pauses: Pauses }
+  | { tool: 'add-music'; music: string; mix: Mix }
+  | { tool: 'add-overlay'; layers: Layer[] }
+  /** Fades in seconds (`picture`: a video's picture too, from and to black), `volume` in dB. */
+  | { tool: 'fade'; fadeIn: number; fadeOut: number; picture: boolean; volume: number }
+  | { tool: 'denoise'; strength: Strength; rumble: boolean }
+  /** `mirror`: left to right; `flip`: upside down. */
+  | { tool: 'rotate-video'; turn: Turn; mirror: boolean; flip: boolean }
+  /** `count`: 1 to 10 (boomerang and repeat). */
+  | { tool: 'loop-video'; mode: LoopMode; count: number }
+  | { tool: 'color-video'; look: Look; grade: Grade }
+  /** Paths: two audio files or more, in order; they overlap by `crossfade` seconds (0 to 10). */
+  | { tool: 'merge-audio'; crossfade: number }
+  /** `span` at most 40 seconds. */
+  | { tool: 'ringtone'; span: Span; fade: boolean; format: 'm4r' | 'mp3' }
+  | { tool: 'stabilize'; strength: Strength };
 
 /** A picture's upright size in pixels (after its EXIF orientation). */
 export interface ImageInfo {
@@ -750,6 +819,8 @@ export interface Api {
   mediaProbe(path: string): Promise<MediaInfo>;
   mediaPreview(path: string): Promise<MediaPreview>;
   mediaPeaks(path: string, buckets: number): Promise<number[]>;
+  /** The spans Remove pauses would cut out of the file. */
+  mediaPauses(path: string, pauses: Pauses): Promise<Span[]>;
   mediaFrame(path: string, at: number, size: number): Promise<Blob | null>;
   runMediaTool(tool: MediaTool, paths: string[]): Promise<number[]>;
   imageInfo(path: string): Promise<ImageInfo>;
@@ -945,6 +1016,7 @@ const tauriApi: Api = {
       proxy: preview.proxy,
     })),
   mediaPeaks: (path, buckets) => invoke('media_peaks', { path, buckets }),
+  mediaPauses: (path, pauses) => invoke('media_pauses', { path, pauses }),
   mediaFrame: (path, at, size) => blob(invoke<ArrayBuffer>('media_frame', { path, at, size })),
   runMediaTool: (tool, paths) => invoke('run_media_tool', { tool, paths }),
   imageInfo: (path) => invoke('image_info', { path }),
@@ -1291,6 +1363,16 @@ export function browserApi(params: URLSearchParams): Api {
     mediaPreview: async () => ({ url: '', proxy: false }),
     mediaPeaks: async (_path, buckets) =>
       Array.from({ length: buckets }, (_, i) => Math.abs(Math.sin(i / 9)) * (0.4 + 0.6 * Math.abs(Math.cos(i / 41)))),
+    // A pause of about a second every eight seconds, less `keep` at both ends.
+    mediaPauses: async (path, pauses) => {
+      const duration = /\.(mp3|wav|m4a|flac|ogg|opus|aiff|wma)$/i.test(path) ? 184.2 : 95.4;
+      const spans: Span[] = [];
+      for (let at = 6; at + 1.2 < duration; at += 8) {
+        const length = 0.7 + ((at * 7) % 10) / 10;
+        if (length >= pauses.minLength) spans.push({ start: at + pauses.keep, end: at + length - pauses.keep });
+      }
+      return spans;
+    },
     mediaFrame: async () => null,
     runMediaTool: async () => [1],
     imageInfo: async () => ({ width: 4032, height: 3024 }),

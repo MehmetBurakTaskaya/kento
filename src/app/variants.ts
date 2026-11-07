@@ -6,7 +6,16 @@
 import type { TFunction } from 'i18next';
 import type { IconName } from '../components/Icon';
 import { formatBytes } from '../i18n/format';
-import type { Category, Compression, ConvertPreset, MetadataChange, PageLayout, QrReport, WebChoice } from '../ipc';
+import type {
+  Category,
+  Compression,
+  ConvertPreset,
+  MediaTool,
+  MetadataChange,
+  PageLayout,
+  QrReport,
+  WebChoice,
+} from '../ipc';
 import { AUDIO_FORMATS } from '../web/links';
 import type { WheelSlice } from '../wheel/Wheel';
 
@@ -150,6 +159,91 @@ export const COMPRESS_CHOICES: Record<string, Compression> = {
 
 export const SPEED_CHOICES: Record<string, number> = { 'x0.5': 0.5, 'x1.5': 1.5, x2: 2 };
 
+/** The media tools' choices that run at once from the wheel, by tool and choice. */
+export const MEDIA_CHOICES: Record<string, Record<string, MediaTool>> = {
+  'make-vertical': {
+    crop: { tool: 'make-vertical', span: null, fill: { kind: 'crop', center: 0.5 } },
+    blur: { tool: 'make-vertical', span: null, fill: { kind: 'blur' } },
+  },
+  'rotate-video': {
+    right: { tool: 'rotate-video', turn: 'right', mirror: false, flip: false },
+    left: { tool: 'rotate-video', turn: 'left', mirror: false, flip: false },
+    half: { tool: 'rotate-video', turn: 'half', mirror: false, flip: false },
+    mirror: { tool: 'rotate-video', turn: 'none', mirror: true, flip: false },
+  },
+  'loop-video': {
+    reverse: { tool: 'loop-video', mode: 'reverse', count: 1 },
+    boomerang: { tool: 'loop-video', mode: 'boomerang', count: 3 },
+    repeat: { tool: 'loop-video', mode: 'repeat', count: 3 },
+  },
+  'color-video': Object.fromEntries(
+    (['black-white', 'warm', 'cool', 'vivid'] as const).map((look) => [
+      look,
+      { tool: 'color-video', look, grade: { brightness: 0, contrast: 0, saturation: 0, warmth: 0 } },
+    ]),
+  ),
+  denoise: Object.fromEntries(
+    (['light', 'medium', 'strong'] as const).map((strength) => [
+      strength,
+      { tool: 'denoise', strength, rumble: false },
+    ]),
+  ),
+  stabilize: Object.fromEntries(
+    (['light', 'medium', 'strong'] as const).map((strength) => [strength, { tool: 'stabilize', strength }]),
+  ),
+};
+
+const MEDIA_ICONS: Record<string, IconName> = {
+  crop: 'crop',
+  blur: 'layers',
+  right: 'rotate-right',
+  left: 'rotate-left',
+  half: 'rotate-right',
+  mirror: 'split',
+  reverse: 'back',
+  boomerang: 'restart',
+  repeat: 'restart',
+  light: 'sliders',
+  medium: 'sliders',
+  strong: 'sliders',
+};
+
+/** Where a media tool's choices find their names: the looks and strengths are shared. */
+const MEDIA_KEYS: Record<string, string> = {
+  'make-vertical': 'variant.vertical',
+  'rotate-video': 'variant.rotate',
+  'loop-video': 'variant.loop',
+  'color-video': 'look',
+  denoise: 'variant.strength',
+  stabilize: 'variant.strength',
+};
+
+/** A media tool's quick choices, then "Other…" (its editor, also what a plain drop opens). */
+function mediaChoices(tool: string, t: TFunction): Choices | null {
+  const choices = MEDIA_CHOICES[tool];
+  const key = MEDIA_KEYS[tool];
+  if (!choices || !key) return null;
+  // The strengths' hints are each tool's own; a look needs none.
+  const hint = (id: string) =>
+    tool === 'color-video'
+      ? undefined
+      : key === 'variant.strength'
+        ? t(`variant.${tool}.${id}.hint`)
+        : t(`${key}.${id}.hint`);
+  return {
+    default: OTHER,
+    variants: [
+      ...Object.keys(choices).map((id) => ({
+        id,
+        label: t(`${key}.${id}`),
+        icon: MEDIA_ICONS[id] ?? ('sliders' as IconName),
+        hint: hint(id),
+      })),
+      other(t),
+    ],
+  };
+}
+
 export const METADATA_CHOICES: Record<string, MetadataChange> = {
   'remove-location': { set: {}, removeAll: false, removeLocation: true, chapters: null },
   'remove-all': { set: {}, removeAll: true, removeLocation: false, chapters: null },
@@ -233,7 +327,7 @@ export function toolChoices(tool: string, t: TFunction, lang: string, kinds: Cat
         ],
       };
     default:
-      return null;
+      return mediaChoices(tool, t);
   }
 }
 

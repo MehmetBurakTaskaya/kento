@@ -103,7 +103,22 @@ function tools(paths) {
       case 'frames':
       case 'split-video':
       case 'redact-video':
+      case 'make-vertical':
+      case 'add-overlay':
+      case 'rotate-video':
+      case 'loop-video':
+      case 'color-video':
+      case 'stabilize':
+      case 'add-music':
         return count === 1 && all(['video']);
+      case 'cut-out':
+      case 'remove-pauses':
+      case 'fade':
+      case 'denoise':
+      case 'ringtone':
+        return count === 1 && all(['video', 'audio']);
+      case 'merge-audio':
+        return count >= 2 && all(['audio']);
       case 'normalize':
       case 'trim-audio':
       case 'channels':

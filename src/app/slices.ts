@@ -31,6 +31,7 @@ import {
   downloadChoices,
   folderOf,
   isPreset,
+  MEDIA_CHOICES,
   METADATA_CHOICES,
   ONE_PDF,
   OTHER,
@@ -78,6 +79,19 @@ export const TOOL_ICONS: Record<string, IconName> = {
   'make-qr': 'qr',
   ocr: 'text',
   'burn-subtitles': 'captions',
+  'make-vertical': 'crop',
+  'cut-out': 'scissors',
+  'remove-pauses': 'scissors',
+  'add-music': 'music',
+  'add-overlay': 'text',
+  fade: 'music',
+  denoise: 'music',
+  'rotate-video': 'rotate-right',
+  'loop-video': 'restart',
+  'color-video': 'sliders',
+  'merge-audio': 'merge',
+  ringtone: 'music',
+  stabilize: 'video',
 };
 
 const ACTION_ICONS: Record<string, IconName> = {
@@ -338,6 +352,8 @@ function toolChoicePlan(id: string, trail: string[], paths: string[]): Plan {
   if (compression) return run(() => api.runCompress(compression, paths));
   const factor = tool === 'speed' ? SPEED_CHOICES[id] : undefined;
   if (factor) return run(() => api.runMediaTool({ tool: 'speed', factor }, paths));
+  const media = MEDIA_CHOICES[tool]?.[id];
+  if (media) return run(() => api.runMediaTool(media, paths));
   const change = tool === 'metadata' ? METADATA_CHOICES[id] : undefined;
   // Metadata takes one file at a time.
   if (change && paths[0]) return run(() => api.runMetadata(paths[0]!, change));

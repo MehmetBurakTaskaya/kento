@@ -13,7 +13,20 @@ export type MediaPanel =
   | 'trim-audio'
   | 'channels'
   | 'redact-audio'
-  | 'audio-to-video';
+  | 'audio-to-video'
+  | 'make-vertical'
+  | 'cut-out'
+  | 'remove-pauses'
+  | 'add-music'
+  | 'add-overlay'
+  | 'fade'
+  | 'denoise'
+  | 'rotate-video'
+  | 'loop-video'
+  | 'color-video'
+  | 'merge-audio'
+  | 'ringtone'
+  | 'stabilize';
 
 export const MEDIA_PANELS: readonly MediaPanel[] = [
   'trim-video',
@@ -28,6 +41,19 @@ export const MEDIA_PANELS: readonly MediaPanel[] = [
   'channels',
   'redact-audio',
   'audio-to-video',
+  'make-vertical',
+  'cut-out',
+  'remove-pauses',
+  'add-music',
+  'add-overlay',
+  'fade',
+  'denoise',
+  'rotate-video',
+  'loop-video',
+  'color-video',
+  'merge-audio',
+  'ringtone',
+  'stabilize',
 ];
 
 export const isMediaPanel = (id: string): id is MediaPanel => (MEDIA_PANELS as readonly string[]).includes(id);
