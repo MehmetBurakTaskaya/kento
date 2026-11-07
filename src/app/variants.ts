@@ -195,17 +195,21 @@ export const MEDIA_CHOICES: Record<string, Record<string, MediaTool>> = {
 
 const MEDIA_ICONS: Record<string, IconName> = {
   crop: 'crop',
-  blur: 'layers',
+  blur: 'fill-blur',
   right: 'rotate-right',
   left: 'rotate-left',
-  half: 'rotate-right',
-  mirror: 'split',
-  reverse: 'back',
-  boomerang: 'restart',
-  repeat: 'restart',
-  light: 'sliders',
-  medium: 'sliders',
-  strong: 'sliders',
+  half: 'rotate-half',
+  mirror: 'mirror',
+  reverse: 'reverse',
+  boomerang: 'boomerang',
+  repeat: 'loop',
+  'black-white': 'contrast',
+  warm: 'sun',
+  cool: 'snowflake',
+  vivid: 'palette',
+  light: 'strength-light',
+  medium: 'strength-medium',
+  strong: 'strength-strong',
 };
 
 /** Where a media tool's choices find their names: the looks and strengths are shared. */

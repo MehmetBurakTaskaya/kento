@@ -4680,7 +4680,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "video",
+      "icon": "cut-out",
       "id": "cut-out",
       "names": {
         "en": "Cut out parts",
@@ -4697,7 +4697,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "crop",
+      "icon": "vertical",
       "id": "make-vertical",
       "names": {
         "en": "Make vertical",
@@ -4714,7 +4714,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "music",
+      "icon": "music-plus",
       "id": "add-music",
       "names": {
         "en": "Add music",
@@ -4731,7 +4731,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "video",
+      "icon": "overlay",
       "id": "add-overlay",
       "names": {
         "en": "Add text or logo",
@@ -4749,7 +4749,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "video",
+      "icon": "pauses",
       "id": "remove-pauses",
       "names": {
         "en": "Remove pauses",
@@ -4869,7 +4869,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "music",
+      "icon": "fade",
       "id": "fade",
       "names": {
         "en": "Fade and volume",
@@ -4887,7 +4887,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "music",
+      "icon": "denoise",
       "id": "denoise",
       "names": {
         "en": "Remove noise",
@@ -4904,7 +4904,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "video",
+      "icon": "rotate-right",
       "id": "rotate-video",
       "names": {
         "en": "Rotate video",
@@ -4921,7 +4921,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "video",
+      "icon": "palette",
       "id": "color-video",
       "names": {
         "en": "Color and look",
@@ -4938,7 +4938,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "video",
+      "icon": "loop",
       "id": "loop-video",
       "names": {
         "en": "Reverse and loop",
@@ -4955,7 +4955,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "video",
+      "icon": "stabilize",
       "id": "stabilize",
       "names": {
         "en": "Stabilize video",
@@ -5057,7 +5057,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "music",
+      "icon": "merge-audio",
       "id": "merge-audio",
       "names": {
         "en": "Merge audio",
@@ -5075,7 +5075,7 @@
       "engine": "ffmpeg",
       "enhancement": false,
       "group": "media",
-      "icon": "music",
+      "icon": "bell",
       "id": "ringtone",
       "names": {
         "en": "Make a ringtone",
