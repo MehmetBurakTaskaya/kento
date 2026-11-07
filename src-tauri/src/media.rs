@@ -111,6 +111,18 @@ pub async fn media_peaks(
     blocking(move || media::peaks(&tools, &path, buckets, &Progress::none())).await
 }
 
+/// The pauses Remove pauses would take out, for its editor to show.
+#[tauri::command]
+pub async fn media_pauses(
+    state: State<'_, AppState>,
+    path: PathBuf,
+    pauses: media::Pauses,
+) -> Result<Vec<media::Span>> {
+    media_file(&path)?;
+    let tools = engine_tools(&state);
+    blocking(move || media::pauses(&tools, &path, pauses, &Progress::none())).await
+}
+
 #[tauri::command]
 pub async fn media_frame(
     state: State<'_, AppState>,
@@ -190,8 +202,17 @@ pub fn run_media_tool(
     let ctx = Context::new(&app, &state)?;
     let batches: Vec<Vec<PathBuf>> = match tool {
         Tool::Mute => paths.iter().map(|p| vec![p.clone()]).collect(),
-        Tool::MergeVideos if paths.len() >= 2 => vec![paths.clone()],
-        Tool::MergeVideos => return Err(Error::Invalid("merging needs two videos or more".into())),
+        Tool::MergeVideos { .. } | Tool::MergeAudio { .. } if paths.len() >= 2 => {
+            vec![paths.clone()]
+        }
+        Tool::MergeVideos { .. } => {
+            return Err(Error::Invalid("merging needs two videos or more".into()))
+        }
+        Tool::MergeAudio { .. } => {
+            return Err(Error::Invalid(
+                "joining needs two audio files or more".into(),
+            ))
+        }
         _ if paths.len() == 1 => vec![paths.clone()],
         _ => return Err(Error::Invalid("this tool takes one file".into())),
     };

@@ -273,7 +273,9 @@ fn tool_jobs(
             let paths: Vec<PathBuf> = sources.into_iter().map(|(path, _)| path).collect();
             let dir = dir_for(session, &first, &setting);
             let job = crate::media::job(
-                MediaTool::MergeVideos,
+                MediaTool::MergeVideos {
+                    transition: Default::default(),
+                },
                 paths.clone(),
                 format,
                 dir,

@@ -334,6 +334,7 @@ pub fn run() {
             media::media_probe,
             media::media_preview,
             media::media_peaks,
+            media::media_pauses,
             media::media_frame,
             media::run_media_tool,
             media::subtitle_sample,

@@ -120,9 +120,184 @@ pub struct Area {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum Hide {
-    Color { rgb: [u8; 3] },
+    Color {
+        rgb: [u8; 3],
+    },
     Blur,
     Pixelate,
+    /// Filled in from the pixels around the area (FFmpeg's `delogo`): for a small mark of the
+    /// user's own, such as a date stamp or their logo.
+    Erase,
+}
+
+/// How Make vertical fills its 9:16 frame.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum Fill {
+    /// A 9:16 window of the picture, its middle at `center` (0 the left edge, 1 the right).
+    Crop { center: f64 },
+    /// The whole picture across the width, over a blurred, enlarged copy of itself.
+    Blur,
+    /// The whole picture across the width, over a plain colour.
+    Color { rgb: [u8; 3] },
+}
+
+/// Where Remove pauses finds pauses: quieter than `threshold` dB for at least `min_length`
+/// seconds. `keep` seconds of each pause stay on both sides, so speech does not run together.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Pauses {
+    pub threshold: f64,
+    pub min_length: f64,
+    pub keep: f64,
+}
+
+impl Default for Pauses {
+    fn default() -> Self {
+        Self {
+            threshold: -40.0,
+            min_length: 0.6,
+            keep: 0.15,
+        }
+    }
+}
+
+/// How Add music mixes a piece of music with a video.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Mix {
+    /// The music's level in dB (0 keeps it).
+    pub music: f64,
+    /// The video's own sound's level in dB (0 keeps it); unused when `replace`.
+    pub original: f64,
+    /// The music replaces the video's own sound.
+    pub replace: bool,
+    /// The music steps back while the video's own sound is loud, such as someone speaking.
+    pub duck: bool,
+    /// Seconds into the music where it starts.
+    pub offset: f64,
+    /// The music plays again from `offset` when it ends before the video.
+    pub repeat: bool,
+    /// Seconds of the music's fade in at the start and fade out at the video's end.
+    pub fade_in: f64,
+    pub fade_out: f64,
+}
+
+/// A picture laid over a video by Add text or logo.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum LayerSource {
+    /// A picture file of the user's (PNG, JPG, WEBP…).
+    Image { path: PathBuf },
+    /// A PNG the page drew (text), as base64.
+    Picture { png: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Layer {
+    pub source: LayerSource,
+    /// Where it lies and how large, in the pixels of the displayed video.
+    pub area: Area,
+    /// 0 to 1.
+    pub opacity: f64,
+    /// When it shows; the whole video when absent.
+    pub span: Option<Span>,
+}
+
+/// How strongly Remove noise and Stabilize video work.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Strength {
+    Light,
+    Medium,
+    Strong,
+}
+
+/// How Merge videos goes from one clip to the next.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum TransitionKind {
+    /// Straight to the next clip.
+    #[default]
+    Cut,
+    /// The clips blend into each other.
+    Fade,
+    /// Through black.
+    FadeBlack,
+    /// The next clip pushes the last one out to the left.
+    Slide,
+    /// The next clip is uncovered from right to left.
+    Wipe,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Transition {
+    pub kind: TransitionKind,
+    /// How long each transition lasts, 0.2 to 2 seconds; the clips overlap that long.
+    pub seconds: f64,
+}
+
+impl Default for Transition {
+    fn default() -> Self {
+        Self {
+            kind: TransitionKind::Cut,
+            seconds: 0.5,
+        }
+    }
+}
+
+/// A quarter turn to the right or left, or a half turn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Turn {
+    None,
+    Right,
+    Half,
+    Left,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LoopMode {
+    /// Backwards, sound too.
+    Reverse,
+    /// Forwards then backwards, `count` times, without sound.
+    Boomerang,
+    /// The clip `count` times in a row.
+    Repeat,
+}
+
+/// A ready-made look for Adjust color.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Look {
+    None,
+    BlackWhite,
+    Warm,
+    Cool,
+    Vivid,
+    Faded,
+    Vintage,
+}
+
+/// Adjust color's sliders, each -100 to 100 (0 leaves it).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Grade {
+    pub brightness: f64,
+    pub contrast: f64,
+    pub saturation: f64,
+    pub warmth: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RingFormat {
+    /// AAC in an MPEG-4 file with the .m4r extension.
+    M4r,
+    Mp3,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -194,8 +369,8 @@ pub enum Position {
     Top,
 }
 
-/// The 13 media tools of SPEC 5.5, with their choices, and Burn in subtitles [+]. Their fields
-/// are camelCase in JSON, as the page writes them.
+/// The media tools of SPEC 5.5, with their choices. Their fields are camelCase in JSON, as the
+/// page writes them.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(
     tag = "tool",
@@ -215,8 +390,12 @@ pub enum Tool {
     Speed {
         factor: f64,
     },
-    /// The first input sets the size, frame rate and sound layout of the result.
-    MergeVideos,
+    /// The first input sets the size, frame rate and sound layout of the result; the clips meet
+    /// with `transition`.
+    MergeVideos {
+        #[serde(default)]
+        transition: Transition,
+    },
     /// PNG frames at these seconds, in a folder.
     Frames {
         at: Vec<f64>,
@@ -255,6 +434,75 @@ pub enum Tool {
         size: f64,
         position: Position,
     },
+    /// A 1080×1920 H.264/AAC MP4 for short-video apps, from `span` (the whole video when
+    /// absent).
+    MakeVertical {
+        span: Option<Span>,
+        fill: Fill,
+    },
+    /// Video or audio without these spans; the rest is joined.
+    CutOut {
+        spans: Vec<Span>,
+    },
+    /// Video or audio without its pauses (see `Pauses`).
+    RemovePauses {
+        pauses: Pauses,
+    },
+    /// A piece of music (`music`, any audio file) mixed into a video or replacing its sound.
+    AddMusic {
+        music: PathBuf,
+        mix: Mix,
+    },
+    /// Text (drawn by the page) and pictures over a video, each in its area and time.
+    AddOverlay {
+        layers: Vec<Layer>,
+    },
+    /// Fades the sound (and with `picture`, a video's picture from and to black) in and out
+    /// over these seconds, and changes the level by `volume` dB.
+    Fade {
+        fade_in: f64,
+        fade_out: f64,
+        picture: bool,
+        volume: f64,
+    },
+    /// Less hiss and background noise in video or audio; `rumble` also takes away the lowest
+    /// hum and rumble.
+    Denoise {
+        strength: Strength,
+        rumble: bool,
+    },
+    /// Turned and mirrored (`mirror`: left to right, `flip`: upside down).
+    RotateVideo {
+        turn: Turn,
+        mirror: bool,
+        flip: bool,
+    },
+    /// Backwards, a boomerang, or repeated `count` times (1 to 10).
+    LoopVideo {
+        mode: LoopMode,
+        count: u32,
+    },
+    /// A ready-made look and the sliders, applied in that order.
+    ColorVideo {
+        look: Look,
+        grade: Grade,
+    },
+    /// Audio files one after another, overlapping by `crossfade` seconds (0 for none, at most
+    /// 10). The first sets the format, rate and layout.
+    MergeAudio {
+        crossfade: f64,
+    },
+    /// The sound of `span` (at most 40 seconds) as a ringtone, faded in and out when `fade`.
+    Ringtone {
+        span: Span,
+        fade: bool,
+        format: RingFormat,
+    },
+    /// A steadier picture: two passes of vid.stab where the FFmpeg has it, FFmpeg's own
+    /// `deshake` otherwise.
+    Stabilize {
+        strength: Strength,
+    },
 }
 
 impl Tool {
@@ -265,7 +513,7 @@ impl Tool {
             Tool::TrimVideo { .. } => "trim-video",
             Tool::CropVideo { .. } => "crop-video",
             Tool::Speed { .. } => "speed",
-            Tool::MergeVideos => "merge-video",
+            Tool::MergeVideos { .. } => "merge-video",
             Tool::Frames { .. } => "frames",
             Tool::SplitVideo { .. } => "split-video",
             Tool::RedactVideo { .. } => "redact-video",
@@ -275,6 +523,19 @@ impl Tool {
             Tool::RedactAudio { .. } => "redact-audio",
             Tool::AudioToVideo { .. } => "audio-to-video",
             Tool::BurnSubtitles { .. } => "burn-subtitles",
+            Tool::MakeVertical { .. } => "make-vertical",
+            Tool::CutOut { .. } => "cut-out",
+            Tool::RemovePauses { .. } => "remove-pauses",
+            Tool::AddMusic { .. } => "add-music",
+            Tool::AddOverlay { .. } => "add-overlay",
+            Tool::Fade { .. } => "fade",
+            Tool::Denoise { .. } => "denoise",
+            Tool::RotateVideo { .. } => "rotate-video",
+            Tool::LoopVideo { .. } => "loop-video",
+            Tool::ColorVideo { .. } => "color-video",
+            Tool::MergeAudio { .. } => "merge-audio",
+            Tool::Ringtone { .. } => "ringtone",
+            Tool::Stabilize { .. } => "stabilize",
         }
     }
 
@@ -286,12 +547,18 @@ impl Tool {
     }
 
     /// The extension of the result for an input of format `from` (a catalog id): most tools keep
-    /// the input's own format; Audio to video makes an MP4; Extract frames fills its folder with
-    /// PNG files; Split video's parts keep the input's format.
+    /// the input's own format; Audio to video and Make vertical make an MP4; Extract frames fills
+    /// its folder with PNG files; Split video's parts keep the input's format; a ringtone is an
+    /// M4R or an MP3.
     pub fn extension(&self, from: &str) -> String {
         match self {
-            Tool::AudioToVideo { .. } => "mp4".to_owned(),
+            Tool::AudioToVideo { .. } | Tool::MakeVertical { .. } => "mp4".to_owned(),
             Tool::Frames { .. } => "png".to_owned(),
+            Tool::Ringtone { format, .. } => match format {
+                RingFormat::M4r => "m4r",
+                RingFormat::Mp3 => "mp3",
+            }
+            .to_owned(),
             _ => from.trim_start_matches('.').to_ascii_lowercase(),
         }
     }
@@ -314,6 +581,17 @@ pub struct ToolRun<'a> {
 /// folder tools. Scratch files go to `run.temp` only.
 pub fn run_tool(run: &ToolRun) -> Result<Vec<PathBuf>> {
     tools::run(run)
+}
+
+/// The pauses Remove pauses would take out of `input`, in order, as the spans it cuts (each
+/// pause less `keep` at both ends). The editor shows them before anything is written.
+pub fn pauses(
+    tools: &Tools,
+    input: &Path,
+    pauses: Pauses,
+    progress: &Progress,
+) -> Result<Vec<Span>> {
+    tools::sound::pauses(tools, input, pauses, progress)
 }
 
 #[cfg(test)]

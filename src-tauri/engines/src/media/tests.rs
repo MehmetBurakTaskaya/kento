@@ -16,6 +16,9 @@ use super::*;
 use crate::{Codec, Conversion, Error, Options, Progress, Tools};
 
 mod compress;
+mod merge;
+mod picture;
+mod sound;
 
 const NAME: &str = "Kento ğüşıöç 🧪";
 
@@ -796,8 +799,14 @@ fn merges_videos() {
     let first = lab.video(&format!("{NAME} 1.mp4"), "160x90", 1.0, true);
     let second = lab.vp9(&format!("{NAME} 2.webm"), "120x120", false);
     let merged = lab.out("merged.mp4");
-    lab.tool(Tool::MergeVideos, &[first, second], &merged)
-        .unwrap();
+    lab.tool(
+        Tool::MergeVideos {
+            transition: Default::default(),
+        },
+        &[first, second],
+        &merged,
+    )
+    .unwrap();
     let probe = lab.probe(&merged);
     let picture = video_of(&probe);
     assert_eq!((picture.width, picture.height), (160, 90));

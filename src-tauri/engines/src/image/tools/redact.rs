@@ -30,6 +30,9 @@ pub(super) fn hide(source: Source, areas: &[Area], hide: Hide) -> Result<Dynamic
             "no area to hide holds pixels of the picture".into(),
         ));
     }
+    if hide == Hide::Erase {
+        return Err(Error::Other("pictures cannot be erased yet".into()));
+    }
     for rect in rects {
         match hide {
             Hide::Color { rgb: [r, g, b] } => fill(&mut image, rect, Rgba([r, g, b, 255])),
@@ -39,6 +42,8 @@ pub(super) fn hide(source: Source, areas: &[Area], hide: Hide) -> Result<Dynamic
                 pixelate(&mut image, rect, block);
                 blur(&mut image, rect, BLUR_PER_BLOCK * block as f32);
             }
+            // Refused above.
+            Hide::Erase => {}
         }
     }
     Ok(DynamicImage::ImageRgba8(image))

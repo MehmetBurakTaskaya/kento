@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn it_has_the_46_core_input_formats_of_the_spec() {
         assert_eq!(summary().core_inputs, 46);
-        assert_eq!(tools().iter().filter(|t| !t.enhancement).count(), 27);
+        assert_eq!(tools().iter().filter(|t| !t.enhancement).count(), 40);
     }
 
     #[test]

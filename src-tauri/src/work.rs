@@ -201,12 +201,17 @@ pub fn tools(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<ToolEntry> 
             // Remove audio needs no choices, so it takes several videos at once.
             "mute" => all(&[Category::Video]),
             "merge-video" => count >= 2 && all(&[Category::Video]),
-            "trim-video" | "crop-video" | "speed" | "frames" | "split-video" | "redact-video" => {
-                count == 1 && all(&[Category::Video])
-            }
+            "trim-video" | "crop-video" | "speed" | "frames" | "split-video" | "redact-video"
+            | "make-vertical" | "add-overlay" | "rotate-video" | "loop-video" | "color-video"
+            | "stabilize" | "add-music" => count == 1 && all(&[Category::Video]),
             "normalize" | "trim-audio" | "channels" | "redact-audio" | "audio-to-video" => {
                 count == 1 && all(&[Category::Audio])
             }
+            // One video or one audio file.
+            "cut-out" | "remove-pauses" | "fade" | "denoise" | "ringtone" => {
+                count == 1 && all(&[Category::Video, Category::Audio])
+            }
+            "merge-audio" => count >= 2 && all(&[Category::Audio]),
             "edit-image" | "crop-image" | "markup" | "frame" | "redact-image" => {
                 count == 1 && all(&[Category::Image])
             }

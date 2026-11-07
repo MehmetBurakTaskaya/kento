@@ -13,10 +13,14 @@ use super::convert::{apply, Audio, Recipe, Video};
 use super::preview::grab;
 use super::probe::{self, Probe, Stream};
 use super::run::{self, secs, Cmd, Watch};
-use super::{Area, Channels, Hide, Loudness, Redaction, Span, SplitAt, Tool, ToolRun, Visual};
+use super::{
+    Area, Channels, Hide, Loudness, Redaction, Span, SplitAt, Tool, ToolRun, Transition, Visual,
+};
 use crate::{Error, Result};
 
 mod burn;
+mod picture;
+pub(super) mod sound;
 
 /// Silence quieter than this counts as silence when trimming it away.
 const SILENCE: &str = "-50dB";
@@ -45,7 +49,7 @@ pub(super) fn run(run: &ToolRun) -> Result<Vec<PathBuf>> {
         Tool::TrimVideo { span } => job.trim(input, *span),
         Tool::CropVideo { area } => job.crop(input, *area),
         Tool::Speed { factor } => job.speed(input, *factor),
-        Tool::MergeVideos => job.merge(),
+        Tool::MergeVideos { transition } => job.merge(*transition),
         Tool::Frames { at } => job.frames(input, at),
         Tool::SplitVideo { at, keep } => job.split(input, at, keep.as_deref()),
         Tool::RedactVideo { areas, hide } => job.redact_video(input, areas, *hide),
@@ -64,6 +68,24 @@ pub(super) fn run(run: &ToolRun) -> Result<Vec<PathBuf>> {
                 .ok_or_else(|| Error::Other("no subtitle file".into()))?;
             job.burn_subtitles(input, subtitles, *size, *position)
         }
+        Tool::MakeVertical { span, fill } => job.make_vertical(input, *span, *fill),
+        Tool::CutOut { spans } => job.cut_out(input, spans),
+        Tool::RemovePauses { pauses } => job.remove_pauses(input, *pauses),
+        Tool::AddMusic { music, mix } => job.add_music(input, music, *mix),
+        Tool::AddOverlay { layers } => job.add_overlay(input, layers),
+        Tool::Fade {
+            fade_in,
+            fade_out,
+            picture,
+            volume,
+        } => job.fade(input, *fade_in, *fade_out, *picture, *volume),
+        Tool::Denoise { strength, rumble } => job.denoise(input, *strength, *rumble),
+        Tool::RotateVideo { turn, mirror, flip } => job.rotate(input, *turn, *mirror, *flip),
+        Tool::LoopVideo { mode, count } => job.loop_video(input, *mode, *count),
+        Tool::ColorVideo { look, grade } => job.color(input, *look, *grade),
+        Tool::MergeAudio { crossfade } => job.merge_audio(*crossfade),
+        Tool::Ringtone { span, fade, format } => job.ringtone(input, *span, *fade, *format),
+        Tool::Stabilize { strength } => job.stabilize(input, *strength),
     }
 }
 
@@ -260,7 +282,10 @@ impl<'b> Job<'_, 'b> {
     /// shape), the frame rate and mono or stereo; the sound is resampled to 48 kHz, and inputs
     /// without sound get silence. The result has the first input's format with that format's
     /// encoders.
-    fn merge(&self) -> Result<Vec<PathBuf>> {
+    fn merge(&self, transition: Transition) -> Result<Vec<PathBuf>> {
+        if transition.kind != super::TransitionKind::Cut {
+            return Err(later());
+        }
         let inputs = self.run.inputs;
         let probes = inputs
             .iter()
@@ -435,6 +460,9 @@ impl<'b> Job<'_, 'b> {
             .collect();
         if boxes.is_empty() {
             return Err(Error::Other("there is nothing to hide".into()));
+        }
+        if hide == Hide::Erase {
+            return Err(later());
         }
         self.filter(
             input,
@@ -743,6 +771,11 @@ impl<'b> Job<'_, 'b> {
         )?;
         Ok(self.dest())
     }
+}
+
+/// A tool whose engine is not written yet.
+fn later() -> Error {
+    Error::Other("this tool is not ready yet".into())
 }
 
 fn no_video() -> Error {
