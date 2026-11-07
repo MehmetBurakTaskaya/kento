@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // The themes reel of the README (scripts/record-demo.mjs --themes), in English and Turkish: every
 // theme's wheel, drawn by the app's own Wheel in the app's page, in the language of the page; the
-// theme names are the same in every language. Kasa opens beside the pitch; six themes each open,
-// sweep and apply a slice in their own way; more follow quickly, each name popping in under its wheel
-// while the pitch fills in beside it; six apply at once; all of them stand side by side; and the end
-// card asks for the download. The module takes over the page it is loaded into (`?surface=wheel`);
+// theme names are the same in every language. A burst counts the themes and their sound sets; Kasa
+// opens beside the pitch; six themes each open, sweep and apply a slice in their own way; more follow
+// quickly, each name popping in under its wheel while the pitch fills in beside it; six apply at
+// once; all of them stand side by side; and the end card asks for the download. The module takes over the page it is loaded into (`?surface=wheel`);
 // `demo.play()` runs the reel once.
 import { createElement as h } from 'react';
 import { flushSync } from 'react-dom';
@@ -21,6 +21,7 @@ const LANG = i18n.language === 'tr' ? 'tr' : 'en';
 const TEXT = {
   en: {
     kicker: 'Make it yours',
+    burst: ['themes', `${N} sound sets`],
     headline: `${N} different<br>themes`,
     points: [
       'Pick the one you like',
@@ -36,6 +37,7 @@ const TEXT = {
   },
   tr: {
     kicker: 'Tarzını seç',
+    burst: ['tema', `${N} ses seti`],
     headline: `${N} farklı<br>tema`,
     points: [
       'Hangisini seversen onu seç',
@@ -120,7 +122,20 @@ const pitch = element(
     .map((point) => `<li>${CHECK}<span>${point}</span></li>`)
     .join('')}</ul>`,
 );
-const points = [...pitch.querySelectorAll('li')];
+// The pitch above is the template: each theme's scene draws its own copy in its own colours, so a
+// scene uncovered from the middle of its wheel uncovers its words with it.
+pitch.style.display = 'none';
+let shownPitch = null;
+
+/** The pitch's first appearance, and one more of its points, on the template and on screen. */
+function pitchOn() {
+  pitch.classList.add('is-on');
+  shownPitch?.classList.add('is-on');
+}
+function point(i) {
+  pitch.querySelectorAll('li')[i].classList.add('is-on');
+  shownPitch?.querySelectorAll('li')[i].classList.add('is-on');
+}
 
 /** The theme's desk and text colours. The names keep the reel's own face: the wheels show the
  *  themes' faces, and one face reads more easily through 51 changes. */
@@ -197,7 +212,11 @@ function showTheme(id, mode, preview, reveal = false) {
   const name = element('div', 'dial-name', scene);
   name.textContent = theme.name;
   name.style.color = look.text;
-  pitch.style.color = look.text;
+  const local = pitch.cloneNode(true);
+  local.style.display = '';
+  local.style.color = look.text;
+  scene.append(local);
+  shownPitch = local;
   const wheel = mountWheel(stage, id, mode, 380, preview);
   return { scene, stage, wheel };
 }
@@ -215,15 +234,46 @@ function next(shown, id, mode, preview, reveal = false) {
   return now;
 }
 
-async function intro() {
+/** A burst before the first wheel: the count springs up to the number of themes while a dot of
+ *  each theme's colour flies out round it, then the sound sets ring in under it. */
+async function burst() {
+  const scene = element('section', 'scene burst', reel);
+  const count = element('div', 'burst-count', scene);
+  count.textContent = '1';
+  element('div', 'burst-word', scene).textContent = TEXT.burst[0];
+  const heard = element('div', 'burst-sounds', scene, SPEAKER);
+  element('span', '', heard).textContent = TEXT.burst[1];
+  THEMES.forEach((entry, i) => {
+    const angle = (i / N) * Math.PI * 2;
+    const ring = i % 2 ? 300 : 360;
+    const dot = element('span', 'burst-dot', scene);
+    dot.style.background = loaded.get(entry.id).tokens.light.accent;
+    dot.style.setProperty('--x', `${Math.round(Math.cos(angle) * ring)}px`);
+    dot.style.setProperty('--y', `${Math.round(Math.sin(angle) * ring * 0.62)}px`);
+    dot.style.animationDelay = `${120 + i * 14}ms`;
+  });
+  const start = performance.now();
+  while (performance.now() - start < 950) {
+    const t = Math.min(1, (performance.now() - start) / 950);
+    count.textContent = String(Math.max(1, Math.round((1 - (1 - t) ** 3) * N)));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  count.textContent = String(N);
+  heard.classList.add('is-on');
+  await sleep(1700);
+  return scene;
+}
+
+async function intro(before) {
   const shown = showTheme('steel', 'light', 'live');
+  before.remove();
   await sleep(450);
-  pitch.classList.add('is-on');
+  pitchOn();
   // The dial goes round without resting long enough on a slice to open its ring.
   await sleep(500);
   for (let i = 0; i < 6; i++) {
     await press(shown.stage, 'ArrowDown');
-    if (i === 2) points[0].classList.add('is-on');
+    if (i === 2) point(0);
     await sleep(270);
   }
   await sleep(250);
@@ -234,7 +284,7 @@ async function intro() {
  *  the next with its own effect. */
 async function acts(previous) {
   let shown = previous;
-  points[1].classList.add('is-on');
+  point(1);
   for (const [i, [id, move, sound]] of ACTS.entries()) {
     const mode = i % 2 ? 'dark' : 'light';
     shown = next(shown, id, mode, 'live', true);
@@ -260,12 +310,12 @@ async function acts(previous) {
 /** More themes at rest, quicker: light, then a theme a beat in dark. */
 async function parade(previous) {
   let shown = previous;
-  points[2].classList.add('is-on');
+  point(2);
   for (const id of LIGHT) {
     shown = next(shown, id, 'light', 'still');
     await sleep(420);
   }
-  points[3].classList.add('is-on');
+  point(3);
   for (const id of DARK) {
     shown = next(shown, id, 'dark', 'still');
     await sleep(340);
@@ -290,7 +340,7 @@ async function apply(previous) {
     const wheel = mountWheel(stage, id, mode, 200, 'live', () => setTimeout(() => wheel.render(++round), 120));
     return { stage, wheel };
   });
-  pitch.remove();
+  shownPitch = null;
   previous.wheel.root.unmount();
   previous.scene.remove();
   await sleep(800);
@@ -311,7 +361,8 @@ async function all(previous) {
     const mode = (i + Math.floor(i / 9)) % 2 ? 'dark' : 'light';
     const cell = element('div', 'all-cell', grid);
     cell.style.background = looks(loaded.get(entry.id), mode).desk;
-    cell.style.animationDelay = `${i * 22}ms`;
+    // The first cells are already on their way when the grid cuts in, so it never opens empty.
+    cell.style.animationDelay = `${i * 22 - 140}ms`;
     return mountWheel(element('div', 'all-wheel', cell), entry.id, mode, 86, 'still');
   });
   const band = element('div', 'all-band', scene, `<strong>${TEXT.band}</strong><span>${TEXT.where}</span>`);
@@ -343,8 +394,10 @@ async function play() {
   const start = performance.now();
   const marks = [];
   const mark = (name) => marks.push([name, (performance.now() - start) / 1000]);
+  mark('burst');
+  const opening = await burst();
   mark('intro');
-  const first = await intro();
+  const first = await intro(opening);
   mark('acts');
   const moved = await acts(first);
   mark('parade');

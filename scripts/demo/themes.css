@@ -292,3 +292,93 @@ body {
   font-size: 19px;
   font-weight: 600;
 }
+
+/* ---------------------------------------------------------------- the opening burst */
+/* The count springs up to the number of themes while a dot of each theme's colour flies out round
+   it, then the sound sets ring in under it. */
+.burst {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  overflow: hidden;
+  background: radial-gradient(75% 85% at 50% 50%, #ffffff 0%, #e6eaf0 72%);
+  color: #15181c;
+}
+.burst-count {
+  position: relative;
+  z-index: 1;
+  font-size: 196px;
+  font-weight: 800;
+  line-height: 0.88;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(115deg, #2a4ea6 0%, #b03a8f 52%, #e8772e 100%);
+  background-clip: text;
+  color: transparent;
+  animation: burst-in 640ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.burst-word {
+  position: relative;
+  z-index: 1;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  animation: burst-in 640ms 140ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.burst-sounds {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-block-start: 18px;
+  color: #2a4ea6;
+  font-size: 28px;
+  font-weight: 650;
+  opacity: 0;
+  transform: translateY(10px) scale(0.9);
+  transition:
+    opacity 300ms ease-out,
+    transform 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.burst-sounds.is-on {
+  opacity: 1;
+  transform: none;
+}
+.burst-sounds svg {
+  inline-size: 30px;
+  block-size: 30px;
+}
+.burst-dot {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  animation: dot-out 820ms cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+@keyframes burst-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+@keyframes dot-out {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1);
+  }
+}
+
+/* The small wheels apply at once and stand still: the hint under a pointed slice is not theirs. */
+.apply-cell .wheel-tip,
+.all-cell .wheel-tip {
+  display: none;
+}

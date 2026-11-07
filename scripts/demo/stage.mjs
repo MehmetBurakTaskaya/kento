@@ -21,7 +21,7 @@ const TEXT = {
     folder: 'Demo',
     items: (n) => `${n} items`,
     files: ['sunrise.heic', 'harbor.jpg', 'report.docx', 'slides.pptx', 'budget.xlsx', 'invoice.pdf', 'clip.mov'],
-    made: ['sunrise.jpg', 'clip.mp4'],
+    made: ['sunrise.jpg', 'clip.mp4', 'clip - vertical.mp4'],
     mac: (key) => `${key} on a Mac`,
     caption: {
       drag: 'Drag a file and press Shift',
@@ -31,7 +31,11 @@ const TEXT = {
       ctrl: 'Ctrl opens the tools',
       tools: 'Crop, mark up, compress, remove the background…',
       video: 'Make a video vertical for shorts and stories',
-      sound: 'Take out the pauses, add music, even out the sound',
+      pauses: 'Take the pauses out of a talk or a podcast',
+      music: 'Add music: it steps back when someone speaks',
+      overlay: 'Put a title or your logo on the video',
+      redact: 'Hide faces, number plates and marks',
+      loudness: 'Even out the sound for a podcast or a video',
       alt: 'Alt opens the file actions',
       shelf: 'Share, copy, move, ZIP, or keep it on the shelf',
       mixed: 'A mixed selection? Pick the kind, then the format',
@@ -45,6 +49,7 @@ const TEXT = {
     },
     title: 'Sunrise over the valley',
     vertical: 'Make vertical',
+    languages: 'languages',
     end: ['Free and open source', 'Works on your computer', 'Windows and macOS'],
   },
   tr: {
@@ -52,7 +57,7 @@ const TEXT = {
     folder: 'Demo',
     items: (n) => `${n} öğe`,
     files: ['balon.heic', 'liman.jpg', 'rapor.docx', 'sunum.pptx', 'bütçe.xlsx', 'fatura.pdf', 'klip.mov'],
-    made: ['balon.jpg', 'klip.mp4'],
+    made: ['balon.jpg', 'klip.mp4', 'klip - dikey.mp4'],
     mac: (key) => `Mac’te ${key}`,
     caption: {
       drag: 'Bir dosyayı sürükle, Shift’e bas',
@@ -62,7 +67,11 @@ const TEXT = {
       ctrl: 'Ctrl araçları açar',
       tools: 'Kırp, işaretle, sıkıştır, arka planı kaldır…',
       video: 'Videoyu kısa videolar ve hikâyeler için dikey yap',
-      sound: 'Duraklamaları çıkar, müzik ekle, sesi dengele',
+      pauses: 'Konuşmadaki ve podcast’teki duraklamaları çıkar',
+      music: 'Müzik ekle: biri konuşunca kendiliğinden kısılır',
+      overlay: 'Videoya bir başlık ya da logonu koy',
+      redact: 'Yüzleri, plakaları ve işaretleri gizle',
+      loudness: 'Sesi podcast ya da video için dengele',
       alt: 'Alt dosya işlemlerini açar',
       shelf: 'Paylaş, kopyala, taşı, ZIP’le ya da rafa koy',
       mixed: 'Karışık seçim mi? Önce türü, sonra biçimi seç',
@@ -76,6 +85,7 @@ const TEXT = {
     },
     title: 'Vadide gün doğumu',
     vertical: 'Dikey video yap',
+    languages: 'dil',
     end: ['Ücretsiz ve açık kaynak', 'Bilgisayarında çalışır', 'Windows ve macOS'],
   },
 }[LANG];
@@ -100,7 +110,7 @@ const MONTAGE = [LANG, LANG === 'tr' ? 'en' : 'tr', 'de', 'es', 'ja', 'ko', 'zh-
 const FOLDER = 'C:\\Users\\me\\Documents\\Demo';
 const pathOf = (name) => `${FOLDER}\\${name}`;
 const [PHOTO, HARBOUR, DOC, SLIDES, SHEET, PDF, VIDEO] = TEXT.files.map(pathOf);
-const [JPG, MP4] = TEXT.made.map(pathOf);
+const [JPG, MP4, VERTICAL] = TEXT.made.map(pathOf);
 /** An interview and a song for the audio editors' screenshots; they are not on the desk. */
 const AUDIO = pathOf(LANG === 'tr' ? 'röportaj.mp3' : 'interview.mp3');
 const SONG = pathOf(LANG === 'tr' ? 'şarkı.mp3' : 'song.mp3');
@@ -196,7 +206,8 @@ function addTile(path, fresh = false) {
   return tile;
 }
 for (const path of [PHOTO, HARBOUR, DOC, SLIDES, SHEET, PDF, VIDEO]) addTile(path);
-for (const path of [JPG, MP4]) addTile(path, true);
+// In the order the tour makes them: the photo, the vertical clip, the converted clip.
+for (const path of [JPG, VERTICAL, MP4]) addTile(path, true);
 const countItems = () =>
   (folderHead.querySelector('.count').textContent = TEXT.items(
     [...tiles.children].filter((tile) => !tile.classList.contains('is-new') || tile.classList.contains('is-shown'))
@@ -397,7 +408,22 @@ function select(paths) {
 const caption = element('div', 'caption', stage);
 let line = null;
 /** Puts a new caption in the band under the scene; the old one slides away. */
-function say(text) {
+let said = '';
+let saidAt = 0;
+/** How long a caption stays before the next may replace it, in the demo's time: long enough to
+ *  read while watching what happens above it. */
+const holdFor = (text) => Math.min(4400, Math.max(2400, 1300 + 62 * text.length));
+
+/** Waits until the caption on screen has been up long enough to read. */
+async function settle() {
+  const wait = said ? holdFor(said) - (performance.now() - saidAt) : 0;
+  if (wait > 0) await sleep(wait);
+}
+
+async function say(text) {
+  await settle();
+  said = text ?? '';
+  saidAt = performance.now();
   if (line) {
     const old = line;
     old.classList.replace('is-on', 'is-off');
@@ -520,9 +546,9 @@ const applied = () => sleep(1000);
 
 async function convertPhoto() {
   select([PHOTO]);
-  say(TEXT.caption.drag);
+  await say(TEXT.caption.drag);
   await dragOut([PHOTO], 'convert', 'Shift');
-  say(TEXT.caption.wheel);
+  await say(TEXT.caption.wheel);
   await sleep(200);
   // PNG, then a rest on JPG, whose ring holds High quality, Balanced (under the pointer) and
   // Small file.
@@ -530,7 +556,7 @@ async function convertPhoto() {
     [1, 420, 260],
     [0, 300, 0],
   ]);
-  say(TEXT.caption.rest);
+  await say(TEXT.caption.rest);
   await sleep(950);
   await pointer.to(await wheel.slice(0), 420, 0.08);
   await sleep(350);
@@ -541,14 +567,14 @@ async function convertPhoto() {
   reveal(JPG);
   kento(toast).toast(`${TEXT.files[0]} → JPG`, [JPG]);
   show(toast);
-  say(TEXT.caption.copy);
+  await say(TEXT.caption.copy);
   await pointer.to([600, 420], 700);
   await sleep(800);
 }
 
 async function tools() {
   show(toast, false);
-  say(TEXT.caption.ctrl);
+  await say(TEXT.caption.ctrl);
   await dragOut([PHOTO], 'tools', 'Ctrl', '⌘');
   await sleep(200);
   // Favorites, Compress, Metadata, Edit image, Mark up, Add frame, Crop image, More…: past the
@@ -565,7 +591,7 @@ async function tools() {
   kento(main).openTool('crop-image', [PHOTO]);
   await sleep(120);
   show(mainWindow);
-  say(TEXT.caption.tools);
+  await say(TEXT.caption.tools);
   await until(() => inMain('.image-stage img'), 'the crop editor');
   await sleep(250);
   const portrait = [...main.contentDocument.querySelectorAll('.editor-side button')].find(
@@ -582,7 +608,7 @@ async function tools() {
 /** A video made vertical from the Tools wheel's ring, then the pauses of an interview and a song
  *  under the clip in the main window's editors. */
 async function video() {
-  say(TEXT.caption.video);
+  await say(TEXT.caption.video);
   await dragOut([VIDEO], 'tools', 'Ctrl', '⌘');
   await sleep(200);
   // Past Trim video to Make vertical, whose rest opens Crop the middle, Blurred background and
@@ -598,33 +624,68 @@ async function video() {
   wheel.drop();
   letGo();
   await applied();
-  const name = TEXT.files[6].replace('.mov', '');
-  kento(toast).toast(`${TEXT.vertical} · ${TEXT.files[6]}`, [
-    pathOf(`${name} - ${LANG === 'tr' ? 'dikey' : 'vertical'}.mp4`),
-  ]);
+  reveal(VERTICAL);
+  kento(toast).toast(`${TEXT.vertical} · ${TEXT.files[6]}`, [VERTICAL]);
   show(toast);
   // Out of the way of the editors that follow.
   await pointer.to([942, 530], 700);
   await sleep(700);
   show(toast, false);
-  // The editors in the main window.
-  kento(main).openTool('remove-pauses', [AUDIO]);
-  await sleep(120);
-  show(mainWindow);
-  say(TEXT.caption.sound);
-  await until(() => inMain('.editor-side'), 'Remove pauses');
-  await sleep(1700);
+  // The editors in the main window, one after another, each with what it is for.
   const app = await store();
-  app.getState().closePanel();
-  kento(main).openTool('add-music', [VIDEO, SONG]);
-  await until(() => inMain('.editor-video')?.readyState >= 2, 'Add music');
-  await sleep(1500);
+  for (const [i, [tool, files, caption, prepare]] of EDITORS.entries()) {
+    await settle();
+    // The window dips while the next editor loads its preview, so no loading frame shows.
+    if (i > 0) {
+      show(mainWindow, false);
+      await sleep(320);
+      app.getState().closePanel();
+    }
+    kento(main).openTool(tool, files());
+    await until(() => inMain('.editor-side'), tool);
+    if (files()[0] === VIDEO) await until(() => inMain('.editor-video')?.readyState >= 2, tool);
+    await prepare?.();
+    await sleep(tool === 'remove-pauses' ? 700 : 200);
+    show(mainWindow);
+    await say(TEXT.caption[caption]);
+    await sleep(900);
+  }
+  await settle();
   show(mainWindow, false);
   setTimeout(() => app.getState().closePanel(), 300);
 }
 
+/** The editors the video scene shows: the tool, its files, its caption and what is set first. */
+const EDITORS = [
+  ['remove-pauses', () => [AUDIO], 'pauses', null],
+  ['add-music', () => [VIDEO, SONG], 'music', null],
+  [
+    'add-overlay',
+    () => [VIDEO],
+    'overlay',
+    async () => {
+      inMain('.overlay-add button').click();
+      await until(() => inMain('.overlay-words'), 'the text layer');
+      typeInto(inMain('.overlay-words'), TEXT.title);
+    },
+  ],
+  [
+    'redact-video',
+    () => [VIDEO],
+    'redact',
+    async () => {
+      main.contentDocument.querySelectorAll('.editor-side .segmented')[0].querySelectorAll('button')[2].click();
+      // A pointer of our own has no capture to set.
+      main.contentWindow.Element.prototype.setPointerCapture = () => {};
+      await sleep(100);
+      await drawOn(inMain('.overlay'), [0.665, 0.875, 0.95, 0.955]);
+    },
+  ],
+  ['normalize', () => [AUDIO], 'loudness', null],
+];
+
 async function actions() {
-  say(TEXT.caption.alt);
+  await say(TEXT.caption.alt);
   await dragOut([JPG], 'actions', 'Alt', '⌃');
   await sleep(150);
   // Share, then Put on shelf.
@@ -637,14 +698,14 @@ async function actions() {
   await sleep(900);
   kento(shelf).shelf([JPG]);
   show(shelf);
-  say(TEXT.caption.shelf);
+  await say(TEXT.caption.shelf);
   await pointer.to([560, 440], 600);
   await sleep(1000);
   show(shelf, false);
 }
 
 async function mixed() {
-  say(TEXT.caption.mixed);
+  await say(TEXT.caption.mixed);
   for (const path of [PHOTO, PDF, VIDEO]) {
     await pointer.to(centerOf(tileOf.get(path)), 360, 0.04);
     await pointer.click();
@@ -670,7 +731,7 @@ async function mixed() {
 
 async function formats() {
   show(toast, false);
-  say(TEXT.caption.formats);
+  await say(TEXT.caption.formats);
   // A document to PDF, and slides to a PNG per slide, whose rest opens the page resolutions.
   for (const [path, index, pause] of [
     [DOC, 0, 700],
@@ -691,7 +752,7 @@ async function web() {
   const app = await store();
   await pointer.to([520, 300], 400);
   show(mainWindow);
-  say(TEXT.caption.paste);
+  await say(TEXT.caption.paste);
   await sleep(350);
   await press(['Ctrl', 'V'], '⌘');
   app.getState().openWeb(kento(main).link);
@@ -704,13 +765,13 @@ async function web() {
 
 async function automation() {
   await clickMain(railItem(2), 600);
-  say(TEXT.caption.rules);
+  await say(TEXT.caption.rules);
   await sleep(1500);
   const content = inMain('.content');
   // Rules, recipes, then the activity log.
   const recipes = main.contentDocument.querySelectorAll('.automation .card')[1];
   const target = recipes.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - 12;
-  say(TEXT.caption.recipes);
+  await say(TEXT.caption.recipes);
   const from = content.scrollTop;
   await tween(550, (t) => content.scrollTo(0, from + (target - from) * t));
   await sleep(1300);
@@ -724,14 +785,14 @@ async function openPage(index) {
 
 async function library() {
   await openPage(1);
-  say(TEXT.caption.library);
+  await say(TEXT.caption.library);
   await sleep(1500);
 }
 
 async function dark() {
   // The caption changes as the page does: on the click, not before it and not after.
   await openPage(3);
-  say(TEXT.caption.dark);
+  await say(TEXT.caption.dark);
   await sleep(350);
   const buttons = [...main.contentDocument.querySelectorAll('.segmented button')];
   await clickMain(buttons[2], 600);
@@ -749,21 +810,61 @@ async function prepareLanguages() {
   }
 }
 
+/** The twelve languages, each in its own script, for the burst. */
+const TONGUES = [
+  'English',
+  'Türkçe',
+  'Deutsch',
+  'Español',
+  'Français',
+  'Italiano',
+  'Português',
+  'Русский',
+  '简体中文',
+  '日本語',
+  '한국어',
+  'العربية',
+];
+
 async function languages() {
+  await settle();
   for (const node of [mainWindow, folder]) {
     node.style.transition = 'none';
     node.style.opacity = '0';
   }
-  say(TEXT.caption.languages);
+  // A burst: the number counts up to twelve while the languages fly out round it, with no pointer
+  // over it.
+  pointerNode.style.visibility = 'hidden';
+  const burst = element('div', 'burst', stage);
+  const count = element('div', 'burst-count', burst);
+  count.textContent = '1';
+  element('div', 'burst-word', burst).textContent = TEXT.languages;
+  TONGUES.forEach((name, i) => {
+    const angle = (i / TONGUES.length) * Math.PI * 2 - Math.PI / 2;
+    const tongue = element('span', 'burst-tongue', burst);
+    tongue.textContent = name;
+    tongue.style.setProperty('--x', `${Math.round(Math.cos(angle) * 330)}px`);
+    tongue.style.setProperty('--y', `${Math.round(Math.sin(angle) * 175)}px`);
+    tongue.style.animationDelay = `${300 + i * 70}ms`;
+  });
+  void burst.offsetWidth;
+  burst.classList.add('is-on');
+  await say(TEXT.caption.languages);
+  await tween(900, (t) => (count.textContent = String(Math.max(1, Math.round(t * 12)))));
+  await sleep(1700);
+  // Then the wheel itself in eight of them, right to left last.
+  burst.classList.add('is-leaving');
+  setTimeout(() => burst.remove(), 400);
+  pointerNode.style.visibility = '';
   for (const [n, { name, wheel: each, point }] of montage.entries()) {
     each.frame.classList.add('is-shown');
     pointer.jump(point);
     chip.textContent = name;
     chip.classList.add('is-on');
-    await sleep(n === 0 ? 800 : 600);
+    await sleep(n === 0 ? 700 : 520);
     if (n < montage.length - 1) each.frame.classList.remove('is-shown');
   }
-  await sleep(200);
+  await sleep(300);
   chip.classList.remove('is-on');
 }
 
@@ -791,7 +892,7 @@ const SCENES = [
   [
     'end',
     async () => {
-      say(null);
+      await say(null);
       endCard.classList.add('is-on');
       await sleep(3000);
     },

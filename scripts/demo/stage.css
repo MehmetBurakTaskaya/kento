@@ -463,3 +463,80 @@ iframe {
   font-size: 19px;
   font-weight: 600;
 }
+
+/* ---------------------------------------------------------------- the twelve-language burst */
+/* Over the desk and under the captions: the count springs up to twelve while the languages fly
+   out round it, each in its own script. */
+.burst {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding-block-end: 72px;
+  background: radial-gradient(70% 80% at 50% 45%, #1f2a40 0%, #10141b 72%);
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+.burst.is-on {
+  opacity: 1;
+}
+.burst.is-leaving {
+  opacity: 0;
+}
+.burst-count {
+  font-size: 172px;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(120deg, #8fb4ff 0%, #b18cff 45%, #ff8fc7 100%);
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 26px rgba(143, 180, 255, 0.4));
+  animation: burst-in 640ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.burst-word {
+  margin-block-start: 2px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #e8ecf4;
+  animation: burst-in 640ms 160ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.burst-tongue {
+  position: absolute;
+  inset-block-start: calc(50% - 36px);
+  inset-inline-start: 50%;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8ecf4;
+  font-size: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: tongue-out 700ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes burst-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tongue-out {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1);
+  }
+}

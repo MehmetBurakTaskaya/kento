@@ -95,7 +95,8 @@ const server = await createServer({
 });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const browser = await chromium.launch();
+// Headless, and no console windows for FFmpeg: a take runs behind whatever else is on screen.
+const browser = await chromium.launch({ headless: true });
 const errors = [];
 
 /** A stage with every window loaded. A window that failed to load (the dev server can drop a
@@ -208,7 +209,7 @@ function joined(lang, tour, reel) {
 function gif(dir, out) {
   const input = ['-f', 'concat', '-safe', '0', '-i', 'frames.ffconcat'];
   const ffmpeg = (...rest) =>
-    execFileSync('ffmpeg', ['-v', 'error', '-y', ...input, ...rest], { cwd: dir, stdio: 'inherit' });
+    execFileSync('ffmpeg', ['-v', 'error', '-y', ...input, ...rest], { cwd: dir, stdio: 'inherit', windowsHide: true });
   ffmpeg('-vf', `fps=${FPS},palettegen=max_colors=256:stats_mode=diff`, 'palette.png');
   ffmpeg(
     '-i',
@@ -258,7 +259,7 @@ async function sampleVideo() {
     "[0:v]zoompan=z='1+0.0004*on':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30[v];[v][1:v]overlay,format=yuv420p",
     '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '36', '-deadline', 'good', '-cpu-used', '5', '-row-mt', '1',
     out,
-  ]);
+  ], { windowsHide: true });
   console.log(`${path.relative(root, out)}: ${Math.round(statSync(out).size / 1000)} kB`);
 }
 
@@ -288,20 +289,11 @@ async function stills(lang) {
     await page.screenshot({ path: png, clip });
     await page.close();
     const out = path.join(images, `kento-${name}${lang === 'en' ? '' : `-${lang}`}.webp`);
-    execFileSync('ffmpeg', [
-      '-v',
-      'error',
-      '-y',
-      '-i',
-      png,
-      '-vf',
-      'scale=1280:-1:flags=lanczos',
-      '-c:v',
-      'libwebp',
-      '-quality',
-      '90',
-      out,
-    ]);
+    execFileSync(
+      'ffmpeg',
+      ['-v', 'error', '-y', '-i', png, '-vf', 'scale=1280:-1:flags=lanczos', '-c:v', 'libwebp', '-quality', '90', out],
+      { windowsHide: true },
+    );
     console.log(`${path.relative(root, out)}: ${Math.round(statSync(out).size / 1000)} kB`);
   }
 }

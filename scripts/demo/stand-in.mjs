@@ -373,6 +373,7 @@ const LIBRARY = (
   turkish
     ? [
         ['klip.mp4', 'convert', 'klip.mov', 20_000],
+        ['klip - dikey.mp4', 'tool', 'klip.mov', 45_000],
         ['balon.jpg', 'convert', 'balon.heic', 95_000],
         ['rapor.pdf', 'convert', 'rapor.docx', 400_000],
         [`${TEXT.video}.mp4`, 'download', null, 2_400_000, 312_840_192],
@@ -381,6 +382,7 @@ const LIBRARY = (
       ]
     : [
         ['clip.mp4', 'convert', 'clip.mov', 20_000],
+        ['clip - vertical.mp4', 'tool', 'clip.mov', 45_000],
         ['sunrise.jpg', 'convert', 'sunrise.heic', 95_000],
         ['report.pdf', 'convert', 'report.docx', 400_000],
         [`${TEXT.video}.mp4`, 'download', null, 2_400_000, 312_840_192],
