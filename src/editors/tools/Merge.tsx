@@ -1,17 +1,38 @@
 // SPDX-License-Identifier: MIT
-// Merge videos: the clips in the order of the result; the first one sets its size, frame rate and
-// sound. Any clip can be previewed.
+// Merge videos: the clips in the order of the result, and how one goes into the next; the first
+// one sets its size, frame rate and sound. Any clip can be previewed.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, type FileEntry, type MediaInfo, type MediaTool } from '../../ipc';
+import { api, type FileEntry, type MediaInfo, type MediaTool, type TransitionKind } from '../../ipc';
 import { isolate } from '../../i18n/format';
 import { OrderList } from '../../tools/OrderList';
-import { Section } from '../controls';
+import { Section, Segmented } from '../controls';
 import { EditorShell } from '../EditorShell';
+import { Slider } from '../image/controls';
 import type { EditorProps } from '../panels';
 import { Stage } from '../Stage';
-import { formatNumber, formatTime } from '../time';
+import { clamp, formatNumber, formatTime } from '../time';
 import { fileName, useEditor } from '../useEditor';
+
+const KINDS: TransitionKind[] = ['cut', 'fade', 'fade-black', 'slide', 'wipe'];
+
+/** How long a transition lasts, as the engine takes it (media::Transition). */
+export const TRANSITION_SECONDS = { min: 0.2, max: 2, default: 0.5 };
+
+/**
+ * The result's length: the clips' lengths less every overlap. As in the engine, each transition
+ * lasts `seconds` (0.2 to 2) but never more than a third of the shorter of its two clips.
+ */
+export function mergedLength(lengths: number[], kind: TransitionKind, seconds: number): number {
+  const total = lengths.reduce((sum, length) => sum + length, 0);
+  if (kind === 'cut') return total;
+  const wanted = clamp(seconds, TRANSITION_SECONDS.min, TRANSITION_SECONDS.max);
+  let overlaps = 0;
+  for (let i = 1; i < lengths.length; i++) {
+    overlaps += Math.min(wanted, Math.min(lengths[i - 1]!, lengths[i]!) / 3);
+  }
+  return total - overlaps;
+}
 
 const entry = (path: string): FileEntry => ({
   path,
@@ -45,9 +66,17 @@ export function Merge({ paths, ...props }: EditorProps) {
   const [previewed, setPreviewed] = useState(paths[0] ?? '');
   const core = useEditor(previewed, false);
   const infos = useProbes(paths);
+  const [kind, setKind] = useState<TransitionKind>('cut');
+  const [seconds, setSeconds] = useState(TRANSITION_SECONDS.default);
   const first = infos?.[order[0]?.path ?? ''];
-  const total = infos ? order.reduce((sum, clip) => sum + (infos[clip.path]?.duration ?? 0), 0) : null;
-  const request: MediaTool | null = order.length >= 2 ? { tool: 'merge-video' } : null;
+  const total = infos
+    ? mergedLength(
+        order.map((clip) => infos[clip.path]?.duration ?? 0),
+        kind,
+        seconds,
+      )
+    : null;
+  const request: MediaTool | null = order.length >= 2 ? { tool: 'merge-video', transition: { kind, seconds } } : null;
   return (
     <EditorShell
       tool="merge-video"
@@ -73,6 +102,30 @@ export function Merge({ paths, ...props }: EditorProps) {
             })}
           </p>
         )}
+      </Section>
+      <Section title={t('editor.merge.transition')}>
+        <div className="merge-transition">
+          <Segmented
+            label={t('editor.merge.transition')}
+            value={kind}
+            options={KINDS.map((value) => ({ value, label: t(`editor.merge.transition.${value}`) }))}
+            onChange={setKind}
+          />
+          {kind !== 'cut' && (
+            <>
+              <Slider
+                label={t('editor.merge.transitionLength')}
+                value={seconds}
+                min={TRANSITION_SECONDS.min}
+                max={TRANSITION_SECONDS.max}
+                step={0.1}
+                text={t('editor.merge.transitionSeconds', { seconds: formatNumber(seconds, core.lang, 1) })}
+                onChange={setSeconds}
+              />
+              <p className="editor-hint muted">{t('editor.merge.transitionHint')}</p>
+            </>
+          )}
+        </div>
       </Section>
       <Section title={t('editor.merge.preview')}>
         <select
