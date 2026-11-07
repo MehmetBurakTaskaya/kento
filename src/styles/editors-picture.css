@@ -1,2 +1,262 @@
 /* SPDX-License-Identifier: MIT */
 /* The editors of Make vertical, Add text or logo, Rotate video, Reverse and loop, Color and look and Stabilize video. */
+
+/* Pressed toggles of these editors, in the image editors' manner. */
+.rotate-toggle[aria-pressed='true'],
+.color-actions .button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--text);
+}
+
+.picture-note {
+  padding: 6px 10px;
+  border-inline-start: 3px solid var(--warning);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  font: var(--type-caption);
+}
+
+/* ---------------------------------------------------------------- make vertical */
+.vertical-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+.vertical-facts {
+  display: grid;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+/* The result in small: 9:16, the picture placed in it as the engine places it. */
+.vertical-portrait {
+  --back: #000;
+  --position: 50%;
+  position: relative;
+  display: grid;
+  inline-size: 96px;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--back);
+}
+.vertical-front,
+.vertical-back {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.vertical-portrait img,
+.vertical-blank {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+.vertical-blank {
+  display: block;
+  block-size: auto;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--scale-tick) 55%, transparent) 0 1px,
+      transparent 1px 8px
+    ),
+    var(--surface-2);
+}
+.vertical-portrait[data-fill='crop'] img {
+  object-fit: cover;
+  object-position: var(--position) 50%;
+}
+.vertical-portrait[data-fill='crop'] .vertical-blank {
+  block-size: 100%;
+}
+.vertical-back {
+  overflow: hidden;
+}
+.vertical-back img,
+.vertical-back .vertical-blank {
+  block-size: 100%;
+  object-fit: cover;
+  filter: blur(6px) brightness(0.85);
+  transform: scale(1.15);
+}
+
+/* ---------------------------------------------------------------- add text or logo */
+.overlay-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.layer-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.layer-preview {
+  position: absolute;
+  display: block;
+  max-inline-size: none;
+}
+.layer-blank {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--steel-hi);
+  background: color-mix(in srgb, var(--slot) 40%, transparent);
+  color: var(--steel-hi);
+}
+.layer-name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overlay-words {
+  inline-size: 100%;
+  min-block-size: 56px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+.overlay-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.file-line {
+  min-inline-size: 0;
+}
+
+/* ---------------------------------------------------------------- rotate video */
+.rotate-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rotate-reset {
+  justify-self: start;
+}
+.rotate-preview .editor-video,
+.rotate-preview .stage-placeholder > .icon {
+  transform: var(--turn);
+  transition: transform 160ms ease;
+}
+/* A quarter turn: the stage takes the result's shape, and the video, laid out in the source's shape,
+   turns into it. The stage is left to right, so the inline start is the left. */
+.rotate-preview[data-quarter] .editor-stage {
+  inline-size: min(100%, calc(var(--stage-height) / var(--ratio)));
+  aspect-ratio: calc(1 / var(--ratio));
+}
+.rotate-preview[data-quarter] .editor-video {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: calc(100% * var(--ratio));
+  block-size: calc(100% / var(--ratio));
+  transform: translate(-50%, -50%) var(--turn);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rotate-preview .editor-video,
+  .rotate-preview .stage-placeholder > .icon {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------- color and look */
+.color-filters {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+}
+.color-preview .editor-video,
+.color-preview .stage-placeholder {
+  filter: var(--color-filter);
+}
+.look-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 6px;
+}
+.look-tile {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: var(--type-caption);
+  text-align: center;
+  cursor: pointer;
+}
+.look-tile:hover {
+  border-color: var(--border-strong);
+}
+.look-tile[aria-checked='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.look-tile:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.look-sample {
+  display: block;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--slot);
+}
+.look-sample img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+/* Without a still of the video: sky, skin, leaves and a red, so every look shows what it does. The
+   colours are a sample of the world, not of the theme. */
+.look-swatch {
+  display: block;
+  block-size: 100%;
+  background:
+    linear-gradient(180deg, transparent 55%, #4f7a3a 55% 78%, #2f4a25 78%),
+    linear-gradient(90deg, #7fb4e6 0 58%, #e2b392 58% 80%, #c8463c 80%);
+}
+.look-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.color-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------- redact video: erase */
+/* Erasing smooths the area in from its edges: shown as a soft, washed fill with a dotted rim. */
+.overlay[data-mode='redact'] .overlay-rect[data-hide='erase'] {
+  border-style: dotted;
+  background: color-mix(in srgb, var(--surface-2) 18%, transparent);
+  backdrop-filter: blur(16px) saturate(0.8);
+}
+.overlay[data-mode='redact'] .overlay-rect[data-hide='erase'][data-dim] {
+  border-style: dashed;
+  background: none;
+  backdrop-filter: none;
+}
+
+@media (forced-colors: active) {
+  .look-tile[aria-checked='true'],
+  .rotate-toggle[aria-pressed='true'] {
+    border: 2px solid Highlight;
+  }
+}

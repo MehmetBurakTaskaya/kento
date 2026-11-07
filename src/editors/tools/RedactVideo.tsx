@@ -145,6 +145,7 @@ export function RedactVideo(props: EditorProps) {
             { value: 'color', label: t('editor.redact.color') },
             { value: 'blur', label: t('editor.redact.blur') },
             { value: 'pixelate', label: t('editor.redact.pixelate') },
+            { value: 'erase', label: t('editor.redact.erase') },
           ]}
           onChange={setKind}
         />
@@ -154,6 +155,7 @@ export function RedactVideo(props: EditorProps) {
             <input type="color" value={color} onChange={(event) => setColor(event.target.value)} />
           </label>
         )}
+        {kind === 'erase' && <p className="editor-hint muted">{t('editor.redact.eraseHint')}</p>}
       </Section>
     </EditorShell>
   );
