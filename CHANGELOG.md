@@ -29,6 +29,9 @@ All notable changes to Kento are recorded here. The format follows
   look, remove noise or stabilize at once.
 - The command line runs Remove noise, Remove pauses, Stabilize video, Rotate video and Merge audio,
   and Merge videos with a transition; folder rules can remove noise or pauses.
+- **Every theme sounds like what it shows.** New sounds for all fifty themes beside Kasa: pointing
+  at a slice of Karpuz takes a juicy bite, Damla drips paint, Plak crackles, Tebeşir taps chalk, Bom
+  goes boom. Each theme also has its own sounds for opening a ring of choices and going back.
 
 ### Fixed
 

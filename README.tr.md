@@ -144,8 +144,10 @@ ad altında birleştirir, komut satırı da hepsini betiklerden çalıştırır.
 </p>
 
 Varsayılan tema çelik kadran Kasa. Diğer elli tema çarkı baştan değiştirir, kendi rengi, hareketi ve
-sesiyle; uygulamanın geri kalanı da onların renklerini alır. Ayarlar → Görünüm → Tema'dan seç;
-değişiklik hemen görünür.
+sesiyle; uygulamanın geri kalanı da onların renklerini alır. Her tema gösterdiği şey gibi ses çıkarır:
+Karpuz'da bir dilime gelince sulu bir ısırık duyulur, Damla'da boya damlar, Plak bir plak gibi cızırdar,
+Tebeşir tahtaya vurur, bir seçimi uygulamak da temanın kendi finalini çalar. 51 tema, 51 ses seti.
+Ayarlar → Görünüm → Tema'dan seç; değişiklik hemen görünür.
 
 ## Ekran görüntüleri
 
