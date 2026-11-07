@@ -7,6 +7,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 use kento_engines::compress::Compression;
+use kento_engines::media::{Strength, TransitionKind, Turn};
 use kento_engines::pdf::PageSize;
 use kento_engines::qr::Report;
 
@@ -89,6 +90,23 @@ pub struct ToolOptions {
     pub page: Option<PageSize>,
     pub margin_mm: Option<f32>,
     pub report: Option<Report>,
+    /// Remove noise and Stabilize video.
+    pub strength: Option<Strength>,
+    /// Remove noise also takes away the lowest hum and rumble.
+    pub rumble: bool,
+    /// Remove pauses: dB, then seconds.
+    pub threshold: Option<f64>,
+    pub min_length: Option<f64>,
+    pub keep: Option<f64>,
+    /// Rotate video.
+    pub turn: Option<Turn>,
+    pub mirror: bool,
+    pub flip: bool,
+    /// Merge audio, in seconds.
+    pub crossfade: Option<f64>,
+    /// Merge videos, and how long each transition lasts in seconds.
+    pub transition: Option<TransitionKind>,
+    pub seconds: Option<f64>,
     pub given: Vec<&'static str>,
 }
 
@@ -113,10 +131,12 @@ pub enum Usage {
     NoRecipe,
     /// Compress takes one of --quality, --ratio and --target-size.
     OneMode,
+    /// Rotate video needs --turn, --mirror or --flip.
+    NoTurn,
 }
 
 /// Options without a value, with their short forms.
-const FLAGS: [(&str, &str); 7] = [
+const FLAGS: [(&str, &str); 10] = [
     ("--json", "--json"),
     ("--quiet", "--quiet"),
     ("-q", "--quiet"),
@@ -124,10 +144,13 @@ const FLAGS: [(&str, &str); 7] = [
     ("-h", "--help"),
     ("--version", "--version"),
     ("-V", "--version"),
+    ("--rumble", "--rumble"),
+    ("--mirror", "--mirror"),
+    ("--flip", "--flip"),
 ];
 
 /// Options with a value (`--to jpg` or `--to=jpg`), with their short forms.
-const VALUES: [(&str, &str); 9] = [
+const VALUES: [(&str, &str); 17] = [
     ("--to", "--to"),
     ("--out", "--out"),
     ("-o", "--out"),
@@ -137,17 +160,45 @@ const VALUES: [(&str, &str); 9] = [
     ("--page", "--page"),
     ("--margin", "--margin"),
     ("--format", "--format"),
+    ("--strength", "--strength"),
+    ("--threshold", "--threshold"),
+    ("--min-length", "--min-length"),
+    ("--keep", "--keep"),
+    ("--turn", "--turn"),
+    ("--crossfade", "--crossfade"),
+    ("--transition", "--transition"),
+    ("--seconds", "--seconds"),
 ];
 
 /// The options `tool` passes on to the tool.
-const TOOL_VALUES: [&str; 6] = [
+const TOOL_VALUES: [&str; 14] = [
     "--quality",
     "--ratio",
     "--target-size",
     "--page",
     "--margin",
     "--format",
+    "--strength",
+    "--threshold",
+    "--min-length",
+    "--keep",
+    "--turn",
+    "--crossfade",
+    "--transition",
+    "--seconds",
 ];
+
+/// The switches `tool` passes on to the tool.
+const TOOL_FLAGS: [&str; 3] = ["--rumble", "--mirror", "--flip"];
+
+/// How quiet a pause is, in dB, and how long its parts last, in seconds: wide enough for any
+/// recording, narrow enough to catch a slip of the keyboard (`--threshold 40` for -40).
+const THRESHOLD: std::ops::RangeInclusive<f64> = -80.0..=-10.0;
+const MIN_LENGTH: std::ops::RangeInclusive<f64> = 0.1..=10.0;
+const KEEP: std::ops::RangeInclusive<f64> = 0.0..=2.0;
+/// Merge audio overlaps by at most 10 seconds, Merge videos' transitions last 0.2 to 2.
+const CROSSFADE: std::ops::RangeInclusive<f64> = 0.0..=10.0;
+const TRANSITION: std::ops::RangeInclusive<f64> = 0.2..=2.0;
 
 #[derive(Debug, Default)]
 struct Words {
@@ -168,10 +219,17 @@ impl Words {
             .map(|(_, value)| value)
     }
 
-    /// Fails on the first option given that `allowed` does not list.
+    /// Fails on the first option given that `allowed` does not list (the switches every command
+    /// takes, such as --json, need no listing).
     fn only(&self, allowed: &[&str]) -> Result<(), Usage> {
-        match self.values.iter().find(|(name, _)| !allowed.contains(name)) {
-            Some((name, _)) => Err(Usage::NotHere(name)),
+        let values = self.values.iter().map(|(name, _)| *name);
+        let switches = self
+            .flags
+            .iter()
+            .copied()
+            .filter(|f| TOOL_FLAGS.contains(f));
+        match values.chain(switches).find(|name| !allowed.contains(name)) {
+            Some(name) => Err(Usage::NotHere(name)),
             None => Ok(()),
         }
     }
@@ -305,6 +363,7 @@ fn command_of(topic: Topic, words: &Words, rest: &[&OsString]) -> Result<Command
         }
         Topic::Tool => {
             let mut allowed = TOOL_VALUES.to_vec();
+            allowed.extend(TOOL_FLAGS);
             allowed.push("--out");
             words.only(&allowed)?;
             let (tool, list) = rest.split_first().ok_or(Usage::NoTool)?;
@@ -411,18 +470,78 @@ fn tool_options(words: &Words) -> Result<ToolOptions, Usage> {
                     .ok_or_else(invalid)?;
                 options.margin_mm = Some(mm);
             }
-            _ => {
-                options.report = Some(match text.trim().to_ascii_lowercase().as_str() {
+            "--format" => {
+                options.report = Some(match word(&text).as_str() {
                     "txt" => Report::Txt,
                     "csv" => Report::Csv,
                     "json" => Report::Json,
                     _ => return Err(invalid()),
                 });
             }
+            "--strength" => {
+                options.strength = Some(match word(&text).as_str() {
+                    "light" => Strength::Light,
+                    "medium" => Strength::Medium,
+                    "strong" => Strength::Strong,
+                    _ => return Err(invalid()),
+                });
+            }
+            "--turn" => {
+                options.turn = Some(match word(&text).as_str() {
+                    "right" => Turn::Right,
+                    "left" => Turn::Left,
+                    "half" => Turn::Half,
+                    _ => return Err(invalid()),
+                });
+            }
+            "--transition" => {
+                options.transition = Some(match word(&text).as_str() {
+                    "cut" => TransitionKind::Cut,
+                    "fade" => TransitionKind::Fade,
+                    "fade-black" => TransitionKind::FadeBlack,
+                    "slide" => TransitionKind::Slide,
+                    "wipe" => TransitionKind::Wipe,
+                    _ => return Err(invalid()),
+                });
+            }
+            "--threshold" => {
+                options.threshold = Some(decimal(&text, "db", THRESHOLD).ok_or_else(invalid)?)
+            }
+            "--min-length" => {
+                options.min_length = Some(decimal(&text, "s", MIN_LENGTH).ok_or_else(invalid)?)
+            }
+            "--keep" => options.keep = Some(decimal(&text, "s", KEEP).ok_or_else(invalid)?),
+            "--crossfade" => {
+                options.crossfade = Some(decimal(&text, "s", CROSSFADE).ok_or_else(invalid)?)
+            }
+            _ => options.seconds = Some(decimal(&text, "s", TRANSITION).ok_or_else(invalid)?),
         }
         options.given.push(option);
     }
+    for &flag in &words.flags {
+        match flag {
+            "--rumble" => options.rumble = true,
+            "--mirror" => options.mirror = true,
+            "--flip" => options.flip = true,
+            _ => continue,
+        }
+        options.given.push(flag);
+    }
     Ok(options)
+}
+
+/// A choice by its name, in any case.
+fn word(text: &str) -> String {
+    text.trim().to_ascii_lowercase()
+}
+
+/// A number with a decimal point or comma and, optionally, its unit ("-40dB", "0,5 s"), within
+/// `range`.
+fn decimal(text: &str, unit: &str, range: std::ops::RangeInclusive<f64>) -> Option<f64> {
+    let text = word(text);
+    let text = text.strip_suffix(unit).unwrap_or(&text);
+    let value: f64 = text.trim().replace(',', ".").parse().ok()?;
+    (value.is_finite() && range.contains(&value)).then_some(value)
 }
 
 /// "25MB", "2,5 mb", "800KB", "1G" or a number of bytes: decimal units, like every size Kento
@@ -634,6 +753,92 @@ mod tests {
                 "{option} {value}"
             );
         }
+    }
+
+    #[test]
+    fn video_and_audio_tools_take_their_choices() {
+        let options = |args: &[&str]| match command(args) {
+            Command::Tool { options, .. } => options,
+            other => panic!("not a tool: {other:?}"),
+        };
+        let denoise = options(&[
+            "tool",
+            "denoise",
+            "ses.wav",
+            "--strength",
+            "Strong",
+            "--rumble",
+        ]);
+        assert_eq!(denoise.strength, Some(Strength::Strong));
+        assert!(denoise.rumble);
+        assert_eq!(denoise.given, ["--strength", "--rumble"]);
+
+        let pauses = options(&[
+            "tool",
+            "remove-pauses",
+            "konuşma 🧪.mp4",
+            "--threshold",
+            "-35dB",
+            "--min-length=0,8",
+            "--keep",
+            "0.2s",
+        ]);
+        assert_eq!(pauses.threshold, Some(-35.0));
+        assert_eq!(pauses.min_length, Some(0.8));
+        assert_eq!(pauses.keep, Some(0.2));
+
+        let turned = options(&["tool", "rotate-video", "a.mp4", "--turn", "half", "--flip"]);
+        assert_eq!(turned.turn, Some(Turn::Half));
+        assert!(turned.flip && !turned.mirror);
+        assert!(options(&["tool", "rotate-video", "a.mp4", "--mirror"]).mirror);
+
+        let merged = options(&[
+            "tool",
+            "merge-video",
+            "a.mp4",
+            "b.mov",
+            "--transition",
+            "fade-black",
+            "--seconds",
+            "1.5",
+        ]);
+        assert_eq!(merged.transition, Some(TransitionKind::FadeBlack));
+        assert_eq!(merged.seconds, Some(1.5));
+        let joined = options(&["tool", "merge-audio", "a.mp3", "b.wav", "--crossfade", "3"]);
+        assert_eq!(joined.crossfade, Some(3.0));
+
+        for (option, value) in [
+            ("--strength", "max"),
+            ("--threshold", "-5"),
+            ("--threshold", "-100"),
+            ("--threshold", "loud"),
+            ("--min-length", "0"),
+            ("--keep", "3"),
+            ("--turn", "up"),
+            ("--transition", "dissolve"),
+            ("--seconds", "0.1"),
+            ("--seconds", "3"),
+            ("--crossfade", "-1"),
+            ("--crossfade", "NaN"),
+        ] {
+            assert!(
+                matches!(
+                    run(&["tool", "denoise", "a.wav", option, value]),
+                    Err(Usage::Invalid { .. })
+                ),
+                "{option} {value}"
+            );
+        }
+        // The switches belong to the tool command only, and take no value.
+        assert_eq!(
+            run(&["convert", "a.mp4", "--to", "webm", "--mirror"]),
+            Err(Usage::NotHere("--mirror"))
+        );
+        assert_eq!(run(&["--flip"]), Err(Usage::NotHere("--flip")));
+        assert!(matches!(
+            run(&["tool", "denoise", "a.wav", "--rumble=yes"]),
+            Err(Usage::Invalid { .. })
+        ));
     }
 
     #[test]

@@ -1130,6 +1130,7 @@
   "cli.usage.tool": "ツールを指定してください（例：kento tool compress 写真.jpg）。ツールの一覧：kento help tool",
   "cli.usage.recipe": "レシピとファイルを指定してください（例：kento recipe run Instagram 写真.jpg）。",
   "cli.usage.compress": "--quality、--ratio、--target-size のうち 1 つだけを指定してください。",
+  "cli.usage.turn": "Say how to turn the video: --turn right|left|half, --mirror or --flip.",
   "cli.usage.count": "「{tool}」には 2 つ以上のファイルが必要です。",
   "cli.usage.missing": "{file} は存在しません。",
   "cli.usage.out": "Kento はフォルダー {folder} に書き込めません。",

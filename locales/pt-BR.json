@@ -1130,6 +1130,7 @@
   "cli.usage.tool": "Informe uma ferramenta, por exemplo kento tool compress photo.jpg. As ferramentas: kento help tool",
   "cli.usage.recipe": "Informe uma receita e arquivos, por exemplo kento recipe run Instagram photo.jpg.",
   "cli.usage.compress": "Escolha só uma entre --quality, --ratio e --target-size.",
+  "cli.usage.turn": "Say how to turn the video: --turn right|left|half, --mirror or --flip.",
   "cli.usage.count": "“{tool}” precisa de dois arquivos ou mais.",
   "cli.usage.missing": "{file} não existe.",
   "cli.usage.out": "O Kento não consegue gravar na pasta {folder}.",

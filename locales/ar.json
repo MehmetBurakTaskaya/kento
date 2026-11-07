@@ -1130,6 +1130,7 @@
   "cli.usage.tool": "حدد أداة، مثل kento tool compress photo.jpg. الأدوات: kento help tool",
   "cli.usage.recipe": "حدد وصفة وملفات، مثل kento recipe run Instagram photo.jpg.",
   "cli.usage.compress": "اختر واحدًا فقط من --quality و --ratio و --target-size.",
+  "cli.usage.turn": "Say how to turn the video: --turn right|left|half, --mirror or --flip.",
   "cli.usage.count": "تحتاج «{tool}» إلى ملفين أو أكثر.",
   "cli.usage.missing": "{file} غير موجود.",
   "cli.usage.out": "لا يستطيع Kento الكتابة في المجلد {folder}.",

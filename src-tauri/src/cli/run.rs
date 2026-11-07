@@ -9,7 +9,9 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use kento_engines::compress::Compression;
-use kento_engines::media::{Loudness, Tool as MediaTool};
+use kento_engines::media::{
+    Loudness, Pauses, Strength, Tool as MediaTool, Transition, TransitionKind, Turn,
+};
 use kento_engines::recipe::{self, Recipe, RecipeRun};
 use kento_engines::{archive, pdf, qr, Error as EngineError, Options, Progress};
 use serde::Serialize;
@@ -23,12 +25,18 @@ use crate::work::{
     conversion, error_key, is_document, missing_in, readable_format, stem_of, usable,
 };
 
-/// The tools the command line runs: Compress, and those that need no choices made in a window.
-pub const TOOLS: [&str; 8] = [
+/// The tools the command line runs: Compress, and those that need no choices made in a window
+/// (or only choices an option can say).
+pub const TOOLS: [&str; 13] = [
     "compress",
     "mute",
     "normalize",
+    "denoise",
+    "remove-pauses",
+    "stabilize",
+    "rotate-video",
     "merge-video",
+    "merge-audio",
     "extract",
     "merge-pdf",
     "images-to-pdf",
@@ -37,6 +45,8 @@ pub const TOOLS: [&str; 8] = [
 
 /// Compress's quality when no mode is given, as the panel starts.
 const QUALITY: u8 = 75;
+/// Remove noise and Stabilize video without --strength.
+const STRENGTH: Strength = Strength::Medium;
 
 /// One job: the files it reads, where its result goes and the engine call.
 struct Job {
@@ -181,11 +191,18 @@ fn tool_jobs(
         "compress" => &["--quality", "--ratio", "--target-size"],
         "images-to-pdf" => &["--page", "--margin"],
         "read-qr" => &["--format"],
+        "denoise" => &["--strength", "--rumble"],
+        "stabilize" => &["--strength"],
+        "remove-pauses" => &["--threshold", "--min-length", "--keep"],
+        "rotate-video" => &["--turn", "--mirror", "--flip"],
+        "merge-video" => &["--transition", "--seconds"],
+        "merge-audio" => &["--crossfade"],
         _ => &[],
     };
     if let Some(option) = options.given.iter().find(|option| !takes.contains(option)) {
         return Err(session.usage(&Usage::NotHere(option)));
     }
+    let media_tool = media_tool(tool.id, options).map_err(|usage| session.usage(&usage))?;
     let mut sources: Vec<(PathBuf, &'static Format)> = Vec::new();
     for path in existing(session, files)? {
         let format = is_document(&path)
@@ -201,7 +218,7 @@ fn tool_jobs(
             })?;
         sources.push((path, format));
     }
-    if matches!(tool.id, "merge-pdf" | "merge-video") && sources.len() < 2 {
+    if matches!(tool.id, "merge-pdf" | "merge-video" | "merge-audio") && sources.len() < 2 {
         return Err(session.problem(Exit::Usage, "cli.usage.count", &[("tool", &name)]));
     }
     let media = sources
@@ -246,36 +263,32 @@ fn tool_jobs(
             }
             jobs
         }
-        "mute" | "normalize" => sources
-            .into_iter()
-            .map(|(path, format)| {
-                let media_tool = if tool.id == "mute" {
-                    MediaTool::Mute
-                } else {
-                    MediaTool::Normalize {
-                        loudness: Loudness::default(),
-                    }
-                };
-                let dir = dir_for(session, &path, &setting);
-                let job = crate::media::job(
-                    media_tool,
-                    vec![path.clone()],
-                    format,
-                    dir,
-                    &suffix(tool.id),
-                    tools.clone(),
-                );
-                Job::new(vec![path], job)
-            })
-            .collect(),
-        "merge-video" => {
+        // One file each.
+        "mute" | "normalize" | "denoise" | "remove-pauses" | "stabilize" | "rotate-video" => {
+            let media_tool = media_tool.expect("a media tool");
+            sources
+                .into_iter()
+                .map(|(path, format)| {
+                    let dir = dir_for(session, &path, &setting);
+                    let job = crate::media::job(
+                        media_tool.clone(),
+                        vec![path.clone()],
+                        format,
+                        dir,
+                        &suffix(tool.id),
+                        tools.clone(),
+                    );
+                    Job::new(vec![path], job)
+                })
+                .collect()
+        }
+        // The files in the order given, into one.
+        "merge-video" | "merge-audio" => {
             let format = sources[0].1;
             let paths: Vec<PathBuf> = sources.into_iter().map(|(path, _)| path).collect();
             let dir = dir_for(session, &first, &setting);
             let job = crate::media::job(
-                MediaTool::MergeVideos {
-                    transition: Default::default(),
-                },
+                media_tool.expect("a media tool"),
                 paths.clone(),
                 format,
                 dir,
@@ -349,6 +362,61 @@ fn tool_jobs(
         }
     };
     Ok(Planned::Jobs(jobs))
+}
+
+/// The media tool `id` runs with the command line's choices, and the app's own choices where none
+/// is given; None for a tool that is not a media tool.
+fn media_tool(id: &str, options: &ToolOptions) -> Result<Option<MediaTool>, Usage> {
+    Ok(Some(match id {
+        "mute" => MediaTool::Mute,
+        "normalize" => MediaTool::Normalize {
+            loudness: Loudness::default(),
+        },
+        "denoise" => MediaTool::Denoise {
+            strength: options.strength.unwrap_or(STRENGTH),
+            rumble: options.rumble,
+        },
+        "stabilize" => MediaTool::Stabilize {
+            strength: options.strength.unwrap_or(STRENGTH),
+        },
+        "remove-pauses" => {
+            let usual = Pauses::default();
+            MediaTool::RemovePauses {
+                pauses: Pauses {
+                    threshold: options.threshold.unwrap_or(usual.threshold),
+                    min_length: options.min_length.unwrap_or(usual.min_length),
+                    keep: options.keep.unwrap_or(usual.keep),
+                },
+            }
+        }
+        "rotate-video" => {
+            if options.turn.is_none() && !options.mirror && !options.flip {
+                return Err(Usage::NoTurn);
+            }
+            MediaTool::RotateVideo {
+                turn: options.turn.unwrap_or(Turn::None),
+                mirror: options.mirror,
+                flip: options.flip,
+            }
+        }
+        "merge-video" => {
+            let kind = options.transition.unwrap_or_default();
+            // A cut takes no time.
+            if kind == TransitionKind::Cut && options.seconds.is_some() {
+                return Err(Usage::NotHere("--seconds"));
+            }
+            MediaTool::MergeVideos {
+                transition: Transition {
+                    kind,
+                    seconds: options.seconds.unwrap_or(Transition::default().seconds),
+                },
+            }
+        }
+        "merge-audio" => MediaTool::MergeAudio {
+            crossfade: options.crossfade.unwrap_or(0.0),
+        },
+        _ => return Ok(None),
+    }))
 }
 
 /// Reads the codes; without `--format` they are the result, with it they go into a report next
@@ -883,6 +951,121 @@ mod tests {
     fn matches(pattern: &str, name: &str) -> bool {
         let chars = |text: &str| text.chars().collect::<Vec<_>>();
         wildcard(&chars(pattern), &chars(name))
+    }
+
+    /// The tool and its choices from a command line, as `tool` would run them.
+    fn tool_of(args: &[&str]) -> Result<Option<MediaTool>, Usage> {
+        let mut all = vec!["tool"];
+        all.extend(args);
+        let invocation = super::super::parse(all.into_iter().map(std::ffi::OsString::from))?;
+        let super::super::Command::Tool { tool, options, .. } = invocation.command else {
+            panic!("not a tool");
+        };
+        media_tool(&tool, &options)
+    }
+
+    #[test]
+    fn media_tools_get_the_apps_choices_unless_told() {
+        assert_eq!(
+            tool_of(&["denoise", "a.wav"]),
+            Ok(Some(MediaTool::Denoise {
+                strength: Strength::Medium,
+                rumble: false
+            }))
+        );
+        assert_eq!(
+            tool_of(&["stabilize", "a.mp4", "--strength", "light"]),
+            Ok(Some(MediaTool::Stabilize {
+                strength: Strength::Light
+            }))
+        );
+        assert_eq!(
+            tool_of(&["remove-pauses", "a.mp4", "--keep", "0.3"]),
+            Ok(Some(MediaTool::RemovePauses {
+                pauses: Pauses {
+                    keep: 0.3,
+                    ..Pauses::default()
+                }
+            }))
+        );
+        assert_eq!(
+            tool_of(&["rotate-video", "a.mp4", "--turn", "left", "--mirror"]),
+            Ok(Some(MediaTool::RotateVideo {
+                turn: Turn::Left,
+                mirror: true,
+                flip: false
+            }))
+        );
+        assert_eq!(
+            tool_of(&["rotate-video", "a.mp4", "--flip"]),
+            Ok(Some(MediaTool::RotateVideo {
+                turn: Turn::None,
+                mirror: false,
+                flip: true
+            }))
+        );
+        assert_eq!(tool_of(&["rotate-video", "a.mp4"]), Err(Usage::NoTurn));
+        // Merge videos joins with a cut, as before, unless a transition is named; its length is
+        // the app's half second unless given.
+        assert_eq!(
+            tool_of(&["merge-video", "a.mp4", "b.mp4"]),
+            Ok(Some(MediaTool::MergeVideos {
+                transition: Transition::default()
+            }))
+        );
+        assert_eq!(
+            tool_of(&["merge-video", "a.mp4", "b.mp4", "--transition", "slide"]),
+            Ok(Some(MediaTool::MergeVideos {
+                transition: Transition {
+                    kind: TransitionKind::Slide,
+                    seconds: 0.5
+                }
+            }))
+        );
+        assert_eq!(
+            tool_of(&[
+                "merge-video",
+                "a.mp4",
+                "b.mp4",
+                "--transition",
+                "wipe",
+                "--seconds",
+                "2"
+            ]),
+            Ok(Some(MediaTool::MergeVideos {
+                transition: Transition {
+                    kind: TransitionKind::Wipe,
+                    seconds: 2.0
+                }
+            }))
+        );
+        assert_eq!(
+            tool_of(&[
+                "merge-video",
+                "a.mp4",
+                "b.mp4",
+                "--transition",
+                "cut",
+                "--seconds",
+                "1"
+            ]),
+            Err(Usage::NotHere("--seconds"))
+        );
+        assert_eq!(
+            tool_of(&["merge-audio", "a.mp3", "b.mp3"]),
+            Ok(Some(MediaTool::MergeAudio { crossfade: 0.0 }))
+        );
+        assert_eq!(tool_of(&["extract", "a.zip"]), Ok(None));
+        // Every media tool the command line names is one the app knows by that id.
+        for id in TOOLS {
+            let options = ToolOptions {
+                turn: Some(Turn::Right),
+                ..ToolOptions::default()
+            };
+            if let Some(tool) = media_tool(id, &options).unwrap() {
+                assert_eq!(tool.id(), id);
+            }
+        }
     }
 
     #[test]

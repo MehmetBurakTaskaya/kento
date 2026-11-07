@@ -204,6 +204,7 @@ impl Session {
             Usage::NoTool => ("cli.usage.tool", vec![]),
             Usage::NoRecipe => ("cli.usage.recipe", vec![]),
             Usage::OneMode => ("cli.usage.compress", vec![]),
+            Usage::NoTurn => ("cli.usage.turn", vec![]),
         };
         let args: Vec<(&str, &str)> = args.iter().map(|(k, v)| (*k, v.as_str())).collect();
         self.problem(Exit::Usage, key, &args)
@@ -487,6 +488,36 @@ mod tests {
             (&["convert", src, "--to", "mp3"], Exit::Unsupported),
             (&["tool", "trim-video", src], Exit::Unsupported),
             (&["tool", "mute", src], Exit::Unsupported),
+            // The new video and audio tools: their options, then the files.
+            (&["tool", "rotate-video", src], Exit::Usage),
+            (&["tool", "rotate-video", src, "--turn", "up"], Exit::Usage),
+            (
+                &["tool", "rotate-video", src, "--turn", "left"],
+                Exit::Unsupported,
+            ),
+            (&["tool", "denoise", src, "--turn", "left"], Exit::Usage),
+            (
+                &["tool", "denoise", src, "--strength", "light", "--rumble"],
+                Exit::Unsupported,
+            ),
+            (&["tool", "stabilize", src, "--rumble"], Exit::Usage),
+            (
+                &["tool", "remove-pauses", src, "--threshold", "5"],
+                Exit::Usage,
+            ),
+            (
+                &["tool", "merge-video", src, src, "--seconds", "1"],
+                Exit::Usage,
+            ),
+            (
+                &["tool", "merge-audio", src, src, "--transition", "wipe"],
+                Exit::Usage,
+            ),
+            (
+                &["tool", "merge-audio", src, src, "--crossfade", "11"],
+                Exit::Usage,
+            ),
+            (&["convert", src, "--to", "jpg", "--mirror"], Exit::Usage),
         ];
         for (args, expected) in cases {
             let args: Vec<OsString> = args.iter().map(OsString::from).collect();

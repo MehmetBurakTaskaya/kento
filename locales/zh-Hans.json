@@ -1130,6 +1130,7 @@
   "cli.usage.tool": "请指定一个工具，例如 kento tool compress 照片.jpg。查看工具：kento help tool",
   "cli.usage.recipe": "请指定配方和文件，例如 kento recipe run Instagram 照片.jpg。",
   "cli.usage.compress": "--quality、--ratio 和 --target-size 只能选择其一。",
+  "cli.usage.turn": "Say how to turn the video: --turn right|left|half, --mirror or --flip.",
   "cli.usage.count": "“{tool}”需要两个或更多文件。",
   "cli.usage.missing": "{file} 不存在。",
   "cli.usage.out": "Kento 无法写入文件夹 {folder}。",

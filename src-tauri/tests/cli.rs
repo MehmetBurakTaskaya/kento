@@ -428,3 +428,122 @@ fn recipes_are_listed_and_found_by_name_or_id() {
     assert_no_parts(&dir);
     bench.assert_clean();
 }
+
+/// FFmpeg and ffprobe from `KENTO_FFMPEG`/`KENTO_FFPROBE` or the PATH, to make clips with and
+/// measure them; without them the media check is skipped, unless `KENTO_REQUIRE_FFMPEG=1`.
+fn media_tools() -> Option<(PathBuf, PathBuf)> {
+    let find = |var: &str, name: &str| {
+        std::env::var_os(var)
+            .map(PathBuf::from)
+            .filter(|path| path.is_file())
+            .or_else(|| {
+                let exe = format!("{name}{}", std::env::consts::EXE_SUFFIX);
+                std::env::split_paths(&std::env::var_os("PATH")?)
+                    .map(|dir| dir.join(&exe))
+                    .find(|path| path.is_file())
+            })
+    };
+    let found = find("KENTO_FFMPEG", "ffmpeg").zip(find("KENTO_FFPROBE", "ffprobe"));
+    if found.is_none() {
+        let required = std::env::var("KENTO_REQUIRE_FFMPEG").is_ok_and(|v| v == "1");
+        assert!(!required, "KENTO_REQUIRE_FFMPEG=1 but FFmpeg is missing");
+        eprintln!("skipped the media check of the command line: no FFmpeg on the PATH");
+    }
+    found
+}
+
+#[test]
+fn merges_videos_with_a_transition() {
+    let Some((ffmpeg, ffprobe)) = media_tools() else {
+        return;
+    };
+    let bench = Bench::new("en");
+    let dir = bench.dir();
+    // Two sizes and frame rates, sound in one only.
+    let clip = |name: &str, picture: &str, sound: bool| {
+        let path = dir.join(name);
+        let mut command = std::process::Command::new(&ffmpeg);
+        command.args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            picture,
+        ]);
+        if sound {
+            command.args(["-f", "lavfi", "-i", "sine=f=440:r=48000:d=3", "-c:a", "aac"]);
+        }
+        let status = command
+            .args([
+                "-c:v",
+                "libx264",
+                "-preset",
+                "ultrafast",
+                "-pix_fmt",
+                "yuv420p",
+            ])
+            .arg(&path)
+            .status()
+            .unwrap();
+        assert!(status.success(), "making {name}");
+        path
+    };
+    let first = clip("Kapadokya ğüş 🧪.mp4", "testsrc2=s=192x108:r=25:d=3", true);
+    let second = clip("Göreme İı.mp4", "testsrc2=s=120x120:r=30:d=3", false);
+
+    let (exit, report) = bench.json([
+        OsStr::new("tool"),
+        "merge-video".as_ref(),
+        first.as_os_str(),
+        second.as_os_str(),
+        "--transition".as_ref(),
+        "fade-black".as_ref(),
+        "--seconds".as_ref(),
+        "1".as_ref(),
+    ]);
+    assert_eq!(exit, 0, "{report}");
+    let merged = path(&report["results"][0]["outputs"][0]);
+    assert_eq!(merged, dir.join("Kapadokya ğüş 🧪 - merged.mp4"));
+    let probe = std::process::Command::new(&ffprobe)
+        .args([
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:stream=width",
+            "-of",
+            "json",
+        ])
+        .arg(&merged)
+        .output()
+        .unwrap();
+    let probe: Value = serde_json::from_slice(&probe.stdout).unwrap();
+    assert_eq!(probe["streams"][0]["width"], 192, "{probe}");
+    // Two clips of three seconds overlap by one.
+    let seconds: f64 = probe["format"]["duration"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert!((seconds - 5.0).abs() < 0.1, "{seconds} seconds");
+    assert_no_parts(&dir);
+    bench.assert_clean();
+
+    // A transition's length without a transition is wrong usage, and nothing runs.
+    let output = bench.kento([
+        OsStr::new("tool"),
+        "merge-video".as_ref(),
+        first.as_os_str(),
+        second.as_os_str(),
+        "--seconds".as_ref(),
+        "1".as_ref(),
+    ]);
+    assert_eq!(code(&output), 2, "{}", stderr(&output));
+    assert_eq!(
+        stderr(&output).trim(),
+        "kento: --seconds does not go with this command."
+    );
+    assert!(!dir.join("Kapadokya ğüş 🧪 - merged (2).mp4").exists());
+}
