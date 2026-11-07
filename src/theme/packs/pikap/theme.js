@@ -283,6 +283,106 @@ export default function register(Board) {
       }
     }
 
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+
+    // Dust in the groove: eight short takes of one to three pops, each a fraction of a millisecond that the
+    // stylus rings with for a moment, made once per sample rate from a fixed seed.
+    let dust = null;
+    function dustOf(ac) {
+      if (dust && dust.rate === ac.sampleRate) return dust.takes;
+      const sr = ac.sampleRate;
+      let seed = 11;
+      const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+      const takes = [];
+      for (let v = 0; v < 8; v++) {
+        const b = ac.createBuffer(1, Math.round(sr * 0.03), sr);
+        const d = b.getChannelData(0);
+        const pops = 1 + Math.floor(rnd() * 3);
+        for (let p = 0; p < pops; p++) {
+          const at = Math.round(sr * (0.001 + (p ? rnd() * 0.012 : 0)));
+          const w = sr * (0.00015 + rnd() * 0.0004);
+          const ring = (2 * Math.PI * (1900 + rnd() * 1100)) / sr;
+          const amp = (p ? 0.25 + rnd() * 0.45 : 1) * (rnd() < 0.5 ? -1 : 1);
+          for (let i = 0; i < w * 8 && at + i < d.length; i++) {
+            d[at + i] += amp * Math.exp(-i / w) * Math.cos(ring * i) * Math.min(1, i / 3);
+          }
+        }
+        // Every take carries the same energy, so the pops differ in grain, not in loudness.
+        let e = 0;
+        for (const x of d) e += x * x;
+        const k = Math.sqrt((4 * sr) / 48000 / e);
+        for (let i = 0; i < d.length; i++) d[i] *= k;
+        takes.push(b);
+      }
+      dust = { rate: sr, takes };
+      return takes;
+    }
+
+    // One speck of dust, heard through a warm cartridge: a soft pop, never a sharp one.
+    function pop(ac, out, t, gain) {
+      const takes = dustOf(ac);
+      const src = ac.createBufferSource();
+      src.buffer = takes[Math.floor(Math.random() * takes.length)];
+      src.playbackRate.value = vary(1, 0.12);
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = vary(2100, 0.15);
+      band.Q.value = 0.55;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(gain, t + 0.0008);
+      src.connect(band).connect(g).connect(out);
+      src.start(t);
+      src.stop(t + 0.04);
+    }
+
+    // The first chord of the track, an electric piano on an old pressing: each note a sine whose bright
+    // attack (a second sine modulating it) mellows quickly, all wavering slowly with the record's wow and
+    // warmed by a gentle top cut.
+    function chord(ac, out, t) {
+      const end = t + 0.56;
+      const warm = ac.createBiquadFilter();
+      warm.type = 'lowpass';
+      warm.frequency.value = 2600;
+      warm.Q.value = 0.5;
+      warm.connect(out);
+      const wow = ac.createOscillator();
+      wow.frequency.value = 0.6;
+      const cents = ac.createGain();
+      cents.gain.value = 6;
+      wow.connect(cents);
+      wow.start(t);
+      wow.stop(end + 0.05);
+      for (const [f, gain] of [
+        [174.6, 0.0195],
+        [261.6, 0.014],
+        [329.6, 0.013],
+        [440, 0.009],
+      ]) {
+        const o = ac.createOscillator();
+        o.frequency.value = f;
+        const mod = ac.createOscillator();
+        mod.frequency.value = f;
+        const index = ac.createGain();
+        index.gain.setValueAtTime(f * 1.6, t);
+        index.gain.exponentialRampToValueAtTime(f * 0.15, t + 0.25);
+        mod.connect(index).connect(o.frequency);
+        cents.connect(o.detune);
+        const g = ac.createGain();
+        g.gain.value = 0;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(gain, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, end);
+        o.connect(g).connect(warm);
+        for (const n of [o, mod]) {
+          n.start(t);
+          n.stop(end + 0.05);
+        }
+      }
+    }
+
     Board.define({
       id: 'pikap',
       fonts: {
@@ -449,45 +549,56 @@ export default function register(Board) {
         },
       },
 
+      // Vinyl, a stylus and a motor: dust popping through a warm cartridge, surface hiss, a rising whine.
       sounds: {
         open(ac, out, t, X) {
-          // The start button and the platter coming up to speed.
-          X.burst(ac, out, t, { type: 'bandpass', f: 2200, q: 2, dur: 0.018, gain: 0.12 });
-          X.burst(ac, out, t + 0.01, { type: 'bandpass', f: 180, f2: 520, q: 1.2, dur: 0.2, gain: 0.07, a: 0.05 });
-          X.tone(ac, out, t + 0.01, { type: 'sine', f: 55, f2: 75, dur: 0.18, gain: 0.05, a: 0.04 });
+          // The start key clicks and the platter comes up to speed as the record turns in (pikap-turn): a
+          // motor whine rising over the rush of the platter.
+          X.burst(ac, out, t, { type: 'bandpass', f: 1600, q: 2, dur: 0.012, gain: 0.12 });
+          X.tone(ac, out, t, { f: 265, f2: 200, dur: 0.03, gain: 0.05, a: 0.0015 });
+          X.tone(ac, out, t + 0.02, { type: 'triangle', f: 150, f2: 300, dur: 0.36, gain: 0.03, a: 0.12 });
+          X.tone(ac, out, t + 0.02, { f: 300, f2: 600, dur: 0.3, gain: 0.008, a: 0.12 });
+          X.burst(ac, out, t + 0.02, { type: 'bandpass', f: 380, f2: 1100, q: 1.1, dur: 0.3, gain: 0.03, a: 0.12 });
+          pop(ac, out, t + 0.28, 0.05);
         },
         tick(ac, out, t, X) {
-          // One dust pop in the groove.
-          X.burst(ac, out, t, { type: 'highpass', f: 3200, q: 0.8, dur: 0.006, gain: 0.1 });
-          X.burst(ac, out, t + 0.002, { type: 'bandpass', f: 1200, q: 2, dur: 0.008, gain: 0.05 });
+          // The pointer crosses a groove: one speck of dust pops in it, a little different every time.
+          pop(ac, out, t, vary(0.146, 0.15));
+          X.tone(ac, out, t, { f: vary(175, 0.1), f2: 140, dur: 0.012, gain: 0.017, a: 0.001 });
+          X.burst(ac, out, t, { type: 'bandpass', f: 2600, q: 0.8, dur: 0.018, gain: 0.0067, a: 0.002 });
+        },
+        enter(ac, out, t, X) {
+          // Into a ring: the cueing lever lowers the stylus, a soft padded touch, then a few crackles.
+          X.tone(ac, out, t, { f: 190, f2: 125, dur: 0.05, gain: 0.03, a: 0.003 });
+          X.burst(ac, out, t, { type: 'bandpass', f: 520, q: 0.8, dur: 0.025, gain: 0.03, a: 0.002 });
+          X.burst(ac, out, t + 0.01, { type: 'bandpass', f: 3200, q: 0.6, dur: 0.12, gain: 0.0036, a: 0.02 });
+          pop(ac, out, t + 0.004, 0.072);
+          pop(ac, out, t + 0.05, 0.12);
+          pop(ac, out, t + 0.105, 0.072);
+        },
+        leave(ac, out, t, X) {
+          // Back out: the arm lifts, the lever clicks and the groove's hiss falls away under the stylus.
+          X.burst(ac, out, t, { type: 'bandpass', f: 2200, q: 2.4, dur: 0.008, gain: 0.08 });
+          X.tone(ac, out, t, { f: 340, f2: 280, dur: 0.02, gain: 0.025, a: 0.001 });
+          X.burst(ac, out, t + 0.005, { type: 'bandpass', f: 3600, f2: 1400, q: 0.7, dur: 0.12, gain: 0.02, a: 0.004 });
+          pop(ac, out, t + 0.03, 0.14);
+          X.tone(ac, out, t + 0.03, { f: 160, f2: 120, dur: 0.02, gain: 0.02, a: 0.002 });
         },
         success(ac, out, t, X) {
-          const at = (ms) => t + ms / 1000;
-          // The spin, then the needle drop: a soft low thump.
-          X.burst(ac, out, t, { type: 'bandpass', f: 900, f2: 260, q: 1.4, dur: 0.42, gain: 0.03, a: 0.05 });
-          X.tone(ac, out, at(TM.drop1), { type: 'sine', f: 95, f2: 55, dur: 0.12, gain: 0.09, a: 0.003 });
-          X.burst(ac, out, at(TM.drop1), { type: 'lowpass', f: 400, q: 0.7, dur: 0.05, gain: 0.08 });
-          // Crackle on a bed of surface hiss.
-          X.burst(ac, out, at(TM.drop1), { type: 'bandpass', f: 4200, q: 0.6, dur: 0.5, gain: 0.012, a: 0.03 });
-          const pops = [0.02, 0.07, 0.095, 0.16, 0.23, 0.27, 0.34, 0.41, 0.47];
-          pops.forEach((p, j) =>
-            X.burst(ac, out, at(TM.drop1) + p, {
-              type: 'highpass',
-              f: 2600 + (j % 3) * 900,
-              q: 0.7,
-              dur: 0.005,
-              gain: 0.025 + (j % 2) * 0.02,
-            }),
+          const drop = t + TM.drop1 / 1000;
+          // The record spins round to the slice and slows: a soft rush that falls as it does.
+          X.burst(ac, out, t, { type: 'bandpass', f: 720, f2: 260, q: 1.2, dur: 0.38, gain: 0.016, a: 0.06 });
+          // The needle lands: a round thump through the speakers and the stylus' first contact.
+          X.tone(ac, out, drop, { f: 168, f2: 104, dur: 0.1, gain: 0.065, a: 0.003 });
+          X.burst(ac, out, drop, { type: 'bandpass', f: 450, q: 0.8, dur: 0.04, gain: 0.039, a: 0.002 });
+          pop(ac, out, drop, 0.11);
+          // The lead-in groove: surface hiss and dust that thins out as the record plays on.
+          X.burst(ac, out, drop + 0.01, { type: 'bandpass', f: 3600, q: 0.5, dur: 0.62, gain: 0.0052, a: 0.05 });
+          [0.03, 0.08, 0.105, 0.17, 0.24, 0.28, 0.35, 0.43, 0.5, 0.58, 0.66].forEach((p, j) =>
+            pop(ac, out, drop + p, (j % 3 === 1 ? 0.14 : 0.085) * (1 - p)),
           );
-          // The first warm chord of the track.
-          for (const [f, g] of [
-            [220, 0.022],
-            [277.2, 0.016],
-            [329.6, 0.016],
-            [440, 0.008],
-          ]) {
-            X.tone(ac, out, at(TM.drop1 + 70), { type: 'triangle', f, dur: 0.42, gain: g, a: 0.06 });
-          }
+          // The track begins: a warm chord, wavering as a record does.
+          chord(ac, out, drop + 0.07);
         },
       },
     });

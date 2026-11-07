@@ -300,6 +300,44 @@ export default function register(Board) {
       root.classList.toggle('rd-aiming', target != null);
     }
 
+    // The scope's pitch (Hz): every contact pings near it.
+    const PING = 1180;
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+
+    // A contact: a short sine blip that dips a little, and its echo a moment later.
+    function blip(ac, out, t, X, f, gain) {
+      X.tone(ac, out, t, { f, f2: f * 0.97, dur: 0.035, gain, a: 0.002 });
+      X.tone(ac, out, t + 0.055, { f: f * 0.995, f2: f * 0.965, dur: 0.03, gain: gain * 0.2, a: 0.002 });
+    }
+    // A sonar ping: a long falling sine with a slightly detuned twin that makes it shimmer, and a faint
+    // octave that dies first; k shifts its pitch.
+    function ping(ac, out, t, X, gain, dur, k = 1) {
+      const f = PING * k;
+      X.tone(ac, out, t, { f, f2: f * 0.95, dur, gain, a: 0.004 });
+      X.tone(ac, out, t, { f: f * 1.003, f2: f * 0.953, dur: dur * 0.8, gain: gain * 0.5, a: 0.004 });
+      X.tone(ac, out, t, { f: f * 2, f2: f * 1.9, dur: dur * 0.3, gain: gain * 0.12, a: 0.003 });
+    }
+    // The beam's turn: a breath of air that rises and falls with the sweep's speed.
+    function sweep(ac, out, t, len, X) {
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.Q.value = 1.4;
+      band.frequency.setValueAtTime(600, t);
+      band.frequency.linearRampToValueAtTime(1700, t + len / 2);
+      band.frequency.linearRampToValueAtTime(650, t + len);
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.03, t + len / 2);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      src.connect(band).connect(g).connect(out);
+      src.start(t, Math.random() * 0.4);
+      src.stop(t + len + 0.02);
+    }
+
     Board.define({
       id: 'radar',
       fonts: {
@@ -433,23 +471,41 @@ export default function register(Board) {
       defs: '',
       wheel: { render, update },
 
+      // Phosphor and sonar: pure, round sine blips and pings near 1180 Hz, each with its faint echo.
       sounds: {
         open(ac, out, t, X) {
-          // The scope powers up: a low thump and a soft rising tone.
-          X.tone(ac, out, t, { type: 'triangle', f: 90, f2: 70, dur: 0.06, gain: 0.06, a: 0.003 });
-          X.tone(ac, out, t + 0.01, { f: 240, f2: 720, dur: 0.16, gain: 0.03, a: 0.04 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 2400, q: 3, dur: 0.05, gain: 0.03, a: 0.01 });
+          // The scope powers up as the grid is drawn (radar-grid): the tube's soft thump, a charging whine
+          // rising to the scope's pitch, and the first faint contact.
+          X.tone(ac, out, t, { type: 'triangle', f: 160, f2: 118, dur: 0.07, gain: 0.042, a: 0.003 });
+          X.burst(ac, out, t, { type: 'bandpass', f: 320, q: 0.8, dur: 0.03, gain: 0.03, a: 0.002 });
+          X.tone(ac, out, t + 0.02, { f: 300, f2: PING, dur: 0.2, gain: 0.032, a: 0.07 });
+          blip(ac, out, t + 0.24, X, PING, 0.054);
         },
         tick(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 1760, f2: 1700, dur: 0.026, gain: 0.04, a: 0.002 });
+          // The sweep swings onto the slice and finds a contact: a soft round blip and its echo.
+          blip(ac, out, t, X, vary(PING, 0.025), vary(0.045, 0.15));
+        },
+        enter(ac, out, t, X) {
+          // Into a ring: the range steps in, a quick chirp rising into a blip.
+          X.tone(ac, out, t, { f: PING * 0.7, f2: PING, dur: 0.06, gain: 0.023, a: 0.006 });
+          blip(ac, out, t + 0.062, X, PING, 0.035);
+        },
+        leave(ac, out, t, X) {
+          // Back out: the range steps out, a chirp falling to a lower blip.
+          X.tone(ac, out, t, { f: PING, f2: PING * 0.75, dur: 0.06, gain: 0.023, a: 0.006 });
+          blip(ac, out, t + 0.062, X, PING * 0.75, 0.035);
         },
         success(ac, out, t, X) {
-          // The sweep comes round (0.36 s): two quick lock beeps, then a long falling sonar ping and its echo.
-          X.tone(ac, out, t + 0.33, { type: 'square', f: 1568, dur: 0.028, gain: 0.014, a: 0.002 });
-          X.tone(ac, out, t + 0.39, { type: 'square', f: 1568, dur: 0.028, gain: 0.014, a: 0.002 });
-          X.tone(ac, out, t + 0.36, { f: 1180, f2: 1090, dur: 0.95, gain: 0.07, a: 0.004 });
-          X.tone(ac, out, t + 0.36, { f: 2360, f2: 2180, dur: 0.3, gain: 0.012, a: 0.004 });
-          X.tone(ac, out, t + 0.6, { f: 1170, f2: 1090, dur: 0.6, gain: 0.022, a: 0.01 });
+          // The sweep turns once with a breath of air (364 ms), then the target locks: a long sonar ping as
+          // the first ring spreads, two lock beeps as the brackets close in, three faint ticks as they
+          // blink, and the ping's echo with the second ring.
+          const at = (ms) => t + ms / 1000;
+          sweep(ac, out, t, 0.364, X);
+          ping(ac, out, at(364), X, 0.06, 0.62);
+          X.tone(ac, out, at(400), { type: 'triangle', f: PING * 1.5, dur: 0.03, gain: 0.012, a: 0.002 });
+          X.tone(ac, out, at(452), { type: 'triangle', f: PING * 1.5, dur: 0.03, gain: 0.012, a: 0.002 });
+          for (const ms of [518, 560, 602]) X.tone(ac, out, at(ms), { f: PING * 2, dur: 0.012, gain: 0.004, a: 0.001 });
+          ping(ac, out, at(469), X, 0.02, 0.5, 0.985);
         },
       },
     });

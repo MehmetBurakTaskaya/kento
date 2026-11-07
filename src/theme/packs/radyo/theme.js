@@ -210,6 +210,159 @@ export default function register(Board) {
       root.classList.toggle('ry-tuned', st.selected != null);
     }
 
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+    // The pointer's swings while it hunts (ms, degrees off the station) and the lamp's flicker with the
+    // static (ms, brightness), as radyo-hunt and radyo-static.
+    const HUNT = [
+      [0, -10],
+      [58, 8],
+      [110, -6],
+      [162, 4.5],
+      [208, -2.5],
+      [247, 1.2],
+      [273, 0],
+    ];
+    const FLICKER = [
+      [0, 0.3],
+      [32, 1.8],
+      [58, 0.5],
+      [91, 1.6],
+      [130, 0.4],
+      [169, 1.9],
+      [208, 0.7],
+      [247, 1.4],
+      [273, 0.6],
+    ];
+    // The whistle's pitch (Hz) a number of degrees off the station: the further off, the higher.
+    const pitchOff = (deg) => 160 + 70 * Math.abs(deg);
+
+    // A whistle gliding from f0 to f1: loudest away from the station, gone where it is tuned exactly.
+    function whistle(ac, out, t, f0, f1, dur, gain) {
+      const o = ac.createOscillator();
+      o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + (f0 > f1 ? 0.01 : dur * 0.65));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.02);
+      o.connect(g).connect(out);
+      o.start(t);
+      o.stop(t + dur + 0.05);
+    }
+
+    // The hunt: the whistle follows the pointer, swooping down and nearly vanishing at every crossing of
+    // the station, over static that flickers with the lamp and quiets once the station is in.
+    function hunt(ac, out, t, X) {
+      const at = (ms) => t + ms / 1000;
+      const W = 0.03;
+      const o = ac.createOscillator();
+      o.frequency.setValueAtTime(pitchOff(HUNT[0][1]), t);
+      const wg = ac.createGain();
+      wg.gain.value = 0;
+      wg.gain.setValueAtTime(0.0001, t);
+      wg.gain.exponentialRampToValueAtTime(W, at(15));
+      for (let k = 1; k < HUNT.length; k++) {
+        const [m0] = HUNT[k - 1];
+        const [m1, a1] = HUNT[k];
+        if (a1 === 0) {
+          o.frequency.exponentialRampToValueAtTime(pitchOff(0), at(m1));
+          wg.gain.exponentialRampToValueAtTime(0.0001, at(m1 + 8));
+          break;
+        }
+        o.frequency.exponentialRampToValueAtTime(pitchOff(0), at((m0 + m1) / 2));
+        wg.gain.exponentialRampToValueAtTime(W * 0.15, at((m0 + m1) / 2));
+        o.frequency.exponentialRampToValueAtTime(pitchOff(a1), at(m1));
+        wg.gain.exponentialRampToValueAtTime(W * (0.6 + 0.04 * Math.abs(a1)), at(m1));
+      }
+      o.connect(wg).connect(out);
+      o.start(t);
+      o.stop(at(300));
+
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 1600;
+      band.Q.value = 0.6;
+      const S = 0.03;
+      const sg = ac.createGain();
+      sg.gain.value = 0;
+      sg.gain.setValueAtTime(0, t);
+      for (const [ms, v] of FLICKER) sg.gain.linearRampToValueAtTime(S * v, at(ms || 4));
+      sg.gain.linearRampToValueAtTime(S * 0.08, at(300));
+      sg.gain.linearRampToValueAtTime(0, at(560));
+      src.connect(band).connect(sg).connect(out);
+      src.start(t, Math.random() * 0.4);
+      src.stop(at(580));
+    }
+
+    // A soft valve's saturation, shared by every station.
+    let valveCurve = null;
+    function valve() {
+      if (valveCurve) return valveCurve;
+      valveCurve = new Float32Array(1025);
+      for (let i = 0; i < valveCurve.length; i++) valveCurve[i] = Math.tanh(2 * (i / 512 - 1)) / Math.tanh(2);
+      return valveCurve;
+    }
+
+    // The station comes in: a warm chord, a little gritty through the valves and narrow through a small
+    // speaker, with a gentle vibrato, swelling in three steps with the signal arcs (radyo-wave, 20, 71 and
+    // 123 ms after the snap) and fading.
+    function station(ac, out, t) {
+      const end = t + 0.7;
+      const P = 0.05;
+      const drive = ac.createWaveShaper();
+      drive.curve = valve();
+      drive.oversample = '2x';
+      const low = ac.createBiquadFilter();
+      low.type = 'highpass';
+      low.frequency.value = 260;
+      low.Q.value = 0.7;
+      const high = ac.createBiquadFilter();
+      high.type = 'lowpass';
+      high.frequency.value = 2800;
+      high.Q.value = 0.9;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(P * 0.5, t + 0.02);
+      g.gain.linearRampToValueAtTime(P * 0.35, t + 0.05);
+      g.gain.linearRampToValueAtTime(P * 0.8, t + 0.071);
+      g.gain.linearRampToValueAtTime(P * 0.6, t + 0.1);
+      g.gain.linearRampToValueAtTime(P, t + 0.123);
+      g.gain.setValueAtTime(P, t + 0.3);
+      g.gain.exponentialRampToValueAtTime(0.0001, end);
+      drive.connect(low).connect(high).connect(g).connect(out);
+      const vib = ac.createOscillator();
+      vib.frequency.value = 5.5;
+      const cents = ac.createGain();
+      cents.gain.value = 5;
+      vib.connect(cents);
+      const nodes = [vib];
+      for (const [f, d] of [
+        [220, -3],
+        [329.6, 2],
+        [440, 3],
+        [554.4, -2],
+      ]) {
+        const o = ac.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = f;
+        o.detune.value = d;
+        cents.connect(o.detune);
+        const v = ac.createGain();
+        v.gain.value = 0.22;
+        o.connect(v).connect(drive);
+        nodes.push(o);
+      }
+      for (const n of nodes) {
+        n.start(t);
+        n.stop(end + 0.05);
+      }
+    }
+
     Board.define({
       id: 'radyo',
       fonts: {
@@ -359,24 +512,51 @@ export default function register(Board) {
       defs: '',
       wheel: { render, update },
 
+      // Valves and the medium wave: static, the whistle a station makes until it is tuned exactly, and a
+      // station coming in warm through a small speaker.
       sounds: {
         open(ac, out, t, X) {
-          // The power switch, a short warm-up hum and a breath of static.
-          X.burst(ac, out, t, { type: 'bandpass', f: 1800, q: 2.5, dur: 0.02, gain: 0.13 });
-          X.tone(ac, out, t + 0.01, { type: 'sine', f: 100, dur: 0.16, gain: 0.035, a: 0.03 });
-          X.burst(ac, out, t + 0.03, { type: 'bandpass', f: 3200, q: 0.8, dur: 0.14, gain: 0.014, a: 0.04 });
+          // The power switch clicks and the valves warm up as the dial lamp glows (radyo-warm): a soft
+          // hum rising under a breath of static and a far-off whistle.
+          X.burst(ac, out, t, { type: 'bandpass', f: 1800, q: 2.5, dur: 0.015, gain: 0.1 });
+          X.tone(ac, out, t, { f: 320, f2: 260, dur: 0.025, gain: 0.025, a: 0.001 });
+          X.tone(ac, out, t + 0.03, { f: 150, dur: 0.32, gain: 0.02, a: 0.12 });
+          X.tone(ac, out, t + 0.03, { f: 300, dur: 0.28, gain: 0.008, a: 0.12 });
+          X.burst(ac, out, t + 0.06, { type: 'bandpass', f: 2200, q: 0.6, dur: 0.3, gain: 0.012, a: 0.14 });
+          X.tone(ac, out, t + 0.16, { f: 980, f2: 620, dur: 0.2, gain: 0.004, a: 0.06 });
         },
         tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 2200, q: 2.2, dur: 0.012, gain: 0.2 });
-          X.burst(ac, out, t + 0.004, { type: 'bandpass', f: 5200, q: 1, dur: 0.02, gain: 0.025 });
+          // The pointer slides past a station: a breath of static with a whistle swooping through it.
+          X.burst(ac, out, t, {
+            type: 'bandpass',
+            f: vary(1800, 0.15),
+            q: 0.9,
+            dur: 0.03,
+            gain: vary(0.068, 0.15),
+            a: 0.004,
+          });
+          const [f, f2] = Math.random() < 0.5 ? [vary(1300, 0.2), 320] : [320, vary(1300, 0.2)];
+          X.tone(ac, out, t + 0.003, { f, f2, dur: 0.04, gain: 0.016, a: 0.006 });
+        },
+        enter(ac, out, t, X) {
+          // Into a ring: tuning in, a whistle falling to nothing as the static clears.
+          whistle(ac, out, t, 1100, 170, 0.13, 0.014);
+          X.burst(ac, out, t, { type: 'bandpass', f: 1700, q: 0.8, dur: 0.12, gain: 0.025, a: 0.006 });
+          X.burst(ac, out, t + 0.13, { type: 'bandpass', f: 2600, q: 3, dur: 0.004, gain: 0.025 });
+        },
+        leave(ac, out, t, X) {
+          // Back out: tuning away, a whistle rising out of silence into static.
+          whistle(ac, out, t, 170, 1100, 0.13, 0.014);
+          X.burst(ac, out, t + 0.05, { type: 'bandpass', f: 1900, q: 0.8, dur: 0.07, gain: 0.025, a: 0.05 });
         },
         success(ac, out, t, X) {
-          // Static while the pointer hunts, then the station: a calm fifth.
-          X.burst(ac, out, t, { type: 'bandpass', f: 1300, f2: 3600, q: 1.3, dur: 0.15, gain: 0.04, a: 0.01 });
-          X.burst(ac, out, t + 0.14, { type: 'bandpass', f: 3600, f2: 900, q: 1.6, dur: 0.14, gain: 0.032 });
-          X.tone(ac, out, t + 0.27, { f: 659.3, dur: 0.55, gain: 0.05, a: 0.03 });
-          X.tone(ac, out, t + 0.33, { f: 987.8, dur: 0.48, gain: 0.03, a: 0.03 });
-          X.tone(ac, out, t + 0.27, { type: 'triangle', f: 329.6, dur: 0.4, gain: 0.015, a: 0.04 });
+          // Tuning in (radyo-hunt): the whistle follows the pointer's shrinking swings, swooping to nothing
+          // at each crossing, over static flickering with the lamp; the pointer snaps on and the station
+          // comes in, swelling with the three signal arcs.
+          hunt(ac, out, t, X);
+          X.burst(ac, out, t + 0.273, { type: 'bandpass', f: 2600, q: 3, dur: 0.005, gain: 0.04 });
+          X.tone(ac, out, t + 0.273, { f: 480, f2: 420, dur: 0.012, gain: 0.015, a: 0.001 });
+          station(ac, out, t + 0.28);
         },
       },
     });

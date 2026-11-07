@@ -45,8 +45,9 @@ export default function register(Board) {
       const dur = 150 + 260 * (d / 337.5);
       return { sgn, rest, d, start: 50, arrive: 50 + dur };
     }
-    // The success sound ticks while the hand runs and clicks when it stops, so it reads the last run.
-    let lastRun = { start: 50, arrive: 330 };
+    // The success sound ticks while the hand runs and clicks when it stops, so it reads the last run; before
+    // the first, a run of half a turn.
+    let lastRun = { sgn: 1, rest: -22.5, d: 180, start: 50, arrive: 339 };
 
     // The hand's angle at time t (ms): eases out of the start, settles into the slice with a small recoil.
     function handAt(k, t) {
@@ -65,6 +66,39 @@ export default function register(Board) {
       const v = (t - t0) / 90;
       return v > 0 && v < 1 ? 4.5 * Math.sin(Math.PI * v) : 0;
     };
+
+    // Which half of the escapement's beat the next tick is: tick and tock sound a little apart.
+    let beat = 0;
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+
+    // One tooth of the gear train: a tiny steel part struck, ringing for a few milliseconds. A full beat of
+    // the escapement adds a second partial, a dry edge and the pallet's second, higher click just after.
+    function escape(ac, out, t, X, f, gain, full) {
+      X.tone(ac, out, t, { f, dur: 0.006, gain, a: 0.001 });
+      if (!full) return;
+      X.tone(ac, out, t, { f: f * 1.47, dur: 0.004, gain: gain * 0.6, a: 0.001 });
+      X.burst(ac, out, t, { type: 'bandpass', f: f * 1.2, q: 3, dur: 0.002, gain: gain * 2.2 });
+      X.tone(ac, out, t + 0.0045, { f: f * 1.32, dur: 0.004, gain: gain * 0.5, a: 0.001 });
+    }
+    // The steel case ringing softly: three partials, the higher ones dying sooner.
+    function ring(ac, out, t, X, gain, dur) {
+      for (const [r, a] of [
+        [1, 1],
+        [1.51, 0.5],
+        [2.27, 0.25],
+      ]) {
+        X.tone(ac, out, t, { f: 2650 * r, dur: dur * (1.2 - r * 0.3), gain: gain * a, a: 0.0015 });
+      }
+    }
+    // A pusher: a firm click as it goes in, with the case's body and ring, and the clutch engaging just
+    // after it.
+    function pusher(ac, out, t, X, f, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f, q: 2, dur: 0.008, gain });
+      X.tone(ac, out, t, { f: 920, f2: 860, dur: 0.02, gain: gain * 0.2, a: 0.001 });
+      X.burst(ac, out, t + 0.022, { type: 'bandpass', f: f * 0.7, q: 2.5, dur: 0.01, gain: gain * 0.45 });
+      ring(ac, out, t + 0.001, X, gain * 0.06, 0.08);
+    }
 
     function paintRun(root, k, t) {
       const a = handAt(k, t);
@@ -438,30 +472,57 @@ export default function register(Board) {
         },
       },
 
+      // Fine steel: tiny escapement ticks, alternately tick and tock, firm pushers and the case's small ring.
       sounds: {
         open(ac, out, t, X) {
-          // The case snaps open with a small metallic ring.
-          X.burst(ac, out, t, { type: 'bandpass', f: 3400, q: 3, dur: 0.012, gain: 0.14 });
-          X.burst(ac, out, t + 0.018, { type: 'bandpass', f: 2200, q: 4, dur: 0.01, gain: 0.08 });
-          X.tone(ac, out, t + 0.012, { f: 3150, dur: 0.12, gain: 0.012, a: 0.001 });
+          // The crown is wound as the glint turns in (kronograf-glint): fine ratchet clicks, the spring
+          // settles with a small ring of steel, and the escapement starts: tick, tock.
+          for (let k = 0; k < 6; k++) {
+            escape(ac, out, t + 0.012 * k * (1 + 0.15 * k), X, 2900 + 160 * k, 0.0132 + 0.003 * k, false);
+          }
+          ring(ac, out, t + 0.15, X, 0.01, 0.22);
+          escape(ac, out, t + 0.27, X, 4200, 0.023, true);
+          escape(ac, out, t + 0.41, X, 3600, 0.019, true);
         },
         tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 4600, q: 2.6, dur: 0.007, gain: 0.24 });
-          X.burst(ac, out, t + 0.004, { type: 'bandpass', f: 2600, q: 5, dur: 0.005, gain: 0.08 });
+          // One beat of the escapement, alternately tick and tock, never twice the same.
+          beat = 1 - beat;
+          escape(ac, out, t, X, vary(beat ? 4200 : 3600, 0.02), vary(0.046, 0.1), true);
+        },
+        enter(ac, out, t, X) {
+          // Into a ring: a pusher goes in, a firm two-part click with the case's small ring.
+          pusher(ac, out, t, X, 2500, 0.16);
+        },
+        leave(ac, out, t, X) {
+          // Back out: reset, the hammer snaps the hand back to zero in a quick whirr of tiny clicks.
+          X.burst(ac, out, t, { type: 'bandpass', f: 3100, q: 2.2, dur: 0.006, gain: 0.08 });
+          for (let k = 0; k < 6; k++) escape(ac, out, t + 0.01 + 0.007 * k, X, 4800 - 150 * k, 0.012, false);
+          X.burst(ac, out, t + 0.06, { type: 'bandpass', f: 2400, q: 2, dur: 0.01, gain: 0.14 });
+          X.tone(ac, out, t + 0.06, { f: 880, f2: 800, dur: 0.02, gain: 0.03, a: 0.001 });
         },
         success(ac, out, t, X) {
           const k = lastRun;
           const at = (ms) => t + ms / 1000;
-          // Start: a firm two-part pusher click.
-          X.burst(ac, out, t, { type: 'bandpass', f: 2600, q: 1.8, dur: 0.012, gain: 0.2 });
-          X.burst(ac, out, at(22), { type: 'lowpass', f: 1300, q: 1, dur: 0.02, gain: 0.08 });
-          // The escapement while the hand runs.
-          for (let ms = k.start + 30; ms < k.arrive - 15; ms += 42)
-            X.burst(ac, out, at(ms), { type: 'bandpass', f: 5200, q: 7, dur: 0.004, gain: 0.07 });
-          // Stop: the same click, a touch higher, and the hand's tiny recoil.
-          X.burst(ac, out, at(k.arrive - 10), { type: 'bandpass', f: 3000, q: 1.8, dur: 0.012, gain: 0.21 });
-          X.burst(ac, out, at(k.arrive + 12), { type: 'lowpass', f: 1500, q: 1, dur: 0.02, gain: 0.07 });
-          X.tone(ac, out, at(k.arrive - 10), { f: 3600, dur: 0.09, gain: 0.01, a: 0.001 });
+          // Start: the pusher goes in and the clutch engages.
+          pusher(ac, out, t, X, 2500, 0.12);
+          // The hand runs: the gear train ticks once per mark of the seconds track it passes, quickening
+          // into a buzz and slowing again.
+          let mark = 0;
+          let last = -Infinity;
+          for (let ms = k.start; ms < k.arrive - 12; ms++) {
+            const now = Math.floor((k.sgn * (handAt(k, ms) - k.rest)) / 7.5);
+            if (now > mark && ms - last >= 5) {
+              escape(ac, out, at(ms), X, vary(5000, 0.04), 0.0105, false);
+              last = ms;
+            }
+            mark = Math.max(mark, now);
+          }
+          // Stop: the other pusher, a touch higher, the hand's two recoil ticks, and the case ringing
+          // softly as the slice is stamped (kronograf-stamp).
+          pusher(ac, out, at(k.arrive - 10), X, 2800, 0.13);
+          escape(ac, out, at(k.arrive + 25), X, 4400, 0.012, false);
+          escape(ac, out, at(k.arrive + 62), X, 4000, 0.008, false);
+          ring(ac, out, at(k.arrive), X, 0.0088, 0.26);
         },
       },
     });

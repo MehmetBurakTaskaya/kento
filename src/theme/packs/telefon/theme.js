@@ -72,6 +72,100 @@ export default function register(Board) {
       if (root.__tlStop) root.__tlStop();
     }
 
+    // The two gongs of the bell (Hz), a major third apart.
+    const GONG = [1680, 2120];
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+    // When the wind-up reaches a share y of its angle, as a share of its time: angleAt's ease, inverted.
+    const windAt = (y) => (y < 0.5 ? Math.sqrt(y / 2) : 1 - Math.sqrt(2 * (1 - y)) / 2);
+
+    // A bakelite click: a dry snap with the hollow shell's body under it.
+    function clack(ac, out, t, X, f, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f, q: 2.6, dur: 0.012, gain });
+      X.tone(ac, out, t, { f: 610, f2: 540, dur: 0.03, gain: gain * 0.3, a: 0.001 });
+    }
+    // The finger wheel against the stop or back at rest: a firmer, lower plastic knock.
+    function knock(ac, out, t, X, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f: 900, q: 0.8, dur: 0.025, gain });
+      X.burst(ac, out, t, { type: 'bandpass', f: 2400, q: 2, dur: 0.008, gain: gain * 0.5 });
+      X.tone(ac, out, t, { f: 240, f2: 175, dur: 0.045, gain: gain * 0.55, a: 0.0015 });
+    }
+    // One fine tooth of the wind-up ratchet.
+    function ratchet(ac, out, t, X, f, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f, q: 4, dur: 0.004, gain });
+    }
+    // One dial pulse on the way back: the contacts click and the bell's gongs, p-th of the run, tinkle.
+    function pulse(ac, out, t, X, gain, p = 0) {
+      X.burst(ac, out, t, { type: 'bandpass', f: vary(2500, 0.04), q: 3, dur: 0.007, gain });
+      X.tone(ac, out, t, { f: 520, f2: 470, dur: 0.018, gain: gain * 0.25, a: 0.001 });
+      X.tone(ac, out, t + 0.001, { f: GONG[p % 2], dur: 0.09, gain: gain * 0.05, a: 0.002 });
+    }
+    // The governor that holds the finger wheel's return steady: a whirr that spins up and runs until the
+    // wheel is back, its brake shoes rubbing at the speed they turn.
+    function whirr(ac, out, start, end, gain) {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(190, start);
+      o.frequency.exponentialRampToValueAtTime(245, start + Math.min(0.04, (end - start) / 2));
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 1050;
+      band.Q.value = 0.9;
+      const rub = ac.createGain();
+      rub.gain.value = 0.7;
+      const spin = ac.createOscillator();
+      spin.frequency.value = 33;
+      const depth = ac.createGain();
+      depth.gain.value = 0.3;
+      spin.connect(depth).connect(rub.gain);
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(gain, start + 0.012);
+      g.gain.setValueAtTime(gain, Math.max(start + 0.012, end - 0.01));
+      g.gain.exponentialRampToValueAtTime(0.0001, end + 0.012);
+      o.connect(band).connect(rub).connect(g).connect(out);
+      for (const n of [o, spin]) {
+        n.start(start);
+        n.stop(end + 0.03);
+      }
+    }
+    // The bell after dialling: the clapper strikes the two gongs in turn, ten times in 260 ms and each
+    // time softer, as the card shakes; each gong rings on its own three steel partials.
+    function bell(ac, out, t) {
+      const tau = 0.07;
+      GONG.forEach((f, j) => {
+        const g = ac.createGain();
+        g.gain.value = 0;
+        g.gain.setValueAtTime(0.00001, t);
+        let level = 0.00001;
+        let last = t;
+        for (let k = j; k < 10; k += 2) {
+          const s = t + 0.013 + 0.026 * k;
+          level = Math.max(0.00001, level * Math.exp(-(s - last) / tau));
+          g.gain.exponentialRampToValueAtTime(level, s);
+          level += 0.016 * (1 - (k + 0.5) / 10);
+          g.gain.linearRampToValueAtTime(level, s + 0.0015);
+          last = s + 0.0015;
+        }
+        g.gain.exponentialRampToValueAtTime(0.00001, last + 0.3);
+        g.connect(out);
+        for (const [r, a] of [
+          [1, 1],
+          [2.32, 0.4],
+          [4.25, 0.15],
+        ]) {
+          const o = ac.createOscillator();
+          o.frequency.value = f * r;
+          const pg = ac.createGain();
+          pg.gain.value = a;
+          o.connect(pg).connect(g);
+          o.start(t);
+          o.stop(last + 0.32);
+        }
+      });
+    }
+
     function render(root, m, H) {
       const u = H.uid('telefon');
       const sgn = m.dir === 'rtl' ? -1 : 1;
@@ -381,35 +475,54 @@ export default function register(Board) {
         },
       },
 
+      // Bakelite, a spring and a bell: hollow plastic clicks, the governor's whirr, two gongs that tinkle.
       sounds: {
         open(ac, out, t, X) {
-          // The handset lifts: a plastic clack and a short, soft breath of dial tone.
-          X.burst(ac, out, t, { type: 'bandpass', f: 1700, q: 1.6, dur: 0.035, gain: 0.15 });
-          X.tone(ac, out, t, { type: 'triangle', f: 150, f2: 110, dur: 0.05, gain: 0.08, a: 0.002 });
-          X.tone(ac, out, t + 0.05, { f: 425, dur: 0.15, gain: 0.028, a: 0.025 });
+          // The handset lifts: the cradle switch clacks up, the finger wheel whirrs back into place
+          // (telefon-swing) and knocks at rest, and a soft breath of dial tone comes on the line.
+          clack(ac, out, t, X, 2300, 0.165);
+          clack(ac, out, t + 0.022, X, 2900, 0.088);
+          whirr(ac, out, t + 0.03, t + 0.16, 0.0175);
+          pulse(ac, out, t + 0.07, X, 0.073);
+          pulse(ac, out, t + 0.115, X, 0.058);
+          knock(ac, out, t + 0.165, X, 0.1);
+          X.tone(ac, out, t + 0.2, { f: 425, dur: 0.3, gain: 0.029, a: 0.05 });
+          X.tone(ac, out, t + 0.2, { f: 850, dur: 0.22, gain: 0.0058, a: 0.05 });
         },
         tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 3100, q: 2.4, dur: 0.012, gain: 0.2 });
-          X.tone(ac, out, t, { type: 'triangle', f: 1500, f2: 1200, dur: 0.014, gain: 0.025, a: 0.001 });
+          // A fingertip finds a hole: a hollow bakelite click, the bell inside answering with a faint tink.
+          X.burst(ac, out, t, { type: 'bandpass', f: vary(2100, 0.06), q: 3, dur: 0.008, gain: vary(0.196, 0.15) });
+          const body = vary(640, 0.04);
+          X.tone(ac, out, t, { f: body, f2: body * 0.9, dur: 0.022, gain: 0.047, a: 0.001 });
+          X.tone(ac, out, t + 0.002, { f: vary(GONG[0], 0.01), dur: 0.07, gain: vary(0.0035, 0.3), a: 0.002 });
+        },
+        enter(ac, out, t, X) {
+          // Into a ring: the finger pulls the wheel round a notch, three ratchet clicks and a soft stop.
+          for (let k = 0; k < 3; k++) ratchet(ac, out, t + k * 0.011, X, 1800 + k * 160, 0.058 + k * 0.012);
+          knock(ac, out, t + 0.045, X, 0.069);
+        },
+        leave(ac, out, t, X) {
+          // Back out: the wheel slips back to rest, a short whirr, one pulse and the knock at rest.
+          whirr(ac, out, t, t + 0.085, 0.012);
+          pulse(ac, out, t + 0.04, X, 0.055);
+          knock(ac, out, t + 0.095, X, 0.06);
         },
         success(ac, out, t, X) {
           const k = lastTurn;
           const at = (ms) => t + ms / 1000;
-          // Winding up, then the knock against the finger stop.
-          X.burst(ac, out, t, { type: 'bandpass', f: 700, f2: 1500, q: 2.5, dur: k.tt / 1000, gain: 0.035, a: 0.03 });
-          X.burst(ac, out, at(k.tt), { type: 'lowpass', f: 900, q: 0.8, dur: 0.03, gain: 0.12 });
-          X.tone(ac, out, at(k.tt), { type: 'triangle', f: 190, f2: 140, dur: 0.035, gain: 0.06 });
-          // One governor click per hole on the way back.
-          for (let p = 0; p < k.pulses; p++) {
-            const c = at(k.tt + T.hold + p * T.pulse + 6);
-            X.burst(ac, out, c, { type: 'bandpass', f: 2600, q: 3, dur: 0.011, gain: 0.1 });
-            X.tone(ac, out, c, { type: 'square', f: 900, dur: 0.008, gain: 0.01 });
+          // Winding up: a fine ratchet click every 15 degrees of the turn, then the knock against the stop.
+          for (let a = 15; a < k.d - 4; a += 15) {
+            ratchet(ac, out, at(windAt(a / k.d) * k.tt), X, vary(1900, 0.05), 0.039);
           }
-          // The bell answers with a faint ting.
-          const b = at(k.te + 12);
-          X.tone(ac, out, b, { f: 2240, dur: 0.38, gain: 0.03, a: 0.002 });
-          X.tone(ac, out, b, { f: 2240 * 2.37, dur: 0.16, gain: 0.011, a: 0.001 });
-          X.tone(ac, out, b + 0.07, { f: 2240, dur: 0.24, gain: 0.014, a: 0.002 });
+          knock(ac, out, at(k.tt), X, 0.075);
+          X.tone(ac, out, at(k.tt), { f: 3240, dur: 0.05, gain: 0.0052, a: 0.001 });
+          // The way back: the governor whirrs, the contacts click once per hole, each pulse tinkling the
+          // bell, and the wheel knocks at rest.
+          whirr(ac, out, at(k.tt + T.hold), at(k.te), 0.018);
+          for (let p = 0; p < k.pulses; p++) pulse(ac, out, at(k.tt + T.hold + p * T.pulse + 6), X, 0.0975, p);
+          knock(ac, out, at(k.te), X, 0.065);
+          // The bell answers: the clapper rattles between the gongs as the card shakes, to a faint ting.
+          bell(ac, out, at(k.te + 12));
         },
       },
     });

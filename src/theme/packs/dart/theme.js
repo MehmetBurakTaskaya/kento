@@ -43,6 +43,84 @@ export default function register(Board) {
       H.text(g, C, C + 22.4, m.key, { class: 'dt-keytext' });
     }
 
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+
+    // The wire spider shimmering: three thin steel partials, the higher ones dying sooner.
+    function wires(ac, out, t, X, gain, dur) {
+      X.tone(ac, out, t, { f: vary(2380, 0.02), dur, gain, a: 0.002 });
+      X.tone(ac, out, t, { f: vary(3270, 0.02), dur: dur * 0.75, gain: gain * 0.7, a: 0.002 });
+      X.tone(ac, out, t, { f: vary(4410, 0.02), dur: dur * 0.5, gain: gain * 0.5, a: 0.002 });
+    }
+
+    // The dart in flight: air that rises in pitch and grows as it comes closer, pulsed by its fluttering
+    // flights, cut off as it lands.
+    function flight(ac, out, t, hit, X) {
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.Q.value = 1.1;
+      band.frequency.setValueAtTime(650, t);
+      band.frequency.exponentialRampToValueAtTime(2300, hit);
+      const flutter = ac.createGain();
+      flutter.gain.value = 0.65;
+      const lfo = ac.createOscillator();
+      lfo.frequency.setValueAtTime(38, t);
+      lfo.frequency.linearRampToValueAtTime(56, hit);
+      const depth = ac.createGain();
+      depth.gain.value = 0.35;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.041, hit - 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, hit + 0.025);
+      lfo.connect(depth).connect(flutter.gain);
+      src.connect(band).connect(flutter).connect(g).connect(out);
+      src.start(t, Math.random() * 0.4);
+      lfo.start(t);
+      src.stop(hit + 0.06);
+      lfo.stop(hit + 0.06);
+    }
+
+    // The dart quivering in the board after it lands (470 ms, as dart-wobble): a buzzing twang whose
+    // pitch sways with the swing, loud twice per swing as the dart passes upright, darkening and dying.
+    function quiver(ac, out, t) {
+      const end = t + 0.47;
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(194, t);
+      o.frequency.exponentialRampToValueAtTime(181, end);
+      const sway = ac.createOscillator();
+      sway.frequency.value = 6.4;
+      const swayDepth = ac.createGain();
+      swayDepth.gain.value = 3;
+      sway.connect(swayDepth).connect(o.frequency);
+      const tone = ac.createBiquadFilter();
+      tone.type = 'lowpass';
+      tone.Q.value = 0.9;
+      tone.frequency.setValueAtTime(1700, t);
+      tone.frequency.exponentialRampToValueAtTime(650, end);
+      const beat = ac.createGain();
+      beat.gain.value = 0.5;
+      const lfo = ac.createOscillator();
+      lfo.frequency.setValueAtTime(12.8, t);
+      lfo.frequency.linearRampToValueAtTime(9, end);
+      const lfoDepth = ac.createGain();
+      lfoDepth.gain.value = 0.5;
+      lfo.connect(lfoDepth).connect(beat.gain);
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.027, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, end);
+      o.connect(tone).connect(beat).connect(g).connect(out);
+      for (const n of [o, sway, lfo]) {
+        n.start(t);
+        n.stop(end + 0.03);
+      }
+    }
+
     Board.define({
       id: 'dart',
       fonts: {
@@ -295,45 +373,62 @@ export default function register(Board) {
         },
       },
 
+      // Sisal, steel and feathers: dull fibre knocks, the thin ring of the wire spider and the barrel, air.
       sounds: {
-        // A short whoosh and a soft knock as the board comes up.
+        // The board swings up on its hook: a breath of air, a soft knock on the wall, the wires shimmering.
         open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 2600, f2: 800, q: 1.4, dur: 0.09, gain: 0.07, a: 0.01 });
-          X.tone(ac, out, t + 0.07, { f: 150, f2: 92, dur: 0.05, gain: 0.04, a: 0.002 });
+          X.burst(ac, out, t, { type: 'bandpass', f: 520, f2: 1500, q: 0.9, dur: 0.05, gain: 0.021, a: 0.07 });
+          const k = t + 0.115;
+          X.burst(ac, out, k, { type: 'lowpass', f: 760, q: 0.8, dur: 0.045, gain: 0.042 });
+          X.tone(ac, out, k, { f: 182, f2: 138, dur: 0.085, gain: 0.042, a: 0.002 });
+          X.burst(ac, out, k + 0.06, { type: 'lowpass', f: 620, q: 0.8, dur: 0.03, gain: 0.015 });
+          X.tone(ac, out, k + 0.06, { f: 164, f2: 140, dur: 0.05, gain: 0.015, a: 0.002 });
+          wires(ac, out, k + 0.004, X, 0.0036, 0.2);
         },
-        // A light tick on the wire.
+        // The pointer brushes a wire: a muted tap on sisal with a faint ring of thin steel.
         tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'triangle', f: 3600, f2: 3300, dur: 0.014, gain: 0.035, a: 0.001 });
-          X.burst(ac, out, t, { type: 'highpass', f: 6000, q: 0.7, dur: 0.006, gain: 0.02 });
+          X.burst(ac, out, t, { type: 'bandpass', f: vary(1150, 0.08), q: 1.2, dur: 0.012, gain: vary(0.11, 0.15) });
+          const body = vary(410, 0.05);
+          X.tone(ac, out, t, { f: body, f2: body * 0.82, dur: 0.02, gain: 0.03, a: 0.001 });
+          X.tone(ac, out, t + 0.001, { f: vary(3150, 0.04), dur: 0.035, gain: vary(0.009, 0.2), a: 0.001 });
         },
-        // Whoosh, a solid thud into sisal, then the dart's wobbling twang.
+        // Into a ring: a dart pressed into the sisal, a firm thock and its barrel's brief ring.
+        enter(ac, out, t, X) {
+          X.burst(ac, out, t, { type: 'lowpass', f: 1300, q: 0.9, dur: 0.028, gain: 0.043 });
+          X.burst(ac, out, t, { type: 'bandpass', f: 2300, q: 1.6, dur: 0.01, gain: 0.016 });
+          X.tone(ac, out, t, { f: 235, f2: 150, dur: 0.06, gain: 0.027, a: 0.002 });
+          X.tone(ac, out, t + 0.003, { type: 'triangle', f: 1240, dur: 0.07, gain: 0.0032, a: 0.002 });
+          X.tone(ac, out, t + 0.003, { f: 1262, dur: 0.06, gain: 0.0022, a: 0.002 });
+        },
+        // Back out: the dart pulled out, a dry fibrous scrape, then the tip slips free.
+        leave(ac, out, t, X) {
+          X.burst(ac, out, t, { type: 'bandpass', f: 1300, f2: 2500, q: 2.2, dur: 0.03, gain: 0.04, a: 0.02 });
+          X.burst(ac, out, t + 0.018, {
+            type: 'bandpass',
+            f: 1900,
+            f2: 3000,
+            q: 2.6,
+            dur: 0.025,
+            gain: 0.035,
+            a: 0.01,
+          });
+          const free = t + 0.06;
+          X.burst(ac, out, free, { type: 'bandpass', f: 2900, q: 3, dur: 0.006, gain: 0.07 });
+          X.tone(ac, out, free, { f: 880, f2: 640, dur: 0.02, gain: 0.025, a: 0.001 });
+          X.tone(ac, out, free + 0.002, { type: 'triangle', f: 1240, dur: 0.05, gain: 0.004, a: 0.002 });
+        },
+        // The throw: the flight's air grows for 170 ms, a thud into sisal, the board knocks on the wall as
+        // it jolts, and the dart quivers still with a buzzing twang (dart-wobble).
         success(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 3200, f2: 900, q: 1.6, dur: 0.15, gain: 0.07, a: 0.03 });
-          const hit = t + 0.16;
-          X.tone(ac, out, hit, { f: 125, f2: 52, dur: 0.13, gain: 0.1, a: 0.002 });
-          X.burst(ac, out, hit, { type: 'lowpass', f: 650, q: 0.8, dur: 0.06, gain: 0.11 });
-          X.burst(ac, out, hit, { type: 'bandpass', f: 2200, q: 2, dur: 0.02, gain: 0.05 });
-          const o = ac.createOscillator();
-          o.type = 'triangle';
-          o.frequency.setValueAtTime(205, hit + 0.02);
-          o.frequency.exponentialRampToValueAtTime(188, hit + 0.42);
-          const g = ac.createGain();
-          g.gain.setValueAtTime(0.0001, hit);
-          g.gain.exponentialRampToValueAtTime(0.035, hit + 0.025);
-          g.gain.exponentialRampToValueAtTime(0.0001, hit + 0.45);
-          const trem = ac.createGain();
-          trem.gain.value = 0.5;
-          const lfo = ac.createOscillator();
-          lfo.frequency.setValueAtTime(19, hit);
-          lfo.frequency.linearRampToValueAtTime(11, hit + 0.45);
-          const lg = ac.createGain();
-          lg.gain.value = 0.5;
-          lfo.connect(lg).connect(trem.gain);
-          o.connect(g).connect(trem).connect(out);
-          o.start(hit);
-          lfo.start(hit);
-          o.stop(hit + 0.5);
-          lfo.stop(hit + 0.5);
+          const hit = t + 0.17;
+          flight(ac, out, t, hit, X);
+          X.tone(ac, out, hit, { f: 205, f2: 118, dur: 0.12, gain: 0.082, a: 0.002 });
+          X.burst(ac, out, hit, { type: 'lowpass', f: 1000, q: 0.7, dur: 0.05, gain: 0.082 });
+          X.burst(ac, out, hit, { type: 'bandpass', f: 2400, q: 1.5, dur: 0.018, gain: 0.034 });
+          X.burst(ac, out, hit + 0.028, { type: 'lowpass', f: 520, q: 0.8, dur: 0.035, gain: 0.027 });
+          X.tone(ac, out, hit + 0.028, { f: 158, f2: 130, dur: 0.05, gain: 0.02, a: 0.002 });
+          wires(ac, out, hit + 0.002, X, 0.0027, 0.16);
+          quiver(ac, out, hit + 0.004);
         },
       },
     });
