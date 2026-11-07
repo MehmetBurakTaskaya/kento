@@ -114,6 +114,68 @@ export default function register(Board) {
       return ticks;
     }
 
+    // ---------------------------------------------------------------- sound
+    // Wood, and a hot iron on it. Every gain starts silent and ramps, and every source is stopped, so
+    // nothing clicks. Each voice's `v` sets its level, balanced by measurement against the other themes.
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    // A knock on wood: the block's low mode, sagging a little in pitch as wood does, a bar-like mode
+    // above it that dies first, and the dry contact of the knuckle (`contact` times as loud as the body).
+    function knock(ac, out, t, X, f, gain, d, contact = 1.2) {
+      X.tone(ac, out, t, { f, f2: f * 0.96, dur: d, gain, a: Math.min(0.003, 1 / f) });
+      X.tone(ac, out, t, { f: f * 2.76, dur: d * 0.45, gain: gain * 0.4, a: 0.0008 });
+      X.burst(ac, out, t, { type: 'bandpass', f: Math.min(4000, f * 4.2), q: 2.2, dur: 0.004, gain: gain * contact });
+    }
+    // Hot iron on wood: a sizzle of steam, held, with the pops of sap boiling out of it at random.
+    function sizzle(ac, out, t, X, hold, d, gain) {
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      src.loop = true;
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 3800;
+      band.Q.value = 0.8;
+      const soft = ac.createBiquadFilter();
+      soft.type = 'lowpass';
+      soft.frequency.value = 6500;
+      src
+        .connect(band)
+        .connect(soft)
+        .connect(gate(ac, out, t, 0.015, hold, d, gain));
+      src.start(t, Math.random() * 0.4);
+      src.stop(t + 0.015 + hold + d + 0.05);
+      const sr = ac.sampleRate;
+      const len = 0.015 + hold + d;
+      const buf = ac.createBuffer(1, Math.ceil(len * sr), sr);
+      const data = buf.getChannelData(0);
+      for (let s = 0.02; ;) {
+        s += -Math.log(1 - Math.random()) / 45;
+        if (s > len - 0.004) break;
+        const i = Math.floor(s * sr);
+        const n = 20 + Math.floor(Math.random() * 60);
+        const k = (0.4 + 0.6 * Math.random()) * Math.max(0.15, 1 - s / len);
+        for (let j = 0; j < n; j++) data[i + j] += k * (Math.random() * 2 - 1) * (1 - j / n) ** 2;
+      }
+      const pops = ac.createBufferSource();
+      pops.buffer = buf;
+      const popBand = ac.createBiquadFilter();
+      popBand.type = 'bandpass';
+      popBand.frequency.value = 2400;
+      popBand.Q.value = 1.1;
+      pops.connect(popBand).connect(gate(ac, out, t, 0.002, len, 0.01, gain * 3));
+      pops.start(t);
+      pops.stop(t + len + 0.02);
+    }
+
     Board.define({
       id: 'agachalkasi',
       fonts: {
@@ -436,23 +498,52 @@ export default function register(Board) {
 
       sounds: {
         open(ac, out, t, X) {
-          // A hollow wooden knock, then a softer second one.
-          X.tone(ac, out, t, { type: 'triangle', f: 230, f2: 170, dur: 0.07, gain: 0.09, a: 0.002 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 950, q: 3, dur: 0.035, gain: 0.08 });
-          X.tone(ac, out, t + 0.065, { type: 'triangle', f: 330, f2: 260, dur: 0.05, gain: 0.04, a: 0.002 });
+          // The log rolls in over its bark, bump, bump, and settles with a hollow knock.
+          const v = 0.56;
+          X.burst(ac, out, t, { type: 'bandpass', f: 520, q: 0.9, dur: 0.14, gain: 0.03 * v, a: 0.04 });
+          [0, 0.05, 0.095].forEach((d, k) => knock(ac, out, t + d, X, 300 + k * 22, (0.04 + k * 0.012) * v, 0.04));
+          knock(ac, out, t + 0.15, X, 268, 0.11 * v, 0.11);
         },
         tick(ac, out, t, X) {
-          // A dry twig tick.
-          X.burst(ac, out, t, { type: 'bandpass', f: 2400, q: 9, dur: 0.012, gain: 0.1 });
-          X.tone(ac, out, t, { type: 'triangle', f: 1150, f2: 880, dur: 0.014, gain: 0.02, a: 0.001 });
+          // A knuckle on the planed wood: a small dry tok, never quite the same twice.
+          const v = 0.62;
+          knock(ac, out, t, X, 540 + Math.random() * 130, 0.03 * v, 0.024 + Math.random() * 0.008, 2.4);
+        },
+        enter(ac, out, t, X) {
+          // A knock on the heartwood: deeper and hollow, the log ringing for a moment.
+          const v = 0.12;
+          knock(ac, out, t, X, 300, 0.08 * v, 0.09, 3);
+          X.burst(ac, out, t + 0.002, { type: 'bandpass', f: 610, q: 9, dur: 0.07, gain: 0.07 * v });
+        },
+        leave(ac, out, t, X) {
+          // Back out: a scrape over the bark and a lighter, higher tap.
+          const v = 0.33;
+          X.burst(ac, out, t, { type: 'bandpass', f: 3000, q: 1.5, dur: 0.012, gain: 0.03 * v, a: 0.004 });
+          knock(ac, out, t + 0.025, X, 760, 0.05 * v, 0.03);
         },
         success(ac, out, t, X) {
-          // The brand lands: a dull thud, a short sizzle and a few crackles.
-          X.tone(ac, out, t, { type: 'sine', f: 150, f2: 55, dur: 0.12, gain: 0.16, a: 0.002 });
-          X.burst(ac, out, t, { type: 'lowpass', f: 700, q: 0.8, dur: 0.05, gain: 0.1 });
-          X.burst(ac, out, t + 0.03, { type: 'highpass', f: 4200, f2: 7500, q: 0.6, dur: 0.38, gain: 0.035, a: 0.03 });
-          for (const h of [0.12, 0.2, 0.27, 0.37])
-            X.burst(ac, out, t + h, { type: 'bandpass', f: 3000 + h * 4000, q: 6, dur: 0.006, gain: 0.045 });
+          // The branding iron swings down and lands on the wedge with a heavy wooden thunk and a dull ring
+          // of iron, the wood sizzles and pops under it, and chips of sawdust fall round the brand.
+          const v = 0.75;
+          const hit = t + 0.11;
+          X.burst(ac, out, t, { type: 'bandpass', f: 500, f2: 1200, q: 1.1, dur: 0.05, gain: 0.02 * v, a: 0.06 });
+          knock(ac, out, hit, X, 190, 0.2 * v, 0.13);
+          X.burst(ac, out, hit, { type: 'bandpass', f: 800, q: 0.8, dur: 0.05, gain: 0.12 * v, a: 0.002 });
+          [1240, 1890, 2710].forEach((f, k) =>
+            X.tone(ac, out, hit + 0.002, { f, dur: 0.1 - k * 0.025, gain: 0.012 * v }),
+          );
+          sizzle(ac, out, hit + 0.005, X, 0.16, 0.34, 0.03 * v);
+          [0.06, 0.1, 0.15, 0.2, 0.27].forEach((d, k) =>
+            knock(
+              ac,
+              out,
+              hit + d + Math.random() * 0.02,
+              X,
+              1400 + Math.random() * 900,
+              (0.025 - k * 0.003) * v,
+              0.015,
+            ),
+          );
         },
       },
     });

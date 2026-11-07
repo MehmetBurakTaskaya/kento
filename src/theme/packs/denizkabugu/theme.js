@@ -104,6 +104,94 @@ export default function register(Board) {
       return { line, septa };
     }
 
+    // ---------------------------------------------------------------- sound
+    // The shell's hollow: taps that ring it, the sea inside it, a pearl rolling round it. Every gain
+    // starts silent and ramps, and every source is stopped, so nothing clicks. Each voice's `v` sets its
+    // level, balanced by measurement against the other themes.
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    function filter(ac, type, f, q) {
+      const n = ac.createBiquadFilter();
+      n.type = type;
+      n.frequency.value = f;
+      n.Q.value = q;
+      return n;
+    }
+    // A touch on the shell: one soft impulse rings the hollow's two narrow resonances, f and an
+    // inharmonic one above it, so it sounds like tapping a shell rather than a plate. The impulse is
+    // the same every time (noise would make some taps far louder than others) and sits inside the
+    // gate's hold.
+    const impulses = new WeakMap();
+    function impulse(ac) {
+      let buf = impulses.get(ac);
+      if (!buf) {
+        buf = ac.createBuffer(1, 128, ac.sampleRate);
+        buf.getChannelData(0).set([0.5, 1, 0.5], 40);
+        impulses.set(ac, buf);
+      }
+      return buf;
+    }
+    function tap(ac, out, t, f, gain) {
+      const low = filter(ac, 'bandpass', f, 22);
+      const high = filter(ac, 'bandpass', f * 2.37, 40);
+      low.connect(out);
+      high.connect(out);
+      const src = ac.createBufferSource();
+      src.buffer = impulse(ac);
+      src.connect(gate(ac, low, t, 0.0005, 0.002, 0.002, gain)).connect(high);
+      src.start(t);
+      src.stop(t + 0.01);
+    }
+    // Air or water moving in the hollow: noise through a band that slides from f to f2.
+    function wash(ac, out, t, X, { f, f2 = f, q = 1, a, hold = 0, d, gain }) {
+      const band = filter(ac, 'bandpass', f, q);
+      band.frequency.setValueAtTime(f, t);
+      band.frequency.exponentialRampToValueAtTime(f2, t + a + hold + d);
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      src.loop = true;
+      src.connect(band).connect(gate(ac, out, t, a, hold, d, gain));
+      src.start(t, Math.random() * 0.5);
+      src.stop(t + a + hold + d + 0.05);
+    }
+    // A pearl rolling on nacre: small uneven contacts, quicker and louder as the coil tightens, each
+    // one ringing the hollow, whose pitch climbs with the speed.
+    function roll(ac, out, t, dur, gain) {
+      const sr = ac.sampleRate;
+      const buf = ac.createBuffer(1, Math.ceil(dur * sr), sr);
+      const data = buf.getChannelData(0);
+      for (let s = 0; ;) {
+        s += (0.6 + 0.8 * Math.random()) / (28 + 70 * (s / dur) ** 1.5);
+        if (s > dur - 0.003) break;
+        const i = Math.floor(s * sr);
+        const k = (0.5 + 0.5 * Math.random()) * (0.4 + 0.6 * (s / dur));
+        const n = 3 + Math.floor(Math.random() * 6);
+        for (let j = 0; j < n; j++) data[i + j] += k * (Math.random() * 2 - 1);
+      }
+      const low = filter(ac, 'bandpass', 1050, 9);
+      low.frequency.setValueAtTime(1050, t);
+      low.frequency.exponentialRampToValueAtTime(1500, t + dur);
+      const high = filter(ac, 'bandpass', 2600, 12);
+      high.frequency.setValueAtTime(2600, t);
+      high.frequency.exponentialRampToValueAtTime(3400, t + dur);
+      low.connect(out);
+      high.connect(out);
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.connect(gate(ac, low, t, 0.03, dur - 0.06, 0.03, gain)).connect(high);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+
     Board.define({
       id: 'denizkabugu',
       fonts: {
@@ -425,24 +513,50 @@ export default function register(Board) {
 
       sounds: {
         open(ac, out, t, X) {
-          // The hush of the sea in a shell, with a faint hollow ring.
-          X.burst(ac, out, t, { type: 'lowpass', f: 380, f2: 1100, q: 0.9, dur: 0.18, gain: 0.09, a: 0.04 });
-          X.tone(ac, out, t + 0.02, { type: 'sine', f: 520, f2: 610, dur: 0.12, gain: 0.018, a: 0.02 });
+          // The sea in a shell: a hush of waves rises in its hollow and ebbs as the shell uncurls.
+          const v = 0.22;
+          const bank = [
+            [520, 5],
+            [1180, 7],
+            [2350, 6],
+          ].map(([f, q]) => filter(ac, 'bandpass', f, q));
+          for (const b of bank) b.connect(out);
+          const sea = gate(ac, bank[0], t, 0.12, 0.05, 0.3, 0.2 * v);
+          bank.slice(1).forEach((b) => sea.connect(b));
+          const src = ac.createBufferSource();
+          src.buffer = X.noise(ac);
+          src.connect(sea);
+          src.start(t, Math.random() * 0.4);
+          src.stop(t + 0.52);
+          wash(ac, out, t, X, { f: 900, f2: 2000, q: 2, a: 0.05, d: 0.13, gain: 0.03 * v });
         },
         tick(ac, out, t, X) {
-          // A porcelain click.
-          X.tone(ac, out, t, { type: 'sine', f: 2650, dur: 0.018, gain: 0.04, a: 0.001 });
-          X.tone(ac, out, t, { type: 'triangle', f: 1320, dur: 0.012, gain: 0.02, a: 0.001 });
+          // A fingertip on the shell's lip: a hollow tok, a little different each time.
+          const v = 1;
+          tap(ac, out, t, 950 + Math.random() * 200, 1.5 * v);
+        },
+        enter(ac, out, t, X) {
+          // A breath into the coil: a hollow swirl that rises, and a small tok where it ends.
+          const v = 0.36;
+          wash(ac, out, t, X, { f: 650, f2: 1500, q: 7, a: 0.06, d: 0.12, gain: 0.2 * v });
+          tap(ac, out, t + 0.15, 1400, 4 * v);
+        },
+        leave(ac, out, t, X) {
+          // Back out: a tok on the lip, and the swirl falls out of the coil.
+          const v = 0.31;
+          tap(ac, out, t, 1150, 5 * v);
+          wash(ac, out, t + 0.01, X, { f: 1500, f2: 620, q: 7, a: 0.02, d: 0.15, gain: 0.2 * v });
         },
         success(ac, out, t, X) {
-          // A pearl rolling round the spiral (its purr rises as the turns tighten), a few glints,
-          // and a small glass ting where it lands.
-          X.burst(ac, out, t + 0.08, { type: 'bandpass', f: 700, f2: 2600, q: 3, dur: 0.46, gain: 0.03, a: 0.06 });
-          [2637, 3136, 3520, 4186].forEach((f, k) =>
-            X.tone(ac, out, t + 0.04 + k * 0.05, { type: 'sine', f, dur: 0.06, gain: 0.014, a: 0.002 }),
-          );
-          X.tone(ac, out, t + 0.56, { type: 'sine', f: 1568, dur: 0.45, gain: 0.04, a: 0.002 });
-          X.tone(ac, out, t + 0.56, { type: 'sine', f: 1568 * 2.4, dur: 0.18, gain: 0.01, a: 0.001 });
+          // A sheen of nacre sweeps the chamber, a pearl rolls round the spiral (its purr rising as the
+          // turns tighten), drops into the centre and bounces to rest, and a soft ring spreads with the
+          // ripple of light.
+          const v = 0.95;
+          wash(ac, out, t + 0.03, X, { f: 3600, f2: 4800, q: 3, a: 0.12, hold: 0.1, d: 0.2, gain: 0.045 * v });
+          roll(ac, out, t + 0.11, 0.46, 0.55 * v);
+          [0.565, 0.62, 0.656, 0.68, 0.696].forEach((d, k) => tap(ac, out, t + d, 1500 + k * 40, 1.5 * v * 0.62 ** k));
+          X.tone(ac, out, t + 0.57, { f: 1568, dur: 0.4, gain: 0.045 * v, a: 0.004 });
+          X.tone(ac, out, t + 0.57, { f: 3763, dur: 0.15, gain: 0.012 * v, a: 0.002 });
         },
       },
     });

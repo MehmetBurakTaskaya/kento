@@ -239,6 +239,70 @@ export default function register(Board) {
       H.text(g, C, C + 22.4, m.key, { class: 'kl-keytext' });
     }
 
+    // ---------------------------------------------------------------- sound
+    // The loom: wool threads, a wooden shuttle and the beater comb. Every gain starts silent and ramps,
+    // and every source is stopped, so nothing clicks. Each voice's `v` sets its level, balanced by
+    // measurement against the other themes.
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    // A warp thread plucked: a plucked-string loop (a delay line, averaged on every pass) muffled by the
+    // wool, so it twangs softly and dies fast. The thread starts bent like a plucked string, with a little
+    // noise so no two sound alike; it loses its mean, so it carries no offset, and is brought to one
+    // level, so no pluck comes out much louder than another.
+    function pluck(ac, out, t, f, gain, d, bright = 1800) {
+      const sr = ac.sampleRate;
+      const len = Math.ceil((d + 0.02) * sr);
+      const buf = ac.createBuffer(1, len, sr);
+      const data = buf.getChannelData(0);
+      const n = Math.max(2, Math.round(sr / f));
+      const line = new Float32Array(n);
+      let mean = 0;
+      for (let i = 0; i < n; i++) {
+        const x = i / n;
+        line[i] = (x < 0.15 ? x / 0.15 : (1 - x) / 0.85) + 0.4 * (Math.random() * 2 - 1);
+        mean += line[i];
+      }
+      mean /= n;
+      let power = 0;
+      for (let i = 0; i < n; i++) power += (line[i] -= mean) ** 2;
+      const norm = Math.sqrt(n / (3 * power));
+      for (let i = 0; i < n; i++) line[i] *= norm;
+      for (let i = 0, p = 0; i < len; i++) {
+        const q = (p + 1) % n;
+        data[i] = line[p];
+        line[p] = 0.498 * (line[p] + line[q]);
+        p = q;
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const wool = ac.createBiquadFilter();
+      wool.type = 'lowpass';
+      wool.frequency.value = bright;
+      src.connect(wool).connect(gate(ac, out, t, 0.002, 0, d, gain));
+      src.start(t);
+      src.stop(t + d + 0.02);
+    }
+    // The beater comb packing a row: a muffled thud of wool under wood, and the tap of its teeth. The
+    // thud stays above what small speakers cannot play, and swells over a cycle so it does not thump.
+    function beat(ac, out, t, X, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f: 480, q: 1.1, dur: 0.05, gain, a: 0.002 });
+      X.tone(ac, out, t, { f: 210, f2: 165, dur: 0.1, gain: gain * 0.45, a: 0.005 });
+      X.burst(ac, out, t, { type: 'bandpass', f: 1600, q: 1.5, dur: 0.008, gain: gain * 0.4 });
+    }
+    // A thread or the shuttle drawn through the warp: a soft swish sliding from f to f2.
+    function swish(ac, out, t, X, f, f2, a, d, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f, f2, q: 1.3, dur: d, gain, a });
+    }
+
     Board.define({
       id: 'kilim',
       fonts: {
@@ -442,24 +506,45 @@ export default function register(Board) {
       },
 
       sounds: {
-        // The shuttle thrown through the shed, and a soft wooden knock.
+        // The kilim unrolls: woolly flaps as it turns over, then it lands flat with a soft thump.
         open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 800, f2: 2600, q: 1.3, dur: 0.13, gain: 0.13, a: 0.03 });
-          X.tone(ac, out, t + 0.12, { type: 'triangle', f: 330, f2: 250, dur: 0.05, gain: 0.05, a: 0.002 });
+          const v = 1;
+          [0, 0.05, 0.1].forEach((d, k) =>
+            swish(ac, out, t + d, X, 600 + k * 150, 1300 + k * 200, 0.012, 0.045, (0.04 + k * 0.01) * v),
+          );
+          beat(ac, out, t + 0.16, X, 0.1 * v);
         },
-        // The beater comb packing one row: a muffled thud.
+        // A warp thread plucked as the pointer crosses it: a soft woolly twang, each thread a little different.
         tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'lowpass', f: 700, q: 0.8, dur: 0.03, gain: 0.1 });
-          X.tone(ac, out, t, { f: 170, f2: 115, dur: 0.035, gain: 0.05, a: 0.002 });
+          const v = 0.56;
+          pluck(ac, out, t, 196 * (0.97 + Math.random() * 0.06), 0.1 * v, 0.07, 2600);
+          X.burst(ac, out, t, { type: 'bandpass', f: 900, q: 1, dur: 0.01, gain: 0.03 * v });
         },
-        // A shuttle pass, then three packing beats, the last one fullest.
+        // Into a ring: the shuttle is thrown through the shed and caught on the far side.
+        enter(ac, out, t, X) {
+          const v = 1;
+          swish(ac, out, t, X, 900, 2600, 0.04, 0.1, 0.06 * v);
+          X.tone(ac, out, t + 0.13, { f: 680, f2: 640, dur: 0.03, gain: 0.05 * v, a: 0.0015 });
+          X.burst(ac, out, t + 0.13, { type: 'bandpass', f: 2800, q: 2, dur: 0.004, gain: 0.04 * v });
+        },
+        // Back out: the beater comb packs the row with a thump and the warp twangs low.
+        leave(ac, out, t, X) {
+          const v = 0.6;
+          beat(ac, out, t, X, 0.07 * v);
+          pluck(ac, out, t + 0.01, 147, 0.07 * v, 0.14, 1400);
+        },
+        // The new colour is woven in row by row, the weft swishing in from alternate sides; the beater
+        // packs it three times, the last the fullest, and the warp rings out.
         success(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 1000, f2: 2800, q: 1.2, dur: 0.1, gain: 0.09, a: 0.02 });
-          [0.14, 0.27, 0.42].forEach((d, k) => {
-            X.burst(ac, out, t + d, { type: 'lowpass', f: 800 + k * 150, q: 0.8, dur: 0.05, gain: 0.08 + k * 0.02 });
-            X.tone(ac, out, t + d, { f: 150 - k * 10, f2: 92, dur: 0.07, gain: 0.05 + k * 0.018, a: 0.002 });
-          });
-          X.tone(ac, out, t + 0.42, { type: 'triangle', f: 392, dur: 0.3, gain: 0.03, a: 0.004 });
+          const v = 0.75;
+          for (let k = 0; k < 12; k++) {
+            const left = k % 2 === 0;
+            const gain = (0.025 + 0.015 * Math.sin((Math.PI * k) / 11)) * v;
+            swish(ac, out, t + k * 0.034, X, left ? 1100 : 1700, left ? 1700 : 1100, 0.006, 0.024, gain);
+          }
+          [0.14, 0.27, 0.42].forEach((d, k) => beat(ac, out, t + d, X, (0.07 + k * 0.025) * v));
+          pluck(ac, out, t + 0.43, 196, 0.08 * v, 0.45, 2200);
+          pluck(ac, out, t + 0.435, 294, 0.06 * v, 0.4, 2200);
         },
       },
     });

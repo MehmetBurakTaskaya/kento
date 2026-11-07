@@ -107,6 +107,79 @@ export default function register(Board) {
       H.text(g, C, C + 23.9, m.key, { class: 'se-keytext' });
     }
 
+    // ---------------------------------------------------------------- sound
+    // The ceremony: the ney (a reed flute, soft and breathy), the cloth of the turning skirt and the skin
+    // of the kudüm drum. Every gain starts silent and ramps, and every source is stopped, so nothing
+    // clicks. Each voice's `v` sets its level, balanced by measurement against the other themes.
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    function bandpass(ac, f, q) {
+      const n = ac.createBiquadFilter();
+      n.type = 'bandpass';
+      n.frequency.value = f;
+      n.Q.value = q;
+      return n;
+    }
+    // The ney: a soft tone with weak upper partials, the breath around it and a puff of air as the note
+    // speaks. `notes` lists [seconds in, pitch] to glide through; a vibrato of `vib` hertz grows in while
+    // the note holds.
+    function ney(ac, out, t, X, notes, { a, hold, d, gain, vib = 0 }) {
+      const end = t + a + hold + d;
+      const o = ac.createOscillator();
+      o.setPeriodicWave(ac.createPeriodicWave(new Float32Array(6), new Float32Array([0, 1, 0.3, 0.14, 0.05, 0.03])));
+      o.frequency.setValueAtTime(notes[0][1], t);
+      for (const [s, f] of notes.slice(1)) o.frequency.exponentialRampToValueAtTime(f, t + s);
+      o.connect(gate(ac, out, t, a, hold, d, gain));
+      o.start(t);
+      o.stop(end + 0.03);
+      if (vib) {
+        const lfo = ac.createOscillator();
+        lfo.frequency.value = 5.2;
+        const depth = ac.createGain();
+        depth.gain.value = 0;
+        depth.gain.setValueAtTime(0, t);
+        depth.gain.linearRampToValueAtTime(vib, t + a + hold);
+        lfo.connect(depth).connect(o.frequency);
+        lfo.start(t);
+        lfo.stop(end + 0.03);
+      }
+      const air = ac.createBufferSource();
+      air.buffer = X.noise(ac);
+      air.loop = true;
+      air.connect(bandpass(ac, 1500, 0.8)).connect(gate(ac, out, t, a, hold, d, gain * 0.35));
+      air.start(t, Math.random() * 0.5);
+      air.stop(end + 0.03);
+      X.burst(ac, out, t, { type: 'bandpass', f: 2400, q: 1, dur: 0.03, gain: gain * 0.5, a: 0.005 });
+    }
+    // The skirt's cloth turning: a soft swish whose band climbs with the swirl to `peak` and settles.
+    function cloth(ac, out, t, X, { f, peak, f2, a, d, gain, q = 1.1 }) {
+      const shape = bandpass(ac, f, q);
+      shape.frequency.setValueAtTime(f, t);
+      shape.frequency.exponentialRampToValueAtTime(peak, t + a);
+      shape.frequency.exponentialRampToValueAtTime(f2, t + a + d);
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      src.loop = true;
+      src.connect(shape).connect(gate(ac, out, t, a, 0, d, gain));
+      src.start(t, Math.random() * 0.5);
+      src.stop(t + a + d + 0.05);
+    }
+    // A muted kudüm stroke: the skin's two lowest modes (a drum's are not harmonic) and the slap of the hand.
+    function kudum(ac, out, t, X, f, gain) {
+      X.tone(ac, out, t, { f, f2: f * 0.9, dur: 0.05, gain, a: Math.min(0.004, 1 / f) });
+      X.tone(ac, out, t, { f: f * 1.59, dur: 0.03, gain: gain * 0.5, a: 0.002 });
+      X.burst(ac, out, t, { type: 'bandpass', f: 1300, q: 1.2, dur: 0.012, gain: gain * 0.8 });
+    }
+
     Board.define({
       id: 'sema',
       fonts: {
@@ -290,41 +363,68 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A soft breath before the note.
+        // The skirt spins into place with a swish of cloth, and a breath goes through the ney.
         open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 850, f2: 1450, q: 1.4, dur: 0.17, gain: 0.08, a: 0.06 });
-          X.tone(ac, out, t + 0.04, { f: 293.7, dur: 0.14, gain: 0.012, a: 0.05 });
+          const v = 1;
+          cloth(ac, out, t, X, { f: 500, peak: 1600, f2: 800, a: 0.08, d: 0.16, gain: 0.06 * v });
+          X.burst(ac, out, t + 0.06, { type: 'bandpass', f: 1300, q: 2.5, dur: 0.22, gain: 0.04 * v, a: 0.08 });
+          ney(ac, out, t + 0.1, X, [[0, 587.3]], { a: 0.08, hold: 0, d: 0.2, gain: 0.012 * v });
         },
-        // A muted tap on a small frame drum.
+        // A muted kudüm stroke, a little different each time.
         tick(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 230, f2: 165, dur: 0.045, gain: 0.06, a: 0.002 });
-          X.burst(ac, out, t, { type: 'lowpass', f: 1300, q: 0.7, dur: 0.018, gain: 0.04 });
+          const v = 0.78;
+          kudum(ac, out, t, X, 235 * (0.96 + Math.random() * 0.08), 0.06 * v);
         },
-        // One breathy reed note: it slides up to D, a slow vibrato grows in, and breath noise rides on top.
+        // Into a ring: the ney steps up from D to the E above it.
+        enter(ac, out, t, X) {
+          const v = 0.26;
+          ney(
+            ac,
+            out,
+            t,
+            X,
+            [
+              [0, 587.3],
+              [0.06, 587.3],
+              [0.11, 650],
+            ],
+            { a: 0.03, hold: 0.1, d: 0.08, gain: 0.05 * v },
+          );
+        },
+        // Back out: the ney steps down from E to D.
+        leave(ac, out, t, X) {
+          const v = 0.26;
+          ney(
+            ac,
+            out,
+            t,
+            X,
+            [
+              [0, 650],
+              [0.06, 650],
+              [0.11, 587.3],
+            ],
+            { a: 0.03, hold: 0.1, d: 0.08, gain: 0.05 * v },
+          );
+        },
+        // The skirt whirls a quarter turn, its cloth swishing up to the flare and settling, while the ney
+        // sounds one breathy note: it falls from a grace note on the E above onto D (a little flat of the
+        // piano's E, as the makam has it) and a slow vibrato grows in.
         success(ac, out, t, X) {
-          const o = ac.createOscillator();
-          o.type = 'sine';
-          o.frequency.setValueAtTime(555, t);
-          o.frequency.exponentialRampToValueAtTime(587.3, t + 0.14);
-          const lfo = ac.createOscillator();
-          lfo.frequency.value = 5.1;
-          const depth = ac.createGain();
-          depth.gain.setValueAtTime(0, t);
-          depth.gain.linearRampToValueAtTime(5.5, t + 0.45);
-          lfo.connect(depth).connect(o.frequency);
-          const g = ac.createGain();
-          g.gain.setValueAtTime(0.0001, t);
-          g.gain.exponentialRampToValueAtTime(0.055, t + 0.12);
-          g.gain.setValueAtTime(0.055, t + 0.5);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + 1.05);
-          o.connect(g).connect(out);
-          o.start(t);
-          lfo.start(t);
-          o.stop(t + 1.1);
-          lfo.stop(t + 1.1);
-          X.tone(ac, out, t + 0.03, { type: 'triangle', f: 1174.6, dur: 0.7, gain: 0.008, a: 0.12 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 1250, q: 2.5, dur: 0.85, gain: 0.05, a: 0.1 });
-          X.burst(ac, out, t, { type: 'highpass', f: 3500, q: 0.6, dur: 0.5, gain: 0.012, a: 0.08 });
+          const v = 1;
+          cloth(ac, out, t, X, { f: 420, peak: 1500, f2: 650, a: 0.28, d: 0.4, gain: 0.07 * v });
+          ney(
+            ac,
+            out,
+            t + 0.02,
+            X,
+            [
+              [0, 650],
+              [0.08, 650],
+              [0.16, 587.3],
+            ],
+            { a: 0.1, hold: 0.45, d: 0.5, gain: 0.055 * v, vib: 5 },
+          );
         },
       },
     });

@@ -95,6 +95,42 @@ export default function register(Board) {
       H.text(g, C, C + 25.4, m.key, { class: 'iz-keytext' });
     }
 
+    // ---------------------------------------------------------------- sound
+    // Glazed fritware: struck tiles ring in the Hicaz mode on D, whose augmented second (E flat to F
+    // sharp) gives the rosette its own colour. Every gain starts silent and ramps, and every source is
+    // stopped, so nothing clicks. Each voice's `v` sets its level, balanced by measurement against the
+    // other themes.
+    const HICAZ = { A: 880, D: 1174.7, Eb: 1244.5, Fs: 1480, G: 1568, D2: 2349.3 };
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    // A glazed tile struck: two close partials that beat slowly, as a fired plate does, inharmonic ones
+    // above that fade first ([ratio, level, length]), and the contact of the strike.
+    const TILE = [
+      [1, 1, 1],
+      [1.0035, 0.5, 0.9],
+      [2.09, 0.32, 0.4],
+      [3.31, 0.14, 0.22],
+    ];
+    function chime(ac, out, t, X, f, gain, d, modes = TILE) {
+      for (const [r, k, dk] of modes) {
+        const o = ac.createOscillator();
+        o.frequency.value = f * r;
+        o.connect(gate(ac, out, t, 0.0012, 0, d * dk, gain * k));
+        o.start(t);
+        o.stop(t + d * dk + 0.03);
+      }
+      X.burst(ac, out, t, { type: 'bandpass', f: 3800, q: 2, dur: 0.003, gain: gain * 0.9 });
+    }
+
     Board.define({
       id: 'iznik',
       fonts: {
@@ -365,24 +401,44 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A soft clink of glazed tile: two inharmonic partials and a little contact noise.
+        // The rosette turns into place and its panels sound one after another: a quick run of tiles up
+        // the Hicaz mode, the last one left ringing.
         open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 3200, q: 2.2, dur: 0.025, gain: 0.07 });
-          X.tone(ac, out, t + 0.004, { f: 1568, dur: 0.16, gain: 0.05, a: 0.002 });
-          X.tone(ac, out, t + 0.004, { f: 2494, dur: 0.09, gain: 0.025, a: 0.002 });
+          const v = 0.56;
+          [HICAZ.D, HICAZ.Eb, HICAZ.Fs, HICAZ.G].forEach((f, k) =>
+            chime(ac, out, t + k * 0.03, X, f, (0.03 + k * 0.006) * v, k < 3 ? 0.08 : 0.3),
+          );
         },
-        // A dry tap on a tile edge.
+        // A dry tap on a tile edge, a little different each time.
         tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'triangle', f: 2900, f2: 2650, dur: 0.022, gain: 0.05, a: 0.001 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 5200, q: 3, dur: 0.008, gain: 0.04 });
+          const v = 0.87;
+          chime(ac, out, t, X, 1650 + Math.random() * 200, 0.04 * v, 0.03, [
+            [1, 1, 1],
+            [2.09, 0.3, 0.45],
+          ]);
         },
-        // Two porcelain strikes, then a faint glassy shimmer as the shine passes.
+        // Into a ring: two tiles answer a fourth apart, rising.
+        enter(ac, out, t, X) {
+          const v = 0.25;
+          chime(ac, out, t, X, HICAZ.A, 0.04 * v, 0.14);
+          chime(ac, out, t + 0.07, X, HICAZ.D, 0.045 * v, 0.16);
+        },
+        // Back out: the same two tiles, falling.
+        leave(ac, out, t, X) {
+          const v = 0.285;
+          chime(ac, out, t, X, HICAZ.D, 0.04 * v, 0.12);
+          chime(ac, out, t + 0.07, X, HICAZ.A, 0.04 * v, 0.16);
+        },
+        // The cobalt glaze floods the panel with a soft pour, three tiles ring up the Hicaz mode (D, E flat,
+        // F sharp) as the flowers bloom, the shine sweeps across and the spark glints on a high D.
         success(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 1046.5, dur: 0.5, gain: 0.075, a: 0.003 });
-          X.tone(ac, out, t, { f: 1661, dur: 0.22, gain: 0.025, a: 0.003 });
-          X.tone(ac, out, t + 0.13, { f: 1568, dur: 0.6, gain: 0.06, a: 0.003 });
-          X.tone(ac, out, t + 0.13, { f: 2489, dur: 0.25, gain: 0.02, a: 0.003 });
-          X.burst(ac, out, t + 0.22, { type: 'highpass', f: 6500, f2: 10500, q: 0.7, dur: 0.34, gain: 0.018, a: 0.09 });
+          const v = 0.73;
+          X.burst(ac, out, t, { type: 'bandpass', f: 1400, f2: 2600, q: 0.8, dur: 0.22, gain: 0.03 * v, a: 0.05 });
+          chime(ac, out, t, X, HICAZ.D, 0.07 * v, 0.6);
+          chime(ac, out, t + 0.12, X, HICAZ.Eb, 0.05 * v, 0.45);
+          chime(ac, out, t + 0.24, X, HICAZ.Fs, 0.06 * v, 0.55);
+          X.burst(ac, out, t + 0.19, { type: 'bandpass', f: 3000, f2: 6000, q: 2, dur: 0.3, gain: 0.012 * v, a: 0.12 });
+          chime(ac, out, t + 0.46, X, HICAZ.D2, 0.025 * v, 0.2, TILE.slice(0, 3));
         },
       },
     });

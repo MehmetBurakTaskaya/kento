@@ -69,6 +69,53 @@ export default function register(Board) {
       H.text(g, C, C + 23.9, m.key, { class: 'nz-keytext' });
     }
 
+    // ---------------------------------------------------------------- sound
+    // Blue glass: beads that clink, and the singing tone of glass rubbed round its rim. Every gain starts
+    // silent and ramps, and every source is stopped, so nothing clicks. Each voice's `v` sets its level,
+    // balanced by measurement against the other themes.
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    // A glass bead struck: a bright partial, a twin a few hertz off that makes it shimmer as it dies, and
+    // a high inharmonic one that fades first ([ratio, level, length]; the twin's ratio is set per pitch).
+    const BEAD = [
+      [1, 1, 1],
+      [2.32, 0.22, 0.3],
+    ];
+    function bead(ac, out, t, f, gain, d, modes = BEAD, twin = true) {
+      const all = twin ? modes.concat([[1 + 3.5 / f, 0.6, 0.9]]) : modes;
+      for (const [r, k, dk] of all) {
+        const o = ac.createOscillator();
+        o.frequency.value = f * r;
+        o.connect(gate(ac, out, t, 0.0008, 0, d * dk, gain * k));
+        o.start(t);
+        o.stop(t + d * dk + 0.03);
+      }
+    }
+    // Glass singing: a pure tone that swells and fades while it glides from f to f2, with its octave a
+    // few hertz sharp so the two beat softly, as a rubbed glass does.
+    function sing(ac, out, t, f, f2, a, hold, d, gain) {
+      for (const [m, k] of [
+        [1, 1],
+        [2, 0.22],
+      ]) {
+        const o = ac.createOscillator();
+        o.frequency.setValueAtTime(f * m + (m - 1) * 2.5, t);
+        o.frequency.exponentialRampToValueAtTime(f2 * m + (m - 1) * 2.5, t + a + hold);
+        o.connect(gate(ac, out, t, a, hold, d, gain * k));
+        o.start(t);
+        o.stop(t + a + hold + d + 0.03);
+      }
+    }
+
     Board.define({
       id: 'nazar',
       fonts: {
@@ -315,24 +362,40 @@ export default function register(Board) {
       },
 
       sounds: {
-        // Two glass partials, quickly damped.
-        open(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 1760, dur: 0.14, gain: 0.045, a: 0.004 });
-          X.tone(ac, out, t + 0.012, { f: 2794, dur: 0.1, gain: 0.025, a: 0.003 });
-          X.burst(ac, out, t, { type: 'highpass', f: 5000, q: 0.7, dur: 0.05, gain: 0.025, a: 0.01 });
+        // The bead swells out of the pupil: a warm glass tone blooms, and two beads clink as it settles.
+        open(ac, out, t) {
+          const v = 0.7;
+          sing(ac, out, t, 1046.5, 1318.5, 0.06, 0.04, 0.3, 0.03 * v);
+          bead(ac, out, t + 0.15, 3520, 0.06 * v, 0.06, BEAD.slice(0, 1), false);
+          bead(ac, out, t + 0.162, 3729, 0.04 * v, 0.05, BEAD.slice(0, 1), false);
         },
-        // A fine glass tick.
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 3950, f2: 3700, dur: 0.02, gain: 0.04, a: 0.001 });
-          X.tone(ac, out, t, { f: 6100, dur: 0.012, gain: 0.015, a: 0.001 });
+        // Two glass beads on the string touch: a bright double clink, never quite the same twice.
+        tick(ac, out, t) {
+          const v = 0.9;
+          const f = 3000 + Math.random() * 500;
+          bead(ac, out, t, f, 0.04 * v, 0.022, BEAD, false);
+          const again = t + 0.006 + Math.random() * 0.006;
+          bead(ac, out, again, f * (1.06 + Math.random() * 0.04), 0.024 * v, 0.018, BEAD.slice(0, 1), false);
         },
-        // A small glass bell: a bright fundamental with inharmonic partials and a shimmering tail.
-        success(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 1318.5, dur: 0.65, gain: 0.07, a: 0.003 });
-          X.tone(ac, out, t, { f: 3320, dur: 0.3, gain: 0.025, a: 0.002 });
-          X.tone(ac, out, t + 0.002, { f: 1325, dur: 0.6, gain: 0.03, a: 0.003 });
-          X.tone(ac, out, t + 0.09, { f: 1975.5, dur: 0.5, gain: 0.04, a: 0.003 });
-          X.burst(ac, out, t + 0.05, { type: 'bandpass', f: 7000, f2: 9500, q: 2, dur: 0.45, gain: 0.02, a: 0.1 });
+        // Into a ring: light gathers in the glass and its singing tone rises.
+        enter(ac, out, t) {
+          const v = 0.23;
+          sing(ac, out, t, 1174.7, 1568, 0.07, 0.03, 0.12, 0.05 * v);
+        },
+        // Back out: the glow sinks, its tone falls, and a bead clinks.
+        leave(ac, out, t) {
+          const v = 0.25;
+          sing(ac, out, t, 1568, 1174.7, 0.03, 0.03, 0.14, 0.05 * v);
+          bead(ac, out, t + 0.02, 3136, 0.02 * v, 0.05, BEAD.slice(0, 1), false);
+        },
+        // The bead is struck as the ring of light leaves the pupil, the glass sings while the light
+        // spreads, the slice rings brighter as it catches it, and its glint sparkles.
+        success(ac, out, t) {
+          const v = 0.63;
+          bead(ac, out, t, 1318.5, 0.07 * v, 0.7);
+          sing(ac, out, t + 0.02, 1975.5, 1975.5, 0.12, 0.15, 0.4, 0.025 * v);
+          bead(ac, out, t + 0.18, 1975.5, 0.05 * v, 0.5);
+          bead(ac, out, t + 0.39, 3951, 0.02 * v, 0.15, BEAD.slice(0, 1));
         },
       },
     });

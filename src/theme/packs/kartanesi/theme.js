@@ -138,6 +138,68 @@ export default function register(Board) {
       return Math.round(Math.min(92, 2 * (R.label * Math.sin(rad(half)) - 12)));
     }
 
+    // ---------------------------------------------------------------- sound
+    // Ice: struck crystals and frost crackling as it forms. Every gain starts silent and ramps, and every
+    // source is stopped, so nothing clicks. Each voice's `v` sets its level, balanced by measurement
+    // against the other themes.
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    // A struck ice crystal: a high partial and inharmonic ones above it that die away sooner, as a
+    // small hard crystal rings rather than a tuned bell.
+    const ICE = [
+      [1, 1, 1],
+      [1.53, 0.42, 0.6],
+      [2.21, 0.16, 0.32],
+    ];
+    function tink(ac, out, t, f, gain, d, partials = ICE) {
+      for (const [r, k, dk] of partials) {
+        const o = ac.createOscillator();
+        o.frequency.value = f * r;
+        o.connect(gate(ac, out, t, 0.0008, 0, d * dk, gain * k));
+        o.start(t);
+        o.stop(t + d * dk + 0.03);
+      }
+    }
+    // Frost forming: tiny cracks at random, rate(s) of them a second at s seconds in and each as loud
+    // as level(s), through a band of high frequencies that stays under 8 kHz.
+    function crackle(ac, out, t, dur, rate, level, { f = 3600, q = 0.8, gain = 0.3 } = {}) {
+      const sr = ac.sampleRate;
+      const buf = ac.createBuffer(1, Math.ceil(dur * sr), sr);
+      const data = buf.getChannelData(0);
+      for (let s = 0; ;) {
+        s += -Math.log(1 - Math.random()) / Math.max(1, rate(s));
+        if (s > dur - 0.002) break;
+        const i = Math.floor(s * sr);
+        const len = 6 + Math.floor(Math.random() * 18);
+        const k = level(s) * (0.25 + 0.75 * Math.random());
+        for (let j = 0; j < len; j++) data[i + j] += k * (Math.random() * 2 - 1) * (1 - j / len);
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = f;
+      band.Q.value = q;
+      const soft = ac.createBiquadFilter();
+      soft.type = 'lowpass';
+      soft.frequency.value = 7000;
+      src
+        .connect(band)
+        .connect(soft)
+        .connect(gate(ac, out, t, 0.002, dur, 0.01, gain));
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+
     Board.define({
       id: 'kartanesi',
       fonts: {
@@ -449,26 +511,105 @@ export default function register(Board) {
 
       sounds: {
         open(ac, out, t, X) {
-          // A breath of cold air and two faint high notes.
-          X.burst(ac, out, t, { type: 'highpass', f: 5200, f2: 8000, q: 0.7, dur: 0.13, gain: 0.05, a: 0.03 });
-          X.tone(ac, out, t + 0.02, { type: 'sine', f: 2637, dur: 0.09, gain: 0.02, a: 0.004 });
-          X.tone(ac, out, t + 0.06, { type: 'sine', f: 3951, dur: 0.08, gain: 0.014, a: 0.004 });
+          // The crystal grows out of the hub: frost crackles quicker and quicker under three rising ice
+          // tinks, and a breath of cold air follows.
+          const v = 0.69;
+          crackle(
+            ac,
+            out,
+            t,
+            0.19,
+            (s) => 40 + 1000 * s,
+            (s) => 0.4 + 3 * s,
+            { gain: 0.16 * v },
+          );
+          [2349, 2794, 3136].forEach((f, k) =>
+            tink(ac, out, t + 0.05 + k * 0.05, f, (0.03 + k * 0.008) * v, 0.12 + k * 0.03),
+          );
+          X.burst(ac, out, t + 0.04, {
+            type: 'bandpass',
+            f: 3000,
+            f2: 4800,
+            q: 0.7,
+            dur: 0.22,
+            gain: 0.025 * v,
+            a: 0.06,
+          });
         },
         tick(ac, out, t, X) {
-          // A tiny glass tink.
-          X.tone(ac, out, t, { type: 'sine', f: 3520, dur: 0.026, gain: 0.04, a: 0.001 });
-          X.tone(ac, out, t, { type: 'sine', f: 5274, dur: 0.012, gain: 0.014, a: 0.001 });
+          // A pane turns to ice: a tiny tink with a grain of frost, a little different each time.
+          const v = 0.83;
+          tink(ac, out, t, 2700 + Math.random() * 500, 0.045 * v, 0.03, ICE.slice(0, 2));
+          X.burst(ac, out, t, { type: 'bandpass', f: 4800, q: 1.5, dur: 0.003, gain: 0.03 * v });
+        },
+        enter(ac, out, t) {
+          // Frost spreads into the ring: a swell of crackle and two tinks climbing.
+          const v = 0.41;
+          crackle(
+            ac,
+            out,
+            t,
+            0.14,
+            (s) => 80 + 1200 * s,
+            (s) => 0.5 + 3 * s,
+            { gain: 0.15 * v },
+          );
+          tink(ac, out, t + 0.04, 2794, 0.03 * v, 0.12);
+          tink(ac, out, t + 0.09, 3520, 0.035 * v, 0.14);
+        },
+        leave(ac, out, t, X) {
+          // Back out: an icicle snaps with a sharp crack and its tinks fall away.
+          const v = 0.49;
+          X.burst(ac, out, t, { type: 'bandpass', f: 2600, q: 1.2, dur: 0.01, gain: 0.08 * v });
+          crackle(
+            ac,
+            out,
+            t,
+            0.04,
+            () => 400,
+            () => 1,
+            { f: 3600, gain: 0.1 * v },
+          );
+          tink(ac, out, t + 0.012, 3136, 0.035 * v, 0.1);
+          tink(ac, out, t + 0.07, 2349, 0.025 * v, 0.12);
         },
         success(ac, out, t, X) {
-          // Frost crackle under a rising run of crystal chimes (inharmonic partials, like small bells).
-          [0.0, 0.05, 0.09, 0.16, 0.21, 0.3].forEach((h, k) =>
-            X.burst(ac, out, t + h, { type: 'highpass', f: 6500 + (k % 2) * 1500, q: 1, dur: 0.006, gain: 0.04 }),
+          // Frost ferns grow across the pane with a crackle that swells and fades over a soft crunch of
+          // freezing, the pane flashes with a cold whoosh, and its three glints twinkle as small ice
+          // chimes.
+          const v = 1.11;
+          crackle(
+            ac,
+            out,
+            t,
+            0.62,
+            (s) => (s < 0.08 ? 60 + 2000 * s : s < 0.32 ? 220 : 220 * (1 - (s - 0.32) / 0.3)),
+            (s) => (s < 0.3 ? 1 : 1 - (s - 0.3) / 0.4),
+            { gain: 0.12 * v },
           );
-          [1568, 2093, 2349, 3136, 4186].forEach((f, k) => {
-            const s = t + 0.03 + k * 0.065;
-            X.tone(ac, out, s, { type: 'sine', f, dur: 0.42 - k * 0.04, gain: 0.03, a: 0.002 });
-            X.tone(ac, out, s, { type: 'sine', f: f * 2.76, dur: 0.12, gain: 0.008, a: 0.001 });
+          crackle(
+            ac,
+            out,
+            t + 0.02,
+            0.3,
+            () => 120,
+            (s) => 1 - s / 0.3,
+            { f: 1400, q: 1, gain: 0.08 * v },
+          );
+          X.burst(ac, out, t + 0.05, {
+            type: 'bandpass',
+            f: 2500,
+            f2: 5200,
+            q: 0.8,
+            dur: 0.12,
+            gain: 0.04 * v,
+            a: 0.03,
           });
+          [
+            [0.375, 2637],
+            [0.46, 3136],
+            [0.545, 3520],
+          ].forEach(([d, f], k) => tink(ac, out, t + d, f, (0.04 - k * 0.005) * v, 0.26 - k * 0.02));
         },
       },
     });

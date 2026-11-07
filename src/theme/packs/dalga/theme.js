@@ -79,6 +79,67 @@ export default function register(Board) {
       return d;
     }
 
+    // ---------------------------------------------------------------- sound
+    // Sea water and its foam, no tones. Every gain starts silent and ramps, and every source is stopped,
+    // so nothing clicks. Each voice's `v` sets its level, balanced by measurement against the other
+    // themes.
+    // A gain that rises in `a` seconds, holds, then dies away over `d`.
+    function gate(ac, out, t, a, hold, d, peak) {
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + a);
+      if (hold > 0) g.gain.setValueAtTime(peak, t + a + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d);
+      g.connect(out);
+      return g;
+    }
+    function filter(ac, type, f, q) {
+      const n = ac.createBiquadFilter();
+      n.type = type;
+      n.frequency.value = f;
+      n.Q.value = q;
+      return n;
+    }
+    // Moving water: noise through a filter that slides from f to f2, under a gain that swells, holds and
+    // ebbs. A highpass under every lowpass keeps the sea's weight above what small speakers can play.
+    function water(ac, out, t, X, { type = 'lowpass', f, f2 = f, q = 0.8, a, hold = 0, d, gain }) {
+      const shape = filter(ac, type, f, q);
+      shape.frequency.setValueAtTime(f, t);
+      shape.frequency.exponentialRampToValueAtTime(f2, t + a + hold + d);
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      src.loop = true;
+      let chain = src.connect(shape);
+      if (type === 'lowpass') chain = chain.connect(filter(ac, 'highpass', 140, 0.7));
+      chain.connect(gate(ac, out, t, a, hold, d, gain));
+      src.start(t, Math.random() * 0.5);
+      src.stop(t + a + hold + d + 0.05);
+    }
+    // Foam: tiny bubbles bursting at random, rate(s) of them a second at s seconds in, each as loud as
+    // level(s), through a soft band of high frequencies.
+    function foam(ac, out, t, dur, rate, level, { f = 3200, q = 0.7, gain = 0.2 } = {}) {
+      const sr = ac.sampleRate;
+      const buf = ac.createBuffer(1, Math.ceil(dur * sr), sr);
+      const data = buf.getChannelData(0);
+      for (let s = 0; ;) {
+        s += -Math.log(1 - Math.random()) / Math.max(1, rate(s));
+        if (s > dur - 0.002) break;
+        const i = Math.floor(s * sr);
+        const n = 8 + Math.floor(Math.random() * 24);
+        const k = level(s) * (0.2 + 0.8 * Math.random());
+        for (let j = 0; j < n; j++) data[i + j] += k * (Math.random() * 2 - 1) * (1 - j / n);
+      }
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src
+        .connect(filter(ac, 'bandpass', f, q))
+        .connect(filter(ac, 'lowpass', 6500, 0.7))
+        .connect(gate(ac, out, t, 0.004, dur, 0.01, gain));
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+
     Board.define({
       id: 'dalga',
       fonts: {
@@ -362,21 +423,96 @@ export default function register(Board) {
 
       sounds: {
         open(ac, out, t, X) {
-          // A slow swell of water.
-          X.burst(ac, out, t, { type: 'lowpass', f: 260, f2: 1300, q: 0.8, dur: 0.2, gain: 0.1, a: 0.06 });
-          X.tone(ac, out, t, { type: 'sine', f: 110, f2: 92, dur: 0.18, gain: 0.03, a: 0.05 });
+          // A wave rolls in as the sea turns into place, spreads its foam and laps once at the rim.
+          const v = 0.72;
+          water(ac, out, t, X, { f: 260, f2: 1700, q: 0.9, a: 0.09, hold: 0.03, d: 0.2, gain: 0.12 * v });
+          foam(
+            ac,
+            out,
+            t + 0.1,
+            0.34,
+            (s) => 900 * (1 - s / 0.34),
+            (s) => 1 - s / 0.4,
+            { gain: 0.07 * v },
+          );
+          water(ac, out, t + 0.16, X, { type: 'bandpass', f: 1100, f2: 500, q: 1.2, a: 0.02, d: 0.12, gain: 0.05 * v });
         },
         tick(ac, out, t, X) {
-          // A small water plip.
-          X.tone(ac, out, t, { type: 'sine', f: 880, f2: 1500, dur: 0.022, gain: 0.045, a: 0.001 });
-          X.burst(ac, out, t, { type: 'highpass', f: 5000, q: 0.7, dur: 0.006, gain: 0.02 });
+          // The crest lifts: a small lap of water against it, a little different each time.
+          const v = 1.75;
+          const k = 0.92 + Math.random() * 0.16;
+          water(ac, out, t, X, {
+            type: 'bandpass',
+            f: 480 * k,
+            f2: 1250 * k,
+            q: 1.2,
+            a: 0.008,
+            d: 0.045,
+            gain: 0.12 * v,
+          });
+          water(ac, out, t, X, {
+            type: 'bandpass',
+            f: 700 * k,
+            f2: 380 * k,
+            q: 0.9,
+            a: 0.004,
+            d: 0.03,
+            gain: 0.04 * v,
+          });
+        },
+        enter(ac, out, t, X) {
+          // A swell lifts the sea and crests.
+          const v = 1;
+          water(ac, out, t, X, { f: 380, f2: 2200, q: 1.2, a: 0.12, d: 0.1, gain: 0.08 * v });
+          foam(
+            ac,
+            out,
+            t + 0.12,
+            0.1,
+            () => 600,
+            (s) => 1 - s / 0.1,
+            { gain: 0.06 * v },
+          );
+        },
+        leave(ac, out, t, X) {
+          // Back out: the backwash slides away, fizzing.
+          const v = 0.72;
+          water(ac, out, t, X, { f: 1900, f2: 320, q: 0.9, a: 0.015, d: 0.2, gain: 0.08 * v });
+          foam(
+            ac,
+            out,
+            t + 0.02,
+            0.16,
+            (s) => 700 * (1 - s / 0.16),
+            () => 1,
+            { gain: 0.05 * v },
+          );
         },
         success(ac, out, t, X) {
-          // The wash rises, breaks into a crash, and the foam fizzes away.
-          X.burst(ac, out, t, { type: 'bandpass', f: 500, f2: 2400, q: 0.7, dur: 0.13, gain: 0.08, a: 0.05 });
-          X.burst(ac, out, t + 0.12, { type: 'lowpass', f: 4200, f2: 450, q: 0.6, dur: 0.5, gain: 0.11, a: 0.008 });
-          X.tone(ac, out, t + 0.12, { type: 'sine', f: 85, f2: 48, dur: 0.16, gain: 0.07, a: 0.004 });
-          X.burst(ac, out, t + 0.18, { type: 'highpass', f: 6200, q: 0.6, dur: 0.36, gain: 0.025, a: 0.02 });
+          // The crest swells, breaks over the slice in a crash of water, throws its spray, and the foam
+          // fizzes away while the backwash draws off.
+          const v = 0.6;
+          water(ac, out, t, X, { f: 300, f2: 1600, q: 1, a: 0.14, d: 0.03, gain: 0.06 * v });
+          water(ac, out, t + 0.15, X, { f: 5200, f2: 700, q: 0.6, a: 0.006, hold: 0.04, d: 0.42, gain: 0.16 * v });
+          X.tone(ac, out, t + 0.15, { f: 170, f2: 110, dur: 0.12, gain: 0.06 * v, a: 0.004 });
+          for (let k = 0; k < 5; k++)
+            X.burst(ac, out, t + 0.19 + k * 0.025 + Math.random() * 0.015, {
+              type: 'bandpass',
+              f: 2500 + Math.random() * 1500,
+              q: 1.5,
+              dur: 0.01,
+              gain: 0.05 * v,
+            });
+          foam(
+            ac,
+            out,
+            t + 0.2,
+            0.75,
+            (s) => 1500 - 1700 * s,
+            (s) => 1 - s / 0.8,
+            { gain: 0.1 * v },
+          );
+          water(ac, out, t + 0.5, X, { f: 1400, f2: 300, q: 0.8, a: 0.12, d: 0.3, gain: 0.03 * v });
         },
       },
     });
