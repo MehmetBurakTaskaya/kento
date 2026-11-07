@@ -66,6 +66,107 @@ export default function register(Board) {
       return Math.abs(a) * (Math.PI / 180) * r < (sl.step / 2) * (Math.PI / 180) * r - pad - 1.5;
     }
 
+    // Sounds: stone on stone, drawn sample by sample at the context's rate into one stereo buffer per
+    // sound, so a tick costs two nodes however fast the pointer sweeps and every call can differ a
+    // little; the opening and the applying sound alike each time, so they are drawn once per rate and
+    // kept (`keep`). Each buffer starts and ends at zero and its gain opens from silence, so nothing
+    // clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(2, n, sr);
+        const ch = [buf.getChannelData(0), buf.getChannelData(1)];
+        draw(ch, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (const d of ch) for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // One ringing mode added to d over n samples: a sine from zero that dies away exponentially, by the
+    // two-multiply resonator recurrence rather than a sine per sample.
+    function mode(d, n, f, tau, amp, sr) {
+      const w = (2 * Math.PI * f) / sr;
+      const r = Math.exp(-1 / (tau * sr));
+      const c = 2 * r * Math.cos(w);
+      let y1 = 0;
+      let y2 = (-amp * Math.sin(w)) / r;
+      for (let i = 1; i < n; i++) {
+        const y = c * y1 - r * r * y2;
+        d[i] += y;
+        y2 = y1;
+        y1 = y;
+      }
+    }
+    // A hit on stone: its modes ([frequency, decay, level]) rung together with a grain of grit at the
+    // contact, then laid into the sound at `at`, placed by pan, the last fifth faded out. Nothing above
+    // 8 kHz, so a shower of chips never turns shrill.
+    let scratch = new Float32Array(0);
+    function hit(ch, sr, at, len, modes, { pan = 0, gain = 1, grit = 0.3 } = {}) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(Math.round(len * sr), ch[0].length - i0);
+      if (n <= 0) return;
+      if (scratch.length < n) scratch = new Float32Array(n);
+      scratch.fill(0, 0, n);
+      for (const [f, tau, amp] of modes) if (f < 8000) mode(scratch, n, f, tau, amp, sr);
+      let seed = (random() * 4294967295) >>> 0 || 1;
+      const g = Math.round(sr * 0.0008);
+      for (let i = 1; i < Math.min(n, g); i++) {
+        seed ^= seed << 13;
+        seed ^= seed >>> 17;
+        seed ^= seed << 5;
+        scratch[i] += grit * ((seed | 0) / 2147483648) * Math.min(1 - i / g, i / (sr * 0.0001));
+      }
+      const gl = gain * Math.min(1, 1 - pan);
+      const gr = gain * Math.min(1, 1 + pan);
+      for (let i = 0; i < n; i++) {
+        const v = scratch[i] * Math.min(1, (n - i) / (0.2 * n));
+        ch[0][i0 + i] += gl * v;
+        ch[1][i0 + i] += gr * v;
+      }
+    }
+    // A stone chip: a hard click whose few modes, never the same twice (no two chips are alike), die
+    // within a few milliseconds; smaller chips ring higher.
+    const chip = (f) => [
+      [f, 0.003, 1],
+      [f * (1.42 + 0.2 * random()), 0.002, 0.55],
+      [f * (2.05 + 0.3 * random()), 0.0014, 0.3],
+    ];
+    // The slab knocked: a dull, dense thock of stone with a short ring.
+    const slab = (f) => [
+      [f, 0.03, 1],
+      [f * 2.63, 0.014, 0.6],
+      [f * 5.9, 0.007, 0.35],
+      [f * 11.4, 0.004, 0.2],
+    ];
+    // A chip dropped on the slab, each bounce closer and softer than the one before.
+    function bounce(ch, sr, at, f, { hops = 4, gap = 0.07, gain = 1, pan = 0 }) {
+      let when = at;
+      for (let k = 0; k <= hops; k++) {
+        hit(ch, sr, when, 0.03, chip(f * (1 + 0.04 * random())), { gain: gain * 0.62 ** k, pan });
+        when += gap * 0.64 ** k;
+      }
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: ID,
       fonts: {
@@ -420,47 +521,61 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A stone slab slid into place, with a small clink.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'lowpass', f: 420, f2: 160, q: 0.8, dur: 0.12, gain: 0.18, a: 0.01 });
-          X.tone(ac, out, t + 0.07, { type: 'sine', f: 2860, dur: 0.05, gain: 0.015, a: 0.001 });
-          X.tone(ac, out, t + 0.07, { type: 'sine', f: 4190, dur: 0.035, gain: 0.008, a: 0.001 });
+        // The slab rises into place: a soft stone thock and a few chips settling round it.
+        open(ac, out, t) {
+          play(ac, out, t, 0.25, 0.021, KEPT.open, (ch, sr) => {
+            hit(ch, sr, 0, 0.12, slab(250), { grit: 0.5 });
+            [0.05, 0.08, 0.105, 0.14].forEach((when, k) =>
+              hit(ch, sr, when, 0.03, chip(3000 + 1500 * random()), {
+                gain: 0.25 - k * 0.035,
+                pan: random() - 0.5,
+              }),
+            );
+          });
         },
-        // A pebble click: two tiny knocks.
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 3300, q: 5, dur: 0.005, gain: 0.12 });
-          X.burst(ac, out, t + 0.014, { type: 'bandpass', f: 2700, q: 5, dur: 0.004, gain: 0.06 });
+        // A stone chip clicking on the polished slab: a touch and a rebound, never twice the same.
+        tick(ac, out, t) {
+          const f = 2800 + 1700 * random();
+          const back = 0.008 + 0.01 * random();
+          const pan = (random() - 0.5) * 0.3;
+          play(ac, out, t, 0.05, 0.01, null, (ch, sr) => {
+            hit(ch, sr, 0, 0.025, chip(f), { pan, grit: 0.8 });
+            hit(ch, sr, back, 0.025, chip(f * (0.9 + 0.25 * random())), { gain: 0.4, pan, grit: 0.8 });
+          });
         },
-        // Chips scattering, then settling with a last soft tok.
-        success(ac, out, t, X) {
-          const hits = [
-            [0, 3600],
-            [0.022, 4400],
-            [0.041, 2900],
-            [0.063, 5100],
-            [0.08, 3300],
-            [0.108, 4000],
-            [0.13, 2600],
-            [0.162, 4700],
-            [0.2, 3100],
-            [0.245, 3900],
-          ];
-          hits.forEach(([dt, f], k) =>
-            X.burst(ac, out, t + dt, {
-              type: 'bandpass',
-              f,
-              q: 6,
-              dur: 0.004 + (k % 3) * 0.002,
-              gain: 0.05 + (k % 4) * 0.012,
-            }),
+        // Into a ring: a chip dropped on the slab, bouncing to rest.
+        enter(ac, out, t) {
+          play(ac, out, t, 0.24, 0.011, null, (ch, sr) => bounce(ch, sr, 0, 2600, { hops: 4, gap: 0.07 }));
+        },
+        // Back out: a chip flicked away, skittering off across the stone.
+        leave(ac, out, t) {
+          play(ac, out, t, 0.16, 0.01, null, (ch, sr) =>
+            [0, 0.022, 0.038, 0.061, 0.077, 0.098].forEach((when, k) =>
+              hit(ch, sr, when, 0.03, chip(3600 + 1200 * random()), { gain: 0.8 * 0.75 ** k, pan: k * 0.1 }),
+            ),
           );
-          [
-            [0.33, 3000],
-            [0.38, 3500],
-            [0.43, 2800],
-          ].forEach(([dt, f]) => X.burst(ac, out, t + dt, { type: 'bandpass', f, q: 5, dur: 0.004, gain: 0.04 }));
-          X.tone(ac, out, t + 0.5, { type: 'triangle', f: 420, f2: 360, dur: 0.06, gain: 0.07, a: 0.002 });
-          X.burst(ac, out, t + 0.5, { type: 'lowpass', f: 900, q: 0.7, dur: 0.03, gain: 0.08 });
+        },
+        // A knock on the slab, the chips leap with a clatter and rain back down, settling click by click
+        // into their new pattern.
+        success(ac, out, t) {
+          play(ac, out, t, 0.72, 0.026, KEPT.success, (ch, sr) => {
+            hit(ch, sr, 0, 0.15, slab(210), { grit: 0.6 });
+            for (let k = 0; k < 10; k++)
+              hit(ch, sr, 0.005 + 0.1 * random(), 0.03, chip(2600 + 2400 * random()), {
+                gain: 0.2 + 0.35 * random(),
+                pan: random() - 0.5,
+              });
+            for (let k = 0; k < 14; k++) {
+              const when = 0.38 + 0.2 * random() ** 1.3;
+              const f = 2500 + 2500 * random();
+              const pan = random() - 0.5;
+              const gain = 0.3 + 0.6 * random();
+              hit(ch, sr, when, 0.03, chip(f), { gain, pan });
+              hit(ch, sr, when + 0.012 + 0.02 * random(), 0.03, chip(f * 1.05), { gain: gain * 0.4, pan });
+            }
+            hit(ch, sr, 0.6, 0.03, chip(3300), { gain: 0.3, pan: 0.2 });
+            hit(ch, sr, 0.64, 0.03, chip(3800), { gain: 0.2, pan: -0.2 });
+          });
         },
       },
     });

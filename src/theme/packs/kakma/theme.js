@@ -152,6 +152,134 @@ export default function register(Board) {
       return d;
     }
 
+    // Sounds: wood and mother-of-pearl, drawn sample by sample at the context's rate into one stereo
+    // buffer per sound, so a tick costs two nodes however fast the pointer sweeps and every call can
+    // differ a little; the opening and the applying sound alike each time, so they are drawn once per
+    // rate and kept (`keep`). Each buffer starts and ends at zero and its gain opens from silence, so
+    // nothing clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(2, n, sr);
+        const ch = [buf.getChannelData(0), buf.getChannelData(1)];
+        draw(ch, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (const d of ch) for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // One ringing mode added to d over n samples: a sine from zero that dies away exponentially, by the
+    // two-multiply resonator recurrence rather than a sine per sample.
+    function mode(d, n, f, tau, amp, sr) {
+      const w = (2 * Math.PI * f) / sr;
+      const r = Math.exp(-1 / (tau * sr));
+      const c = 2 * r * Math.cos(w);
+      let y1 = 0;
+      let y2 = (-amp * Math.sin(w)) / r;
+      for (let i = 1; i < n; i++) {
+        const y = c * y1 - r * r * y2;
+        d[i] += y;
+        y2 = y1;
+        y1 = y;
+      }
+    }
+    // A struck thing: its modes ([frequency, decay, level]) rung together, then laid into the sound at
+    // `at`, placed by pan, with an onset of `attack` seconds and the last fifth faded out; `knock` adds
+    // the short soft thud of the mallet. Nothing above 9 kHz.
+    let scratch = new Float32Array(0);
+    function strike(ch, sr, at, len, modes, { pan = 0, gain = 1, attack = 0.0005, knock = 0 } = {}) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(Math.round(len * sr), ch[0].length - i0);
+      if (n <= 0) return;
+      if (scratch.length < n) scratch = new Float32Array(n);
+      scratch.fill(0, 0, n);
+      for (const [f, tau, amp] of modes) if (f < 9000) mode(scratch, n, f, tau, amp, sr);
+      if (knock) {
+        const rnd = white();
+        let lp = 0;
+        for (let i = 0; i < Math.min(n, sr * 0.004); i++) {
+          lp += (rnd() - lp) * 0.3;
+          scratch[i] += knock * lp * (1 - i / (sr * 0.004));
+        }
+      }
+      const gl = gain * Math.min(1, 1 - pan);
+      const gr = gain * Math.min(1, 1 + pan);
+      const a = Math.max(1, attack * sr);
+      for (let i = 0; i < n; i++) {
+        const v = scratch[i] * Math.min(1, i / a, (n - i) / (0.2 * n));
+        ch[0][i0 + i] += gl * v;
+        ch[1][i0 + i] += gr * v;
+      }
+    }
+    // White noise, -1 to 1, from a fresh seed each time.
+    function white() {
+      let s = (random() * 4294967295) >>> 0 || 1;
+      return () => {
+        s ^= s << 13;
+        s ^= s >>> 17;
+        s ^= s << 5;
+        return (s | 0) / 2147483648;
+      };
+    }
+    // The notes: makam Hicaz on E (E F G# A B C D), the augmented second of Ottoman inlay work.
+    const HICAZ = [329.63, 349.23, 415.3, 440, 493.88, 523.25, 587.33];
+    const note = (k) => HICAZ[((k % 7) + 7) % 7] * 2 ** Math.floor(k / 7);
+    // A knock on hardwood veneer: a few strongly damped modes, the upper ones gone almost at once;
+    // `hollow` adds the low air of the box under the panel.
+    const wood = (f, ring, hollow = 0) => [
+      [f, ring, 1],
+      [f * 2.59, ring * 0.45, 0.38],
+      [f * 4.9, ring * 0.25, 0.14],
+      [f * 0.5, ring * 1.4, hollow],
+    ];
+    // Mother-of-pearl catching the light: a pure tone beside a slightly sharp twin, so it shimmers like
+    // nacre as it fades, with a faint octave.
+    const pearl = (f, ring) => [
+      [f, ring, 1],
+      [f * 1.0045, ring, 0.8],
+      [f * 2.01, ring * 0.4, 0.15],
+    ];
+    // Light passing over nacre: a breath of noise through a narrow band sweeping across.
+    function sheen(ch, sr, at, len, f0, f1, gain) {
+      const rnd = white();
+      let a = 0;
+      let b = 0;
+      let g = 0;
+      const i0 = Math.round(at * sr);
+      const n = Math.min(Math.round(len * sr), ch[0].length - i0);
+      for (let i = 0; i < n; i++) {
+        const u = i / n;
+        // A state-variable band-pass, Q 3; its centre moves slowly enough to be set every 32 samples.
+        if (i % 32 === 0) g = Math.tan((Math.PI * f0 * (f1 / f0) ** u) / sr);
+        const v1 = (a + g * (rnd() - b)) / (1 + g * (g + 1 / 3));
+        a = 2 * v1 - a;
+        b = 2 * (b + g * v1) - b;
+        const v = (gain / 3) * v1 * Math.sin(Math.PI * u) ** 2;
+        ch[0][i0 + i] += v * (1 - u * 0.5);
+        ch[1][i0 + i] += v * (0.5 + u * 0.5);
+      }
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: ID,
       fonts: {
@@ -477,24 +605,65 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A wooden lid settling.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'lowpass', f: 520, q: 0.8, dur: 0.07, gain: 0.2, a: 0.004 });
-          X.tone(ac, out, t + 0.004, { type: 'triangle', f: 300, f2: 250, dur: 0.06, gain: 0.07, a: 0.002 });
+        // The panel set down and its veneers laid in round the star: a hollow knock, a patter of small
+        // wooden pieces up the Hicaz scale, and a dot of pearl catching the light.
+        open(ac, out, t) {
+          play(ac, out, t, 0.45, 0.023, KEPT.open, (ch, sr) => {
+            strike(ch, sr, 0, 0.2, wood(note(0), 0.04, 0.6), { knock: 0.6 });
+            for (let k = 0; k < 5; k++)
+              strike(ch, sr, 0.03 + k * 0.016, 0.1, wood(note(7 + k), 0.018), {
+                gain: 0.35,
+                pan: (k % 2 ? 0.35 : -0.35) * (1 - k * 0.15),
+                knock: 0.3,
+              });
+            strike(ch, sr, 0.13, 0.32, pearl(note(21), 0.08), { gain: 0.2, attack: 0.004, pan: 0.2 });
+          });
         },
-        // A small woodblock tap.
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'sine', f: 1180, dur: 0.035, gain: 0.06, a: 0.001 });
-          X.tone(ac, out, t, { type: 'triangle', f: 2360, dur: 0.012, gain: 0.02, a: 0.001 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 2500, q: 2, dur: 0.006, gain: 0.05 });
+        // The pearl edge lights: a small tap on the veneer with a glint of nacre, never twice the same.
+        tick(ac, out, t) {
+          const f = note(7 + Math.floor(random() * 5));
+          const ring = 0.016 + 0.006 * random();
+          const pan = (random() - 0.5) * 0.4;
+          play(ac, out, t, 0.08, 0.03, null, (ch, sr) => {
+            strike(ch, sr, 0, 0.08, wood(f, ring), { pan, knock: 0.9 });
+            sheen(ch, sr, 0.004, 0.03, 4800, 5600, 0.12);
+          });
         },
-        // A wooden tok, then a quiet rising shimmer as the pearl catches the light.
-        success(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'triangle', f: 520, f2: 470, dur: 0.07, gain: 0.08, a: 0.002 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 1800, q: 1.6, dur: 0.012, gain: 0.07 });
-          [2093, 2637, 3136, 3951, 4699].forEach((f, k) => {
-            X.tone(ac, out, t + 0.09 + k * 0.045, { type: 'sine', f, dur: 0.3, gain: 0.022, a: 0.01 });
-            X.tone(ac, out, t + 0.09 + k * 0.045, { type: 'sine', f: f * 1.006, dur: 0.26, gain: 0.012, a: 0.01 });
+        // Into a ring: a piece pressed into its recess, two wooden toks rising and a glint of pearl.
+        enter(ac, out, t) {
+          play(ac, out, t, 0.22, 0.021, null, (ch, sr) => {
+            strike(ch, sr, 0, 0.12, wood(note(7), 0.025, 0.3), { pan: -0.15, knock: 0.4 });
+            strike(ch, sr, 0.055, 0.12, wood(note(10), 0.025), { pan: 0.15, knock: 0.3 });
+            strike(ch, sr, 0.06, 0.16, pearl(note(21), 0.05), { gain: 0.18, attack: 0.003 });
+          });
+        },
+        // Back out: the piece lifted, two toks falling, the second softer.
+        leave(ac, out, t) {
+          play(ac, out, t, 0.18, 0.024, null, (ch, sr) => {
+            strike(ch, sr, 0, 0.12, wood(note(10), 0.025), { pan: 0.15, knock: 0.35 });
+            strike(ch, sr, 0.05, 0.12, wood(note(7), 0.025, 0.3), { gain: 0.6, pan: -0.15, knock: 0.3 });
+          });
+        },
+        // A wooden tok, then mother-of-pearl spreads over the veneer in an iridescent shimmer, a sheen
+        // crosses it and the three dots twinkle down the Hicaz cadence to rest.
+        success(ac, out, t) {
+          play(ac, out, t, 1.05, 0.048, KEPT.success, (ch, sr) => {
+            strike(ch, sr, 0, 0.25, wood(note(7), 0.05, 0.5), { knock: 0.6 });
+            [14, 18, 21].forEach((k, j) =>
+              strike(ch, sr, 0.02 + j * 0.02, 1, pearl(note(k), 0.35), {
+                gain: 0.22,
+                attack: 0.12,
+                pan: (j - 1) * 0.3,
+              }),
+            );
+            sheen(ch, sr, 0.03, 0.54, 2200, 6500, 0.3);
+            [24, 23, 22, 21].forEach((k, j) =>
+              strike(ch, sr, 0.22 + j * 0.08, 0.4, pearl(note(k), 0.1), {
+                gain: 0.3 - j * 0.03,
+                attack: 0.003,
+                pan: [-0.4, 0.4, 0, 0.1][j],
+              }),
+            );
           });
         },
       },

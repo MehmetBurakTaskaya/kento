@@ -86,6 +86,131 @@ export default function register(Board) {
       return dd + 'Z';
     }
 
+    // Sounds: glass and a small bell, drawn sample by sample at the context's rate into one stereo
+    // buffer per sound, so a tick costs two nodes however fast the pointer sweeps and every call can
+    // differ a little; the opening and the applying sound alike each time, so they are drawn once per
+    // rate and kept (`keep`). Each buffer starts and ends at zero and its gain opens from silence, so
+    // nothing clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(2, n, sr);
+        const ch = [buf.getChannelData(0), buf.getChannelData(1)];
+        draw(ch, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (const d of ch) for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // One ringing mode added to d over n samples: a sine from zero that dies away exponentially, by the
+    // two-multiply resonator recurrence rather than a sine per sample.
+    function mode(d, n, f, tau, amp, sr) {
+      const w = (2 * Math.PI * f) / sr;
+      const r = Math.exp(-1 / (tau * sr));
+      const c = 2 * r * Math.cos(w);
+      let y1 = 0;
+      let y2 = (-amp * Math.sin(w)) / r;
+      for (let i = 1; i < n; i++) {
+        const y = c * y1 - r * r * y2;
+        d[i] += y;
+        y2 = y1;
+        y1 = y;
+      }
+    }
+    // A struck thing: its modes ([frequency, decay, level]) rung together, then laid into the sound at
+    // `at`, placed by pan, with an onset of `attack` seconds and the last fifth faded out. Glass has no
+    // business above 9 kHz, so higher modes are left out.
+    let scratch = new Float32Array(0);
+    function strike(ch, sr, at, len, modes, { pan = 0, gain = 1, attack = 0.0005 } = {}) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(Math.round(len * sr), ch[0].length - i0);
+      if (n <= 0) return;
+      if (scratch.length < n) scratch = new Float32Array(n);
+      scratch.fill(0, 0, n);
+      for (const [f, tau, amp] of modes) if (f < 9000) mode(scratch, n, f, tau, amp, sr);
+      const gl = gain * Math.min(1, 1 - pan);
+      const gr = gain * Math.min(1, 1 + pan);
+      const a = Math.max(1, attack * sr);
+      for (let i = 0; i < n; i++) {
+        const v = scratch[i] * Math.min(1, i / a, (n - i) / (0.2 * n));
+        ch[0][i0 + i] += gl * v;
+        ch[1][i0 + i] += gr * v;
+      }
+    }
+    // The window's colours as notes: D Dorian pentatonic (D E G A B), high in the glass.
+    const PANE = [293.66, 329.63, 392, 440, 493.88];
+    const note = (k) => PANE[((k % 5) + 5) % 5] * 2 ** Math.floor(k / 5);
+    // A pane of glass touched: a few inharmonic partials, the upper ones dying first, the lowest beside
+    // a slightly sharp twin so the glass shimmers as it rings.
+    const glass = (f, ring) => [
+      [f, ring, 1],
+      [f * 1.0025, ring, 0.6],
+      [f * 2.32, ring * 0.55, 0.4],
+      [f * 4.25, ring * 0.32, 0.16],
+      [f * 6.63, ring * 0.2, 0.06],
+    ];
+    // A small bell on its prime f: hum, prime, minor-third tierce, quint, nominal and the partials
+    // above, each beating slowly against a twin.
+    const bell = (f) =>
+      [
+        [0.5, 0.95, 0.3],
+        [1, 0.75, 0.45],
+        [1.2, 0.65, 0.4],
+        [1.5, 0.45, 0.18],
+        [2, 0.55, 0.6],
+        [2.51, 0.3, 0.22],
+        [3.01, 0.22, 0.15],
+        [4.07, 0.15, 0.07],
+      ].flatMap(([r, tau, amp]) => [
+        [f * r, tau, amp],
+        [f * r * 1.0012, tau, amp * 0.7],
+      ]);
+    // Light breaking into rays round the pane: tiny glints of glass scattered in time and space,
+    // thinning out.
+    function glitter(ch, sr, at, len, count, gain) {
+      for (let k = 0; k < count; k++) {
+        const f = note(15 + Math.floor(random() * 4));
+        const when = at + len * random() ** 1.6;
+        strike(ch, sr, when, 0.06, glass(f, 0.012), { gain: gain * (0.4 + 0.6 * random()), pan: random() - 0.5 });
+      }
+    }
+    // The pool of coloured light on the centre: a low glass hum swelling in and beating gently.
+    function pool(ch, sr, at, len, f, gain) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(Math.round(len * sr), ch[0].length - i0);
+      for (let i = 0; i < n; i++) {
+        const s = i / sr;
+        const u = i / n;
+        const v =
+          Math.sin(2 * Math.PI * f * s) +
+          0.7 * Math.sin(2 * Math.PI * f * 1.004 * s) +
+          0.4 * Math.sin(3 * Math.PI * f * s);
+        const e = gain * Math.sin(Math.PI * u ** 0.45) ** 2;
+        ch[0][i0 + i] += e * v;
+        ch[1][i0 + i] += e * v;
+      }
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: ID,
       fonts: {
@@ -478,32 +603,49 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A soft run of glass notes.
-        open(ac, out, t, X) {
-          [1568, 1976, 2349, 3136].forEach((f, k) =>
-            X.tone(ac, out, t + k * 0.028, { type: 'sine', f, dur: 0.22, gain: 0.025, a: 0.006 }),
+        // The window lights up petal by petal: a soft cascade of glass notes climbing the rose.
+        open(ac, out, t) {
+          play(ac, out, t, 0.6, 0.016, KEPT.open, (ch, sr) =>
+            [12, 13, 14, 15, 16, 17].forEach((k, j) =>
+              strike(ch, sr, j * 0.022, 0.6 - j * 0.022, glass(note(k), 0.1), {
+                gain: 1 - j * 0.08,
+                pan: (j % 2 ? 0.3 : -0.3) * (1 - j * 0.1),
+              }),
+            ),
           );
-          X.burst(ac, out, t, { type: 'highpass', f: 5000, q: 0.5, dur: 0.12, gain: 0.02, a: 0.03 });
         },
-        // A tiny glass tink.
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'sine', f: 3520, dur: 0.05, gain: 0.04, a: 0.001 });
-          X.tone(ac, out, t, { type: 'sine', f: 5280 * 1.03, dur: 0.03, gain: 0.015, a: 0.001 });
+        // A pane glows: a tiny glass tink on a note of the window, never twice the same.
+        tick(ac, out, t) {
+          const f = note(15 + Math.floor(random() * 4));
+          const ring = 0.014 + 0.006 * random();
+          const pan = (random() - 0.5) * 0.5;
+          play(ac, out, t, 0.09, 0.02, null, (ch, sr) => strike(ch, sr, 0, 0.09, glass(f, ring), { pan }));
         },
-        // A small bell: hum, prime, a minor-third tierce, quint and nominal, ringing on quietly.
-        success(ac, out, t, X) {
-          const f = 660;
-          X.burst(ac, out, t, { type: 'bandpass', f: 3000, q: 1.5, dur: 0.012, gain: 0.08 });
-          [
-            [0.5, 0.05, 1.6],
-            [1, 0.07, 1.2],
-            [1.2, 0.05, 0.9],
-            [1.5, 0.03, 0.7],
-            [2, 0.045, 0.6],
-            [2.51, 0.02, 0.4],
-            [3.01, 0.012, 0.3],
-          ].forEach(([r, g, d]) => X.tone(ac, out, t, { type: 'sine', f: f * r, dur: d, gain: g, a: 0.002 }));
-          X.tone(ac, out, t + 0.03, { type: 'sine', f: f * 2.01, dur: 0.5, gain: 0.015, a: 0.004 });
+        // Into a ring: light deepens through the glass, two notes rising a fifth.
+        enter(ac, out, t) {
+          play(ac, out, t, 0.25, 0.013, null, (ch, sr) => {
+            strike(ch, sr, 0, 0.25, glass(note(15), 0.05), { pan: -0.15 });
+            strike(ch, sr, 0.06, 0.19, glass(note(18), 0.06), { gain: 0.8, pan: 0.15 });
+          });
+        },
+        // Back out: the light fades, two notes falling a fourth.
+        leave(ac, out, t) {
+          play(ac, out, t, 0.25, 0.012, null, (ch, sr) => {
+            strike(ch, sr, 0, 0.25, glass(note(16), 0.05), { pan: 0.15 });
+            strike(ch, sr, 0.06, 0.19, glass(note(14), 0.055), { gain: 0.7, pan: -0.15 });
+          });
+        },
+        // Light flares through the pane and a small bell rings; the beam's three glass notes fall to
+        // the centre and pool there in a soft hum, while glints scatter round the medallion.
+        success(ac, out, t) {
+          play(ac, out, t, 1.15, 0.055, KEPT.success, (ch, sr) => {
+            strike(ch, sr, 0, 1.15, bell(587.33), { attack: 0.001 });
+            strike(ch, sr, 0.06, 0.8, glass(note(13), 0.15), { gain: 0.5, pan: -0.2 });
+            strike(ch, sr, 0.14, 0.8, glass(note(11), 0.15), { gain: 0.45 });
+            strike(ch, sr, 0.22, 0.85, glass(note(10), 0.18), { gain: 0.45, pan: 0.2 });
+            glitter(ch, sr, 0.04, 0.5, 18, 0.25);
+            pool(ch, sr, 0.2, 0.9, 293.66, 0.12);
+          });
         },
       },
     });

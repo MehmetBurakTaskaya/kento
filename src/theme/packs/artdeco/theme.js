@@ -142,6 +142,107 @@ export default function register(Board) {
       return parts;
     }
 
+    // Sounds: struck gold, drawn sample by sample at the context's rate into one stereo buffer per
+    // sound, so a tick costs two nodes however fast the pointer sweeps and every call can differ a
+    // little; the opening and the applying sound alike each time, so they are drawn once per rate and
+    // kept (`keep`). Each buffer starts and ends at zero and its gain opens from silence, so nothing
+    // clicks.
+    function play(ac, out, t, dur, level, keep, draw) {
+      const sr = ac.sampleRate;
+      let buf = keep && keep.get(sr);
+      if (!buf) {
+        random = keep ? seeded(7) : Math.random;
+        const n = Math.ceil(dur * sr);
+        buf = ac.createBuffer(2, n, sr);
+        const ch = [buf.getChannelData(0), buf.getChannelData(1)];
+        draw(ch, sr);
+        const fade = Math.min(n, Math.round(sr * 0.004));
+        for (const d of ch) for (let i = 1; i <= fade; i++) d[n - i] *= (i - 1) / fade;
+        random = Math.random;
+        if (keep) keep.set(sr, buf);
+      }
+      const src = ac.createBufferSource();
+      const g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.004));
+      g.gain.linearRampToValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+    // Chance: Math.random for the sounds that vary, a fixed sequence while a kept sound is drawn, so
+    // the opening and the applying sound the same in every session.
+    let random = Math.random;
+    function seeded(seed) {
+      return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    }
+    // The notes of a D-flat six-nine chord, the dance band's glamour; any of them sound well together.
+    const SIX_NINE = [277.18, 311.13, 349.23, 415.3, 466.16];
+    const note = (k) => SIX_NINE[((k % 5) + 5) % 5] * 2 ** Math.floor(k / 5);
+    // A sine table read by phase in turns: a chord of gold is a hundred thousand samples, and the table
+    // is several times cheaper than Math.sin and as clean (its error is far below hearing).
+    const SINE = Float32Array.from({ length: 4097 }, (v, i) => Math.sin((2 * Math.PI * i) / 4096));
+    const sine = (p) => {
+      const x = (p - Math.floor(p)) * 4096;
+      const i = x | 0;
+      return SINE[i] + (SINE[i + 1] - SINE[i]) * (x - i);
+    };
+    // A struck bar of gold: a sine phase-modulated at an inharmonic ratio, bright and metallic at the
+    // stroke and mellowing as it rings, with the faint fourth harmonic of a tuned bar. `trem` adds the
+    // slow beat of a vibraphone's fans.
+    function gold(ch, sr, at, f, { ring = 0.1, bright = 1, gain = 1, a = 0.0015, trem = 0, pan = 0, len = ring * 6 }) {
+      const gl = gain * Math.min(1, 1 - pan);
+      const gr = gain * Math.min(1, 1 + pan);
+      const i0 = Math.round(at * sr);
+      const m = Math.min(Math.round(len * sr), ch[0].length - i0);
+      const turn = f / sr;
+      // Each part of the sound fades by its own factor every sample.
+      const fall = Math.exp(-1 / (ring * sr));
+      const dim = Math.exp(-1 / (ring * 0.2 * sr));
+      const thin = Math.exp(-1 / (ring * 0.3 * sr));
+      let e = 1;
+      let index = bright / (2 * Math.PI);
+      let over = 4 * f < 8000 ? 0.18 : 0;
+      for (let i = 0; i < m; i++) {
+        const s = i / sr;
+        const p = turn * i;
+        const beat = trem ? 1 - trem * (0.5 - 0.5 * sine(5.4 * s + 0.25)) : 1;
+        const v = (sine(p + index * sine(1.41 * p)) + over * sine(4 * p)) * e * beat;
+        const shape = Math.min(1, s / a, (m - i) / (0.25 * m));
+        ch[0][i0 + i] += gl * shape * v;
+        ch[1][i0 + i] += gr * shape * v;
+        e *= fall;
+        index *= dim;
+        over *= thin;
+      }
+    }
+    // Light running along gilt: a breath of noise through a narrow band (Q 3) sweeping upward.
+    function sheen(ch, sr, at, len, f0, f1, gain) {
+      let seed = (random() * 4294967295) >>> 0 || 1;
+      let a = 0;
+      let b = 0;
+      let g = 0;
+      const i0 = Math.round(at * sr);
+      const m = Math.min(Math.round(len * sr), ch[0].length - i0);
+      for (let i = 0; i < m; i++) {
+        seed ^= seed << 13;
+        seed ^= seed >>> 17;
+        seed ^= seed << 5;
+        const u = i / m;
+        // A state-variable band-pass; its centre moves slowly enough to be set every 32 samples.
+        if (i % 32 === 0) g = Math.tan((Math.PI * f0 * (f1 / f0) ** u) / sr);
+        const v1 = (a + g * ((seed | 0) / 2147483648 - b)) / (1 + g * (g + 1 / 3));
+        const v2 = b + g * v1;
+        a = 2 * v1 - a;
+        b = 2 * v2 - b;
+        const v = (gain / 3) * v1 * Math.sin(Math.PI * u) ** 2;
+        ch[0][i0 + i] += v;
+        ch[1][i0 + i] += v;
+      }
+    }
+    const KEPT = { open: new Map(), success: new Map() };
+
     Board.define({
       id: 'artdeco',
       // Limelight has no Cyrillic; Yeseva One, as high in contrast, draws those letters.
@@ -406,33 +507,73 @@ export default function register(Board) {
       },
 
       sounds: {
-        open(ac, out, t, X) {
-          // A short harp run up a major sixth chord.
-          [523, 659, 880, 1047].forEach((f, k) =>
-            X.tone(ac, out, t + k * 0.028, { type: 'triangle', f, dur: 0.18, gain: 0.04, a: 0.002 }),
+        open(ac, out, t) {
+          // The medallion settles from its turn: a quick gilded strum up the chord into a warm chime.
+          play(ac, out, t, 0.6, 0.037, KEPT.open, (ch, sr) => {
+            [3, 5, 7, 8, 10].forEach((k, j) =>
+              gold(ch, sr, j * 0.026, note(k), { ring: 0.1 + j * 0.015, bright: 1.1, gain: 0.5, pan: -0.3 + j * 0.15 }),
+            );
+            sheen(ch, sr, 0.05, 0.3, 2400, 5200, 0.25);
+          });
+        },
+        tick(ac, out, t) {
+          // A gilded rule catching the light: a small warm ting on a note of the chord picked at random.
+          const f = note(10 + Math.floor(random() * 5));
+          const pan = (random() - 0.5) * 0.3;
+          play(ac, out, t, 0.09, 0.033, null, (ch, sr) =>
+            gold(ch, sr, 0, f, { ring: 0.012 + 0.006 * random(), bright: 1.3, pan, len: 0.09 }),
           );
         },
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 3150, dur: 0.03, gain: 0.04, a: 0.001 });
-          X.tone(ac, out, t, { f: 4720, dur: 0.018, gain: 0.015, a: 0.001 });
-        },
-        success(ac, out, t, X) {
-          // A vibraphone chord (C, E, G, B) rolled upward, each bar with a slow tremolo.
-          const trem = ac.createOscillator();
-          const depth = ac.createGain();
-          const bus = ac.createGain();
-          trem.frequency.value = 5.2;
-          depth.gain.value = 0.35;
-          bus.gain.value = 0.75;
-          trem.connect(depth).connect(bus.gain);
-          bus.connect(out);
-          trem.start(t);
-          trem.stop(t + 1.2);
-          [523, 659, 784, 988].forEach((f, k) => {
-            X.tone(ac, bus, t + k * 0.045, { f, dur: 0.9, gain: 0.06, a: 0.004 });
-            X.tone(ac, bus, t + k * 0.045, { f: f * 4, dur: 0.12, gain: 0.012, a: 0.001 });
+        enter(ac, out, t) {
+          // The sunburst opens a ring: a quick fan of gold flicked open up the chord, with a gleam.
+          play(ac, out, t, 0.25, 0.016, null, (ch, sr) => {
+            [8, 10, 12, 14].forEach((k, j) =>
+              gold(ch, sr, j * 0.022, note(k), {
+                ring: 0.04 + j * 0.008,
+                bright: 1.1,
+                gain: 0.6 + j * 0.1,
+                pan: -0.3 + j * 0.2,
+              }),
+            );
+            sheen(ch, sr, 0.02, 0.16, 2600, 5600, 0.3);
           });
-          X.tone(ac, out, t + 0.2, { f: 2637, dur: 0.25, gain: 0.012, a: 0.002 });
+        },
+        leave(ac, out, t) {
+          // Back out of the ring: two tings folding down the chord, softer.
+          play(ac, out, t, 0.2, 0.018, null, (ch, sr) =>
+            [13, 10].forEach((k, j) =>
+              gold(ch, sr, j * 0.05, note(k), { ring: 0.04, bright: 0.8, gain: 1 - j * 0.3, pan: 0.15 - j * 0.3 }),
+            ),
+          );
+        },
+        success(ac, out, t) {
+          // The rays fan open in a glissando of gold, the gilding swells into a vibraphone chord and a
+          // glint runs along the crown.
+          play(ac, out, t, 1.2, 0.084, KEPT.success, (ch, sr) => {
+            for (let k = 0; k < 9; k++)
+              gold(ch, sr, k * 0.016, note(5 + k), {
+                ring: 0.14,
+                bright: 1.2,
+                gain: 0.4,
+                pan: -0.5 + k / 8,
+                len: 0.65,
+              });
+            // The gilding: D-flat six-nine, voiced from the low D-flat up to the B-flat.
+            [0, 3, 6, 7, 9].forEach((k, j) =>
+              gold(ch, sr, 0.2 + j * 0.012, note(k), {
+                ring: 0.4,
+                bright: 0.4,
+                a: 0.1,
+                trem: 0.4,
+                gain: 0.3,
+                len: 0.9,
+              }),
+            );
+            [15, 16, 17, 18].forEach((k, j) =>
+              gold(ch, sr, 0.4 + j * 0.045, note(k), { ring: 0.06, bright: 0.7, gain: 0.22, pan: -0.3 + j * 0.2 }),
+            );
+            sheen(ch, sr, 0.4, 0.3, 3000, 6800, 0.35);
+          });
         },
       },
     });
