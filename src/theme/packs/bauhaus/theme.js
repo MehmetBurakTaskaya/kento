@@ -162,6 +162,58 @@ export default function register(Board) {
       }
     }
 
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+    // The steel triangle's partials: a free bar's modes (ratio to 1250 Hz, level, share of the ring).
+    const STEEL = [
+      [1, 1, 1],
+      [2.76, 0.6, 0.7],
+      [5.4, 0.35, 0.45],
+    ];
+
+    // The square's wood block: a dry strike and a hollow knock, its two lowest modes gone within tens of
+    // milliseconds.
+    function block(ac, out, t, X, f, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f: f * 2.2, q: 2, dur: 0.004, gain: gain * 1.2 });
+      X.tone(ac, out, t, { f, f2: f * 0.98, dur: 0.045, gain, a: 0.001 });
+      X.tone(ac, out, t, { f: f * 2.57, dur: 0.018, gain: gain * 0.35, a: 0.001 });
+    }
+    // The disc's bar under a felt mallet: a round fundamental that rings, its bright partial nearly four
+    // times higher gone almost at once, and the mallet's soft thud.
+    function bar(ac, out, t, X, f, gain, dur) {
+      X.burst(ac, out, t, { type: 'bandpass', f: 650, q: 0.7, dur: 0.006, gain: gain * 0.6 });
+      X.tone(ac, out, t, { f, dur, gain, a: 0.004 });
+      X.tone(ac, out, t, { f: f * 3.93, dur: dur * 0.15, gain: gain * 0.18, a: 0.002 });
+    }
+    // The yellow triangle: a bright strike and three inharmonic steel partials, each with a slightly
+    // detuned twin, so it shimmers as it rings.
+    function triangle(ac, out, t, X, gain, dur) {
+      X.burst(ac, out, t, { type: 'bandpass', f: 5200, q: 3, dur: 0.003, gain: gain * 2 });
+      for (const [r, a, d] of STEEL) {
+        X.tone(ac, out, t, { f: 1250 * r, dur: dur * d, gain: gain * a, a: 0.001 });
+        X.tone(ac, out, t, { f: 1250 * r * 1.0025, dur: dur * d * 0.8, gain: gain * a * 0.5, a: 0.001 });
+      }
+    }
+    // Paper shapes sliding round the rim: a soft rush that swells and fades with their eased speed.
+    function slide(ac, out, t, len, X) {
+      const src = ac.createBufferSource();
+      src.buffer = X.noise(ac);
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.Q.value = 0.9;
+      band.frequency.setValueAtTime(800, t);
+      band.frequency.linearRampToValueAtTime(1500, t + len * 0.45);
+      band.frequency.linearRampToValueAtTime(900, t + len);
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.0225, t + len * 0.4);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      src.connect(band).connect(g).connect(out);
+      src.start(t, Math.random() * 0.4);
+      src.stop(t + len + 0.02);
+    }
+
     Board.define({
       id: 'bauhaus',
       // League Spartan has no Cyrillic; Jost, as geometric, draws those letters.
@@ -396,27 +448,40 @@ export default function register(Board) {
         },
       },
 
+      // Each shape has its instrument: the square a wood block, the disc a felt-struck bar, the triangle a
+      // steel triangle; tuned to G and D, a bare fifth, as plain as the composition.
       sounds: {
         open(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 392, dur: 0.16, gain: 0.07, a: 0.004 });
-          X.tone(ac, out, t + 0.03, { f: 587, dur: 0.14, gain: 0.05, a: 0.004 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 1400, q: 5, dur: 0.012, gain: 0.08 });
+          // The shapes slide a short way into place (bauhaus-slide-in): a breath of paper, then each lands
+          // with its own voice, square, disc, triangle.
+          X.burst(ac, out, t, { type: 'bandpass', f: 1100, q: 1.2, dur: 0.08, gain: 0.016, a: 0.05 });
+          block(ac, out, t + 0.085, X, 880, 0.049);
+          bar(ac, out, t + 0.12, X, 392, 0.057, 0.3);
+          triangle(ac, out, t + 0.16, X, 0.0098, 0.3);
         },
         tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 1700, q: 9, dur: 0.016, gain: 0.12 });
-          X.tone(ac, out, t, { f: 1180, f2: 1010, dur: 0.018, gain: 0.04, a: 0.001 });
+          // Pointing at a slice: a small tap on the wood block, never quite the same twice.
+          block(ac, out, t, X, vary(880, 0.03), vary(0.027, 0.12));
+        },
+        enter(ac, out, t, X) {
+          // Into a ring: two notes on the felt bar, climbing the fifth.
+          bar(ac, out, t, X, 392, 0.0154, 0.12);
+          bar(ac, out, t + 0.07, X, 587.3, 0.0154, 0.14);
+        },
+        leave(ac, out, t, X) {
+          // Back out: the fifth falling.
+          bar(ac, out, t, X, 587.3, 0.014, 0.12);
+          bar(ac, out, t + 0.07, X, 392, 0.014, 0.14);
         },
         success(ac, out, t, X) {
-          // The shapes slide (a rising hiss), lock (two clicks), and the composition rings as one chord.
-          X.burst(ac, out, t, { type: 'bandpass', f: 500, f2: 1700, q: 1.6, dur: 0.34, gain: 0.07, a: 0.06 });
-          X.burst(ac, out, t + 0.38, { type: 'bandpass', f: 2200, q: 8, dur: 0.012, gain: 0.16 });
-          X.burst(ac, out, t + 0.44, { type: 'bandpass', f: 1500, q: 8, dur: 0.014, gain: 0.13 });
-          for (const [f, g] of [
-            [523, 0.07],
-            [659, 0.055],
-            [784, 0.05],
-          ])
-            X.tone(ac, out, t + 0.42, { f, dur: 0.42, gain: g, a: 0.005 });
+          // The shapes slide round the rim (a paper rush following their speed) and lock where their eased
+          // curve first reaches its goal: the triangle onto the chosen slice (336 ms, a ring of steel),
+          // the square (419 ms, the block), the disc (423 ms, the fifth on the bar).
+          slide(ac, out, t, 0.5, X);
+          triangle(ac, out, t + 0.336, X, 0.027, 0.6);
+          block(ac, out, t + 0.419, X, 880, 0.072);
+          bar(ac, out, t + 0.423, X, 392, 0.081, 0.45);
+          bar(ac, out, t + 0.425, X, 587.3, 0.054, 0.4);
         },
       },
     });

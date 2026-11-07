@@ -161,6 +161,108 @@ export default function register(Board) {
       'M-8 -2.5h16v5h-16Z', // bar
     ];
 
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+    // The tiles' hop as they open: C major's pentatonic, climbing.
+    const HOP = [523.3, 587.3, 659.3, 784, 880, 1046.5];
+
+    // A bubble: a short sine that bends up quickly, rubbery and round.
+    function plip(ac, out, t, X, f, gain) {
+      X.tone(ac, out, t, { f, f2: f * 1.7, dur: 0.03, gain, a: 0.002 });
+    }
+    // The badge springing in: a rubbery tone that leaps up an octave, overshoots and settles back.
+    function rise(ac, out, t, X, gain) {
+      const o = ac.createOscillator();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(220, t);
+      o.frequency.exponentialRampToValueAtTime(490, t + 0.09);
+      o.frequency.exponentialRampToValueAtTime(440, t + 0.16);
+      const g = ac.createGain();
+      g.gain.value = 0;
+      X.env(g.gain, t, { a: 0.01, d: 0.2, peak: gain });
+      o.connect(g).connect(out);
+      o.start(t);
+      o.stop(t + 0.25);
+    }
+    // A slide whistle gliding from f0 to f1, with a little vibrato.
+    function swoop(ac, out, t, f0, f1, dur, gain) {
+      const end = t + dur;
+      const o = ac.createOscillator();
+      o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f1, end);
+      const vib = ac.createOscillator();
+      vib.frequency.value = 6;
+      const cents = ac.createGain();
+      cents.gain.value = 25;
+      vib.connect(cents).connect(o.detune);
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + 0.015);
+      g.gain.setValueAtTime(gain, end - 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, end + 0.01);
+      o.connect(g).connect(out);
+      for (const n of [o, vib]) {
+        n.start(t);
+        n.stop(end + 0.03);
+      }
+    }
+    // A party popper: the bang, its crack, a small thump of air and the hiss of paper streamers.
+    function popper(ac, out, t, X, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f: 1300, q: 0.8, dur: 0.012, gain });
+      X.burst(ac, out, t, { type: 'bandpass', f: 4000, q: 1, dur: 0.004, gain: gain * 0.5 });
+      X.tone(ac, out, t, { f: 180, f2: 115, dur: 0.05, gain: gain * 0.4, a: 0.001 });
+      X.burst(ac, out, t + 0.004, { type: 'bandpass', f: 3000, q: 0.7, dur: 0.07, gain: gain * 0.15, a: 0.003 });
+    }
+    // The spring under the tile (memphis-boing): it jumps up in pitch as the tile springs, flutters fast
+    // at first and sways with the tile's slower wobble (5.2 Hz) as it dies.
+    function boing(ac, out, t, X, gain) {
+      const end = t + 0.56;
+      const o = ac.createOscillator();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(190, t);
+      o.frequency.exponentialRampToValueAtTime(300, t + 0.06);
+      o.frequency.exponentialRampToValueAtTime(270, end);
+      const flutter = ac.createOscillator();
+      flutter.frequency.setValueAtTime(22, t);
+      flutter.frequency.linearRampToValueAtTime(11, end);
+      const fDepth = ac.createGain();
+      fDepth.gain.setValueAtTime(55, t);
+      fDepth.gain.exponentialRampToValueAtTime(3, end);
+      flutter.connect(fDepth).connect(o.frequency);
+      const sway = ac.createOscillator();
+      sway.frequency.value = 5.2;
+      const sDepth = ac.createGain();
+      sDepth.gain.setValueAtTime(18, t);
+      sDepth.gain.exponentialRampToValueAtTime(1, end);
+      sway.connect(sDepth).connect(o.frequency);
+      const soft = ac.createBiquadFilter();
+      soft.type = 'lowpass';
+      soft.frequency.value = 1800;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      X.env(g.gain, t, { a: 0.006, d: 0.55, peak: gain });
+      o.connect(soft).connect(g).connect(out);
+      for (const n of [o, flutter, sway]) {
+        n.start(t);
+        n.stop(end + 0.05);
+      }
+    }
+    // Confetti: a soft shower of paper, and pieces pattering, many at first and fewer as they settle.
+    function confetti(ac, out, t, X, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f: 3800, q: 0.6, dur: 0.5, gain: gain * 0.25, a: 0.04 });
+      for (let k = 0; k < 22; k++) {
+        const dt = 0.62 * Math.pow(k / 22, 1.6) + Math.random() * 0.01;
+        X.burst(ac, out, t + dt, {
+          type: 'bandpass',
+          f: vary(3500, 0.35),
+          q: 2.5,
+          dur: vary(0.004, 0.4),
+          gain: gain * (1 - dt / 0.7) * vary(1, 0.4),
+        });
+      }
+    }
+
     Board.define({
       id: 'memphis',
       // Quicksand and Righteous have no Cyrillic; Comfortaa, as round, draws those letters.
@@ -445,44 +547,35 @@ export default function register(Board) {
         },
       },
 
+      // An eighties party: rubbery bubbles bending up, a popper's bang, a wobbling spring, paper confetti.
       sounds: {
         open(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'triangle', f: 330, f2: 660, dur: 0.07, gain: 0.08, a: 0.003 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 900, q: 2, dur: 0.02, gain: 0.08 });
+          // The badge pops in with an overshoot (memphis-pop): a soft pop and a springy rise that
+          // overshoots and settles, then the tiles hop up one after another (memphis-hop) in bubbly plips.
+          X.burst(ac, out, t, { type: 'bandpass', f: 1100, q: 0.9, dur: 0.012, gain: 0.098 });
+          X.tone(ac, out, t, { f: 170, f2: 120, dur: 0.035, gain: 0.041, a: 0.001 });
+          rise(ac, out, t, X, 0.041);
+          HOP.forEach((f, k) => plip(ac, out, t + 0.07 + k * 0.014, X, f, 0.0098));
         },
         tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'triangle', f: 980, f2: 760, dur: 0.03, gain: 0.06, a: 0.002 });
+          // A tile lifts like a sticker: a soft peel and a quick rubbery plip that bends up.
+          X.burst(ac, out, t, { type: 'bandpass', f: vary(2400, 0.1), q: 1.5, dur: 0.006, gain: 0.02 });
+          plip(ac, out, t + 0.002, X, vary(620, 0.06), vary(0.05, 0.12));
+        },
+        enter(ac, out, t) {
+          // Into a ring: a slide whistle swooping up.
+          swoop(ac, out, t, 600, 1150, 0.14, 0.0093);
+        },
+        leave(ac, out, t) {
+          // Back out: the slide whistle swooping down.
+          swoop(ac, out, t, 1150, 600, 0.14, 0.0087);
         },
         success(ac, out, t, X) {
-          // Pop, then a boing: a low tone whose pitch wobbles fast at first and settles.
-          X.burst(ac, out, t, { type: 'highpass', f: 1200, q: 0.7, dur: 0.03, gain: 0.14 });
-          X.tone(ac, out, t, { type: 'sine', f: 140, f2: 70, dur: 0.05, gain: 0.08, a: 0.001 });
-          const o = ac.createOscillator();
-          const lfo = ac.createOscillator();
-          const depth = ac.createGain();
-          const g = ac.createGain();
-          const t0 = t + 0.03;
-          o.type = 'sine';
-          o.frequency.setValueAtTime(170, t0);
-          o.frequency.exponentialRampToValueAtTime(300, t0 + 0.12);
-          o.frequency.exponentialRampToValueAtTime(260, t0 + 0.42);
-          lfo.frequency.setValueAtTime(24, t0);
-          lfo.frequency.linearRampToValueAtTime(10, t0 + 0.42);
-          depth.gain.setValueAtTime(70, t0);
-          depth.gain.exponentialRampToValueAtTime(3, t0 + 0.42);
-          lfo.connect(depth).connect(o.frequency);
-          X.env(g.gain, t0, { a: 0.006, d: 0.42, peak: 0.09 });
-          o.connect(g).connect(out);
-          o.start(t0);
-          lfo.start(t0);
-          o.stop(t0 + 0.5);
-          lfo.stop(t0 + 0.5);
-          for (const [dt, f] of [
-            [0.09, 2600],
-            [0.15, 3300],
-            [0.22, 2900],
-          ])
-            X.tone(ac, out, t + dt, { f, dur: 0.04, gain: 0.025, a: 0.001 });
+          // The tile pops: a party popper's bang, a spring that wobbles with the tile (memphis-boing), and
+          // the confetti flying out and pattering down.
+          popper(ac, out, t, X, 0.29);
+          boing(ac, out, t + 0.02, X, 0.1);
+          confetti(ac, out, t + 0.015, X, 0.044);
         },
       },
     });
