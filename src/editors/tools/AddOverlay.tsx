@@ -172,7 +172,8 @@ export function AddOverlay(props: EditorProps) {
       }
       const info = await api.imageInfo(path).catch(() => null);
       const ratio = info && info.width > 0 && info.height > 0 ? info.width / info.height : 1;
-      const width = (WIDTH.start / 100) * frame.width;
+      // A tall picture is held to two fifths of the height.
+      const width = Math.min((WIDTH.start / 100) * frame.width, 0.4 * frame.height * ratio);
       const margin = (MARGIN / 100) * shorter;
       add({
         kind: 'picture',

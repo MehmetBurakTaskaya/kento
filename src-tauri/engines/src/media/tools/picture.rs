@@ -16,7 +16,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use ::image::imageops::{self, FilterType};
-use ::image::{DynamicImage, ImageFormat};
+use ::image::{DynamicImage, ImageFormat, RgbaImage};
 
 use super::super::codec::Container;
 use super::super::convert::{Audio, Recipe, Video};
@@ -407,11 +407,37 @@ fn picture_into(
     let sized = if rgba.dimensions() == (w, h) {
         rgba
     } else {
-        imageops::resize(&rgba, w, h, FilterType::Lanczos3)
+        resized(rgba, w, h)
     };
     sized
         .save_with_format(dest, ImageFormat::Png)
         .map_err(|error| Error::Other(format!("a layer could not be written: {error}")))
+}
+
+/// A picture with transparency resized on premultiplied colour, so the colour hidden under its
+/// transparent pixels (often black) does not seep into the edges of a logo as a dark fringe.
+fn resized(mut picture: RgbaImage, w: u32, h: u32) -> RgbaImage {
+    let opaque = picture.pixels().all(|pixel| pixel[3] == 255);
+    if !opaque {
+        for pixel in picture.pixels_mut() {
+            let alpha = u16::from(pixel[3]);
+            for channel in &mut pixel.0[..3] {
+                *channel = ((u16::from(*channel) * alpha + 127) / 255) as u8;
+            }
+        }
+    }
+    let mut sized = imageops::resize(&picture, w, h, FilterType::Lanczos3);
+    if !opaque {
+        for pixel in sized.pixels_mut() {
+            let alpha = u16::from(pixel[3]);
+            for channel in &mut pixel.0[..3] {
+                *channel = (u16::from(*channel) * 255 + alpha / 2)
+                    .checked_div(alpha)
+                    .map_or(0, |value| value.min(255) as u8);
+            }
+        }
+    }
+    sized
 }
 
 /// The filters that lay the PNG files over the picture, the first at the bottom. Each is read by
@@ -691,6 +717,29 @@ mod tests {
         );
         assert!(lut("gbrp").ends_with(",format=yuv420p"));
         assert!(lut("").ends_with(",format=yuv420p"));
+    }
+
+    #[test]
+    fn logos_keep_clean_edges_when_resized() {
+        // A white square on black that is fully transparent: halved, the edge stays white.
+        let logo = RgbaImage::from_fn(8, 8, |x, _| {
+            if x < 4 {
+                ::image::Rgba([255, 255, 255, 255])
+            } else {
+                ::image::Rgba([0, 0, 0, 0])
+            }
+        });
+        let half = resized(logo, 4, 4);
+        for x in 0..4 {
+            let pixel = half.get_pixel(x, 2);
+            if pixel[3] > 16 {
+                assert!(pixel[0] > 240, "no dark fringe: {pixel:?}");
+            }
+        }
+        assert!(
+            half.get_pixel(3, 2)[3] < 64,
+            "the transparent half stays clear"
+        );
     }
 
     #[test]
