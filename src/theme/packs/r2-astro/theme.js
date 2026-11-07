@@ -244,6 +244,500 @@ export default function register(Board) {
       ['ast-pill-text', 'ast-pill', 'text'],
     ];
 
+    // ------------------------------------------------------------------ sounds
+    // A voice is drawn sample by sample into a short buffer: struck modes (each a sine dying away at its own
+    // rate), filtered noise and contact clicks, so it plays from one source node however rich it is. A buffer
+    // is drawn once and kept for its sample rate. A voice with variants plays one at random (never the same
+    // twice running) a little faster or slower, so a quick sweep never repeats itself.
+    // Envelopes start and end at zero and a DC blocker runs last, so nothing clicks and nothing rumbles.
+    const TAU = 2 * Math.PI;
+    const drawnSounds = new Map();
+    let noiseSeed = 1;
+    // Seeded white noise from -1 to 1.
+    function noise(seed) {
+      let x = seed >>> 0 || 1;
+      return () => (x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 2147483648 - 1;
+    }
+    // Envelopes for hiss(), of t seconds and u (0 to 1) into it: a hit rises in a seconds and falls by 1/e
+    // every tau seconds; a swell rises to its peak at p and falls back to zero.
+    const hit = (a, tau) => (t) => (t < a ? Math.sin((Math.PI / 2) * (t / a)) ** 2 : Math.exp((a - t) / tau));
+    const swell = (p) => (t, u) =>
+      (u < p ? Math.sin((Math.PI / 2) * (u / p)) : Math.cos((Math.PI / 2) * ((u - p) / (1 - p)))) ** 2;
+    // A struck mode from t0: a sine at f Hz falling by 1/e every tau seconds after an attack of o.a seconds (a
+    // long one swells like a bowed note). o.to glides the pitch there with time constant o.glide, or o.freq(t)
+    // sets it outright. A tone that does not die by itself lasts o.len seconds under o.env, an envelope as for
+    // hiss().
+    function mode(d, sr, t0, f, amp, tau, o = {}) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.ceil((o.len ?? tau * 7) * sr));
+      const att = Math.max(1, (o.a ?? 0.0007) * sr);
+      const tail = 0.002 * sr;
+      const k = Math.exp(-1 / (tau * sr));
+      let c = 1,
+        s = 0,
+        cw = 1,
+        sw = 0,
+        env = amp;
+      for (let i = 0; i < n; i++) {
+        if (i % 32 === 0) {
+          const t = i / sr;
+          const fi = o.freq ? o.freq(t) : o.to ? o.to + (f - o.to) * Math.exp(-t / (o.glide ?? 0.03)) : f;
+          cw = Math.cos((TAU * fi) / sr);
+          sw = Math.sin((TAU * fi) / sr);
+          const m = 1 / Math.hypot(c, s);
+          c *= m;
+          s *= m;
+        }
+        const nc = c * cw - s * sw;
+        s = c * sw + s * cw;
+        c = nc;
+        let g = env;
+        if (i < att) g *= 0.5 - 0.5 * Math.cos((Math.PI * i) / att);
+        if (n - i < tail) g *= (n - i) / tail;
+        if (o.env) g *= o.env(i / sr, i / n);
+        d[i0 + i] += g * s;
+        env *= k;
+      }
+    }
+    // A contact click at t0: a windowed burst of `cycles` cycles at f Hz, its energy around f.
+    function tap(d, sr, t0, f, amp, cycles = 1.5) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.round((cycles / f) * sr) + 1);
+      for (let i = 0; i < n; i++) {
+        const u = i / (n - 1);
+        d[i0 + i] += amp * (0.5 - 0.5 * Math.cos(TAU * u)) * Math.sin(TAU * cycles * (u - 0.5));
+      }
+    }
+    // Filtered noise for dur seconds from t0: a band at o.f Hz (all below it with o.type 'low'), swept to o.to
+    // along o.path (0 to 1, straight unless given), resonance o.q, shaped by o.env (a quick hit unless given)
+    // and o.am. o.grain from 0 to 1 thins it into a crackle of separate grains, as grit, paper and leaf make.
+    function hiss(d, sr, t0, dur, amp, o = {}) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.round(dur * sr));
+      const rnd = noise((noiseSeed += 7919));
+      const env = o.env ?? hit(0.002, dur / 4);
+      const k = 1 / (o.q ?? 1);
+      const fade = 0.003 * sr;
+      let a1 = 0,
+        a2 = 0,
+        a3 = 0,
+        z1 = 0,
+        z2 = 0;
+      for (let i = 0; i < n; i++) {
+        const u = i / n;
+        if (i % 16 === 0) {
+          const f = o.to ? o.f * (o.to / o.f) ** (o.path ? o.path(u) : u) : o.f;
+          const g = Math.tan((Math.PI * Math.min(f, 0.45 * sr)) / sr);
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        let x = rnd();
+        if (o.grain) x = Math.abs(rnd()) < o.grain ? x / Math.sqrt(o.grain) : 0;
+        // A state-variable filter, stable however fast its frequency moves.
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        const y = o.type === 'low' ? v2 : k * v1;
+        const t = i / sr;
+        d[i0 + i] += amp * y * env(t, u) * (o.am ? o.am(t) : 1) * Math.min(1, (n - i) / fade);
+      }
+    }
+    // A voice drawn by draw(d, sr, v, r) into dur seconds at o.gain: o.vary variants (v, each with seeded noise
+    // r of its own) played o.rate faster or slower at random; o.next(last) may choose the variant instead. Its
+    // key starts with the theme's id: the first sound of a theme draws the rest of its voices in idle moments
+    // after the wheel has opened, so applying a slice never waits for a drawing.
+    const drawers = new Map();
+    function drawn(key, dur, draw, o = {}) {
+      const vary = o.vary ?? 1;
+      const theme = key.split(':')[0];
+      let last = -1;
+      const pick = () => {
+        if (vary < 2) return 0;
+        const v = Math.floor(Math.random() * (last < 0 ? vary : vary - 1));
+        return last >= 0 && v >= last ? v + 1 : v;
+      };
+      const make = (ac, v) => {
+        const sr = ac.sampleRate;
+        const id = `${key}:${v}:${sr}`;
+        let buf = drawnSounds.get(id);
+        if (buf) return buf;
+        buf = ac.createBuffer(1, Math.ceil(dur * sr), sr);
+        const d = buf.getChannelData(0);
+        draw(d, sr, v, noise(v * 7919 + 101));
+        // A DC blocker, the voice's gain and a fade over its last moments.
+        const R = Math.exp((-TAU * 20) / sr);
+        const fade = Math.max(1, (o.fade ?? 0.004) * sr);
+        let x1 = 0,
+          y1 = 0;
+        for (let i = 0; i < d.length; i++) {
+          y1 = d[i] - x1 + R * y1;
+          x1 = d[i];
+          const left = d.length - 1 - i;
+          d[i] = (o.gain ?? 1) * y1 * (left < fade ? Math.sin((Math.PI / 2) * (left / fade)) ** 2 : 1);
+        }
+        drawnSounds.set(id, buf);
+        return buf;
+      };
+      if (!drawers.has(theme)) drawers.set(theme, { list: [], rates: new Set() });
+      for (let v = 0; v < vary; v++) drawers.get(theme).list.push((ac) => make(ac, v));
+      return (ac, out, t) => {
+        const v = o.next ? o.next(last) : pick();
+        last = v;
+        const buf = make(ac, v);
+        const all = drawers.get(theme);
+        if (!all.rates.has(ac.sampleRate)) {
+          all.rates.add(ac.sampleRate);
+          const queue = [...all.list];
+          const idle = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : setTimeout(f, 20));
+          // A drawing takes up to a few milliseconds: only when the page has that much time to spare.
+          const next = (spare) => {
+            if (!queue.length) return;
+            if (!spare || spare.timeRemaining() > 8) queue.shift()(ac);
+            idle(next);
+          };
+          setTimeout(() => idle(next), 400);
+        }
+        const src = ac.createBufferSource();
+        src.buffer = buf;
+        src.playbackRate.value = 1 + (o.rate ?? 0) * (2 * Math.random() - 1);
+        src.connect(out);
+        src.start(t);
+        src.stop(t + buf.duration / src.playbackRate.value + 0.02);
+      };
+    }
+    // A run of teeth (knurl, flutes, gear) passing, as a gain for hiss(): pos(t) counts the teeth passed by t
+    // seconds, and each is a bump, smooth at sharp 1 and a click of its own at 8.
+    const teeth = (pos, depth, sharp) => (t) => 1 - depth + depth * (0.5 + 0.5 * Math.cos(TAU * pos(t))) ** sharp;
+    // Teeth passing at r0 a second, slowing (or quickening) to r1 over T seconds.
+    function slowing(r0, r1, T) {
+      const l = Math.log(r0 / r1) / T;
+      return (t) => (r0 * (1 - Math.exp(-l * t))) / l;
+    }
+    // A small room for a struck chord to bloom in: four short damped combs and two allpasses, added at `wet`,
+    // the tail dying by 60 dB in t60 seconds.
+    function smallRoom(d, sr, wet, t60) {
+      const out = new Float32Array(d.length);
+      for (const ms of [11.3, 13.7, 16.9, 19.1]) {
+        const D = Math.round(ms * 0.001 * sr);
+        const g = 10 ** ((-3 * ms * 0.001) / t60);
+        const line = new Float32Array(D);
+        let p = 0,
+          lp = 0;
+        for (let i = 0; i < d.length; i++) {
+          const y = line[p];
+          lp += 0.5 * (y - lp);
+          line[p] = d[i] + g * lp;
+          p = p + 1 === D ? 0 : p + 1;
+          out[i] += 0.25 * y;
+        }
+      }
+      for (const ms of [4.7, 1.7]) {
+        const D = Math.round(ms * 0.001 * sr);
+        const line = new Float32Array(D);
+        let p = 0;
+        for (let i = 0; i < d.length; i++) {
+          const z = line[p];
+          const x = out[i] + 0.6 * z;
+          line[p] = x;
+          p = p + 1 === D ? 0 : p + 1;
+          out[i] = z - 0.6 * x;
+        }
+      }
+      for (let i = 0; i < d.length; i++) d[i] += wet * out[i];
+    }
+    // Atlas's stars: pure, high notes on a pentatonic scale on C, struck like a celesta (a soft contact and a
+    // faint fourth partial where it stays below the harsh top).
+    const STARS = [1760, 2093, 2349.3, 2637, 3136, 3520];
+    function star(d, sr, t, f, amp, tau, strike = 2) {
+      tap(d, sr, t, Math.min(f * 1.5, 4000), amp * strike, 2.5);
+      mode(d, sr, t, f, amp, tau, { a: 0.001 });
+      if (f * 4 < 7500) mode(d, sr, t, f * 4, amp * 0.04, tau * 0.3);
+    }
+    // Yörünge's brass: one beat of a small escapement, a sharp click, a warm brass ring and a woody body; and the
+    // sun's handbell, its fundamental with the tuned twelfth above it and two faint partials between.
+    function escapement(d, sr, t, f, k) {
+      tap(d, sr, t, f * 1.6, 0.4 * k);
+      mode(d, sr, t, f, 0.05 * k, 0.012);
+      mode(d, sr, t, f * 2.38, 0.015 * k, 0.005);
+      mode(d, sr, t, f * 0.37, 0.03 * k, 0.006);
+    }
+    function handbell(d, sr, t, f, amp) {
+      tap(d, sr, t, f * 2.2, amp * 2, 2);
+      for (const [k, a, tau] of [
+        [1, 1, 0.3],
+        [1.002, 0.3, 0.28],
+        [2.42, 0.12, 0.08],
+        [3, 0.35, 0.12],
+        [4.95, 0.06, 0.05],
+      ])
+        mode(d, sr, t, f * k, amp * a, tau, { a: 0.0012 });
+    }
+    // The falls of the apply effects: the planet's and the motes' quickening plunge.
+    const plunge = (u) => u ** 2.2;
+
+    const SOUNDS = {
+      a: {
+        // The night comes out: cool air swells and the stars pop in one by one, tiny pure notes scattered over the
+        // scale, over a soft low glow.
+        open: drawn(
+          'astro-a:open',
+          0.5,
+          (d, sr, v, r) => {
+            hiss(d, sr, 0, 0.36, 0.01, { f: 2400, to: 4200, q: 0.7, env: swell(0.4) });
+            mode(d, sr, 0, 523.25, 0.01, 0.2, { a: 0.08 });
+            mode(d, sr, 0.02, 784, 0.007, 0.18, { a: 0.08 });
+            for (let k = 0; k < 9; k++) {
+              const f = [1568, ...STARS, 4186][Math.floor(Math.abs(r()) * 8)];
+              star(
+                d,
+                sr,
+                0.04 + 0.022 * k + 0.008 * r(),
+                f,
+                0.015 + 0.02 * Math.abs(r()),
+                0.04 + 0.04 * Math.abs(r()),
+                7,
+              );
+            }
+          },
+          { fade: 0.1, gain: 0.372 },
+        ),
+        // A star twinkles on the chart: two quick, pure, high notes, the second a step or a fourth above.
+        tick: drawn(
+          'astro-a:tick',
+          0.08,
+          (d, sr, v) => {
+            const f = STARS[v];
+            star(d, sr, 0, f, 0.03, 0.014);
+            star(d, sr, 0.02, f * (v % 2 ? 9 / 8 : 4 / 3), 0.018, 0.016);
+          },
+          { vary: 6, rate: 0.004, fade: 0.012, gain: 0.848 },
+        ),
+        // Into a constellation: starlight glides up an octave and lands on a twinkle.
+        enter: drawn(
+          'astro-a:enter',
+          0.24,
+          (d, sr) => {
+            for (const f of [1046.5, 1049.5])
+              mode(d, sr, 0, f, 0.012, 10, { len: 0.17, env: swell(0.6), freq: (t) => f * 2 ** Math.min(1, t / 0.15) });
+            star(d, sr, 0.15, 3136, 0.03, 0.025, 3.5);
+          },
+          { fade: 0.04, gain: 0.627 },
+        ),
+        // Back out of it: the glide falls an octave and a lower star answers.
+        leave: drawn(
+          'astro-a:leave',
+          0.22,
+          (d, sr) => {
+            for (const f of [2093, 2099])
+              mode(d, sr, 0, f, 0.011, 10, { len: 0.15, env: swell(0.4), freq: (t) => f / 2 ** Math.min(1, t / 0.13) });
+            star(d, sr, 0.13, 1568, 0.03, 0.025, 3.5);
+          },
+          { fade: 0.04, gain: 0.591 },
+        ),
+        // Each star of the constellation streaks into the pole with a soft rush and lands on a note of a rising
+        // arpeggio; when the last one arrives the new star bursts into a shimmering chord.
+        success: drawn(
+          'astro-a:success',
+          1.15,
+          (d, sr) => {
+            hiss(d, sr, 0.03, 0.36, 0.03, { f: 2000, to: 5200, q: 2, path: (u) => u ** 1.6, env: swell(0.85) });
+            [1046.5, 1318.5, 1568, 2093, 2637].forEach((f, k) => star(d, sr, 0.31 + 0.018 * k, f, 0.035, 0.1));
+            const nova = 0.382;
+            for (const [f, a] of [
+              [1046.5, 0.05],
+              [1568, 0.04],
+              [2093, 0.035],
+              [2637, 0.025],
+              [3136, 0.015],
+            ]) {
+              mode(d, sr, nova, f, a, 0.32, { a: 0.003 });
+              mode(d, sr, nova, f * 1.004, a * 0.4, 0.3, { a: 0.003 });
+            }
+            mode(d, sr, nova, 523.25, 0.03, 0.2, { a: 0.02 });
+            hiss(d, sr, nova, 0.22, 0.012, { f: 4500, q: 1, grain: 0.05, env: hit(0.003, 0.08) });
+            smallRoom(d, sr, 0.2, 0.45);
+          },
+          { fade: 0.3, gain: 0.533 },
+        ),
+      },
+      b: {
+        // The galaxy swirls into view: a breathy vortex turning round and slowing, and a low glow igniting under it.
+        open: drawn(
+          'astro-b:open',
+          0.56,
+          (d, sr) => {
+            hiss(d, sr, 0, 0.48, 0.045, {
+              f: 450,
+              to: 1600,
+              q: 2.5,
+              path: (u) => Math.sin(Math.PI * 0.9 * u),
+              env: swell(0.3),
+              am: teeth(slowing(10, 3, 0.48), 0.45, 1),
+            });
+            hiss(d, sr, 0, 0.12, 0.05, { f: 600, type: 'low', q: 0.7, env: hit(0.01, 0.05) });
+            tap(d, sr, 0, 800, 0.3, 2);
+            mode(d, sr, 0, 250, 0.14, 0.04, { a: 0.003 });
+            mode(d, sr, 0, 196, 0.05, 0.18, { a: 0.06 });
+            mode(d, sr, 0, 197.2, 0.025, 0.18, { a: 0.06 });
+            mode(d, sr, 0.02, 293.7, 0.025, 0.15, { a: 0.06 });
+          },
+          { fade: 0.12, gain: 0.28 },
+        ),
+        // A soft, dark pulse in the swirl: a round note bending down, as if pulled toward the hole.
+        tick: drawn(
+          'astro-b:tick',
+          0.08,
+          (d, sr, v, r) => {
+            const f = 420 * (1 + 0.06 * r());
+            tap(d, sr, 0, 1100, 0.12, 2);
+            mode(d, sr, 0, f, 0.09, 0.012, { a: 0.0015, to: f * 0.72, glide: 0.02 });
+            mode(d, sr, 0, f * 2, 0.02, 0.008, { a: 0.0015, to: f * 1.44, glide: 0.02 });
+            hiss(d, sr, 0, 0.05, 0.02, { f: 1600, to: 500, q: 3, env: swell(0.3) });
+          },
+          { vary: 6, rate: 0.02, fade: 0.01, gain: 0.561 },
+        ),
+        // Pulled in: a swirling glide falling into the dark.
+        enter: drawn(
+          'astro-b:enter',
+          0.24,
+          (d, sr) => {
+            mode(d, sr, 0, 620, 0.04, 0.09, { a: 0.012, to: 220, glide: 0.07 });
+            tap(d, sr, 0.13, 700, 0.2, 2);
+            mode(d, sr, 0.13, 210, 0.08, 0.025, { a: 0.002 });
+            hiss(d, sr, 0, 0.2, 0.03, {
+              f: 2000,
+              to: 450,
+              q: 2.2,
+              env: swell(0.35),
+              am: teeth(slowing(16, 6, 0.2), 0.4, 1),
+            });
+          },
+          { fade: 0.04, gain: 0.337 },
+        ),
+        // Slipping back out: the swirl rises and lets go.
+        leave: drawn(
+          'astro-b:leave',
+          0.22,
+          (d, sr) => {
+            tap(d, sr, 0, 900, 0.18, 2);
+            mode(d, sr, 0, 300, 0.07, 0.02, { a: 0.0015 });
+            mode(d, sr, 0.01, 240, 0.035, 0.08, { a: 0.01, to: 560, glide: 0.06 });
+            hiss(d, sr, 0, 0.18, 0.025, {
+              f: 450,
+              to: 1800,
+              q: 2.2,
+              env: swell(0.6),
+              am: teeth(slowing(6, 16, 0.18), 0.4, 1),
+            });
+          },
+          { fade: 0.04, gain: 0.372 },
+        ),
+        // Seven motes spiral into the hole as falling whistles, the hole gulps them with a low swallow, and a
+        // lensing ring flashes out in a wide, wavering shimmer.
+        success: drawn(
+          'astro-b:success',
+          1.15,
+          (d, sr) => {
+            for (let k = 0; k < 7; k++) {
+              const t0 = 0.02 + 0.018 * k;
+              const f0 = 1500 * (1 + 0.06 * k);
+              const fall = (t) => f0 * 0.5 ** plunge(Math.min(1, t / 0.34));
+              mode(d, sr, t0, f0, 0.012, 10, { len: 0.34, env: swell(0.8), freq: fall });
+              tap(d, sr, t0 + 0.34, 900, 0.04, 2);
+            }
+            hiss(d, sr, 0.02, 0.46, 0.03, {
+              f: 1500,
+              to: 380,
+              q: 2,
+              path: (u) => u * u,
+              env: swell(0.85),
+              am: teeth(slowing(8, 18, 0.46), 0.4, 1),
+            });
+            mode(d, sr, 0.418, 280, 0.09, 0.07, { a: 0.012, to: 130, glide: 0.05 });
+            hiss(d, sr, 0.418, 0.08, 0.04, { f: 500, type: 'low', q: 0.8, env: hit(0.01, 0.03) });
+            for (const [f, a] of [
+              [523.25, 0.045],
+              [784.9, 0.03],
+              [1043, 0.025],
+              [1572, 0.015],
+            ])
+              mode(d, sr, 0.478, f, a, 0.26, { a: 0.006 });
+            hiss(d, sr, 0.478, 0.26, 0.015, { f: 3200, to: 1200, q: 2, env: hit(0.004, 0.1) });
+            smallRoom(d, sr, 0.22, 0.5);
+          },
+          { fade: 0.3, gain: 0.471 },
+        ),
+      },
+      c: {
+        // The orrery winds up: a brass gear train whirrs as the arms swing in, slowing, each arm's gear clicks home
+        // as it settles, and the sun gives a small ting.
+        open: drawn(
+          'astro-c:open',
+          0.45,
+          (d, sr) => {
+            const gear = teeth(slowing(95, 32, 0.26), 0.85, 6);
+            hiss(d, sr, 0.01, 0.26, 0.02, { f: 2300, q: 3, env: swell(0.35), am: gear });
+            hiss(d, sr, 0.01, 0.26, 0.007, { f: 900, q: 2, env: swell(0.35), am: gear });
+            for (let k = 0; k < 6; k++) escapement(d, sr, 0.173 + 0.016 * k, k % 2 ? 1290 : 1720, 0.5 - 0.05 * k);
+            tap(d, sr, 0.27, 3400, 0.08, 2);
+            mode(d, sr, 0.27, 1568, 0.03, 0.08, { a: 0.001 });
+            mode(d, sr, 0.27, 4704, 0.01, 0.03);
+          },
+          { fade: 0.12, gain: 0.279 },
+        ),
+        // One beat of the orrery's clockwork: a small brass escapement saying tick, then tock.
+        tick: drawn(
+          'astro-c:tick',
+          0.06,
+          (d, sr, v, r) => escapement(d, sr, 0, (v % 2 ? 1290 : 1720) * (1 + 0.02 * r()), 1),
+          { vary: 6, rate: 0.015, next: (last) => ((last + 1) % 2) + 2 * Math.floor(Math.random() * 3), gain: 0.309 },
+        ),
+        // A gear engages: a brass ka-tock, lower, and the train taking up the slack.
+        enter: drawn(
+          'astro-c:enter',
+          0.2,
+          (d, sr, v, r) => {
+            escapement(d, sr, 0, 2100, 0.5);
+            escapement(d, sr, 0.022, 980 * (1 + 0.01 * r()), 1.3);
+            hiss(d, sr, 0.03, 0.1, 0.015, { f: 1800, q: 3, env: swell(0.3), am: teeth(slowing(70, 40, 0.1), 0.85, 6) });
+          },
+          { vary: 3, fade: 0.04, gain: 0.235 },
+        ),
+        // The gear lets go: a light tock and a quicker tick above it.
+        leave: drawn(
+          'astro-c:leave',
+          0.16,
+          (d, sr, v, r) => {
+            escapement(d, sr, 0, 1150 * (1 + 0.01 * r()), 1.2);
+            escapement(d, sr, 0.03, 1900, 0.5);
+          },
+          { vary: 3, fade: 0.04, gain: 0.227 },
+        ),
+        // The planet ticks forward, spirals into the sun on quickening clockwork, and the sun answers with a warm
+        // brass chime.
+        success: drawn(
+          'astro-c:success',
+          1.15,
+          (d, sr) => {
+            escapement(d, sr, 0, 1500, 1);
+            // A beat every 15 degrees of the fall, which speeds up as the planet nears the sun.
+            for (let k = 1; k * 15 <= 200; k++) {
+              const at = 0.09 + 0.37 * ((k * 15) / 200) ** (1 / 2.2);
+              escapement(d, sr, at, (k % 2 ? 1290 : 1720) * (1 + 0.012 * k), 0.4 + 0.04 * k);
+            }
+            hiss(d, sr, 0.09, 0.37, 0.03, { f: 900, to: 3000, q: 1.5, path: plunge, env: swell(0.95) });
+            [1046.5, 1318.5, 1568].forEach((f, k) => handbell(d, sr, 0.46 + 0.03 * k, f, 0.04));
+            hiss(d, sr, 0.46, 0.22, 0.03, { f: 1500, to: 600, q: 0.9, env: hit(0.005, 0.08) });
+            mode(d, sr, 0.46, 523.25, 0.03, 0.25, { a: 0.01 });
+          },
+          { fade: 0.3, gain: 0.505 },
+        ),
+      },
+    };
+
     // ================================================================== A: Star atlas
     const ATL = { HUB: 72, IN: 79, OUT: 182, LBL: 119, B0: 145, B1: 175, S0: 184, S1: 191, APPLY: 660 };
     // The mark of a slice that opens a ring of choices: its point's radius and its length. Stars and
@@ -813,23 +1307,7 @@ export default function register(Board) {
           },
         },
 
-        sounds: {
-          open(ac, out, t, X) {
-            X.burst(ac, out, t, { type: 'highpass', f: 4200, f2: 7400, q: 0.8, dur: 0.14, gain: 0.05, a: 0.03 });
-            X.tone(ac, out, t + 0.015, { f: 2637, dur: 0.16, gain: 0.022, a: 0.006 });
-            X.tone(ac, out, t + 0.06, { f: 3951, dur: 0.14, gain: 0.016, a: 0.006 });
-          },
-          tick(ac, out, t, X) {
-            X.tone(ac, out, t, { f: 3136, dur: 0.032, gain: 0.05, a: 0.001 });
-            X.tone(ac, out, t, { f: 6272, dur: 0.012, gain: 0.012, a: 0.001 });
-          },
-          success(ac, out, t, X) {
-            X.burst(ac, out, t, { type: 'bandpass', f: 2600, f2: 6800, q: 3, dur: 0.3, gain: 0.05, a: 0.12 });
-            X.tone(ac, out, t + 0.38, { f: 1046.5, dur: 0.45, gain: 0.08 });
-            X.tone(ac, out, t + 0.38, { f: 2093, dur: 0.22, gain: 0.022 });
-            X.tone(ac, out, t + 0.47, { f: 1568, dur: 0.6, gain: 0.065 });
-          },
-        },
+        sounds: SOUNDS.a,
       }),
     );
 
@@ -1330,23 +1808,7 @@ export default function register(Board) {
           },
         },
 
-        sounds: {
-          open(ac, out, t, X) {
-            X.burst(ac, out, t, { type: 'lowpass', f: 1100, f2: 320, q: 0.7, dur: 0.22, gain: 0.12, a: 0.04 });
-            X.tone(ac, out, t, { f: 110, f2: 82, dur: 0.26, gain: 0.05, a: 0.03 });
-            X.tone(ac, out, t + 0.04, { f: 660, dur: 0.16, gain: 0.012, a: 0.02 });
-          },
-          tick(ac, out, t, X) {
-            X.tone(ac, out, t, { f: 540, f2: 430, dur: 0.045, gain: 0.07, a: 0.002 });
-            X.burst(ac, out, t, { type: 'bandpass', f: 1800, q: 2, dur: 0.012, gain: 0.025 });
-          },
-          success(ac, out, t, X) {
-            X.tone(ac, out, t, { f: 880, f2: 150, dur: 0.42, gain: 0.05, a: 0.02 });
-            X.burst(ac, out, t, { type: 'lowpass', f: 1400, f2: 220, q: 1, dur: 0.4, gain: 0.06, a: 0.05 });
-            X.tone(ac, out, t + 0.46, { f: 1760, dur: 0.42, gain: 0.05, a: 0.004 });
-            X.tone(ac, out, t + 0.46, { f: 2637, dur: 0.3, gain: 0.022, a: 0.004 });
-          },
-        },
+        sounds: SOUNDS.b,
       }),
     );
 
@@ -1816,27 +2278,7 @@ export default function register(Board) {
           },
         },
 
-        sounds: {
-          open(ac, out, t, X) {
-            X.burst(ac, out, t, { type: 'bandpass', f: 600, f2: 2200, q: 4, dur: 0.16, gain: 0.08, a: 0.03 });
-            X.tone(ac, out, t + 0.12, { type: 'triangle', f: 1320, dur: 0.03, gain: 0.03, a: 0.001 });
-          },
-          tick(ac, out, t, X) {
-            X.tone(ac, out, t, { type: 'triangle', f: 1900, f2: 1700, dur: 0.022, gain: 0.07, a: 0.001 });
-            X.burst(ac, out, t, { type: 'highpass', f: 4500, q: 0.7, dur: 0.01, gain: 0.04 });
-          },
-          success(ac, out, t, X) {
-            X.tone(ac, out, t + 0.05, { f: 1200, f2: 420, dur: 0.38, gain: 0.035, a: 0.02 });
-            for (const [f, g] of [
-              [523.25, 0.05],
-              [659.25, 0.045],
-              [783.99, 0.04],
-              [1046.5, 0.02],
-            ])
-              X.tone(ac, out, t + 0.46, { f, dur: 0.7, gain: g, a: 0.03 });
-            X.burst(ac, out, t + 0.46, { type: 'lowpass', f: 3000, f2: 700, q: 0.8, dur: 0.4, gain: 0.04, a: 0.03 });
-          },
-        },
+        sounds: SOUNDS.c,
       }),
     );
   })();
