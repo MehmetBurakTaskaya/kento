@@ -156,6 +156,202 @@ export default function register(Board) {
       return g;
     }
 
+    // Sounds. Every voice is drawn sample by sample into a buffer, a few takes of it once per sample
+    // rate, and then only played: a tick costs one buffer source and one gain, and no two calls in a
+    // row sound quite alike (another take, played a little faster or slower).
+    const TAKES = new Map();
+    const VOICES = [];
+    // A voice: v.draw(y, sr, rand) draws a take of v.len seconds (v.takes of them, each its own
+    // rand), v.level sets its loudness and v.spread how much faster or slower a call may play it.
+    function voice(v) {
+      VOICES.push(v);
+      return (ac, out, t) => play(ac, out, t, v);
+    }
+    function takeOf(ac, v, k) {
+      const key = v.name + ac.sampleRate;
+      let list = TAKES.get(key);
+      if (!list) TAKES.set(key, (list = []));
+      if (!list[k]) list[k] = take(ac, v, 7 + k * 977);
+      return list[k];
+    }
+    function play(ac, out, t, v) {
+      const buf = takeOf(ac, v, Math.floor(Math.random() * v.takes));
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v.spread;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v.level, t + 0.0005);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + buf.duration / (1 - v.spread) + 0.02);
+      warm(ac);
+    }
+    // After the first sound, the takes not drawn yet are drawn one at a time while the page is idle,
+    // the apply's first, so no sound waits on its drawing.
+    let warming = false;
+    function warm(ac) {
+      if (warming || typeof window === 'undefined') return;
+      warming = true;
+      const later = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : window.setTimeout(f, 50));
+      const order = [...VOICES].sort((a, b) => (b.name === 'success') - (a.name === 'success'));
+      const jobs = [];
+      for (let k = 0; k < 8; k++) for (const v of order) if (k < v.takes) jobs.push([v, k]);
+      const next = () => {
+        const job = jobs.shift();
+        if (!job) return;
+        takeOf(ac, job[0], job[1]);
+        later(next);
+      };
+      later(next);
+    }
+    // One take: drawn, kept above 90 Hz (no rumble small speakers cannot play, no offset) and below
+    // v.lp, faded out over its last eighth and scaled to the energy of every other take of the voice.
+    function take(ac, v, seed) {
+      const sr = ac.sampleRate;
+      const y = new Float32Array(Math.ceil(v.len * sr));
+      v.draw(y, sr, rng(seed));
+      const hp = svf(sr);
+      const lp = svf(sr);
+      const fade = Math.round(Math.max(0.003, v.len * 0.12) * sr);
+      let sum = 0;
+      for (let i = 0; i < y.length; i++) {
+        hp.run(y[i], 90, 0.7);
+        let s = hp.h;
+        if (v.lp) {
+          lp.run(s, v.lp, 0.7);
+          s = lp.l;
+        }
+        if (i > y.length - fade) s *= 0.5 - 0.5 * Math.cos((Math.PI * (y.length - i)) / fade);
+        y[i] = s;
+        sum += s * s;
+      }
+      const scale = 0.1 / Math.sqrt(sum / y.length || 1);
+      for (let i = 0; i < y.length; i++) y[i] *= scale;
+      const buf = ac.createBuffer(1, y.length, sr);
+      buf.getChannelData(0).set(y);
+      return buf;
+    }
+    // A state-variable filter that stays steady while its frequency moves: run() leaves the band
+    // (at 0 dB), low and high outputs in b, l and h.
+    function svf(sr) {
+      const s = { b: 0, l: 0, h: 0 };
+      let z1 = 0,
+        z2 = 0,
+        pf = 0,
+        pq = 0,
+        k = 1,
+        a1 = 0,
+        a2 = 0,
+        a3 = 0;
+      s.run = (x, f, q) => {
+        if (f !== pf || q !== pq) {
+          pf = f;
+          pq = q;
+          const g = Math.tan((Math.PI * Math.min(f, sr * 0.45)) / sr);
+          k = 1 / q;
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        s.b = k * v1;
+        s.l = v2;
+        s.h = x - k * v1 - v2;
+        return s.b;
+      };
+      return s;
+    }
+    // A damped partial, the way a struck body rings: it starts from zero and dies away over tau.
+    function ring(y, sr, at, f, tau, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 7 * sr));
+      const w = (2 * Math.PI * f) / sr;
+      const c = Math.cos(w) * Math.exp(-1 / (tau * sr));
+      const s = Math.sin(w) * Math.exp(-1 / (tau * sr));
+      let re = amp,
+        im = 0;
+      for (let i = 0; i < n; i++) {
+        y[i0 + i] += im;
+        const r = re * c - im * s;
+        im = re * s + im * c;
+        re = r;
+      }
+    }
+    // A crack: a sliver of noise through a resonance, the contact of a hit or the grain of a crackle
+    // (amp is about its peak).
+    function crack(y, sr, rand, at, f, q, amp, len) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.max(2, Math.round(len * sr));
+      const end = Math.min(y.length - i0, n + Math.round((q / f) * 4 * sr));
+      for (let i = 0; i < end; i++) {
+        const e = i < n ? (rand() * 2 - 1) * (1 - i / n) : 0;
+        y[i0 + i] += 3 * amp * fl.run(e, f, q);
+      }
+    }
+    // A bubble or a drop: a partial whose pitch rises as it closes, with a soft start.
+    function bubble(y, sr, at, f, tau, rise, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 6 * sr));
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const u = i / sr;
+        ph += (2 * Math.PI * f * (1 + (rise * u) / tau)) / sr;
+        y[i0 + i] += amp * Math.exp(-u / tau) * Math.min(1, u / 0.0007) * Math.sin(ph);
+      }
+    }
+    // Noise through a moving band: shape(u) gives the level and the band's centre, u from 0 to 1.
+    function hiss(y, sr, rand, at, len, q, shape) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.round(len * sr));
+      // The shape moves slowly next to the samples: it is read every 16 of them, the level eased
+      // between readings and starting from silence.
+      let a0 = 0,
+        a1 = 0,
+        f = 1000;
+      for (let i = 0; i < n; i++) {
+        const j = i % 16;
+        if (!j) {
+          a0 = a1;
+          [a1, f] = shape(Math.min(1, (i + 16) / n));
+        }
+        y[i0 + i] += (a0 + ((a1 - a0) * j) / 16) * fl.run(rand() * 2 - 1, f, q);
+      }
+    }
+    // Porcelain: a dull "tk" where it touches, then the clear partials of a cup or saucer.
+    function china(y, sr, rand, at, f, tau, amp, hard = 0.5) {
+      crack(y, sr, rand, at, 2600 + rand() * 900, 1.3, hard * amp, 0.0003);
+      [
+        [1, 1, 1],
+        [2.32, 0.45, 0.55],
+        [4.03, 0.2, 0.3],
+      ].forEach(([r, a, d]) => {
+        if (f * r < 7600) ring(y, sr, at, f * r * (0.995 + rand() * 0.01), tau * d, amp * a);
+      });
+    }
+    // The teaspoon: thin steel, brighter and shorter than the cup it touches.
+    function spoon(y, sr, rand, at, f, tau, amp) {
+      crack(y, sr, rand, at, 4500, 2, 0.5 * amp, 0.0002);
+      ring(y, sr, at, f, tau, amp);
+      ring(y, sr, at, f * 2.76, tau * 0.5, 0.35 * amp);
+    }
+    // The foam: tiny bubbles breaking, each a short high plip.
+    function foam(y, sr, rand, at, len, count, amp) {
+      for (let k = 0; k < count; k++) {
+        const f = 2000 + rand() * 3000;
+        bubble(y, sr, at + rand() * len, f, 1 / (0.043 * f + 0.0014 * f ** 1.5), 0.15, amp * (0.3 + rand() * 0.7));
+      }
+    }
+    // How loud each voice plays, measured so that the theme sits as loud as every other one.
+    const LEVEL = { open: 0.058, tick: 0.046, enter: 0.025, leave: 0.03, success: 0.058 };
+
     Board.define({
       id: 'kahve',
       fonts: {
@@ -389,27 +585,92 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A cup set down on its saucer.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 2800, q: 4, dur: 0.02, gain: 0.06 });
-          X.tone(ac, out, t + 0.003, { f: 2350, dur: 0.1, gain: 0.04, a: 0.002 });
-          X.tone(ac, out, t + 0.003, { f: 3610, dur: 0.06, gain: 0.018, a: 0.002 });
-          X.tone(ac, out, t + 0.05, { f: 2380, dur: 0.05, gain: 0.015, a: 0.002 });
-        },
-        // A teaspoon touching the rim.
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 4300, f2: 4150, dur: 0.016, gain: 0.032, a: 0.001 });
-          X.tone(ac, out, t, { f: 6650, dur: 0.01, gain: 0.01, a: 0.001 });
-        },
-        // A stir, two spoon clinks on the cup and a breath of steam.
-        success(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 480, f2: 1300, q: 2.2, dur: 0.34, gain: 0.07, a: 0.07 });
-          X.tone(ac, out, t + 0.06, { f: 3150, dur: 0.09, gain: 0.04, a: 0.001 });
-          X.tone(ac, out, t + 0.06, { f: 4720, dur: 0.05, gain: 0.014, a: 0.001 });
-          X.tone(ac, out, t + 0.23, { f: 3080, dur: 0.12, gain: 0.034, a: 0.001 });
-          X.tone(ac, out, t + 0.23, { f: 4650, dur: 0.06, gain: 0.012, a: 0.001 });
-          X.burst(ac, out, t + 0.2, { type: 'highpass', f: 4200, q: 0.5, dur: 0.42, gain: 0.014, a: 0.16 });
-        },
+        // The saucer is set down on the copper tray and the cup rattles on it before it settles.
+        open: voice({
+          name: 'open',
+          len: 0.4,
+          takes: 3,
+          spread: 0.015,
+          level: LEVEL.open,
+          lp: 7500,
+          draw(y, sr, rand) {
+            china(y, sr, rand, 0.07, 1150, 0.09, 1, 0.6);
+            ring(y, sr, 0.07, 520, 0.15, 0.15);
+            ring(y, sr, 0.07, 860, 0.1, 0.1);
+            china(y, sr, rand, 0.085, 1600, 0.03, 0.4);
+            china(y, sr, rand, 0.1, 1620, 0.025, 0.22);
+            china(y, sr, rand, 0.112, 1610, 0.02, 0.1);
+          },
+        }),
+        // The cup turns its handle on the saucer: porcelain touching porcelain, a dry little tk.
+        tick: voice({
+          name: 'tick',
+          len: 0.045,
+          takes: 8,
+          spread: 0.05,
+          level: LEVEL.tick,
+          lp: 7500,
+          draw(y, sr, rand) {
+            china(y, sr, rand, 0.002, 2100 + rand() * 400, 0.012, 0.6, 0.8);
+            hiss(y, sr, rand, 0.002, 0.012, 1, (u) => [0.15 * (1 - u), 3000]);
+          },
+        }),
+        // The teaspoon taps the rim: the cup rings clear.
+        enter: voice({
+          name: 'enter',
+          len: 0.25,
+          takes: 4,
+          spread: 0.03,
+          level: LEVEL.enter,
+          lp: 7500,
+          draw(y, sr, rand) {
+            china(y, sr, rand, 0.002, 1480, 0.05, 1, 0.4);
+            spoon(y, sr, rand, 0.002, 2600, 0.03, 0.35);
+          },
+        }),
+        // Back out: the spoon laid on the saucer, a lower clink and a small settle.
+        leave: voice({
+          name: 'leave',
+          len: 0.16,
+          takes: 4,
+          spread: 0.03,
+          level: LEVEL.leave,
+          lp: 7500,
+          draw(y, sr, rand) {
+            china(y, sr, rand, 0.002, 1100, 0.03, 0.8, 0.6);
+            spoon(y, sr, rand, 0.002, 2300, 0.025, 0.3);
+            china(y, sr, rand, 0.03, 1110, 0.02, 0.25);
+          },
+        }),
+        // A stir: coffee swirls round, the spoon clinks twice on the cup, the cup is lifted and set
+        // back down, and the foam fizzes under a breath of steam.
+        success: voice({
+          name: 'success',
+          len: 0.9,
+          takes: 3,
+          spread: 0.015,
+          level: LEVEL.success,
+          lp: 7500,
+          draw(y, sr, rand) {
+            hiss(y, sr, rand, 0.002, 0.5, 1.1, (u) => {
+              const turn = Math.sin(2 * Math.PI * 2.5 * u);
+              return [1 * Math.sin(Math.PI * u) ** 0.7 * (0.7 + 0.3 * turn), 600 + 200 * turn];
+            });
+            // The coffee sloshes round the cup in small, soft blips.
+            for (let k = 0; k < 24; k++) {
+              const f = 450 + rand() * 800;
+              bubble(y, sr, 0.01 + rand() * 0.45, f, 1 / (0.043 * f + 0.0014 * f ** 1.5), 0.1, 0.12 + rand() * 0.12);
+            }
+            china(y, sr, rand, 0.06, 1500, 0.1, 0.7);
+            spoon(y, sr, rand, 0.06, 2650, 0.04, 0.3);
+            china(y, sr, rand, 0.2, 1480, 0.09, 0.6);
+            spoon(y, sr, rand, 0.2, 2620, 0.035, 0.25);
+            china(y, sr, rand, 0.33, 1200, 0.06, 0.55, 0.7);
+            china(y, sr, rand, 0.345, 1210, 0.03, 0.15);
+            hiss(y, sr, rand, 0.12, 0.62, 0.7, (u) => [0.5 * Math.min(1, u * 4) * (1 - u) ** 2, 2800 + 600 * u]);
+            foam(y, sr, rand, 0.02, 0.5, 120, 0.15);
+          },
+        }),
       },
     });
   })();

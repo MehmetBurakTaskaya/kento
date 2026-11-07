@@ -133,6 +133,192 @@ export default function register(Board) {
       );
     }
 
+    // Sounds. Every voice is drawn sample by sample into a buffer, a few takes of it once per sample
+    // rate, and then only played: a tick costs one buffer source and one gain, and no two calls in a
+    // row sound quite alike (another take, played a little faster or slower).
+    const TAKES = new Map();
+    const VOICES = [];
+    // A voice: v.draw(y, sr, rand) draws a take of v.len seconds (v.takes of them, each its own
+    // rand), v.level sets its loudness and v.spread how much faster or slower a call may play it.
+    function voice(v) {
+      VOICES.push(v);
+      return (ac, out, t) => play(ac, out, t, v);
+    }
+    function takeOf(ac, v, k) {
+      const key = v.name + ac.sampleRate;
+      let list = TAKES.get(key);
+      if (!list) TAKES.set(key, (list = []));
+      if (!list[k]) list[k] = take(ac, v, 7 + k * 977);
+      return list[k];
+    }
+    function play(ac, out, t, v) {
+      const buf = takeOf(ac, v, Math.floor(Math.random() * v.takes));
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v.spread;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v.level, t + 0.0005);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + buf.duration / (1 - v.spread) + 0.02);
+      warm(ac);
+    }
+    // After the first sound, the takes not drawn yet are drawn one at a time while the page is idle,
+    // the apply's first, so no sound waits on its drawing.
+    let warming = false;
+    function warm(ac) {
+      if (warming || typeof window === 'undefined') return;
+      warming = true;
+      const later = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : window.setTimeout(f, 50));
+      const order = [...VOICES].sort((a, b) => (b.name === 'success') - (a.name === 'success'));
+      const jobs = [];
+      for (let k = 0; k < 8; k++) for (const v of order) if (k < v.takes) jobs.push([v, k]);
+      const next = () => {
+        const job = jobs.shift();
+        if (!job) return;
+        takeOf(ac, job[0], job[1]);
+        later(next);
+      };
+      later(next);
+    }
+    // One take: drawn, kept above 90 Hz (no rumble small speakers cannot play, no offset) and below
+    // v.lp, faded out over its last eighth and scaled to the energy of every other take of the voice.
+    function take(ac, v, seed) {
+      const sr = ac.sampleRate;
+      const y = new Float32Array(Math.ceil(v.len * sr));
+      v.draw(y, sr, rng(seed));
+      const hp = svf(sr);
+      const lp = svf(sr);
+      const fade = Math.round(Math.max(0.003, v.len * 0.12) * sr);
+      let sum = 0;
+      for (let i = 0; i < y.length; i++) {
+        hp.run(y[i], 90, 0.7);
+        let s = hp.h;
+        if (v.lp) {
+          lp.run(s, v.lp, 0.7);
+          s = lp.l;
+        }
+        if (i > y.length - fade) s *= 0.5 - 0.5 * Math.cos((Math.PI * (y.length - i)) / fade);
+        y[i] = s;
+        sum += s * s;
+      }
+      const scale = 0.1 / Math.sqrt(sum / y.length || 1);
+      for (let i = 0; i < y.length; i++) y[i] *= scale;
+      const buf = ac.createBuffer(1, y.length, sr);
+      buf.getChannelData(0).set(y);
+      return buf;
+    }
+    // A state-variable filter that stays steady while its frequency moves: run() leaves the band
+    // (at 0 dB), low and high outputs in b, l and h.
+    function svf(sr) {
+      const s = { b: 0, l: 0, h: 0 };
+      let z1 = 0,
+        z2 = 0,
+        pf = 0,
+        pq = 0,
+        k = 1,
+        a1 = 0,
+        a2 = 0,
+        a3 = 0;
+      s.run = (x, f, q) => {
+        if (f !== pf || q !== pq) {
+          pf = f;
+          pq = q;
+          const g = Math.tan((Math.PI * Math.min(f, sr * 0.45)) / sr);
+          k = 1 / q;
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        s.b = k * v1;
+        s.l = v2;
+        s.h = x - k * v1 - v2;
+        return s.b;
+      };
+      return s;
+    }
+    // A damped partial, the way a struck body rings: it starts from zero and dies away over tau.
+    function ring(y, sr, at, f, tau, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 7 * sr));
+      const w = (2 * Math.PI * f) / sr;
+      const c = Math.cos(w) * Math.exp(-1 / (tau * sr));
+      const s = Math.sin(w) * Math.exp(-1 / (tau * sr));
+      let re = amp,
+        im = 0;
+      for (let i = 0; i < n; i++) {
+        y[i0 + i] += im;
+        const r = re * c - im * s;
+        im = re * s + im * c;
+        re = r;
+      }
+    }
+    // A crack: a sliver of noise through a resonance, the contact of a hit or the grain of a crackle
+    // (amp is about its peak).
+    function crack(y, sr, rand, at, f, q, amp, len) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.max(2, Math.round(len * sr));
+      const end = Math.min(y.length - i0, n + Math.round((q / f) * 4 * sr));
+      for (let i = 0; i < end; i++) {
+        const e = i < n ? (rand() * 2 - 1) * (1 - i / n) : 0;
+        y[i0 + i] += 3 * amp * fl.run(e, f, q);
+      }
+    }
+    // Hard sugar knocking on hard sugar: a bright, glassy tick ringing in a few close partials.
+    function glass(y, sr, rand, at, f, tau, amp, hard = 0.5) {
+      crack(y, sr, rand, at, 5200 + rand() * 1000, 2, hard * amp, 0.0002);
+      [
+        [1, 1, 1],
+        [1.53, 0.6, 0.7],
+        [2.33, 0.35, 0.5],
+        [2.9, 0.2, 0.35],
+      ].forEach(([r, a, d]) => {
+        if (f * r < 7600) ring(y, sr, at, f * r * (0.995 + rand() * 0.01), tau * d, amp * a);
+      });
+    }
+    // The cellophane wrapper: crinkles, each a cluster of sharp little snaps; shape(u) says how
+    // busy it is.
+    function crinkle(y, sr, rand, at, len, events, amp, shape) {
+      for (let k = 0; k < events; k++) {
+        const u = rand();
+        const a = amp * shape(u) * (0.2 + 0.8 * rand() ** 2);
+        for (let n = 0, m = 2 + Math.floor(rand() * 5); n < m; n++)
+          crack(
+            y,
+            sr,
+            rand,
+            at + u * len + rand() * 0.002,
+            2500 + rand() * 4000,
+            1.5 + rand() * 1.5,
+            a * (0.3 + rand() * 0.7),
+            0.0001 + rand() * 0.0002,
+          );
+      }
+    }
+    // Sticky sugar letting go: a run of tiny tacky clicks, ever closer, then the release.
+    function tack(y, sr, rand, at, len, count, amp) {
+      for (let k = 0; k < count; k++) {
+        const u = rand() ** 0.5;
+        crack(y, sr, rand, at + u * len, 900 + rand() * 1600, 1.2, amp * (0.2 + 0.5 * rand()) * u, 0.0002);
+      }
+      crack(y, sr, rand, at + len, 1400, 1.4, amp, 0.0004);
+    }
+    // A sugar crystal twinkling: a small chime with a faint octave.
+    function twinkle(y, sr, at, f, amp) {
+      ring(y, sr, at, f, 0.07, amp);
+      ring(y, sr, at, f * 2, 0.035, 0.25 * amp);
+    }
+    // How loud each voice plays, measured so that the theme sits as loud as every other one.
+    const LEVEL = { open: 0.062, tick: 0.069, enter: 0.046, leave: 0.045, success: 0.113 };
+
     Board.define({
       id: ID,
       fonts: {
@@ -495,32 +681,83 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A crinkle of cellophane wrapper.
-        open(ac, out, t, X) {
-          [0, 0.018, 0.031, 0.052, 0.07, 0.088].forEach((d, k) =>
-            X.burst(ac, out, t + d, {
-              type: 'highpass',
-              f: 4800 + ((k * 911) % 2200),
-              q: 0.7,
-              dur: 0.012 + (k % 3) * 0.006,
-              gain: 0.07 - k * 0.006,
-            }),
-          );
-          X.tone(ac, out, t + 0.02, { type: 'sine', f: 620, f2: 940, dur: 0.06, gain: 0.03, a: 0.004 });
-        },
-        // A small bubble pop.
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'sine', f: 520, f2: 1150, dur: 0.03, gain: 0.07, a: 0.001 });
-        },
-        // A sharp crack, then a sparkling arpeggio.
-        success(ac, out, t, X) {
-          X.burst(ac, out, t + 0.08, { type: 'highpass', f: 2400, q: 0.8, dur: 0.03, gain: 0.2 });
-          X.burst(ac, out, t + 0.095, { type: 'bandpass', f: 1300, q: 2, dur: 0.02, gain: 0.1 });
-          X.tone(ac, out, t + 0.08, { type: 'sine', f: 280, f2: 150, dur: 0.06, gain: 0.06, a: 0.002 });
-          [2093, 2637, 3136, 4186].forEach((f, k) =>
-            X.tone(ac, out, t + 0.16 + k * 0.045, { type: 'sine', f, dur: 0.14, gain: 0.028 - k * 0.003, a: 0.004 }),
-          );
-        },
+        // The cellophane crinkles open and the candy lands on the table with a glassy tok and a hop.
+        open: voice({
+          name: 'open',
+          len: 0.36,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.open,
+          lp: 7500,
+          draw(y, sr, rand) {
+            crinkle(y, sr, rand, 0.002, 0.22, 24, 5, (u) => Math.sin(Math.PI * u) ** 0.5);
+            glass(y, sr, rand, 0.13, 1500, 0.03, 0.7, 0.6);
+            glass(y, sr, rand, 0.2, 1560, 0.02, 0.3);
+          },
+        }),
+        // Two arms of hard candy touching: a small glassy tik.
+        tick: voice({
+          name: 'tick',
+          len: 0.05,
+          takes: 8,
+          spread: 0.05,
+          level: LEVEL.tick,
+          lp: 7500,
+          draw(y, sr, rand) {
+            glass(y, sr, rand, 0.002, 2700 + rand() * 800, 0.01, 1);
+          },
+        }),
+        // The arm comes away from its neighbours with a tacky little peel, then knocks free.
+        enter: voice({
+          name: 'enter',
+          len: 0.16,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.enter,
+          lp: 7500,
+          draw(y, sr, rand) {
+            tack(y, sr, rand, 0.002, 0.045, 26, 2.5);
+            glass(y, sr, rand, 0.055, 2100, 0.02, 0.8);
+          },
+        }),
+        // Back out: the candy set down again, a glassy tok and two small hops.
+        leave: voice({
+          name: 'leave',
+          len: 0.14,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.leave,
+          lp: 7500,
+          draw(y, sr, rand) {
+            glass(y, sr, rand, 0.002, 1800, 0.025, 1);
+            glass(y, sr, rand, 0.045, 1830, 0.018, 0.3);
+            glass(y, sr, rand, 0.075, 1850, 0.012, 0.1);
+          },
+        }),
+        // A tap, then the arm cracks: a brittle snap running down the zigzag, the shard landing, sugar
+        // crystals scattering and twinkling.
+        success: voice({
+          name: 'success',
+          len: 0.66,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.success,
+          lp: 7500,
+          draw(y, sr, rand) {
+            glass(y, sr, rand, 0.01, 1900, 0.02, 0.6);
+            crack(y, sr, rand, 0.08, 3000, 1, 1.3, 0.0004);
+            crack(y, sr, rand, 0.081, 1800, 1.5, 0.9, 0.0006);
+            glass(y, sr, rand, 0.08, 2300, 0.015, 0.6, 0.2);
+            for (let k = 0; k < 18; k++)
+              crack(y, sr, rand, 0.085 + 0.155 * (k / 18) ** 0.6, 2000 + rand() * 4000, 1.6, 0.6 - k * 0.018, 0.0002);
+            for (let k = 0; k < 10; k++) glass(y, sr, rand, 0.1 + rand() * 0.26, 4300 + rand() * 1500, 0.006, 0.15);
+            [0.12, 0.21, 0.3, 0.39].forEach((at, k) =>
+              twinkle(y, sr, at + rand() * 0.04, [3136, 3520, 3951, 3322][k] * (0.98 + rand() * 0.04), 0.22),
+            );
+            glass(y, sr, rand, 0.45, 3000, 0.018, 0.45);
+            glass(y, sr, rand, 0.51, 3050, 0.012, 0.15);
+          },
+        }),
       },
     });
   })();

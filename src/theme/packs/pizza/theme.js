@@ -146,6 +146,209 @@ export default function register(Board) {
       return { pep, pepDot, basil, vein, olive, pepper, herb };
     }
 
+    // Sounds. Every voice is drawn sample by sample into a buffer, a few takes of it once per sample
+    // rate, and then only played: a tick costs one buffer source and one gain, and no two calls in a
+    // row sound quite alike (another take, played a little faster or slower).
+    const TAKES = new Map();
+    const VOICES = [];
+    // A voice: v.draw(y, sr, rand) draws a take of v.len seconds (v.takes of them, each its own
+    // rand), v.level sets its loudness and v.spread how much faster or slower a call may play it.
+    function voice(v) {
+      VOICES.push(v);
+      return (ac, out, t) => play(ac, out, t, v);
+    }
+    function takeOf(ac, v, k) {
+      const key = v.name + ac.sampleRate;
+      let list = TAKES.get(key);
+      if (!list) TAKES.set(key, (list = []));
+      if (!list[k]) list[k] = take(ac, v, 7 + k * 977);
+      return list[k];
+    }
+    function play(ac, out, t, v) {
+      const buf = takeOf(ac, v, Math.floor(Math.random() * v.takes));
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v.spread;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v.level, t + 0.0005);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + buf.duration / (1 - v.spread) + 0.02);
+      warm(ac);
+    }
+    // After the first sound, the takes not drawn yet are drawn one at a time while the page is idle,
+    // the apply's first, so no sound waits on its drawing.
+    let warming = false;
+    function warm(ac) {
+      if (warming || typeof window === 'undefined') return;
+      warming = true;
+      const later = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : window.setTimeout(f, 50));
+      const order = [...VOICES].sort((a, b) => (b.name === 'success') - (a.name === 'success'));
+      const jobs = [];
+      for (let k = 0; k < 8; k++) for (const v of order) if (k < v.takes) jobs.push([v, k]);
+      const next = () => {
+        const job = jobs.shift();
+        if (!job) return;
+        takeOf(ac, job[0], job[1]);
+        later(next);
+      };
+      later(next);
+    }
+    // One take: drawn, kept above 90 Hz (no rumble small speakers cannot play, no offset) and below
+    // v.lp, faded out over its last eighth and scaled to the energy of every other take of the voice.
+    function take(ac, v, seed) {
+      const sr = ac.sampleRate;
+      const y = new Float32Array(Math.ceil(v.len * sr));
+      v.draw(y, sr, rng(seed));
+      const hp = svf(sr);
+      const lp = svf(sr);
+      const fade = Math.round(Math.max(0.003, v.len * 0.12) * sr);
+      let sum = 0;
+      for (let i = 0; i < y.length; i++) {
+        hp.run(y[i], 90, 0.7);
+        let s = hp.h;
+        if (v.lp) {
+          lp.run(s, v.lp, 0.7);
+          s = lp.l;
+        }
+        if (i > y.length - fade) s *= 0.5 - 0.5 * Math.cos((Math.PI * (y.length - i)) / fade);
+        y[i] = s;
+        sum += s * s;
+      }
+      const scale = 0.1 / Math.sqrt(sum / y.length || 1);
+      for (let i = 0; i < y.length; i++) y[i] *= scale;
+      const buf = ac.createBuffer(1, y.length, sr);
+      buf.getChannelData(0).set(y);
+      return buf;
+    }
+    // A state-variable filter that stays steady while its frequency moves: run() leaves the band
+    // (at 0 dB), low and high outputs in b, l and h.
+    function svf(sr) {
+      const s = { b: 0, l: 0, h: 0 };
+      let z1 = 0,
+        z2 = 0,
+        pf = 0,
+        pq = 0,
+        k = 1,
+        a1 = 0,
+        a2 = 0,
+        a3 = 0;
+      s.run = (x, f, q) => {
+        if (f !== pf || q !== pq) {
+          pf = f;
+          pq = q;
+          const g = Math.tan((Math.PI * Math.min(f, sr * 0.45)) / sr);
+          k = 1 / q;
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        s.b = k * v1;
+        s.l = v2;
+        s.h = x - k * v1 - v2;
+        return s.b;
+      };
+      return s;
+    }
+    // A damped partial, the way a struck body rings: it starts from zero and dies away over tau.
+    function ring(y, sr, at, f, tau, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 7 * sr));
+      const w = (2 * Math.PI * f) / sr;
+      const c = Math.cos(w) * Math.exp(-1 / (tau * sr));
+      const s = Math.sin(w) * Math.exp(-1 / (tau * sr));
+      let re = amp,
+        im = 0;
+      for (let i = 0; i < n; i++) {
+        y[i0 + i] += im;
+        const r = re * c - im * s;
+        im = re * s + im * c;
+        re = r;
+      }
+    }
+    // A crack: a sliver of noise through a resonance, the contact of a hit or the grain of a crackle
+    // (amp is about its peak).
+    function crack(y, sr, rand, at, f, q, amp, len) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.max(2, Math.round(len * sr));
+      const end = Math.min(y.length - i0, n + Math.round((q / f) * 4 * sr));
+      for (let i = 0; i < end; i++) {
+        const e = i < n ? (rand() * 2 - 1) * (1 - i / n) : 0;
+        y[i0 + i] += 3 * amp * fl.run(e, f, q);
+      }
+    }
+    // A bubble or a drop: a partial whose pitch rises as it closes, with a soft start.
+    function bubble(y, sr, at, f, tau, rise, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 6 * sr));
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const u = i / sr;
+        ph += (2 * Math.PI * f * (1 + (rise * u) / tau)) / sr;
+        y[i0 + i] += amp * Math.exp(-u / tau) * Math.min(1, u / 0.0007) * Math.sin(ph);
+      }
+    }
+    // Noise through a moving band: shape(u) gives the level and the band's centre, u from 0 to 1.
+    function hiss(y, sr, rand, at, len, q, shape) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.round(len * sr));
+      // The shape moves slowly next to the samples: it is read every 16 of them, the level eased
+      // between readings and starting from silence.
+      let a0 = 0,
+        a1 = 0,
+        f = 1000;
+      for (let i = 0; i < n; i++) {
+        const j = i % 16;
+        if (!j) {
+          a0 = a1;
+          [a1, f] = shape(Math.min(1, (i + 16) / n));
+        }
+        y[i0 + i] += (a0 + ((a1 - a0) * j) / 16) * fl.run(rand() * 2 - 1, f, q);
+      }
+    }
+    // An ember pops in the wood fire, or a charred bubble of crust snaps: a dry crack with a woody body.
+    function ember(y, sr, rand, at, amp) {
+      crack(y, sr, rand, at, 1400 + rand() * 1600, 2 + rand() * 2, amp, 0.0003);
+      ring(y, sr, at, 450 + rand() * 450, 0.003, 0.5 * amp);
+      crack(y, sr, rand, at + 0.001 + rand() * 0.002, 2500 + rand() * 1500, 2, 0.3 * amp, 0.0002);
+    }
+    // The fire breathing: a soft, low roar that flickers.
+    function roar(y, sr, rand, at, len, amp, shape) {
+      let flicker = 0.5;
+      hiss(y, sr, rand, at, len, 0.6, (u) => {
+        flicker += (rand() - flicker) * 0.013;
+        return [amp * shape(u) * (0.5 + flicker), 380 + 260 * flicker];
+      });
+    }
+    // The peel scraping over the oven floor: grains of semolina skipping under it, and the rasp of
+    // wood on stone; motion(u) is how fast it moves.
+    function scrape(y, sr, rand, at, len, amp, motion) {
+      for (let k = 0, n = Math.round(1400 * len); k < n; k++) {
+        const u = rand();
+        crack(y, sr, rand, at + u * len, 1500 + rand() * 2500, 1.2, amp * (0.2 + rand() * 0.8) * motion(u), 0.0001);
+      }
+      hiss(y, sr, rand, at, len, 1.5, (u) => [0.25 * amp * motion(u), 1500 + 500 * motion(u)]);
+    }
+    // Fat and cheese sizzling: fine, bright spits.
+    function sizzle(y, sr, rand, at, len, count, amp, shape) {
+      for (let k = 0; k < count; k++) {
+        const u = rand();
+        if (rand() > shape(u)) continue;
+        crack(y, sr, rand, at + u * len, 3000 + rand() * 3500, 1.5, amp * (0.2 + rand() * 0.8), 0.00015);
+      }
+    }
+    // How loud each voice plays, measured so that the theme sits as loud as every other one.
+    const LEVEL = { open: 0.053, tick: 0.09, enter: 0.055, leave: 0.052, success: 0.073 };
+
     Board.define({
       id: ID,
       fonts: {
@@ -544,24 +747,97 @@ export default function register(Board) {
       },
 
       sounds: {
-        // The pie scrapes onto the peel, with a soft knock.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'lowpass', f: 500, f2: 1600, q: 0.9, dur: 0.14, gain: 0.13, a: 0.02 });
-          X.tone(ac, out, t + 0.1, { type: 'sine', f: 210, f2: 170, dur: 0.06, gain: 0.07, a: 0.003 });
-        },
-        // A crisp crackle of crust.
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'highpass', f: 3800, q: 1, dur: 0.009, gain: 0.12 });
-          X.burst(ac, out, t + 0.006, { type: 'bandpass', f: 1900, q: 3, dur: 0.007, gain: 0.08 });
-        },
-        // A stretchy squelch, rising, then a small snap.
-        success(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 760, f2: 330, q: 4, dur: 0.22, gain: 0.11, a: 0.015 });
-          X.tone(ac, out, t + 0.02, { type: 'triangle', f: 150, f2: 320, dur: 0.32, gain: 0.05, a: 0.03 });
-          X.tone(ac, out, t + 0.04, { type: 'sine', f: 300, f2: 640, dur: 0.28, gain: 0.025, a: 0.03 });
-          X.burst(ac, out, t + 0.36, { type: 'highpass', f: 2800, q: 1.2, dur: 0.014, gain: 0.08 });
-          X.tone(ac, out, t + 0.37, { type: 'sine', f: 520, f2: 380, dur: 0.05, gain: 0.03, a: 0.002 });
-        },
+        // The pie slides onto the peel with a gritty scrape and settles; the oven's fire breathes and
+        // pops.
+        open: voice({
+          name: 'open',
+          len: 0.5,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.open,
+          lp: 7000,
+          draw(y, sr, rand) {
+            scrape(y, sr, rand, 0.002, 0.17, 1, (u) => Math.sin(Math.PI * u) ** 0.8);
+            ring(y, sr, 0.15, 220, 0.025, 0.35);
+            ring(y, sr, 0.15, 410, 0.012, 0.2);
+            crack(y, sr, rand, 0.15, 900, 1.3, 0.25, 0.001);
+            roar(y, sr, rand, 0.002, 0.48, 0.35, (u) => Math.sin(Math.PI * u));
+            ember(y, sr, rand, 0.22, 0.6);
+            ember(y, sr, rand, 0.34, 0.4);
+          },
+        }),
+        // A slice lifts off the pie: its crust snaps, a few crumbs, a breath of sizzle.
+        tick: voice({
+          name: 'tick',
+          len: 0.05,
+          takes: 8,
+          spread: 0.06,
+          level: LEVEL.tick,
+          lp: 7000,
+          draw(y, sr, rand) {
+            crack(y, sr, rand, 0.002, 1600 + rand() * 1000, 2.5, 1, 0.0006);
+            ring(y, sr, 0.002, 650 + rand() * 150, 0.004, 0.06);
+            crack(y, sr, rand, 0.0025, 2800 + rand() * 900, 2, 0.5, 0.0004);
+            for (let k = 0, n = 2 + Math.floor(rand() * 3); k < n; k++)
+              crack(y, sr, rand, 0.004 + rand() * 0.008, 2000 + rand() * 2000, 2, 0.25 + rand() * 0.15, 0.0002);
+            sizzle(y, sr, rand, 0.003, 0.03, 12, 0.15, () => 1);
+          },
+        }),
+        // The peel slides into the oven and the fire answers with a soft whoomp and a pop.
+        enter: voice({
+          name: 'enter',
+          len: 0.24,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.enter,
+          lp: 7000,
+          draw(y, sr, rand) {
+            scrape(y, sr, rand, 0.002, 0.1, 0.9, (u) => Math.sin(Math.PI * u));
+            roar(y, sr, rand, 0.04, 0.2, 0.9, (u) => Math.min(1, u * 3) * (1 - u) ** 1.5);
+            ember(y, sr, rand, 0.17, 0.7);
+          },
+        }),
+        // Back out: the peel pulled from the oven in a short scrape, one ember popping behind it.
+        leave: voice({
+          name: 'leave',
+          len: 0.16,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.leave,
+          lp: 7000,
+          draw(y, sr, rand) {
+            scrape(y, sr, rand, 0.002, 0.07, 0.8, (u) => Math.sin(Math.PI * u) ** 0.6);
+            ember(y, sr, rand, 0.1, 0.55);
+          },
+        }),
+        // The slice pulled out: the crust tears, the cheese stretches in a gooey creak until three
+        // strings snap, and the slice springs back over the sizzle.
+        success: voice({
+          name: 'success',
+          len: 0.8,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.success,
+          lp: 7000,
+          draw(y, sr, rand) {
+            for (let k = 0; k < 6; k++)
+              crack(y, sr, rand, 0.002 + rand() * 0.06, 1500 + rand() * 1500, 2.5, 0.6, 0.0005);
+            ring(y, sr, 0.002, 650, 0.004, 0.3);
+            // Stick and slip: the strings catch and give, faster and higher as they thin.
+            hiss(y, sr, rand, 0.02, 0.25, 8, (u) => {
+              const slip = Math.abs(Math.sin(2 * Math.PI * 0.25 * (22 * u + 15 * u * u))) ** 2;
+              return [1.4 * u ** 0.7 * (0.5 + 0.5 * slip) * (1 - u ** 8), 280 + 570 * u];
+            });
+            [0.26, 0.29, 0.315].forEach((at, k) => {
+              bubble(y, sr, at, 900 - k * 80, 0.008, -0.4, 0.5 - k * 0.1);
+              crack(y, sr, rand, at, 1800, 2, 0.2, 0.0003);
+            });
+            ring(y, sr, 0.46, 260, 0.02, 0.2);
+            hiss(y, sr, rand, 0.46, 0.03, 1, (u) => [0.3 * (1 - u) ** 2, 500]);
+            sizzle(y, sr, rand, 0.002, 0.75, 260, 0.06, (u) => (1 - u) * Math.min(1, u * 4));
+            roar(y, sr, rand, 0.002, 0.75, 0.12, (u) => Math.sin(Math.PI * u));
+          },
+        }),
       },
     });
   })();

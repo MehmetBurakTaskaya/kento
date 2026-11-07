@@ -117,6 +117,207 @@ export default function register(Board) {
       for (const [o, v] of list) H.s('stop', { offset: o, style: `stop-color: var(--${v})` }, parent);
     }
 
+    // Sounds. Every voice is drawn sample by sample into a buffer, a few takes of it once per sample
+    // rate, and then only played: a tick costs one buffer source and one gain, and no two calls in a
+    // row sound quite alike (another take, played a little faster or slower).
+    function rng(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    const TAKES = new Map();
+    const VOICES = [];
+    // A voice: v.draw(y, sr, rand) draws a take of v.len seconds (v.takes of them, each its own
+    // rand), v.level sets its loudness and v.spread how much faster or slower a call may play it.
+    function voice(v) {
+      VOICES.push(v);
+      return (ac, out, t) => play(ac, out, t, v);
+    }
+    function takeOf(ac, v, k) {
+      const key = v.name + ac.sampleRate;
+      let list = TAKES.get(key);
+      if (!list) TAKES.set(key, (list = []));
+      if (!list[k]) list[k] = take(ac, v, 7 + k * 977);
+      return list[k];
+    }
+    function play(ac, out, t, v) {
+      const buf = takeOf(ac, v, Math.floor(Math.random() * v.takes));
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v.spread;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v.level, t + 0.0005);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + buf.duration / (1 - v.spread) + 0.02);
+      warm(ac);
+    }
+    // After the first sound, the takes not drawn yet are drawn one at a time while the page is idle,
+    // the apply's first, so no sound waits on its drawing.
+    let warming = false;
+    function warm(ac) {
+      if (warming || typeof window === 'undefined') return;
+      warming = true;
+      const later = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : window.setTimeout(f, 50));
+      const order = [...VOICES].sort((a, b) => (b.name === 'success') - (a.name === 'success'));
+      const jobs = [];
+      for (let k = 0; k < 8; k++) for (const v of order) if (k < v.takes) jobs.push([v, k]);
+      const next = () => {
+        const job = jobs.shift();
+        if (!job) return;
+        takeOf(ac, job[0], job[1]);
+        later(next);
+      };
+      later(next);
+    }
+    // One take: drawn, kept above 90 Hz (no rumble small speakers cannot play, no offset) and below
+    // v.lp, faded out over its last eighth and scaled to the energy of every other take of the voice.
+    function take(ac, v, seed) {
+      const sr = ac.sampleRate;
+      const y = new Float32Array(Math.ceil(v.len * sr));
+      v.draw(y, sr, rng(seed));
+      const hp = svf(sr);
+      const lp = svf(sr);
+      const fade = Math.round(Math.max(0.003, v.len * 0.12) * sr);
+      let sum = 0;
+      for (let i = 0; i < y.length; i++) {
+        hp.run(y[i], 90, 0.7);
+        let s = hp.h;
+        if (v.lp) {
+          lp.run(s, v.lp, 0.7);
+          s = lp.l;
+        }
+        if (i > y.length - fade) s *= 0.5 - 0.5 * Math.cos((Math.PI * (y.length - i)) / fade);
+        y[i] = s;
+        sum += s * s;
+      }
+      const scale = 0.1 / Math.sqrt(sum / y.length || 1);
+      for (let i = 0; i < y.length; i++) y[i] *= scale;
+      const buf = ac.createBuffer(1, y.length, sr);
+      buf.getChannelData(0).set(y);
+      return buf;
+    }
+    // A state-variable filter that stays steady while its frequency moves: run() leaves the band
+    // (at 0 dB), low and high outputs in b, l and h.
+    function svf(sr) {
+      const s = { b: 0, l: 0, h: 0 };
+      let z1 = 0,
+        z2 = 0,
+        pf = 0,
+        pq = 0,
+        k = 1,
+        a1 = 0,
+        a2 = 0,
+        a3 = 0;
+      s.run = (x, f, q) => {
+        if (f !== pf || q !== pq) {
+          pf = f;
+          pq = q;
+          const g = Math.tan((Math.PI * Math.min(f, sr * 0.45)) / sr);
+          k = 1 / q;
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        s.b = k * v1;
+        s.l = v2;
+        s.h = x - k * v1 - v2;
+        return s.b;
+      };
+      return s;
+    }
+    // A damped partial, the way a struck body rings: it starts from zero and dies away over tau.
+    function ring(y, sr, at, f, tau, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 7 * sr));
+      const w = (2 * Math.PI * f) / sr;
+      const c = Math.cos(w) * Math.exp(-1 / (tau * sr));
+      const s = Math.sin(w) * Math.exp(-1 / (tau * sr));
+      let re = amp,
+        im = 0;
+      for (let i = 0; i < n; i++) {
+        y[i0 + i] += im;
+        const r = re * c - im * s;
+        im = re * s + im * c;
+        re = r;
+      }
+    }
+    // A crack: a sliver of noise through a resonance, the contact of a hit or the grain of a crackle
+    // (amp is about its peak).
+    function crack(y, sr, rand, at, f, q, amp, len) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.max(2, Math.round(len * sr));
+      const end = Math.min(y.length - i0, n + Math.round((q / f) * 4 * sr));
+      for (let i = 0; i < end; i++) {
+        const e = i < n ? (rand() * 2 - 1) * (1 - i / n) : 0;
+        y[i0 + i] += 3 * amp * fl.run(e, f, q);
+      }
+    }
+    // Noise through a moving band: shape(u) gives the level and the band's centre, u from 0 to 1.
+    function hiss(y, sr, rand, at, len, q, shape) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.round(len * sr));
+      // The shape moves slowly next to the samples: it is read every 16 of them, the level eased
+      // between readings and starting from silence.
+      let a0 = 0,
+        a1 = 0,
+        f = 1000;
+      for (let i = 0; i < n; i++) {
+        const j = i % 16;
+        if (!j) {
+          a0 = a1;
+          [a1, f] = shape(Math.min(1, (i + 16) / n));
+        }
+        y[i0 + i] += (a0 + ((a1 - a0) * j) / 16) * fl.run(rand() * 2 - 1, f, q);
+      }
+    }
+    // A petal brushing past: smooth, silky noise that swells and fades as its band slides.
+    function swish(y, sr, rand, at, len, f0, f1, amp, q = 1) {
+      hiss(y, sr, rand, at, len, q, (u) => [amp * Math.sin(Math.PI * u) ** 2, f0 * (f1 / f0) ** u]);
+    }
+    // A sunflower seed landing: a small, dry, woody click of its husk.
+    function husk(y, sr, rand, at, amp) {
+      const f = 1100 + rand() * 500;
+      crack(y, sr, rand, at, 1800 + rand() * 1200, 3, amp, 0.0003);
+      ring(y, sr, at, f, 0.003, 0.5 * amp);
+      ring(y, sr, at, f * 2.4, 0.0015, 0.2 * amp);
+    }
+    // Sunlight: a soft, warm chord that blooms slowly and fades, each note a slightly detuned pair.
+    function glow(y, sr, at, len, amp, notes) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.round(len * sr));
+      for (const [f, a] of notes)
+        for (const d of [0.9985, 1.0015]) {
+          const w = (2 * Math.PI * f * d) / sr;
+          const c = Math.cos(w);
+          const s = Math.sin(w);
+          let re = 0.5 * amp * a,
+            im = 0;
+          for (let i = 0; i < n; i++) {
+            y[i0 + i] += im * Math.min(1, i / (0.06 * sr)) * (1 - i / n) ** 2;
+            const r = re * c - im * s;
+            im = re * s + im * c;
+            re = r;
+          }
+        }
+    }
+    // How loud each voice plays, measured so that the theme sits as loud as every other one.
+    const LEVEL = { open: 0.061, tick: 0.035, enter: 0.023, leave: 0.023, success: 0.108 };
+
     Board.define({
       id: 'aycicegi',
       fonts: {
@@ -428,35 +629,95 @@ export default function register(Board) {
       },
 
       sounds: {
-        open(ac, out, t, X) {
-          // Petals unfurling: a papery rustle and a warm rising tone.
-          X.burst(ac, out, t, { type: 'bandpass', f: 1800, f2: 3600, q: 0.9, dur: 0.11, gain: 0.1, a: 0.015 });
-          X.burst(ac, out, t + 0.04, { type: 'bandpass', f: 2600, f2: 1400, q: 1.2, dur: 0.08, gain: 0.06, a: 0.01 });
-          X.tone(ac, out, t, { type: 'triangle', f: 392, f2: 523, dur: 0.14, gain: 0.035, a: 0.02 });
-        },
-        tick(ac, out, t, X) {
-          // A petal brushed by a fingertip.
-          X.burst(ac, out, t, { type: 'bandpass', f: 4200, q: 2.5, dur: 0.014, gain: 0.08 });
-          X.tone(ac, out, t, { type: 'sine', f: 1320, f2: 1480, dur: 0.02, gain: 0.025, a: 0.001 });
-        },
-        success(ac, out, t, X) {
-          // Seeds pattering into the head, faster as they go, then a warm open chord.
-          [0, 0.07, 0.125, 0.17, 0.205, 0.235, 0.26, 0.28].forEach((h, k) =>
-            X.burst(ac, out, t + h, {
-              type: 'bandpass',
-              f: 2400 + (k % 3) * 650,
-              q: 4,
-              dur: 0.012,
-              gain: 0.075 - k * 0.004,
-            }),
-          );
-          for (const [f, d] of [
-            [523.25, 0],
-            [659.25, 0.035],
-            [783.99, 0.07],
-          ])
-            X.tone(ac, out, t + 0.33 + d, { type: 'sine', f, dur: 0.5, gain: 0.038, a: 0.02 });
-        },
+        // The petals unfurl one after another in a silky rustle, on a warm breath of summer air.
+        open: voice({
+          name: 'open',
+          len: 0.45,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.open,
+          lp: 7000,
+          draw(y, sr, rand) {
+            for (let k = 0; k < 8; k++) {
+              const f = 1600 + rand() * 1000;
+              swish(y, sr, rand, 0.002 + k * 0.022 + rand() * 0.008, 0.07, f, f * 1.5, 0.6);
+            }
+            hiss(y, sr, rand, 0.002, 0.4, 0.7, (u) => [0.35 * Math.sin(Math.PI * u), 700 + 300 * u]);
+            glow(y, sr, 0.1, 0.34, 0.25, [
+              [392, 1],
+              [523.3, 0.8],
+              [659.3, 0.5],
+            ]);
+          },
+        }),
+        // A petal leans out: a soft, silky brush.
+        tick: voice({
+          name: 'tick',
+          len: 0.055,
+          takes: 8,
+          spread: 0.05,
+          level: LEVEL.tick,
+          lp: 7000,
+          draw(y, sr, rand) {
+            crack(y, sr, rand, 0.003, 2800 + rand() * 600, 1.2, 0.25, 0.0003);
+            swish(y, sr, rand, 0.002, 0.045, 2200 + rand() * 500, 3400 + rand() * 500, 1, 1.1);
+          },
+        }),
+        // The flower turns on its stem: a leafy sweep and the stalk creaking as it bends.
+        enter: voice({
+          name: 'enter',
+          len: 0.22,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.enter,
+          lp: 7000,
+          draw(y, sr, rand) {
+            swish(y, sr, rand, 0.002, 0.12, 900, 1800, 1, 0.8);
+            [
+              [0.03, 330, 0.3],
+              [0.06, 310, 0.22],
+              [0.09, 345, 0.15],
+            ].forEach(([at, f, a]) => {
+              ring(y, sr, at, f, 0.012, a);
+              crack(y, sr, rand, at, 700, 2, 0.5 * a, 0.0006);
+            });
+          },
+        }),
+        // Back out: the head swings back with a lighter sweep.
+        leave: voice({
+          name: 'leave',
+          len: 0.14,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.leave,
+          lp: 7000,
+          draw(y, sr, rand) {
+            swish(y, sr, rand, 0.002, 0.08, 2400, 1500, 0.8);
+            ring(y, sr, 0.05, 320, 0.01, 0.15);
+          },
+        }),
+        // The petal rises to the light in a warm bloom of sun, and seeds spiral into the head, landing
+        // one by one with dry little clicks as it bobs.
+        success: voice({
+          name: 'success',
+          len: 1,
+          takes: 3,
+          spread: 0.015,
+          level: LEVEL.success,
+          lp: 7000,
+          draw(y, sr, rand) {
+            swish(y, sr, rand, 0.002, 0.2, 1200, 3000, 1, 0.9);
+            glow(y, sr, 0.07, 0.85, 0.7, [
+              [349.2, 1],
+              [440, 0.8],
+              [523.3, 0.7],
+              [698.5, 0.35],
+            ]);
+            for (let k = 0; k < 12; k++) husk(y, sr, rand, 0.45 + 0.021 * k + rand() * 0.02, 0.9 - k * 0.03);
+            ring(y, sr, 0.42, 300, 0.018, 0.5);
+            hiss(y, sr, rand, 0.42, 0.03, 1, (u) => [0.3 * (1 - u) ** 2, 600]);
+          },
+        }),
       },
     });
   })();

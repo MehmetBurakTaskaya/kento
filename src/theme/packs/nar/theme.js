@@ -159,6 +159,200 @@ export default function register(Board) {
       );
     }
 
+    // Sounds. Every voice is drawn sample by sample into a buffer, a few takes of it once per sample
+    // rate, and then only played: a tick costs one buffer source and one gain, and no two calls in a
+    // row sound quite alike (another take, played a little faster or slower).
+    const TAKES = new Map();
+    const VOICES = [];
+    // A voice: v.draw(y, sr, rand) draws a take of v.len seconds (v.takes of them, each its own
+    // rand), v.level sets its loudness and v.spread how much faster or slower a call may play it.
+    function voice(v) {
+      VOICES.push(v);
+      return (ac, out, t) => play(ac, out, t, v);
+    }
+    function takeOf(ac, v, k) {
+      const key = v.name + ac.sampleRate;
+      let list = TAKES.get(key);
+      if (!list) TAKES.set(key, (list = []));
+      if (!list[k]) list[k] = take(ac, v, 7 + k * 977);
+      return list[k];
+    }
+    function play(ac, out, t, v) {
+      const buf = takeOf(ac, v, Math.floor(Math.random() * v.takes));
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v.spread;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v.level, t + 0.0005);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + buf.duration / (1 - v.spread) + 0.02);
+      warm(ac);
+    }
+    // After the first sound, the takes not drawn yet are drawn one at a time while the page is idle,
+    // the apply's first, so no sound waits on its drawing.
+    let warming = false;
+    function warm(ac) {
+      if (warming || typeof window === 'undefined') return;
+      warming = true;
+      const later = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : window.setTimeout(f, 50));
+      const order = [...VOICES].sort((a, b) => (b.name === 'success') - (a.name === 'success'));
+      const jobs = [];
+      for (let k = 0; k < 8; k++) for (const v of order) if (k < v.takes) jobs.push([v, k]);
+      const next = () => {
+        const job = jobs.shift();
+        if (!job) return;
+        takeOf(ac, job[0], job[1]);
+        later(next);
+      };
+      later(next);
+    }
+    // One take: drawn, kept above 90 Hz (no rumble small speakers cannot play, no offset) and below
+    // v.lp, faded out over its last eighth and scaled to the energy of every other take of the voice.
+    function take(ac, v, seed) {
+      const sr = ac.sampleRate;
+      const y = new Float32Array(Math.ceil(v.len * sr));
+      v.draw(y, sr, rng(seed));
+      const hp = svf(sr);
+      const lp = svf(sr);
+      const fade = Math.round(Math.max(0.003, v.len * 0.12) * sr);
+      let sum = 0;
+      for (let i = 0; i < y.length; i++) {
+        hp.run(y[i], 90, 0.7);
+        let s = hp.h;
+        if (v.lp) {
+          lp.run(s, v.lp, 0.7);
+          s = lp.l;
+        }
+        if (i > y.length - fade) s *= 0.5 - 0.5 * Math.cos((Math.PI * (y.length - i)) / fade);
+        y[i] = s;
+        sum += s * s;
+      }
+      const scale = 0.1 / Math.sqrt(sum / y.length || 1);
+      for (let i = 0; i < y.length; i++) y[i] *= scale;
+      const buf = ac.createBuffer(1, y.length, sr);
+      buf.getChannelData(0).set(y);
+      return buf;
+    }
+    // A state-variable filter that stays steady while its frequency moves: run() leaves the band
+    // (at 0 dB), low and high outputs in b, l and h.
+    function svf(sr) {
+      const s = { b: 0, l: 0, h: 0 };
+      let z1 = 0,
+        z2 = 0,
+        pf = 0,
+        pq = 0,
+        k = 1,
+        a1 = 0,
+        a2 = 0,
+        a3 = 0;
+      s.run = (x, f, q) => {
+        if (f !== pf || q !== pq) {
+          pf = f;
+          pq = q;
+          const g = Math.tan((Math.PI * Math.min(f, sr * 0.45)) / sr);
+          k = 1 / q;
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        s.b = k * v1;
+        s.l = v2;
+        s.h = x - k * v1 - v2;
+        return s.b;
+      };
+      return s;
+    }
+    // A damped partial, the way a struck body rings: it starts from zero and dies away over tau.
+    function ring(y, sr, at, f, tau, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 7 * sr));
+      const w = (2 * Math.PI * f) / sr;
+      const c = Math.cos(w) * Math.exp(-1 / (tau * sr));
+      const s = Math.sin(w) * Math.exp(-1 / (tau * sr));
+      let re = amp,
+        im = 0;
+      for (let i = 0; i < n; i++) {
+        y[i0 + i] += im;
+        const r = re * c - im * s;
+        im = re * s + im * c;
+        re = r;
+      }
+    }
+    // A crack: a sliver of noise through a resonance, the contact of a hit or the grain of a crackle
+    // (amp is about its peak).
+    function crack(y, sr, rand, at, f, q, amp, len) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.max(2, Math.round(len * sr));
+      const end = Math.min(y.length - i0, n + Math.round((q / f) * 4 * sr));
+      for (let i = 0; i < end; i++) {
+        const e = i < n ? (rand() * 2 - 1) * (1 - i / n) : 0;
+        y[i0 + i] += 3 * amp * fl.run(e, f, q);
+      }
+    }
+    // A bubble or a drop: a partial whose pitch rises as it closes, with a soft start.
+    function bubble(y, sr, at, f, tau, rise, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 6 * sr));
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const u = i / sr;
+        ph += (2 * Math.PI * f * (1 + (rise * u) / tau)) / sr;
+        y[i0 + i] += amp * Math.exp(-u / tau) * Math.min(1, u / 0.0007) * Math.sin(ph);
+      }
+    }
+    // Noise through a moving band: shape(u) gives the level and the band's centre, u from 0 to 1.
+    function hiss(y, sr, rand, at, len, q, shape) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.round(len * sr));
+      // The shape moves slowly next to the samples: it is read every 16 of them, the level eased
+      // between readings and starting from silence.
+      let a0 = 0,
+        a1 = 0,
+        f = 1000;
+      for (let i = 0; i < n; i++) {
+        const j = i % 16;
+        if (!j) {
+          a0 = a1;
+          [a1, f] = shape(Math.min(1, (i + 16) / n));
+        }
+        y[i0 + i] += (a0 + ((a1 - a0) * j) / 16) * fl.run(rand() * 2 - 1, f, q);
+      }
+    }
+    // An aril: a small glossy seed in its sac of juice knocking on another, a soft, slightly wet tick.
+    function aril(y, sr, rand, at, amp) {
+      const f = 1700 + rand() * 1300;
+      crack(y, sr, rand, at, 2600 + rand() * 1600, 1.6, 0.6 * amp, 0.00025);
+      ring(y, sr, at, f, 0.004, 0.7 * amp);
+      ring(y, sr, at, f * (1.85 + rand() * 0.15), 0.0025, 0.35 * amp);
+      bubble(y, sr, at + 0.0005, f * 0.7, 0.003, 0.15, 0.25 * amp);
+    }
+    // A tear through skin or membrane: cracks between lo and hi Hz, swelling and fading over len;
+    // long ones rasp like leather, short ones crinkle like paper.
+    function tear(y, sr, rand, at, len, count, lo, hi, amp, grain) {
+      for (let k = 0; k < count; k++) {
+        const u = rand();
+        const a = amp * (0.3 + rand() * 0.7) * Math.sin(Math.PI * u) ** 0.7;
+        crack(y, sr, rand, at + u * len, lo * (hi / lo) ** rand(), 1.4, a, grain * (0.4 + rand()));
+      }
+    }
+    // A glint: a small, clear ping a fifth above itself.
+    function sparkle(y, sr, at, f, amp) {
+      ring(y, sr, at, f, 0.05, amp);
+      ring(y, sr, at, f * 1.5, 0.03, 0.4 * amp);
+    }
+    // How loud each voice plays, measured so that the theme sits as loud as every other one.
+    const LEVEL = { open: 0.074, tick: 0.1, enter: 0.059, leave: 0.061, success: 0.044 };
+
     Board.define({
       id: ID,
       fonts: {
@@ -478,33 +672,85 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A leathery crack of the skin.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 700, f2: 280, q: 2.6, dur: 0.12, gain: 0.16, a: 0.004 });
-          X.burst(ac, out, t + 0.012, { type: 'highpass', f: 3200, q: 0.8, dur: 0.025, gain: 0.07 });
-          X.tone(ac, out, t, { type: 'sine', f: 140, f2: 95, dur: 0.08, gain: 0.06, a: 0.003 });
-        },
-        // A small glassy bead.
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'sine', f: 1760, dur: 0.05, gain: 0.055, a: 0.001 });
-          X.tone(ac, out, t, { type: 'sine', f: 2794, dur: 0.028, gain: 0.022, a: 0.001 });
-        },
-        // A patter of beads spilling, and a faint shimmer.
-        success(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 900, q: 2, dur: 0.05, gain: 0.08 });
-          [2093, 1760, 2349, 1568, 1976, 2637, 1661, 2217, 1865, 2489, 1480, 2093].forEach((f, k) => {
-            const d = 0.03 + k * 0.032 + ((k * 7) % 5) * 0.006;
-            X.tone(ac, out, t + d, {
-              type: k % 2 ? 'triangle' : 'sine',
-              f,
-              dur: 0.035,
-              gain: 0.05 - k * 0.0028,
-              a: 0.001,
-            });
-          });
-          X.tone(ac, out, t + 0.22, { type: 'sine', f: 3520, dur: 0.3, gain: 0.016, a: 0.03 });
-          X.tone(ac, out, t + 0.3, { type: 'sine', f: 5274, dur: 0.24, gain: 0.01, a: 0.03 });
-        },
+        // The leathery skin cracks open and the arils settle into their compartments.
+        open: voice({
+          name: 'open',
+          len: 0.38,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.open,
+          lp: 7000,
+          draw(y, sr, rand) {
+            tear(y, sr, rand, 0.002, 0.09, 22, 500, 1600, 0.8, 0.002);
+            hiss(y, sr, rand, 0.002, 0.08, 1.5, (u) => [0.3 * Math.sin(Math.PI * u), 700]);
+            ring(y, sr, 0.004, 170, 0.02, 0.5);
+            for (let k = 0; k < 12; k++) aril(y, sr, rand, 0.08 + k * 0.014 + rand() * 0.012, 0.6 - k * 0.035);
+          },
+        }),
+        // A pinch of arils jostling as the compartment lifts.
+        tick: voice({
+          name: 'tick',
+          len: 0.06,
+          takes: 8,
+          spread: 0.05,
+          level: LEVEL.tick,
+          lp: 7000,
+          draw(y, sr, rand) {
+            aril(y, sr, rand, 0.002, 1);
+            aril(y, sr, rand, 0.008 + rand() * 0.006, 0.6);
+            if (rand() < 0.6) aril(y, sr, rand, 0.02 + rand() * 0.01, 0.35);
+          },
+        }),
+        // The pale membrane peels back with a papery crinkle, baring two arils.
+        enter: voice({
+          name: 'enter',
+          len: 0.2,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.enter,
+          lp: 7000,
+          draw(y, sr, rand) {
+            tear(y, sr, rand, 0.003, 0.12, 60, 2000, 5000, 0.6, 0.0003);
+            aril(y, sr, rand, 0.125, 0.4);
+            aril(y, sr, rand, 0.15, 0.25);
+          },
+        }),
+        // Back out: a few arils fall back into place.
+        leave: voice({
+          name: 'leave',
+          len: 0.14,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.leave,
+          lp: 7000,
+          draw(y, sr, rand) {
+            [0.002, 0.022, 0.047, 0.078].forEach((at, k) => aril(y, sr, rand, at, 1 - k * 0.25));
+          },
+        }),
+        // The compartment splits with a juicy pop and empties: the arils tumble out, bounce and roll
+        // away, and glints flash along their way.
+        success: voice({
+          name: 'success',
+          len: 0.78,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.success,
+          lp: 7000,
+          draw(y, sr, rand) {
+            bubble(y, sr, 0.002, 650, 0.015, 0.15, 0.5);
+            crack(y, sr, rand, 0.002, 1500, 1.2, 0.5, 0.0008);
+            hiss(y, sr, rand, 0.002, 0.04, 1, (u) => [0.4 * (1 - u) ** 2, 900]);
+            for (let k = 0; k < 28; k++) {
+              // Outer arils leave first, as on the wheel; each lands, bounces and rolls away.
+              const at = (1 - rand()) * 0.12 + rand() * 0.05 + 0.02 + rand() * 0.03;
+              const a = 0.4 + rand() * 0.6;
+              aril(y, sr, rand, at, a);
+              aril(y, sr, rand, at + 0.05 + rand() * 0.04, 0.45 * a);
+              aril(y, sr, rand, at + 0.12 + rand() * 0.08, 0.2 * a);
+            }
+            for (let k = 0; k < 6; k++) sparkle(y, sr, 0.09 + k * 0.07 + rand() * 0.04, 2700 + rand() * 800, 0.18);
+          },
+        }),
       },
     });
   })();

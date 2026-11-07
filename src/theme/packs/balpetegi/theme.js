@@ -100,6 +100,242 @@ export default function register(Board) {
     const dropPath = (x, y, w, len) =>
       `M${f2(x - w)} ${f2(y)}C${f2(x - w)} ${f2(y + len * 0.45)} ${f2(x - w * 1.05)} ${f2(y + len * 0.72)} ${f2(x)} ${f2(y + len)}C${f2(x + w * 1.05)} ${f2(y + len * 0.72)} ${f2(x + w)} ${f2(y + len * 0.45)} ${f2(x + w)} ${f2(y)}Z`;
 
+    // Sounds. Every voice is drawn sample by sample into a buffer, a few takes of it once per sample
+    // rate, and then only played: a tick costs one buffer source and one gain, and no two calls in a
+    // row sound quite alike (another take, played a little faster or slower).
+    function rng(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    const TAKES = new Map();
+    const VOICES = [];
+    // A voice: v.draw(y, sr, rand) draws a take of v.len seconds (v.takes of them, each its own
+    // rand), v.level sets its loudness and v.spread how much faster or slower a call may play it.
+    function voice(v) {
+      VOICES.push(v);
+      return (ac, out, t) => play(ac, out, t, v);
+    }
+    function takeOf(ac, v, k) {
+      const key = v.name + ac.sampleRate;
+      let list = TAKES.get(key);
+      if (!list) TAKES.set(key, (list = []));
+      if (!list[k]) list[k] = take(ac, v, 7 + k * 977);
+      return list[k];
+    }
+    function play(ac, out, t, v) {
+      const buf = takeOf(ac, v, Math.floor(Math.random() * v.takes));
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v.spread;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v.level, t + 0.0005);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + buf.duration / (1 - v.spread) + 0.02);
+      warm(ac);
+    }
+    // After the first sound, the takes not drawn yet are drawn one at a time while the page is idle,
+    // the apply's first, so no sound waits on its drawing.
+    let warming = false;
+    function warm(ac) {
+      if (warming || typeof window === 'undefined') return;
+      warming = true;
+      const later = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : window.setTimeout(f, 50));
+      const order = [...VOICES].sort((a, b) => (b.name === 'success') - (a.name === 'success'));
+      const jobs = [];
+      for (let k = 0; k < 8; k++) for (const v of order) if (k < v.takes) jobs.push([v, k]);
+      const next = () => {
+        const job = jobs.shift();
+        if (!job) return;
+        takeOf(ac, job[0], job[1]);
+        later(next);
+      };
+      later(next);
+    }
+    // One take: drawn, kept above 90 Hz (no rumble small speakers cannot play, no offset) and below
+    // v.lp, faded out over its last eighth and scaled to the energy of every other take of the voice.
+    function take(ac, v, seed) {
+      const sr = ac.sampleRate;
+      const y = new Float32Array(Math.ceil(v.len * sr));
+      v.draw(y, sr, rng(seed));
+      const hp = svf(sr);
+      const lp = svf(sr);
+      const fade = Math.round(Math.max(0.003, v.len * 0.12) * sr);
+      let sum = 0;
+      for (let i = 0; i < y.length; i++) {
+        hp.run(y[i], 90, 0.7);
+        let s = hp.h;
+        if (v.lp) {
+          lp.run(s, v.lp, 0.7);
+          s = lp.l;
+        }
+        if (i > y.length - fade) s *= 0.5 - 0.5 * Math.cos((Math.PI * (y.length - i)) / fade);
+        y[i] = s;
+        sum += s * s;
+      }
+      const scale = 0.1 / Math.sqrt(sum / y.length || 1);
+      for (let i = 0; i < y.length; i++) y[i] *= scale;
+      const buf = ac.createBuffer(1, y.length, sr);
+      buf.getChannelData(0).set(y);
+      return buf;
+    }
+    // A state-variable filter that stays steady while its frequency moves: run() leaves the band
+    // (at 0 dB), low and high outputs in b, l and h.
+    function svf(sr) {
+      const s = { b: 0, l: 0, h: 0 };
+      let z1 = 0,
+        z2 = 0,
+        pf = 0,
+        pq = 0,
+        k = 1,
+        a1 = 0,
+        a2 = 0,
+        a3 = 0;
+      s.run = (x, f, q) => {
+        if (f !== pf || q !== pq) {
+          pf = f;
+          pq = q;
+          const g = Math.tan((Math.PI * Math.min(f, sr * 0.45)) / sr);
+          k = 1 / q;
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        s.b = k * v1;
+        s.l = v2;
+        s.h = x - k * v1 - v2;
+        return s.b;
+      };
+      return s;
+    }
+    // A damped partial, the way a struck body rings: it starts from zero and dies away over tau.
+    function ring(y, sr, at, f, tau, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 7 * sr));
+      const w = (2 * Math.PI * f) / sr;
+      const c = Math.cos(w) * Math.exp(-1 / (tau * sr));
+      const s = Math.sin(w) * Math.exp(-1 / (tau * sr));
+      let re = amp,
+        im = 0;
+      for (let i = 0; i < n; i++) {
+        y[i0 + i] += im;
+        const r = re * c - im * s;
+        im = re * s + im * c;
+        re = r;
+      }
+    }
+    // A crack: a sliver of noise through a resonance, the contact of a hit or the grain of a crackle
+    // (amp is about its peak).
+    function crack(y, sr, rand, at, f, q, amp, len) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.max(2, Math.round(len * sr));
+      const end = Math.min(y.length - i0, n + Math.round((q / f) * 4 * sr));
+      for (let i = 0; i < end; i++) {
+        const e = i < n ? (rand() * 2 - 1) * (1 - i / n) : 0;
+        y[i0 + i] += 3 * amp * fl.run(e, f, q);
+      }
+    }
+    // A bubble or a drop: a partial whose pitch rises as it closes, with a soft start.
+    function bubble(y, sr, at, f, tau, rise, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 6 * sr));
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const u = i / sr;
+        ph += (2 * Math.PI * f * (1 + (rise * u) / tau)) / sr;
+        y[i0 + i] += amp * Math.exp(-u / tau) * Math.min(1, u / 0.0007) * Math.sin(ph);
+      }
+    }
+    // Noise through a moving band: shape(u) gives the level and the band's centre, u from 0 to 1.
+    function hiss(y, sr, rand, at, len, q, shape) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.round(len * sr));
+      // The shape moves slowly next to the samples: it is read every 16 of them, the level eased
+      // between readings and starting from silence.
+      let a0 = 0,
+        a1 = 0,
+        f = 1000;
+      for (let i = 0; i < n; i++) {
+        const j = i % 16;
+        if (!j) {
+          a0 = a1;
+          [a1, f] = shape(Math.min(1, (i + 16) / n));
+        }
+        y[i0 + i] += (a0 + ((a1 - a0) * j) / 16) * fl.run(rand() * 2 - 1, f, q);
+      }
+    }
+    // A bee: its wings buzz in a row of harmonics, loudest around two formants, with a little
+    // flutter and drift; the pitch slides from f0 to f1 and shape(u) is how near it is.
+    function buzz(y, sr, rand, at, len, f0, f1, amp, shape) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.round(len * sr));
+      const weights = [];
+      for (let h = 1; h * Math.max(f0, f1) < 4500; h++) {
+        const f = h * f0;
+        weights.push(
+          (1 + 1.5 * Math.exp(-(((f - 1000) / 450) ** 2)) + 0.8 * Math.exp(-(((f - 2400) / 600) ** 2))) / h ** 0.8,
+        );
+      }
+      const air = svf(sr);
+      let ph = 0;
+      let drift = 0;
+      let beat = 1;
+      let next = 1;
+      for (let i = 0; i < n; i++) {
+        const u = i / n;
+        drift += (rand() * 2 - 1) * 0.02 - drift * 0.002;
+        const f = (f0 + (f1 - f0) * u) * (1 + 0.012 * Math.sin((2 * Math.PI * 7 * i) / sr) + 0.004 * drift);
+        ph += (2 * Math.PI * f) / sr;
+        // Each wingbeat a little stronger or weaker than the last.
+        if (ph > 2 * Math.PI) {
+          ph -= 2 * Math.PI;
+          next = 0.8 + rand() * 0.4;
+        }
+        beat += (next - beat) * 0.01;
+        // Every harmonic from the one before it: sin((h + 1)x) = 2 cos(x) sin(hx) - sin((h - 1)x).
+        const c = 2 * Math.cos(ph);
+        let s0 = 0,
+          s1 = Math.sin(ph),
+          s = 0;
+        for (const w of weights) {
+          s += w * s1;
+          const s2 = c * s1 - s0;
+          s0 = s1;
+          s1 = s2;
+        }
+        // The air the wings push: noise that puffs with every beat.
+        const puff = air.run(rand() * 2 - 1, 1300, 0.8) * (0.5 + 0.5 * Math.cos(ph)) ** 2;
+        y[i0 + i] += 0.15 * amp * shape(u) * beat * (s + 4 * puff);
+      }
+    }
+    // A fingertip on soft wax: a damped, dull little tap.
+    function wax(y, sr, rand, at, f, amp) {
+      ring(y, sr, at, f, 0.006, amp);
+      ring(y, sr, at, f * 2.3, 0.002, 0.3 * amp);
+      crack(y, sr, rand, at, 1500, 1, 0.3 * amp, 0.0005);
+    }
+    // Honey welling up in a cell: a slow, thick bloop.
+    function bloop(y, sr, at, f, amp) {
+      bubble(y, sr, at, f, 0.035, 0.2, amp);
+    }
+    // How loud each voice plays, measured so that the theme sits as loud as every other one.
+    const LEVEL = { open: 0.045, tick: 0.082, enter: 0.045, leave: 0.043, success: 0.079 };
+
     Board.define({
       id: 'balpetegi',
       fonts: {
@@ -385,43 +621,74 @@ export default function register(Board) {
       },
 
       sounds: {
-        open(ac, out, t) {
-          // A short bee buzz: a buzzy tone through a soft filter with a fast wing flutter.
-          const o = ac.createOscillator();
-          const lfo = ac.createOscillator();
-          const depth = ac.createGain();
-          const flt = ac.createBiquadFilter();
-          const g = ac.createGain();
-          o.type = 'sawtooth';
-          o.frequency.setValueAtTime(190, t);
-          o.frequency.linearRampToValueAtTime(235, t + 0.16);
-          lfo.frequency.value = 38;
-          depth.gain.value = 14;
-          lfo.connect(depth).connect(o.frequency);
-          flt.type = 'lowpass';
-          flt.frequency.value = 1100;
-          flt.Q.value = 2;
-          g.gain.setValueAtTime(0.0001, t);
-          g.gain.exponentialRampToValueAtTime(0.035, t + 0.03);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.19);
-          o.connect(flt).connect(g).connect(out);
-          o.start(t);
-          lfo.start(t);
-          o.stop(t + 0.22);
-          lfo.stop(t + 0.22);
-        },
-        tick(ac, out, t, X) {
-          // A soft tap on wax.
-          X.tone(ac, out, t, { type: 'sine', f: 780, f2: 600, dur: 0.03, gain: 0.055, a: 0.001 });
-          X.burst(ac, out, t, { type: 'lowpass', f: 1800, q: 0.7, dur: 0.01, gain: 0.03 });
-        },
-        success(ac, out, t, X) {
-          // Two thick bloops of honey, then a drop falls: plip.
-          X.tone(ac, out, t, { type: 'sine', f: 240, f2: 480, dur: 0.09, gain: 0.07, a: 0.004 });
-          X.tone(ac, out, t + 0.12, { type: 'sine', f: 290, f2: 560, dur: 0.08, gain: 0.05, a: 0.004 });
-          X.tone(ac, out, t + 0.5, { type: 'sine', f: 1500, f2: 720, dur: 0.05, gain: 0.05, a: 0.002 });
-          X.burst(ac, out, t + 0.55, { type: 'bandpass', f: 2600, q: 2, dur: 0.02, gain: 0.03 });
-        },
+        // A bee flies past the comb: its buzz swells, passes and drops away.
+        open: voice({
+          name: 'open',
+          len: 0.55,
+          takes: 3,
+          spread: 0.03,
+          level: LEVEL.open,
+          lp: 7000,
+          draw(y, sr, rand) {
+            buzz(y, sr, rand, 0.002, 0.52, 228, 202, 1, (u) => Math.sin(Math.PI * u) ** 1.5);
+          },
+        }),
+        // A fingertip on a wax cell: a soft, damped tap.
+        tick: voice({
+          name: 'tick',
+          len: 0.05,
+          takes: 8,
+          spread: 0.06,
+          level: LEVEL.tick,
+          lp: 7000,
+          draw(y, sr, rand) {
+            wax(y, sr, rand, 0.002, 650 + rand() * 300, 1);
+          },
+        }),
+        // A bee lands on the comb: its buzz sinks and stops with a light touch on the wax.
+        enter: voice({
+          name: 'enter',
+          len: 0.24,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.enter,
+          lp: 7000,
+          draw(y, sr, rand) {
+            buzz(y, sr, rand, 0.002, 0.17, 240, 190, 0.9, (u) => Math.min(1, u * 6) * (1 - u) ** 0.8);
+            wax(y, sr, rand, 0.175, 900, 0.4);
+          },
+        }),
+        // Back out: the bee takes off from the wax with a rising buzz.
+        leave: voice({
+          name: 'leave',
+          len: 0.22,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.leave,
+          lp: 7000,
+          draw(y, sr, rand) {
+            wax(y, sr, rand, 0.002, 900, 0.35);
+            buzz(y, sr, rand, 0.01, 0.2, 190, 250, 0.9, (u) => Math.min(1, u * 3) * (1 - u) ** 1.2);
+          },
+        }),
+        // Honey wells up cell after cell in thick bloops, the caps glaze over, and a drop stretches
+        // from the rim and falls, while a bee hums nearby.
+        success: voice({
+          name: 'success',
+          len: 0.8,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.success,
+          lp: 7000,
+          draw(y, sr, rand) {
+            for (let k = 0; k < 9; k++) bloop(y, sr, 0.02 + 0.04 * k + rand() * 0.01, 260 + 20 * k, 0.6 + rand() * 0.2);
+            hiss(y, sr, rand, 0.15, 0.19, 2, (u) => [0.2 * Math.sin(Math.PI * u), 650]);
+            hiss(y, sr, rand, 0.32, 0.22, 6, (u) => [0.12 * Math.sin(Math.PI * u), 700 + 300 * u]);
+            bubble(y, sr, 0.66, 1100, 0.01, 0.35, 0.5);
+            crack(y, sr, rand, 0.66, 2400, 1.2, 0.15, 0.0003);
+            buzz(y, sr, rand, 0.05, 0.7, 225, 230, 0.18, (u) => Math.sin(Math.PI * u));
+          },
+        }),
       },
     });
   })();

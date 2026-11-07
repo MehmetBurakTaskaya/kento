@@ -139,6 +139,213 @@ export default function register(Board) {
       };
     }
 
+    // Sounds. Every voice is drawn sample by sample into a buffer, a few takes of it once per sample
+    // rate, and then only played: a tick costs one buffer source and one gain, and no two calls in a
+    // row sound quite alike (another take, played a little faster or slower).
+    const TAKES = new Map();
+    const VOICES = [];
+    // A voice: v.draw(y, sr, rand) draws a take of v.len seconds (v.takes of them, each its own
+    // rand), v.level sets its loudness and v.spread how much faster or slower a call may play it.
+    function voice(v) {
+      VOICES.push(v);
+      return (ac, out, t) => play(ac, out, t, v);
+    }
+    function takeOf(ac, v, k) {
+      const key = v.name + ac.sampleRate;
+      let list = TAKES.get(key);
+      if (!list) TAKES.set(key, (list = []));
+      if (!list[k]) list[k] = take(ac, v, 7 + k * 977);
+      return list[k];
+    }
+    function play(ac, out, t, v) {
+      const buf = takeOf(ac, v, Math.floor(Math.random() * v.takes));
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v.spread;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v.level, t + 0.0005);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + buf.duration / (1 - v.spread) + 0.02);
+      warm(ac);
+    }
+    // After the first sound, the takes not drawn yet are drawn one at a time while the page is idle,
+    // the apply's first, so no sound waits on its drawing.
+    let warming = false;
+    function warm(ac) {
+      if (warming || typeof window === 'undefined') return;
+      warming = true;
+      const later = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : window.setTimeout(f, 50));
+      const order = [...VOICES].sort((a, b) => (b.name === 'success') - (a.name === 'success'));
+      const jobs = [];
+      for (let k = 0; k < 8; k++) for (const v of order) if (k < v.takes) jobs.push([v, k]);
+      const next = () => {
+        const job = jobs.shift();
+        if (!job) return;
+        takeOf(ac, job[0], job[1]);
+        later(next);
+      };
+      later(next);
+    }
+    // One take: drawn, kept above 90 Hz (no rumble small speakers cannot play, no offset) and below
+    // v.lp, faded out over its last eighth and scaled to the energy of every other take of the voice.
+    function take(ac, v, seed) {
+      const sr = ac.sampleRate;
+      const y = new Float32Array(Math.ceil(v.len * sr));
+      v.draw(y, sr, rng(seed));
+      const hp = svf(sr);
+      const lp = svf(sr);
+      const fade = Math.round(Math.max(0.003, v.len * 0.12) * sr);
+      let sum = 0;
+      for (let i = 0; i < y.length; i++) {
+        hp.run(y[i], 90, 0.7);
+        let s = hp.h;
+        if (v.lp) {
+          lp.run(s, v.lp, 0.7);
+          s = lp.l;
+        }
+        if (i > y.length - fade) s *= 0.5 - 0.5 * Math.cos((Math.PI * (y.length - i)) / fade);
+        y[i] = s;
+        sum += s * s;
+      }
+      const scale = 0.1 / Math.sqrt(sum / y.length || 1);
+      for (let i = 0; i < y.length; i++) y[i] *= scale;
+      const buf = ac.createBuffer(1, y.length, sr);
+      buf.getChannelData(0).set(y);
+      return buf;
+    }
+    // A state-variable filter that stays steady while its frequency moves: run() leaves the band
+    // (at 0 dB), low and high outputs in b, l and h.
+    function svf(sr) {
+      const s = { b: 0, l: 0, h: 0 };
+      let z1 = 0,
+        z2 = 0,
+        pf = 0,
+        pq = 0,
+        k = 1,
+        a1 = 0,
+        a2 = 0,
+        a3 = 0;
+      s.run = (x, f, q) => {
+        if (f !== pf || q !== pq) {
+          pf = f;
+          pq = q;
+          const g = Math.tan((Math.PI * Math.min(f, sr * 0.45)) / sr);
+          k = 1 / q;
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        s.b = k * v1;
+        s.l = v2;
+        s.h = x - k * v1 - v2;
+        return s.b;
+      };
+      return s;
+    }
+    // A damped partial, the way a struck body rings: it starts from zero and dies away over tau.
+    function ring(y, sr, at, f, tau, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 7 * sr));
+      const w = (2 * Math.PI * f) / sr;
+      const c = Math.cos(w) * Math.exp(-1 / (tau * sr));
+      const s = Math.sin(w) * Math.exp(-1 / (tau * sr));
+      let re = amp,
+        im = 0;
+      for (let i = 0; i < n; i++) {
+        y[i0 + i] += im;
+        const r = re * c - im * s;
+        im = re * s + im * c;
+        re = r;
+      }
+    }
+    // A crack: a sliver of noise through a resonance, the grain a crunch is made of (amp is about its
+    // peak).
+    function crack(y, sr, rand, at, f, q, amp, len) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.max(2, Math.round(len * sr));
+      const end = Math.min(y.length - i0, n + Math.round((q / f) * 4 * sr));
+      for (let i = 0; i < end; i++) {
+        const e = i < n ? (rand() * 2 - 1) * (1 - i / n) : 0;
+        y[i0 + i] += 3 * amp * fl.run(e, f, q);
+      }
+    }
+    // A bubble or a drop: a partial whose pitch rises as it closes, with a soft start.
+    function bubble(y, sr, at, f, tau, rise, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 6 * sr));
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const u = i / sr;
+        ph += (2 * Math.PI * f * (1 + (rise * u) / tau)) / sr;
+        y[i0 + i] += amp * Math.exp(-u / tau) * Math.min(1, u / 0.0007) * Math.sin(ph);
+      }
+    }
+    // Noise through a moving band: shape(u) gives the level and the band's centre, u from 0 to 1.
+    function hiss(y, sr, rand, at, len, q, shape) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.round(len * sr));
+      // The shape moves slowly next to the samples: it is read every 16 of them, the level eased
+      // between readings and starting from silence.
+      let a0 = 0,
+        a1 = 0,
+        f = 1000;
+      for (let i = 0; i < n; i++) {
+        const j = i % 16;
+        if (!j) {
+          a0 = a1;
+          [a1, f] = shape(Math.min(1, (i + 16) / n));
+        }
+        y[i0 + i] += (a0 + ((a1 - a0) * j) / 16) * fl.run(rand() * 2 - 1, f, q);
+      }
+    }
+    // Teeth through crisp, watery flesh: a front-loaded flurry of cracks, the first the sharpest, a
+    // squelch of juice under them and the small thud of the bite.
+    function crunch(y, sr, rand, at, len, count, amp, edge = 2.2) {
+      crack(y, sr, rand, at, 2600 + rand() * 900, 2.2, edge * amp, 0.0007);
+      for (let k = 0; k < count; k++) {
+        const u = -Math.log(1 - rand() * 0.95) / 3;
+        crack(
+          y,
+          sr,
+          rand,
+          at + 0.001 + u * len,
+          1500 * 3.2 ** rand(),
+          1.8 + rand() * 3,
+          amp * (0.35 + 0.7 * rand()) * Math.exp(-u * 2.5),
+          0.0003 + rand() * 0.0011,
+        );
+      }
+      hiss(y, sr, rand, at + 0.004, len * 1.3, 1.3, (u) => [
+        0.6 * amp * Math.min(1, u * 12) * (1 - u) ** 2,
+        1300 - 600 * u,
+      ]);
+      ring(y, sr, at + 0.001, 230 + rand() * 40, 0.008, 0.1 * amp);
+      for (let k = 0; k < 2; k++)
+        bubble(y, sr, at + len * (0.3 + rand() * 0.9), 900 + rand() * 900, 0.007, 0.12, 0.12 * amp);
+      // The juice: a spray of tiny, short bubbles among the cracks.
+      for (let k = 0; k < 6; k++) {
+        const f = 1100 + rand() * 1600;
+        bubble(y, sr, at + 0.003 + rand() * len, f, 1 / (0.043 * f + 0.0014 * f ** 1.5), 0.1, 0.07 * amp);
+      }
+    }
+    // A seed landing on the flesh: a small, dull tick.
+    function pip(y, sr, rand, at, amp) {
+      crack(y, sr, rand, at, 2600 + rand() * 600, 3, amp, 0.0004);
+      ring(y, sr, at, 1500 + rand() * 300, 0.004, 0.4 * amp);
+    }
+    // How loud each voice plays, measured so that the theme sits as loud as every other one.
+    const LEVEL = { open: 0.194, tick: 0.033, enter: 0.024, leave: 0.03, success: 0.125 };
+
     Board.define({
       id: ID,
       fonts: {
@@ -540,32 +747,115 @@ export default function register(Board) {
       },
 
       sounds: {
-        // A hollow knock on a ripe melon.
-        open(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'sine', f: 196, f2: 148, dur: 0.13, gain: 0.16, a: 0.003 });
-          X.burst(ac, out, t, { type: 'bandpass', f: 420, q: 4, dur: 0.05, gain: 0.14 });
-          X.tone(ac, out, t + 0.002, { type: 'triangle', f: 392, f2: 300, dur: 0.05, gain: 0.03, a: 0.002 });
-        },
-        // A dry seed tick.
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 2700, q: 7, dur: 0.012, gain: 0.22 });
-          X.tone(ac, out, t, { type: 'triangle', f: 940, f2: 720, dur: 0.018, gain: 0.035, a: 0.001 });
-        },
-        // A crisp double crunch and two tiny hops.
-        success(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'sine', f: 150, f2: 90, dur: 0.07, gain: 0.08, a: 0.002 });
-          [0, 0.014, 0.03, 0.052, 0.09, 0.104, 0.12, 0.142].forEach((d, k) =>
-            X.burst(ac, out, t + d, {
-              type: k % 2 ? 'highpass' : 'bandpass',
-              f: 2200 + ((k * 677) % 2400),
-              q: 1.6,
-              dur: 0.018 + (k % 3) * 0.008,
-              gain: k < 4 ? 0.16 : 0.12,
-            }),
-          );
-          X.tone(ac, out, t + 0.2, { type: 'sine', f: 1250, f2: 1700, dur: 0.03, gain: 0.04, a: 0.002 });
-          X.tone(ac, out, t + 0.27, { type: 'sine', f: 1400, f2: 1900, dur: 0.03, gain: 0.035, a: 0.002 });
-        },
+        // The slice drops onto the table: a wet, hollow slap of ripe melon and a small bounce.
+        open: voice({
+          name: 'open',
+          len: 0.3,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.open,
+          lp: 6000,
+          draw(y, sr, rand) {
+            for (const [at, k] of [
+              [0.045, 1],
+              [0.135, 0.28],
+            ]) {
+              ring(y, sr, at, 168, 0.05, 0.9 * k);
+              ring(y, sr, at, 305, 0.028, 0.5 * k);
+              ring(y, sr, at, 560, 0.013, 0.3 * k);
+              hiss(y, sr, rand, at, 0.045, 0.9, (u) => [1.2 * k * Math.min(1, u * 40) * (1 - u) ** 3, 1300 - 700 * u]);
+              for (let n = 0; n < 3; n++)
+                bubble(y, sr, at + 0.004 + rand() * 0.03, 500 + rand() * 500, 0.012, 0.1, 0.2 * k);
+              crack(y, sr, rand, at, 2300, 2, 0.12 * k, 0.0006);
+            }
+          },
+        }),
+        // A small bite: crisp flesh cracks under the teeth and the juice squelches.
+        tick: voice({
+          name: 'tick',
+          len: 0.075,
+          takes: 8,
+          spread: 0.06,
+          level: LEVEL.tick,
+          lp: 7000,
+          draw(y, sr, rand) {
+            crunch(y, sr, rand, 0.002, 0.035, 14 + Math.floor(rand() * 8), 1);
+          },
+        }),
+        // A knife slides into the slice: a swift crisp cut that ends in juice.
+        enter: voice({
+          name: 'enter',
+          len: 0.22,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.enter,
+          lp: 7000,
+          draw(y, sr, rand) {
+            // The blade meets the rind first, then runs through the flesh.
+            crack(y, sr, rand, 0.003, 1900, 3, 2.2, 0.0009);
+            for (let k = 0; k < 46; k++) {
+              const u = rand();
+              crack(
+                y,
+                sr,
+                rand,
+                0.004 + u * 0.12,
+                1300 * 2.6 ** u * (0.85 + rand() * 0.3),
+                2.5,
+                (0.3 + rand()) * Math.sin(Math.PI * (0.15 + 0.85 * u)),
+                0.0004 + rand() * 0.0008,
+              );
+            }
+            hiss(y, sr, rand, 0.004, 0.13, 1.2, (u) => [0.4 * Math.sin(Math.PI * u), 2000 + 2000 * u]);
+            hiss(y, sr, rand, 0.11, 0.09, 1.3, (u) => [0.7 * Math.min(1, u * 10) * (1 - u) ** 2, 1300 - 600 * u]);
+            for (let n = 0; n < 3; n++) bubble(y, sr, 0.12 + rand() * 0.06, 700 + rand() * 900, 0.009, 0.12, 0.1);
+          },
+        }),
+        // Out of the ring: a seed spat out, a soft "pt", and its tick as it lands.
+        leave: voice({
+          name: 'leave',
+          len: 0.2,
+          takes: 4,
+          spread: 0.04,
+          level: LEVEL.leave,
+          lp: 7000,
+          draw(y, sr, rand) {
+            hiss(y, sr, rand, 0.003, 0.012, 1, (u) => [Math.min(1, u * 8) * (1 - u) ** 2, 1200]);
+            bubble(y, sr, 0.003, 720, 0.007, -0.25, 0.6);
+            pip(y, sr, rand, 0.115, 0.8);
+            pip(y, sr, rand, 0.15, 0.25);
+          },
+        }),
+        // The big bite: two chomps through flesh and rind, juice, and the seeds landing from their hop.
+        success: voice({
+          name: 'success',
+          len: 0.56,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.success,
+          lp: 7000,
+          draw(y, sr, rand) {
+            crunch(y, sr, rand, 0.035, 0.05, 50, 0.55, 1.2);
+            crunch(y, sr, rand, 0.125, 0.07, 70, 0.7, 1.2);
+            // The rind gives with lower, harder cracks.
+            for (let k = 0; k < 5; k++)
+              crack(
+                y,
+                sr,
+                rand,
+                0.13 + rand() * 0.04,
+                700 + rand() * 800,
+                4,
+                0.3 + rand() * 0.2,
+                0.002 + rand() * 0.002,
+              );
+            hiss(y, sr, rand, 0.15, 0.2, 1.2, (u) => [0.5 * Math.min(1, u * 8) * (1 - u) ** 2, 1200 - 500 * u]);
+            for (let k = 0; k < 6; k++) bubble(y, sr, 0.15 + rand() * 0.15, 650 + rand() * 1100, 0.01, 0.12, 0.04);
+            pip(y, sr, rand, 0.385, 0.16);
+            pip(y, sr, rand, 0.43, 0.13);
+            pip(y, sr, rand, 0.475, 0.11);
+          },
+        }),
       },
     });
 

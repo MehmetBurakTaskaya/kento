@@ -314,6 +314,179 @@ export default function register(Board) {
       H.text(g, C, C + 23.8, m.key, { class: 'tz-keytext' });
     }
 
+    // ---------------------------------------------------------------- sounds
+    // Every voice is drawn sample by sample into a buffer, a few takes of it once per sample rate,
+    // and then only played: a tick costs one buffer source and one gain, and no two calls in a row
+    // sound quite alike (another take, played a little faster or slower).
+    function rng(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    const TAKES = new Map();
+    const VOICES = [];
+    // A voice: v.draw(y, sr, rand) draws a take of v.len seconds (v.takes of them, each its own
+    // rand), v.level sets its loudness and v.spread how much faster or slower a call may play it.
+    function voice(v) {
+      VOICES.push(v);
+      return (ac, out, t) => play(ac, out, t, v);
+    }
+    function takeOf(ac, v, k) {
+      const key = v.name + ac.sampleRate;
+      let list = TAKES.get(key);
+      if (!list) TAKES.set(key, (list = []));
+      if (!list[k]) list[k] = take(ac, v, 7 + k * 977);
+      return list[k];
+    }
+    function play(ac, out, t, v) {
+      const buf = takeOf(ac, v, Math.floor(Math.random() * v.takes));
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * v.spread;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v.level, t + 0.0005);
+      src.connect(g).connect(out);
+      src.start(t);
+      src.stop(t + buf.duration / (1 - v.spread) + 0.02);
+      warm(ac);
+    }
+    // After the first sound, the takes not drawn yet are drawn one at a time while the page is idle,
+    // the apply's first, so no sound waits on its drawing.
+    let warming = false;
+    function warm(ac) {
+      if (warming || typeof window === 'undefined') return;
+      warming = true;
+      const later = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : window.setTimeout(f, 50));
+      const order = [...VOICES].sort((a, b) => (b.name === 'success') - (a.name === 'success'));
+      const jobs = [];
+      for (let k = 0; k < 8; k++) for (const v of order) if (k < v.takes) jobs.push([v, k]);
+      const next = () => {
+        const job = jobs.shift();
+        if (!job) return;
+        takeOf(ac, job[0], job[1]);
+        later(next);
+      };
+      later(next);
+    }
+    // One take: drawn, kept above 90 Hz (no rumble small speakers cannot play, no offset) and below
+    // v.lp, faded out over its last eighth and scaled to the energy of every other take of the voice.
+    function take(ac, v, seed) {
+      const sr = ac.sampleRate;
+      const y = new Float32Array(Math.ceil(v.len * sr));
+      v.draw(y, sr, rng(seed));
+      const hp = svf(sr);
+      const lp = svf(sr);
+      const fade = Math.round(Math.max(0.003, v.len * 0.12) * sr);
+      let sum = 0;
+      for (let i = 0; i < y.length; i++) {
+        hp.run(y[i], 90, 0.7);
+        let s = hp.h;
+        if (v.lp) {
+          lp.run(s, v.lp, 0.7);
+          s = lp.l;
+        }
+        if (i > y.length - fade) s *= 0.5 - 0.5 * Math.cos((Math.PI * (y.length - i)) / fade);
+        y[i] = s;
+        sum += s * s;
+      }
+      const scale = 0.1 / Math.sqrt(sum / y.length || 1);
+      for (let i = 0; i < y.length; i++) y[i] *= scale;
+      const buf = ac.createBuffer(1, y.length, sr);
+      buf.getChannelData(0).set(y);
+      return buf;
+    }
+    // A state-variable filter that stays steady while its frequency moves: run() leaves the band
+    // (at 0 dB), low and high outputs in b, l and h.
+    function svf(sr) {
+      const s = { b: 0, l: 0, h: 0 };
+      let z1 = 0,
+        z2 = 0,
+        pf = 0,
+        pq = 0,
+        k = 1,
+        a1 = 0,
+        a2 = 0,
+        a3 = 0;
+      s.run = (x, f, q) => {
+        if (f !== pf || q !== pq) {
+          pf = f;
+          pq = q;
+          const g = Math.tan((Math.PI * Math.min(f, sr * 0.45)) / sr);
+          k = 1 / q;
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        s.b = k * v1;
+        s.l = v2;
+        s.h = x - k * v1 - v2;
+        return s.b;
+      };
+      return s;
+    }
+    // A damped partial, the way a struck body rings: it starts from zero and dies away over tau.
+    function ring(y, sr, at, f, tau, amp) {
+      const i0 = Math.round(at * sr);
+      const n = Math.min(y.length - i0, Math.ceil(tau * 7 * sr));
+      const w = (2 * Math.PI * f) / sr;
+      const c = Math.cos(w) * Math.exp(-1 / (tau * sr));
+      const s = Math.sin(w) * Math.exp(-1 / (tau * sr));
+      let re = amp,
+        im = 0;
+      for (let i = 0; i < n; i++) {
+        y[i0 + i] += im;
+        const r = re * c - im * s;
+        im = re * s + im * c;
+        re = r;
+      }
+    }
+    // A crack: a sliver of noise through a resonance, the contact of a hit (amp is about its peak).
+    function crack(y, sr, rand, at, f, q, amp, len) {
+      const fl = svf(sr);
+      const i0 = Math.round(at * sr);
+      const n = Math.max(2, Math.round(len * sr));
+      const end = Math.min(y.length - i0, n + Math.round((q / f) * 4 * sr));
+      for (let i = 0; i < end; i++) {
+        const e = i < n ? (rand() * 2 - 1) * (1 - i / n) : 0;
+        y[i0 + i] += 3 * amp * fl.run(e, f, q);
+      }
+    }
+    // Steel on steel: a hook or a tool rings in the partials of a thin bar, the higher ones dying first.
+    function clink(y, sr, rand, at, f, tau, amp, hard = 0.7) {
+      crack(y, sr, rand, at, 4200 + rand() * 800, 2, hard * amp, 0.0003);
+      [
+        [1, 1, 1],
+        [2.76, 0.45, 0.55],
+        [5.4, 0.16, 0.3],
+      ].forEach(([r, a, d]) => {
+        if (f * r < 7500) ring(y, sr, at, f * r * (0.99 + rand() * 0.02), tau * d, amp * a);
+      });
+    }
+    // The perforated board on its wooden frame: a short, hollow knock.
+    function knock(y, sr, rand, at, amp) {
+      crack(y, sr, rand, at, 850, 1.4, 0.5 * amp, 0.0015);
+      [
+        [182, 0.034, 1],
+        [287, 0.028, 0.7],
+        [423, 0.02, 0.45],
+        [640, 0.012, 0.3],
+      ].forEach(([f, tau, a]) => ring(y, sr, at, f * (0.97 + rand() * 0.06), tau, amp * a));
+    }
+    // How loud each voice plays, measured so that the theme sits as loud as every other one.
+    const LEVEL = { open: 0.075, tick: 0.043, enter: 0.035, leave: 0.029, success: 0.102 };
+
     Board.define({
       id: 'tezgah',
       fonts: {
@@ -548,24 +721,94 @@ export default function register(Board) {
       },
 
       sounds: {
-        open(ac, out, t, X) {
-          // A soft knock as the board is hung, then two hooks jingle.
-          X.burst(ac, out, t, { type: 'lowpass', f: 520, q: 0.9, dur: 0.07, gain: 0.32, a: 0.002 });
-          X.tone(ac, out, t, { type: 'sine', f: 190, f2: 120, dur: 0.07, gain: 0.08, a: 0.002 });
-          X.tone(ac, out, t + 0.035, { type: 'triangle', f: 3150, dur: 0.05, gain: 0.022, a: 0.001 });
-          X.tone(ac, out, t + 0.07, { type: 'triangle', f: 3720, dur: 0.06, gain: 0.018, a: 0.001 });
-        },
-        tick(ac, out, t, X) {
-          // A peg tapping the board.
-          X.burst(ac, out, t, { type: 'bandpass', f: 1500, q: 3.5, dur: 0.018, gain: 0.22, a: 0.001 });
-          X.tone(ac, out, t, { type: 'sine', f: 900, f2: 700, dur: 0.02, gain: 0.05, a: 0.001 });
-        },
-        success(ac, out, t, X) {
-          // A rubber stamp thump, then a small metal ping.
-          X.burst(ac, out, t, { type: 'lowpass', f: 380, q: 0.8, dur: 0.09, gain: 0.35, a: 0.003 });
-          X.tone(ac, out, t + 0.06, { type: 'sine', f: 1568, dur: 0.42, gain: 0.07, a: 0.002 });
-          X.tone(ac, out, t + 0.06, { type: 'sine', f: 4180, dur: 0.18, gain: 0.016, a: 0.002 });
-        },
+        // The board knocks into place and every tool drops onto its hooks, one after another.
+        open: voice({
+          name: 'open',
+          len: 0.42,
+          takes: 3,
+          spread: 0.02,
+          level: LEVEL.open,
+          lp: 7500,
+          draw(y, sr, rand) {
+            knock(y, sr, rand, 0.06, 2.6);
+            knock(y, sr, rand, 0.15, 0.6);
+            for (let k = 0; k < 8; k++) {
+              const at = 0.07 + k * 0.014 + rand() * 0.006;
+              const f = 1500 + rand() * 1100;
+              clink(y, sr, rand, at, f, 0.04, 0.3 * (1 - k * 0.06));
+              clink(y, sr, rand, at + 0.022 + rand() * 0.01, f * 1.01, 0.03, 0.12);
+            }
+          },
+        }),
+        // A tool lifts off its two hooks: a light double clink of steel.
+        tick: voice({
+          name: 'tick',
+          len: 0.085,
+          takes: 8,
+          spread: 0.05,
+          level: LEVEL.tick,
+          lp: 7500,
+          draw(y, sr, rand) {
+            const f = 1750 + rand() * 600;
+            clink(y, sr, rand, 0.002, f, 0.018, 1);
+            clink(y, sr, rand, 0.011 + rand() * 0.005, f * (1.06 + rand() * 0.06), 0.015, 0.6);
+            knock(y, sr, rand, 0.002, 0.1);
+          },
+        }),
+        // A tool comes off the board into the hand: a heavier chink, and the empty hooks rattle.
+        enter: voice({
+          name: 'enter',
+          len: 0.24,
+          takes: 4,
+          spread: 0.03,
+          level: LEVEL.enter,
+          lp: 7500,
+          draw(y, sr, rand) {
+            clink(y, sr, rand, 0.003, 980 + rand() * 160, 0.05, 1);
+            knock(y, sr, rand, 0.003, 0.22);
+            clink(y, sr, rand, 0.026, 2150 + rand() * 200, 0.022, 0.32);
+            clink(y, sr, rand, 0.046, 2250 + rand() * 200, 0.018, 0.16);
+          },
+        }),
+        // The tool is hung back: it drops onto its hooks and settles with two small taps.
+        leave: voice({
+          name: 'leave',
+          len: 0.19,
+          takes: 4,
+          spread: 0.03,
+          level: LEVEL.leave,
+          lp: 7500,
+          draw(y, sr, rand) {
+            const f = 1650 + rand() * 300;
+            clink(y, sr, rand, 0.003, f, 0.032, 1);
+            knock(y, sr, rand, 0.003, 0.12);
+            clink(y, sr, rand, 0.034, f * 1.04, 0.022, 0.35);
+            clink(y, sr, rand, 0.055, f * 0.98, 0.018, 0.14);
+          },
+        }),
+        // Two quick taps of a hammer and the blow that drives the nail home; the steel rings on.
+        success: voice({
+          name: 'success',
+          len: 0.95,
+          takes: 3,
+          spread: 0.015,
+          level: LEVEL.success,
+          lp: 7500,
+          draw(y, sr, rand) {
+            for (const [at, a] of [
+              [0.004, 0.32],
+              [0.095, 0.4],
+            ]) {
+              clink(y, sr, rand, at, 2950 + rand() * 100, 0.03, a);
+              knock(y, sr, rand, at, 0.25 * a);
+            }
+            const at = 0.185;
+            knock(y, sr, rand, at, 0.5);
+            crack(y, sr, rand, at, 2600, 1.2, 0.3, 0.0008);
+            clink(y, sr, rand, at, 2980, 0.11, 0.55, 0.3);
+            clink(y, sr, rand, at, 1310, 0.16, 0.35, 0.3);
+          },
+        }),
       },
     });
   })();
