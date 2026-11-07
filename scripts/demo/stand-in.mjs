@@ -414,7 +414,7 @@ function speech(buckets) {
   while (peaks.length < buckets) {
     const phrase = 40 + Math.floor(random() * 120);
     const loud = 0.5 + random() * 0.45;
-    for (let done = 0; done < phrase; ) {
+    for (let done = 0; done < phrase;) {
       const length = 3 + Math.floor(random() * 9);
       const strength = 0.25 + 0.75 * random();
       for (let i = 0; i < length; i++)
