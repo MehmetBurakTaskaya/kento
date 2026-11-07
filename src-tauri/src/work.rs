@@ -203,7 +203,15 @@ pub fn tools(state: State<'_, AppState>, paths: Vec<PathBuf>) -> Vec<ToolEntry> 
             "merge-video" => count >= 2 && all(&[Category::Video]),
             "trim-video" | "crop-video" | "speed" | "frames" | "split-video" | "redact-video"
             | "make-vertical" | "add-overlay" | "rotate-video" | "loop-video" | "color-video"
-            | "stabilize" | "add-music" => count == 1 && all(&[Category::Video]),
+            | "stabilize" => count == 1 && all(&[Category::Video]),
+            // One video, or one video and the music to put under it, dragged together.
+            "add-music" => {
+                let has = |wanted: Category| {
+                    categories.iter().filter(|c| **c == Some(wanted)).count() == 1
+                };
+                (count == 1 && has(Category::Video))
+                    || (count == 2 && has(Category::Video) && has(Category::Audio))
+            }
             "normalize" | "trim-audio" | "channels" | "redact-audio" | "audio-to-video" => {
                 count == 1 && all(&[Category::Audio])
             }

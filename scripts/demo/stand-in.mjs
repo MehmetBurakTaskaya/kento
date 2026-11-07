@@ -109,8 +109,10 @@ function tools(paths) {
       case 'loop-video':
       case 'color-video':
       case 'stabilize':
-      case 'add-music':
         return count === 1 && all(['video']);
+      // One video, or one video and the music to put under it, dragged together.
+      case 'add-music':
+        return (count === 1 && one('video')) || (count === 2 && one('video') && one('audio'));
       case 'cut-out':
       case 'remove-pauses':
       case 'fade':
