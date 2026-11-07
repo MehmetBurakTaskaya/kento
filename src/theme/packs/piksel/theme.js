@@ -34,6 +34,153 @@ export default function register(Board) {
       return d;
     }
 
+    // The sound chip's frame: pitch and level change only on these steps.
+    const FRAME = 1 / 60;
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+    // Bleeps as [Hz, frames, level] steps, all in E major's pentatonic; a tick picks one of the TICK
+    // notes, the zoom climbs ZOOM, and the tile's flashes land at FLASH's times (s).
+    const TICK = [1318.5, 1480, 1661.2];
+    const ZOOM = [659.3, 987.8, 1318.5, 1661.2];
+    const ZOOM_BASS = [
+      [164.8, 4, 1],
+      [329.6, 4, 0.7],
+    ];
+    const ARP = [
+      [1318.5, 1, 1],
+      [1661.2, 1, 0.8],
+      [1975.5, 1, 0.6],
+      [2637, 1, 0.4],
+    ];
+    const CLIMB = [
+      [987.8, 1, 1],
+      [1318.5, 1, 0.9],
+      [1975.5, 2, 0.75],
+    ];
+    const FALL = [
+      [1975.5, 1, 1],
+      [1318.5, 1, 0.9],
+      [987.8, 2, 0.75],
+    ];
+    const PRESS = [
+      [659.3, 1, 1],
+      [493.9, 2, 0.8],
+    ];
+    const BASS = [
+      [164.8, 6, 1],
+      [123.5, 6, 0.6],
+    ];
+    const FLASH = [
+      [0.087, 659.3],
+      [0.174, 830.6],
+      [0.26, 987.8],
+    ];
+    const HOLD = [
+      [1318.5, 6, 1],
+      [1318.5, 6, 0.5],
+    ];
+    const STAR = [
+      [1975.5, 1, 1],
+      [2637, 2, 0.6],
+    ];
+    // The burst's seven legs (piksel-fly: three quick, four slow) as [s, noise rate, level].
+    const LEGS = [
+      [0, 1, 1],
+      [0.065, 0.8, 0.75],
+      [0.13, 0.64, 0.55],
+      [0.196, 0.5, 0.42],
+      [0.287, 0.42, 0.3],
+      [0.378, 0.35, 0.2],
+      [0.469, 0.29, 0.12],
+    ];
+
+    // A pulse wave of the given duty, its harmonics limited so it never shrills; made once per context.
+    const waves = new WeakMap();
+    function pulseOf(ac, duty) {
+      let set = waves.get(ac);
+      if (!set) waves.set(ac, (set = {}));
+      if (!set[duty]) {
+        const real = new Float32Array(20);
+        for (let k = 1; k < real.length; k++) real[k] = (2 / (k * Math.PI)) * Math.sin(k * Math.PI * duty);
+        set[duty] = ac.createPeriodicWave(real, new Float32Array(real.length));
+      }
+      return set[duty];
+    }
+
+    // A note held for some frames, then for one frame a leap above it (a fifth unless told), softer.
+    const leap = (f, frames, level, ratio = 1.5) => [
+      [f, frames, 1],
+      [f * ratio, 1, level],
+    ];
+
+    // One channel of the chip playing [Hz, frames, level] steps: each change lands on a frame, with a
+    // ramp of a millisecond and a half so a step never clicks.
+    function bleep(ac, out, t, steps, duty, gain) {
+      const o = ac.createOscillator();
+      o.setPeriodicWave(pulseOf(ac, duty));
+      const soft = ac.createBiquadFilter();
+      soft.type = 'lowpass';
+      soft.frequency.value = 4500;
+      soft.Q.value = 0.6;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      let at = t;
+      for (const [f, frames, level] of steps) {
+        o.frequency.setValueAtTime(f, at);
+        g.gain.linearRampToValueAtTime(gain * level, at + 0.0015);
+        at += frames * FRAME;
+        g.gain.setValueAtTime(gain * level, at - 0.0015);
+      }
+      g.gain.linearRampToValueAtTime(0, at + 0.0015);
+      o.connect(soft).connect(g).connect(out);
+      o.start(t);
+      o.stop(at + 0.01);
+    }
+
+    // One-bit noise, each value held for a few samples as a chip makes it; made once per sample rate.
+    let grit = null;
+    function gritOf(ac) {
+      if (grit && grit.sampleRate === ac.sampleRate) return grit;
+      grit = ac.createBuffer(1, Math.round(ac.sampleRate * 0.7), ac.sampleRate);
+      const d = grit.getChannelData(0);
+      const hold = Math.round(ac.sampleRate / 8000);
+      let seed = 5;
+      let v = 0;
+      for (let i = 0; i < d.length; i++) {
+        if (i % hold === 0) {
+          seed = (seed * 16807) % 2147483647;
+          v = seed < 1073741824 ? -1 : 1;
+        }
+        d[i] = v;
+      }
+      return grit;
+    }
+
+    // The pixel burst: a puff of one-bit noise per leg of the flight, each lower and fainter.
+    function pixels(ac, out, t, gain) {
+      const src = ac.createBufferSource();
+      src.buffer = gritOf(ac);
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 2200;
+      band.Q.value = 0.45;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      const end = t + 0.56;
+      LEGS.forEach(([dt, rate, level], i) => {
+        const next = i + 1 < LEGS.length ? t + LEGS[i + 1][0] : end;
+        src.playbackRate.setValueAtTime(rate, t + dt);
+        g.gain.linearRampToValueAtTime(gain * level, t + dt + 0.0015);
+        g.gain.linearRampToValueAtTime(gain * level * 0.25, next - 0.0015);
+      });
+      g.gain.linearRampToValueAtTime(0, end + 0.0015);
+      src.connect(band).connect(g).connect(out);
+      src.start(t);
+      src.stop(end + 0.01);
+    }
+
     // Which slice owns an angle (degrees, clockwise from twelve o'clock).
     function owner(m, ang) {
       for (const sl of m.slices) {
@@ -486,30 +633,37 @@ export default function register(Board) {
         },
       },
 
+      // Tiny bleeps: thin pulse waves that change only once per frame, as a small console's sound chip does.
       sounds: {
-        open(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'square', f: 659, dur: 0.035, gain: 0.03, a: 0.001 });
-          X.tone(ac, out, t + 0.045, { type: 'square', f: 988, dur: 0.05, gain: 0.03, a: 0.001 });
-          X.tone(ac, out, t, { type: 'triangle', f: 196, f2: 392, dur: 0.08, gain: 0.06, a: 0.002 });
+        open(ac, out, t) {
+          // The wheel zooms in four steps (piksel-zoom): a bleep per step, climbing, over a short bass
+          // note; then the labels blink on as a quick sparkle of arpeggio frames.
+          ZOOM.forEach((f, k) => bleep(ac, out, t + k * 0.04, [[f, 2, 1]], 0.25, 0.0066));
+          bleep(ac, out, t, ZOOM_BASS, 0.5, 0.015);
+          bleep(ac, out, t + 0.17, ARP, 0.125, 0.0042);
         },
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'square', f: 1760, f2: 1480, dur: 0.014, gain: 0.022, a: 0.001 });
+        tick(ac, out, t) {
+          // A pixel button lights: one tiny bleep, two frames long, a fifth up between them.
+          bleep(ac, out, t, leap(TICK[Math.floor(Math.random() * TICK.length)], 1, 0.6), 0.25, vary(0.0086, 0.1));
         },
-        success(ac, out, t, X) {
-          // A rising arpeggio with a quieter echo of the last note, like a small console's delay.
-          const notes = [784, 1047, 1319, 1568, 2093];
-          notes.forEach((f, k) =>
-            X.tone(ac, out, t + k * 0.05, {
-              type: 'square',
-              f,
-              dur: k === notes.length - 1 ? 0.16 : 0.04,
-              gain: 0.028,
-              a: 0.001,
-            }),
-          );
-          X.tone(ac, out, t + 0.36, { type: 'square', f: 2093, dur: 0.1, gain: 0.011, a: 0.001 });
-          X.tone(ac, out, t, { type: 'triangle', f: 262, dur: 0.2, gain: 0.07, a: 0.002 });
-          X.tone(ac, out, t + 0.2, { type: 'triangle', f: 523, dur: 0.16, gain: 0.05, a: 0.002 });
+        enter(ac, out, t) {
+          // Into a ring: a level-up blip, three frames climbing.
+          bleep(ac, out, t, CLIMB, 0.25, 0.0072);
+        },
+        leave(ac, out, t) {
+          // Back out: the same frames, falling.
+          bleep(ac, out, t, FALL, 0.25, 0.0066);
+        },
+        success(ac, out, t) {
+          // The button is pressed in (a falling blip over a bass note); the tile flashes in hard steps, a
+          // climbing note on each, landing on a held one; the burst flies out in seven stepped legs of
+          // pixel noise (piksel-fly); the star blinks on twice with a sparkle.
+          bleep(ac, out, t, PRESS, 0.125, 0.0087);
+          bleep(ac, out, t, BASS, 0.5, 0.0174);
+          for (const [dt, f] of FLASH) bleep(ac, out, t + dt, leap(f, 3, 0.5, 2), 0.125, 0.0075);
+          bleep(ac, out, t + 0.26 + 4 * FRAME, HOLD, 0.25, 0.0064);
+          pixels(ac, out, t + 0.01, 0.0145);
+          for (const dt of [0.31, 0.459]) bleep(ac, out, t + dt, STAR, 0.25, 0.0035);
         },
       },
     });

@@ -159,6 +159,97 @@ export default function register(Board) {
       }
     }
 
+    // A value changed by up to ±r of itself, so a run of the same sound never repeats exactly.
+    const vary = (v, r) => v * (1 + (Math.random() * 2 - 1) * r);
+    // A coin's ring: partials of a small metal disc (ratio to 2400 Hz, level, decay in s).
+    const COIN = [
+      [1, 1, 0.18],
+      [1.58, 0.7, 0.12],
+      [2.13, 0.45, 0.09],
+      [2.66, 0.3, 0.06],
+    ];
+    // The score's tally: a major pentatonic climbing from G4, one step per two marquee bulbs.
+    const TALLY = [392, 440, 523.3, 587.3, 659.3, 784, 880, 1046.5, 1174.7, 1318.5, 1568, 1760, 2093, 2349.3];
+    // The neon's buzz as [s, level] points: the tubes striking (arcade-strike's flickers), one tube
+    // lighting under the pointer, and the chosen tube's flash.
+    const STRIKE = [
+      [0, 0],
+      [0.035, 0.9],
+      [0.054, 0.15],
+      [0.083, 1],
+      [0.102, 0.5],
+      [0.125, 1],
+      [0.3, 0],
+    ];
+    const FLICK = [
+      [0, 0],
+      [0.006, 1],
+      [0.03, 0],
+    ];
+    const FLASH = [
+      [0, 0],
+      [0.004, 1],
+      [0.05, 0.3],
+      [0.09, 0],
+    ];
+
+    // A coin striking metal: a bright tick and its ring; pitch and length change for a bounce or a dull
+    // landing.
+    function coin(ac, out, t, X, gain, pitch = 1, length = 1) {
+      X.burst(ac, out, t, { type: 'bandpass', f: 4200 * pitch, q: 2, dur: 0.003, gain: gain * 6 });
+      for (const [r, a, d] of COIN) {
+        X.tone(ac, out, t, { f: 2400 * pitch * r, dur: d * length, gain: gain * a, a: 0.001 });
+      }
+    }
+    // The neon's ballast: a buzz of the mains' harmonics, following a list of [s, level] points.
+    function neon(ac, out, t, points, gain) {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = vary(120, 0.01);
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 1500;
+      band.Q.value = 1.2;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, t);
+      for (const [dt, v] of points.slice(1)) g.gain.linearRampToValueAtTime(v * gain, t + dt);
+      o.connect(band).connect(g).connect(out);
+      o.start(t);
+      o.stop(t + points[points.length - 1][0] + 0.02);
+    }
+    // A cabinet button: the plunger's chunky clack and the microswitch under it.
+    function button(ac, out, t, X, gain) {
+      X.burst(ac, out, t, { type: 'bandpass', f: 1800, q: 1.5, dur: 0.01, gain });
+      X.tone(ac, out, t, { f: 420, f2: 360, dur: 0.025, gain: gain * 0.35, a: 0.0015 });
+      X.burst(ac, out, t + 0.008, { type: 'bandpass', f: 3200, q: 2.5, dur: 0.004, gain: gain * 0.6 });
+    }
+    // The cabinet's voice: one square-wave channel, softened as its speaker does, playing notes a step
+    // apart, each gated short; a single note can fall to `glide`.
+    function voice(ac, out, t, notes, step, gain, glide) {
+      const o = ac.createOscillator();
+      o.type = 'square';
+      const soft = ac.createBiquadFilter();
+      soft.type = 'lowpass';
+      soft.frequency.value = 3200;
+      soft.Q.value = 0.7;
+      const g = ac.createGain();
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0.0001, t);
+      notes.forEach((f, i) => {
+        const s = t + i * step;
+        o.frequency.setValueAtTime(f, s);
+        if (glide) o.frequency.exponentialRampToValueAtTime(glide, s + step);
+        g.gain.setValueAtTime(0.0001, s);
+        g.gain.exponentialRampToValueAtTime(gain, s + 0.002);
+        g.gain.setValueAtTime(gain, s + step * 0.6);
+        g.gain.exponentialRampToValueAtTime(0.0001, s + step * 0.95);
+      });
+      o.connect(soft).connect(g).connect(out);
+      o.start(t);
+      o.stop(t + notes.length * step + 0.02);
+    }
+
     Board.define({
       id: 'arcade',
       fonts: {
@@ -343,25 +434,49 @@ export default function register(Board) {
         },
       },
 
+      // The cabinet: coins, the neon's buzzing ballast, chunky buttons, a square-wave voice softened by its
+      // speaker.
       sounds: {
         open(ac, out, t, X) {
-          // The ballast hums and the tubes strike with two flicker clicks.
-          X.tone(ac, out, t, { type: 'square', f: 120, dur: 0.11, gain: 0.014, a: 0.01 });
-          X.burst(ac, out, t + 0.03, { type: 'highpass', f: 3000, q: 0.8, dur: 0.008, gain: 0.07 });
-          X.burst(ac, out, t + 0.075, { type: 'highpass', f: 3500, q: 0.8, dur: 0.006, gain: 0.05 });
+          // A coin goes in as the tubes strike (arcade-strike): it rings off the slot, bounces, rattles and
+          // drops into the coin box, over the neon's flickering buzz.
+          neon(ac, out, t, STRIKE, 0.0067);
+          coin(ac, out, t, X, 0.0126);
+          coin(ac, out, t + 0.075, X, 0.0063, 1.02);
+          coin(ac, out, t + 0.115, X, 0.0025, 0.98);
+          coin(ac, out, t + 0.14, X, 0.0017, 1.03);
+          X.burst(ac, out, t + 0.24, { type: 'bandpass', f: 700, q: 0.8, dur: 0.035, gain: 0.029 });
+          X.tone(ac, out, t + 0.24, { f: 330, f2: 270, dur: 0.045, gain: 0.017, a: 0.002 });
+          coin(ac, out, t + 0.242, X, 0.0034, 0.85, 0.35);
         },
         tick(ac, out, t, X) {
-          X.tone(ac, out, t, { type: 'square', f: 1318.5, dur: 0.022, gain: 0.04, a: 0.001 });
+          // The joystick nudges onto a slice and its tube lights: a microswitch click, a short neon buzz.
+          X.burst(ac, out, t, { type: 'bandpass', f: vary(3000, 0.05), q: 2.5, dur: 0.004, gain: vary(0.06, 0.12) });
+          X.tone(ac, out, t, { f: vary(1250, 0.04), dur: 0.016, gain: 0.04, a: 0.0015 });
+          neon(ac, out, t + 0.002, FLICK, vary(0.09, 0.15));
+        },
+        enter(ac, out, t, X) {
+          // Into a ring: a cabinet button goes down with a chunky clack, and the voice blips up a fourth.
+          button(ac, out, t, X, 0.075);
+          voice(ac, out, t + 0.03, [784, 1046.5], 0.045, 0.009);
+        },
+        leave(ac, out, t, X) {
+          // Back out: the button comes up with a lighter clack, and the voice blips down a fourth.
+          button(ac, out, t, X, 0.0525);
+          voice(ac, out, t + 0.03, [1046.5, 784], 0.045, 0.009);
         },
         success(ac, out, t, X) {
-          // A low blip, then a quick rising arpeggio that lands on a short trill.
-          X.tone(ac, out, t, { type: 'triangle', f: 261.6, f2: 523.3, dur: 0.08, gain: 0.06, a: 0.002 });
-          [1046.5, 1318.5, 1568, 2093].forEach((f, k) =>
-            X.tone(ac, out, t + 0.04 + k * 0.05, { type: 'square', f, dur: 0.045, gain: 0.022, a: 0.002 }),
-          );
-          X.tone(ac, out, t + 0.25, { type: 'square', f: 2093, dur: 0.05, gain: 0.018, a: 0.002 });
-          X.tone(ac, out, t + 0.31, { type: 'square', f: 2349.3, dur: 0.05, gain: 0.016, a: 0.002 });
-          X.tone(ac, out, t + 0.37, { type: 'square', f: 2093, dur: 0.12, gain: 0.014, a: 0.002 });
+          // Score: the tube flashes and the starburst pops with a falling zap; +100 tallies up in quick
+          // steps as the marquee bulbs chase round (28 bulbs, 15 ms apart); two coins ring as the run
+          // lands, under a short major chord.
+          neon(ac, out, t, FLASH, 0.017);
+          voice(ac, out, t, [1600], 0.06, 0.011, 400);
+          voice(ac, out, t + 0.03, TALLY, 0.03, 0.0062);
+          const land = t + 0.45;
+          coin(ac, out, land, X, 0.011);
+          coin(ac, out, land + 0.065, X, 0.009, 1.06);
+          for (const f of [523.3, 659.3, 784]) voice(ac, out, land, [f], 0.26, 0.0039);
+          X.tone(ac, out, land, { type: 'triangle', f: 261.6, dur: 0.24, gain: 0.017, a: 0.003 });
         },
       },
     });
