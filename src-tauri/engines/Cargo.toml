@@ -51,7 +51,7 @@ unrar_sys = "0.5.8"
 rxing = { version = "0.9.3", default-features = false, features = ["qrcode", "decoders", "multi_barcode_readers", "encoding_rs"] }
 # Making QR codes: only the encoder; Kento draws the PNG and SVG itself.
 qrcode = { version = "0.14.1", default-features = false }
-calamine = "0.37.0"
+calamine = "0.38.0"
 rust_xlsxwriter = "0.102.0"
 csv = "1.4"
 pulldown-cmark = { version = "0.13.6", default-features = false, features = ["html"] }

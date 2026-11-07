@@ -6721,7 +6721,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-**Used by:** calamine 0.37.0, quick-xml 0.42.0
+**Used by:** calamine 0.38.0, quick-xml 0.42.0
 
 ```text
 The MIT License (MIT)

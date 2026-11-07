@@ -36,6 +36,8 @@ All notable changes to Kento are recorded here. The format follows
 ### Fixed
 
 - Trim audio saves again: every trim ended in an error, with or without removing the silence.
+- A damaged or deliberately malformed XLS or XLSB spreadsheet can no longer crash Kento or use up
+  its memory: the spreadsheet reader is updated to a version that checks such files.
 
 ## [1.1.1] - 2026-11-03
 

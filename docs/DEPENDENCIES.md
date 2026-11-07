@@ -60,7 +60,7 @@ which Cargo checks when it downloads it. Platforms are the builds that contain t
 | [byteorder-lite](https://crates.io/crates/byteorder-lite/0.1.0) | 0.1.0 | Unlicense OR MIT | Windows, macOS | `8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495` |
 | [bytes](https://crates.io/crates/bytes/1.12.1) | 1.12.1 | MIT | Windows, macOS | `fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04` |
 | [bzip2](https://crates.io/crates/bzip2/0.6.1) | 0.6.1 | MIT OR Apache-2.0 | Windows, macOS | `f3a53fac24f34a81bc9954b5d6cfce0c21e18ec6959f44f56e8e90e4bb7c346c` |
-| [calamine](https://crates.io/crates/calamine/0.37.0) | 0.37.0 | MIT | Windows, macOS | `c9ca341b94bc4b29e08970b1a03914fad2dfe177e2ecb67fcd6de9046004aafb` |
+| [calamine](https://crates.io/crates/calamine/0.38.0) | 0.38.0 | MIT | Windows, macOS | `f431b67cba6122a1f7d26b7adafc71bbdf07026095fe811f5efc025d8748e1d8` |
 | [cbc](https://crates.io/crates/cbc/0.2.1) | 0.2.1 | MIT OR Apache-2.0 | Windows, macOS | `ce2dc9ee5f88d11e0beb842c88b33c8a5cf0d1329c4b19494af42b07dbfe8896` |
 | [cfb](https://crates.io/crates/cfb/0.14.0) | 0.14.0 | MIT | Windows, macOS | `a347dcabdae9c31b0825fd6a8bed285ec9c2acb89c47827126d52fa4f59cece3` |
 | [cfg-if](https://crates.io/crates/cfg-if/1.0.5) | 1.0.5 | MIT OR Apache-2.0 | Windows, macOS | `4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600` |
