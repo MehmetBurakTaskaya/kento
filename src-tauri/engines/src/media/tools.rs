@@ -927,11 +927,6 @@ pub(super) fn merge_graph(
     (graph, end)
 }
 
-/// A tool whose engine is not written yet.
-fn later() -> Error {
-    Error::Other("this tool is not ready yet".into())
-}
-
 fn no_video() -> Error {
     Error::Other("the file has no video".into())
 }
