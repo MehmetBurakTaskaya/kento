@@ -626,73 +626,457 @@ export default function register(Board) {
     }
 
     // ================================================================ sounds
+    // A voice is drawn sample by sample into a short buffer: struck modes (each a sine dying away at its own
+    // rate), filtered noise and contact clicks, so it plays from one source node however rich it is. A buffer
+    // is drawn once and kept for its sample rate. A voice with variants plays one at random (never the same
+    // twice running) a little faster or slower, so a quick sweep never repeats itself.
+    // Envelopes start and end at zero and a DC blocker runs last, so nothing clicks and nothing rumbles.
+    const TAU = 2 * Math.PI;
+    const drawnSounds = new Map();
+    let noiseSeed = 1;
+    // Seeded white noise from -1 to 1.
+    function noise(seed) {
+      let x = seed >>> 0 || 1;
+      return () => (x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 2147483648 - 1;
+    }
+    // Envelopes for hiss(), of t seconds and u (0 to 1) into it: a hit rises in a seconds and falls by 1/e
+    // every tau seconds; a swell rises to its peak at p and falls back to zero.
+    const hit = (a, tau) => (t) => (t < a ? Math.sin((Math.PI / 2) * (t / a)) ** 2 : Math.exp((a - t) / tau));
+    const swell = (p) => (t, u) =>
+      (u < p ? Math.sin((Math.PI / 2) * (u / p)) : Math.cos((Math.PI / 2) * ((u - p) / (1 - p)))) ** 2;
+    // A struck mode from t0: a sine at f Hz falling by 1/e every tau seconds after an attack of o.a seconds (a
+    // long one swells like a bowed note). o.to glides the pitch there with time constant o.glide, or o.freq(t)
+    // sets it outright. A tone that does not die by itself lasts o.len seconds under o.env, an envelope as for
+    // hiss().
+    function mode(d, sr, t0, f, amp, tau, o = {}) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.ceil((o.len ?? tau * 7) * sr));
+      const att = Math.max(1, (o.a ?? 0.0007) * sr);
+      const tail = 0.002 * sr;
+      const k = Math.exp(-1 / (tau * sr));
+      let c = 1,
+        s = 0,
+        cw = 1,
+        sw = 0,
+        env = amp;
+      for (let i = 0; i < n; i++) {
+        if (i % 32 === 0) {
+          const t = i / sr;
+          const fi = o.freq ? o.freq(t) : o.to ? o.to + (f - o.to) * Math.exp(-t / (o.glide ?? 0.03)) : f;
+          cw = Math.cos((TAU * fi) / sr);
+          sw = Math.sin((TAU * fi) / sr);
+          const m = 1 / Math.hypot(c, s);
+          c *= m;
+          s *= m;
+        }
+        const nc = c * cw - s * sw;
+        s = c * sw + s * cw;
+        c = nc;
+        let g = env;
+        if (i < att) g *= 0.5 - 0.5 * Math.cos((Math.PI * i) / att);
+        if (n - i < tail) g *= (n - i) / tail;
+        if (o.env) g *= o.env(i / sr, i / n);
+        d[i0 + i] += g * s;
+        env *= k;
+      }
+    }
+    // A contact click at t0: a windowed burst of `cycles` cycles at f Hz, its energy around f.
+    function tap(d, sr, t0, f, amp, cycles = 1.5) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.round((cycles / f) * sr) + 1);
+      for (let i = 0; i < n; i++) {
+        const u = i / (n - 1);
+        d[i0 + i] += amp * (0.5 - 0.5 * Math.cos(TAU * u)) * Math.sin(TAU * cycles * (u - 0.5));
+      }
+    }
+    // Filtered noise for dur seconds from t0: a band at o.f Hz (all below it with o.type 'low'), swept to o.to
+    // along o.path (0 to 1, straight unless given), resonance o.q, shaped by o.env (a quick hit unless given)
+    // and o.am. o.grain from 0 to 1 thins it into a crackle of separate grains, as grit, paper and leaf make.
+    function hiss(d, sr, t0, dur, amp, o = {}) {
+      const i0 = Math.round(t0 * sr);
+      const n = Math.min(d.length - i0, Math.round(dur * sr));
+      const rnd = noise((noiseSeed += 7919));
+      const env = o.env ?? hit(0.002, dur / 4);
+      const k = 1 / (o.q ?? 1);
+      const fade = 0.003 * sr;
+      let a1 = 0,
+        a2 = 0,
+        a3 = 0,
+        z1 = 0,
+        z2 = 0;
+      for (let i = 0; i < n; i++) {
+        const u = i / n;
+        if (i % 16 === 0) {
+          const f = o.to ? o.f * (o.to / o.f) ** (o.path ? o.path(u) : u) : o.f;
+          const g = Math.tan((Math.PI * Math.min(f, 0.45 * sr)) / sr);
+          a1 = 1 / (1 + g * (g + k));
+          a2 = g * a1;
+          a3 = g * a2;
+        }
+        let x = rnd();
+        if (o.grain) x = Math.abs(rnd()) < o.grain ? x / Math.sqrt(o.grain) : 0;
+        // A state-variable filter, stable however fast its frequency moves.
+        const v3 = x - z2;
+        const v1 = a1 * z1 + a2 * v3;
+        const v2 = z2 + a2 * z1 + a3 * v3;
+        z1 = 2 * v1 - z1;
+        z2 = 2 * v2 - z2;
+        const y = o.type === 'low' ? v2 : k * v1;
+        const t = i / sr;
+        d[i0 + i] += amp * y * env(t, u) * (o.am ? o.am(t) : 1) * Math.min(1, (n - i) / fade);
+      }
+    }
+    // A voice drawn by draw(d, sr, v, r) into dur seconds at o.gain: o.vary variants (v, each with seeded noise
+    // r of its own) played o.rate faster or slower at random; o.next(last) may choose the variant instead. Its
+    // key starts with the theme's id: the first sound of a theme draws the rest of its voices in idle moments
+    // after the wheel has opened, so applying a slice never waits for a drawing.
+    const drawers = new Map();
+    function drawn(key, dur, draw, o = {}) {
+      const vary = o.vary ?? 1;
+      const theme = key.split(':')[0];
+      let last = -1;
+      const pick = () => {
+        if (vary < 2) return 0;
+        const v = Math.floor(Math.random() * (last < 0 ? vary : vary - 1));
+        return last >= 0 && v >= last ? v + 1 : v;
+      };
+      const make = (ac, v) => {
+        const sr = ac.sampleRate;
+        const id = `${key}:${v}:${sr}`;
+        let buf = drawnSounds.get(id);
+        if (buf) return buf;
+        buf = ac.createBuffer(1, Math.ceil(dur * sr), sr);
+        const d = buf.getChannelData(0);
+        draw(d, sr, v, noise(v * 7919 + 101));
+        // A DC blocker, the voice's gain and a fade over its last moments.
+        const R = Math.exp((-TAU * 20) / sr);
+        const fade = Math.max(1, (o.fade ?? 0.004) * sr);
+        let x1 = 0,
+          y1 = 0;
+        for (let i = 0; i < d.length; i++) {
+          y1 = d[i] - x1 + R * y1;
+          x1 = d[i];
+          const left = d.length - 1 - i;
+          d[i] = (o.gain ?? 1) * y1 * (left < fade ? Math.sin((Math.PI / 2) * (left / fade)) ** 2 : 1);
+        }
+        drawnSounds.set(id, buf);
+        return buf;
+      };
+      if (!drawers.has(theme)) drawers.set(theme, { list: [], rates: new Set() });
+      for (let v = 0; v < vary; v++) drawers.get(theme).list.push((ac) => make(ac, v));
+      return (ac, out, t) => {
+        const v = o.next ? o.next(last) : pick();
+        last = v;
+        const buf = make(ac, v);
+        const all = drawers.get(theme);
+        if (!all.rates.has(ac.sampleRate)) {
+          all.rates.add(ac.sampleRate);
+          const queue = [...all.list];
+          const idle = (f) => (window.requestIdleCallback ? window.requestIdleCallback(f) : setTimeout(f, 20));
+          // A drawing takes up to a few milliseconds: only when the page has that much time to spare.
+          const next = (spare) => {
+            if (!queue.length) return;
+            if (!spare || spare.timeRemaining() > 8) queue.shift()(ac);
+            idle(next);
+          };
+          setTimeout(() => idle(next), 400);
+        }
+        const src = ac.createBufferSource();
+        src.buffer = buf;
+        src.playbackRate.value = 1 + (o.rate ?? 0) * (2 * Math.random() - 1);
+        src.connect(out);
+        src.start(t);
+        src.stop(t + buf.duration / src.playbackRate.value + 0.02);
+      };
+    }
+    // A run of teeth (knurl, flutes, gear) passing, as a gain for hiss(): pos(t) counts the teeth passed by t
+    // seconds, and each is a bump, smooth at sharp 1 and a click of its own at 8.
+    const teeth = (pos, depth, sharp) => (t) => 1 - depth + depth * (0.5 + 0.5 * Math.cos(TAU * pos(t))) ** sharp;
+    // Teeth passing at r0 a second, slowing (or quickening) to r1 over T seconds.
+    function slowing(r0, r1, T) {
+      const l = Math.log(r0 / r1) / T;
+      return (t) => (r0 * (1 - Math.exp(-l * t))) / l;
+    }
+    // Ayar's steel: the thin bezel rings at f and 2.83 f over a short knock of the enamel plate under it.
+    function steelRing(d, sr, t, f, amp, tau) {
+      mode(d, sr, t, f, amp, tau);
+      mode(d, sr, t, f * 2.83, amp * 0.3, tau * 0.4);
+      mode(d, sr, t, f * 0.385, amp * 0.6, 0.005);
+    }
+    // Beton's materials: a cast-iron clank (the damped modes of a thick block) and a concrete slab's thud,
+    // with the grit that concrete sheds.
+    function clank(d, sr, t, f, k) {
+      tap(d, sr, t, f * 4.2, 0.35 * k);
+      mode(d, sr, t, f, 0.07 * k, 0.02);
+      mode(d, sr, t, f * 2.95, 0.035 * k, 0.01);
+      mode(d, sr, t, f * 6.4, 0.012 * k, 0.005);
+    }
+    function slab(d, sr, t, k) {
+      mode(d, sr, t, 140, 0.12 * k, 0.05, { a: 0.002 });
+      mode(d, sr, t, 310, 0.08 * k, 0.03, { a: 0.0015 });
+      mode(d, sr, t, 720, 0.04 * k, 0.015);
+      hiss(d, sr, t, 0.09, 0.15 * k, { f: 900, q: 0.7, env: hit(0.002, 0.025) });
+      hiss(d, sr, t, 0.14, 0.05 * k, { f: 3000, q: 0.8, grain: 0.2, env: hit(0.002, 0.04) });
+    }
+    // Titan's titanium: a cushioned detent (a soft click over two damped modes), and the frosted glass of the
+    // face, which only breathes.
+    function cushion(d, sr, t, f, k) {
+      tap(d, sr, t, f * 1.7, 0.3 * k, 2);
+      mode(d, sr, t, f, 0.07 * k, 0.008, { a: 0.0012 });
+      mode(d, sr, t, f * 2.6, 0.022 * k, 0.004);
+    }
+    const breath = (d, sr, t, dur, amp) => hiss(d, sr, t, dur, amp, { f: 4600, q: 1.5, env: hit(0.003, dur / 3) });
+
     const SOUNDS = {
       a: {
-        // A fine steel ratchet that slows down as the bezel settles, then a small detent.
-        open(ac, out, t, X) {
-          [0, 0.016, 0.034, 0.056, 0.084, 0.12].forEach((dt, k) =>
-            X.burst(ac, out, t + dt, { type: 'bandpass', f: 5200 - k * 220, q: 6, dur: 0.008, gain: 0.13 - k * 0.014 }),
-          );
-          X.tone(ac, out, t + 0.125, { type: 'triangle', f: 2100, f2: 1700, dur: 0.03, gain: 0.025, a: 0.001 });
-        },
-        // One crisp detent: a bright click with a thin steel ring under it.
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 4600, q: 5, dur: 0.01, gain: 0.22 });
-          X.burst(ac, out, t, { type: 'highpass', f: 8200, q: 0.7, dur: 0.004, gain: 0.05 });
-          X.tone(ac, out, t, { type: 'triangle', f: 1900, f2: 1500, dur: 0.022, gain: 0.03, a: 0.001 });
-        },
-        // The latch drops in, then a short steel-bar chime (inharmonic partials of a struck bar).
-        success(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'lowpass', f: 1800, q: 0.8, dur: 0.03, gain: 0.14 });
-          X.tone(ac, out, t, { f: 220, f2: 140, dur: 0.06, gain: 0.06, a: 0.002 });
-          X.burst(ac, out, t + 0.03, { type: 'bandpass', f: 5000, q: 5, dur: 0.008, gain: 0.12 });
-          X.tone(ac, out, t + 0.06, { f: 1318.5, dur: 0.6, gain: 0.05, a: 0.002 });
-          X.tone(ac, out, t + 0.06, { f: 1318.5 * 2.756, dur: 0.28, gain: 0.014, a: 0.002 });
-          X.tone(ac, out, t + 0.06, { f: 1318.5 * 5.404, dur: 0.1, gain: 0.005, a: 0.001 });
-        },
+        // The knurled bezel spun by a thumb: a brushed-steel swish with the knurl running in it, slowing,
+        // then the index seats with a clear little ring and settles just past it.
+        open: drawn(
+          'kadran-a:open',
+          0.4,
+          (d, sr) => {
+            hiss(d, sr, 0, 0.212, 0.09, {
+              f: 4600,
+              to: 1700,
+              q: 1.6,
+              env: swell(0.3),
+              am: teeth(slowing(450, 30, 0.212), 0.6, 4),
+            });
+            tap(d, sr, 0.205, 4200, 0.12);
+            tap(d, sr, 0.211, 3300, 0.36);
+            steelRing(d, sr, 0.211, 1725, 0.07, 0.05);
+            tap(d, sr, 0.25, 3000, 0.1);
+            mode(d, sr, 0.25, 1725, 0.015, 0.03);
+          },
+          { gain: 0.156 },
+        ),
+        // A light pawl lifting and dropping into the next tooth (two fine clicks) and the thin steel bezel
+        // ringing a moment under them.
+        tick: drawn(
+          'kadran-a:tick',
+          0.075,
+          (d, sr, v, r) => {
+            const j = 1 + 0.015 * r();
+            const gap = 0.0055 + 0.0015 * r();
+            tap(d, sr, 0, 4300 * j, 0.25);
+            tap(d, sr, gap, 3300 * j, 0.7);
+            steelRing(d, sr, gap, 2050 * j, 0.04, 0.018);
+          },
+          { vary: 6, rate: 0.02, gain: 0.155 },
+        ),
+        // Down into a deeper stop: a firmer double click, the ring a fourth lower with more body, and the
+        // spring settling a moment later.
+        enter: drawn(
+          'kadran-a:enter',
+          0.16,
+          (d, sr, v, r) => {
+            const j = 1 + 0.015 * r();
+            tap(d, sr, 0, 3800 * j, 0.28);
+            tap(d, sr, 0.009, 2500 * j, 0.7);
+            steelRing(d, sr, 0.009, 1540 * j, 0.05, 0.026);
+            mode(d, sr, 0.009, 520 * j, 0.03, 0.012);
+            tap(d, sr, 0.05, 3300 * j, 0.1);
+            mode(d, sr, 0.05, 1540 * j, 0.014, 0.02);
+          },
+          { vary: 3, gain: 0.148 },
+        ),
+        // Up out of the stop: a light click and a short ring a fourth higher that lifts a little as it goes.
+        leave: drawn(
+          'kadran-a:leave',
+          0.1,
+          (d, sr, v, r) => {
+            const j = 1 + 0.015 * r();
+            tap(d, sr, 0, 4800 * j, 0.24);
+            tap(d, sr, 0.012, 3900 * j, 0.6);
+            mode(d, sr, 0.012, 2740 * j, 0.035, 0.016, { to: 2820 * j, glide: 0.02 });
+            mode(d, sr, 0.012, 1050 * j, 0.03, 0.005);
+          },
+          { vary: 3, gain: 0.177 },
+        ),
+        // The detent snaps home and jiggles, the index drops, the lock ring closes on the numeral with a rising
+        // zing, and the steel disc rings a clear note as it pops; a faint glint runs round the steel.
+        success: drawn(
+          'kadran-a:success',
+          0.95,
+          (d, sr) => {
+            tap(d, sr, 0, 2700, 0.5);
+            mode(d, sr, 0, 520, 0.07, 0.02);
+            mode(d, sr, 0, 1310, 0.04, 0.014);
+            tap(d, sr, 0.062, 3600, 0.2);
+            steelRing(d, sr, 0.062, 2050, 0.03, 0.02);
+            tap(d, sr, 0.1, 2000, 0.2, 2);
+            mode(d, sr, 0.1, 760, 0.035, 0.012);
+            tap(d, sr, 0.134, 3900, 0.09);
+            mode(d, sr, 0.08, 1400, 0.03, 0.2, { a: 0.12, to: 2100, glide: 0.09 });
+            hiss(d, sr, 0.09, 0.43, 0.012, { f: 3800, to: 6200, q: 3, env: swell(0.4) });
+            // The disc: the modes of a free plate (1, 1.73, 2.33, 3.91), the first doubled a few hertz apart
+            // so it shimmers.
+            tap(d, sr, 0.25, 3200, 0.25);
+            for (const [k, a, tau] of [
+              [1, 0.1, 0.32],
+              [1.003, 0.03, 0.3],
+              [1.73, 0.05, 0.2],
+              [2.33, 0.045, 0.15],
+              [3.91, 0.018, 0.07],
+            ])
+              mode(d, sr, 0.25, 1046.5 * k, a, tau);
+          },
+          { fade: 0.25, gain: 0.267 },
+        ),
       },
       b: {
-        // A heavy thump and three ratchet steps, in time with the stepped spin.
-        open(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 92, f2: 55, dur: 0.08, gain: 0.12, a: 0.002 });
-          [0.0, 0.04, 0.08].forEach((dt, k) =>
-            X.burst(ac, out, t + dt, { type: 'bandpass', f: 1700 - k * 150, q: 3, dur: 0.016, gain: 0.17 - k * 0.03 }),
-          );
-        },
-        // A heavy detent: a dull clack with a low body.
-        tick(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 1300, q: 2.5, dur: 0.018, gain: 0.24 });
-          X.tone(ac, out, t, { f: 130, f2: 90, dur: 0.04, gain: 0.07, a: 0.001 });
-        },
-        // The bolts are thrown: a short scrape, two hard clacks and a low thud. No chime.
-        success(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'lowpass', f: 600, f2: 2400, q: 0.9, dur: 0.08, gain: 0.1, a: 0.01 });
-          X.burst(ac, out, t + 0.05, { type: 'bandpass', f: 1150, q: 3, dur: 0.02, gain: 0.22 });
-          X.burst(ac, out, t + 0.1, { type: 'bandpass', f: 1050, q: 3, dur: 0.022, gain: 0.18 });
-          X.tone(ac, out, t + 0.1, { f: 76, f2: 44, dur: 0.14, gain: 0.14, a: 0.002 });
-          X.tone(ac, out, t + 0.1, { type: 'triangle', f: 410, dur: 0.1, gain: 0.02, a: 0.001 });
-          X.tone(ac, out, t + 0.1, { type: 'triangle', f: 1133, dur: 0.06, gain: 0.012, a: 0.001 });
-        },
+        // The slab lands with a gritty concrete thud, then the iron bezel ratchets round in three dull clanks,
+        // a little lower each time, as the dial steps in.
+        open: drawn(
+          'kadran-b:open',
+          0.36,
+          (d, sr) => {
+            slab(d, sr, 0, 0.6);
+            [0.047, 0.094, 0.14].forEach((t, k) => clank(d, sr, t, 380 * (1 - 0.03 * k), 1 - 0.15 * k));
+            hiss(d, sr, 0.02, 0.3, 0.02, { f: 3200, q: 0.9, grain: 0.03, env: swell(0.15) });
+          },
+          { gain: 0.304 },
+        ),
+        // The iron block steps into a concrete notch: a dull, heavy thock with a little grit and no ring.
+        tick: drawn(
+          'kadran-b:tick',
+          0.07,
+          (d, sr, v, r) => {
+            const j = 1 + 0.05 * r();
+            tap(d, sr, 0, 1350 * j, 0.45);
+            mode(d, sr, 0, 235 * j, 0.11, 0.014, { a: 0.0012 });
+            mode(d, sr, 0, 610 * j, 0.06, 0.008);
+            mode(d, sr, 0, 1480 * j, 0.03, 0.004);
+            hiss(d, sr, 0, 0.035, 0.07, { f: 2600, q: 0.8, grain: 0.25, env: hit(0.001, 0.008) });
+          },
+          { vary: 6, rate: 0.03, gain: 0.236 },
+        ),
+        // A heavy bolt slides into the wall: a short gritty scrape, then a deep clunk.
+        enter: drawn(
+          'kadran-b:enter',
+          0.2,
+          (d, sr, v, r) => {
+            const j = 1 + 0.03 * r();
+            hiss(d, sr, 0, 0.055, 0.07, { f: 1900, to: 1100, q: 1.2, grain: 0.35, env: swell(0.6) });
+            tap(d, sr, 0.05, 1100 * j, 0.75);
+            mode(d, sr, 0.05, 172 * j, 0.13, 0.03, { a: 0.0015 });
+            mode(d, sr, 0.05, 420 * j, 0.07, 0.015);
+            mode(d, sr, 0.05, 990 * j, 0.035, 0.008);
+          },
+          { vary: 3, gain: 0.158 },
+        ),
+        // The bolt is drawn back: a lighter clack, then a quick scrape upward.
+        leave: drawn(
+          'kadran-b:leave',
+          0.13,
+          (d, sr, v, r) => {
+            const j = 1 + 0.03 * r();
+            tap(d, sr, 0, 1700 * j, 0.4);
+            mode(d, sr, 0, 300 * j, 0.08, 0.012, { a: 0.001 });
+            mode(d, sr, 0, 860 * j, 0.04, 0.006);
+            hiss(d, sr, 0.015, 0.06, 0.05, { f: 1200, to: 2300, q: 1.2, grain: 0.35, env: swell(0.4) });
+          },
+          { vary: 3, gain: 0.291 },
+        ),
+        // The dial is slammed into the wall (a gritty concrete thud), four bolts are thrown in two hard steps,
+        // each a scrape and a flam of iron clunks, and dust and a few crumbs settle after. No chime.
+        success: drawn(
+          'kadran-b:success',
+          0.62,
+          (d, sr, v, r) => {
+            slab(d, sr, 0.07, 1.1);
+            for (const [t, f, k] of [
+              [0.083, 420, 1],
+              [0.146, 380, 1.15],
+            ]) {
+              hiss(d, sr, t - 0.022, 0.026, 0.06 * k, { f: 2300, to: 1500, q: 1.3, grain: 0.4, env: swell(0.7) });
+              tap(d, sr, t, 1700, 0.5 * k, 2);
+              for (let b = 0; b < 4; b++) clank(d, sr, t + b * 0.0026, f * (1 + 0.025 * b), 0.65 * k);
+            }
+            hiss(d, sr, 0.19, 0.4, 0.035, { f: 3200, q: 1, grain: 0.012, env: swell(0.1) });
+            for (let c = 0; c < 5; c++)
+              tap(d, sr, 0.21 + 0.055 * c + 0.03 * r(), 2600 + 1200 * Math.abs(r()), 0.09 * (1 - c * 0.15));
+          },
+          { fade: 0.1, gain: 0.24 },
+        ),
       },
       c: {
-        // A soft airy turn and a muted click.
-        open(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'bandpass', f: 1200, f2: 3600, q: 0.9, dur: 0.12, gain: 0.09, a: 0.02 });
-          X.burst(ac, out, t + 0.14, { type: 'bandpass', f: 3800, q: 4, dur: 0.008, gain: 0.06 });
-        },
-        // A soft glassy tick.
-        tick(ac, out, t, X) {
-          X.tone(ac, out, t, { f: 3200, f2: 2900, dur: 0.022, gain: 0.06, a: 0.001 });
-          X.burst(ac, out, t, { type: 'highpass', f: 7000, q: 0.7, dur: 0.006, gain: 0.025 });
-        },
-        // A soft latch, then a cool two-note chime (a fifth).
-        success(ac, out, t, X) {
-          X.burst(ac, out, t, { type: 'lowpass', f: 1400, q: 0.8, dur: 0.025, gain: 0.08 });
-          X.tone(ac, out, t, { f: 180, f2: 120, dur: 0.05, gain: 0.04, a: 0.002 });
-          X.tone(ac, out, t + 0.05, { f: 1318.5, dur: 0.5, gain: 0.055, a: 0.004 });
-          X.tone(ac, out, t + 0.13, { f: 1975.5, dur: 0.6, gain: 0.045, a: 0.004 });
-          X.tone(ac, out, t + 0.13, { f: 3951, dur: 0.2, gain: 0.006, a: 0.004 });
-        },
+        // The titanium bezel glides round on its bearing: a smooth airy whirr whose wide flutes pass slower and
+        // slower, then a soft magnetic stop and the little spring past it.
+        open: drawn(
+          'kadran-c:open',
+          0.32,
+          (d, sr) => {
+            hiss(d, sr, 0, 0.235, 0.1, {
+              f: 1500,
+              to: 650,
+              q: 1.4,
+              env: swell(0.22),
+              am: teeth(slowing(170, 18, 0.235), 0.55, 1),
+            });
+            hiss(d, sr, 0, 0.22, 0.02, { f: 4200, q: 1.5, env: swell(0.3) });
+            cushion(d, sr, 0.228, 900, 0.38);
+            cushion(d, sr, 0.262, 1000, 0.15);
+          },
+          { gain: 0.564 },
+        ),
+        // A soft, damped detent of titanium on a ceramic bearing: a rounded tuk, then a breath of frosted glass.
+        tick: drawn(
+          'kadran-c:tick',
+          0.06,
+          (d, sr, v, r) => {
+            cushion(d, sr, 0, 1050 * (1 + 0.04 * r()), 1);
+            breath(d, sr, 0.004, 0.03, 0.02);
+          },
+          { vary: 6, rate: 0.02, gain: 0.379 },
+        ),
+        // Into a deeper, cushioned stop: a soft thum of titanium with a cool glass note under it.
+        enter: drawn(
+          'kadran-c:enter',
+          0.2,
+          (d, sr, v, r) => {
+            const j = 1 + 0.02 * r();
+            cushion(d, sr, 0, 760 * j, 1.2);
+            mode(d, sr, 0, 380 * j, 0.05, 0.02, { a: 0.002 });
+            mode(d, sr, 0.004, 1975 * j, 0.022, 0.07, { a: 0.004 });
+            breath(d, sr, 0.01, 0.06, 0.015);
+          },
+          { vary: 3, gain: 0.294 },
+        ),
+        // A light lift out: a short airy rise with a soft tuk on top.
+        leave: drawn(
+          'kadran-c:leave',
+          0.13,
+          (d, sr, v, r) => {
+            hiss(d, sr, 0, 0.065, 0.05, { f: 900, to: 2600, q: 1.5, env: swell(0.75) });
+            cushion(d, sr, 0.058, 1300 * (1 + 0.02 * r()), 0.8);
+          },
+          { vary: 3, gain: 0.454 },
+        ),
+        // The handle ring turns a quarter on fine flutes and seats softly; a ring of light hums out through the
+        // glass, brightening, and the lume flares with a cool chime a fifth wide.
+        success: drawn(
+          'kadran-c:success',
+          1,
+          (d, sr) => {
+            // Eighteen flutes pass in the quarter turn, slow at both ends like the handle.
+            const turn = (t) => {
+              const u = Math.min(1, t / 0.24);
+              return 18 * u * u * (3 - 2 * u);
+            };
+            hiss(d, sr, 0.024, 0.24, 0.05, { f: 2200, q: 2, env: swell(0.55), am: teeth(turn, 0.6, 4) });
+            cushion(d, sr, 0.264, 700, 0.9);
+            mode(d, sr, 0.06, 1175, 0.06, 0.3, { a: 0.14 });
+            mode(d, sr, 0.06, 1175 * 2.71, 0.01, 0.15, { a: 0.12 });
+            hiss(d, sr, 0.06, 0.35, 0.016, { f: 1500, to: 4500, q: 4, env: swell(0.6) });
+            tap(d, sr, 0.3, 3400, 0.2, 2);
+            mode(d, sr, 0.3, 1760, 0.09, 0.28, { a: 0.003 });
+            mode(d, sr, 0.3, 1762.5, 0.03, 0.26, { a: 0.003 });
+            mode(d, sr, 0.32, 2637, 0.06, 0.24, { a: 0.003 });
+            mode(d, sr, 0.3, 1760 * 2.71, 0.01, 0.06);
+          },
+          { fade: 0.3, gain: 0.275 },
+        ),
       },
     };
 
