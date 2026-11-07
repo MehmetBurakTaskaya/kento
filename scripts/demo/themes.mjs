@@ -284,10 +284,12 @@ async function intro(before) {
  *  the next with its own effect. */
 async function acts(previous) {
   let shown = previous;
-  point(1);
   for (const [i, [id, move, sound]] of ACTS.entries()) {
     const mode = i % 2 ? 'dark' : 'light';
     shown = next(shown, id, mode, 'live', true);
+    // A point comes in on the scene coming in, never on the one going: the two copies would show
+    // it twice while one uncovers the other.
+    if (i === 0) point(1);
     await sleep(520);
     for (let k = 0; k < 2; k++) {
       await press(shown.stage, 'ArrowDown');
@@ -310,14 +312,14 @@ async function acts(previous) {
 /** More themes at rest, quicker: light, then a theme a beat in dark. */
 async function parade(previous) {
   let shown = previous;
-  point(2);
-  for (const id of LIGHT) {
+  for (const [i, id] of LIGHT.entries()) {
     shown = next(shown, id, 'light', 'still');
+    if (i === 0) point(2);
     await sleep(420);
   }
-  point(3);
-  for (const id of DARK) {
+  for (const [i, id] of DARK.entries()) {
     shown = next(shown, id, 'dark', 'still');
+    if (i === 0) point(3);
     await sleep(340);
   }
   return shown;

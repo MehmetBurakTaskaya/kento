@@ -203,6 +203,20 @@ iframe {
 .window.is-shown {
   opacity: 1;
 }
+/* A still of the main window over it while its next editor loads; it fades into the new one. */
+.freeze {
+  position: absolute;
+  z-index: 30;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 280ms ease-in-out;
+}
+.freeze img {
+  position: absolute;
+}
+.freeze.is-leaving {
+  opacity: 0;
+}
 .window-head {
   display: flex;
   align-items: center;
@@ -485,18 +499,37 @@ iframe {
 .burst.is-leaving {
   opacity: 0;
 }
+/* The count is a window onto a strip of the numbers 1 to 12, moved a step at a time: the
+   compositor moves it, so a busy page never makes it skip a number, and each number, drawn once
+   with its glow, stands for 100 ms. Each number keeps 52 px round its line for the glow, and the
+   window's margins give that room back to the layout. */
 .burst-count {
+  block-size: 259px;
+  margin: -52px;
+  padding-inline: 52px;
+  overflow: hidden;
   font-size: 172px;
   font-weight: 800;
-  line-height: 0.9;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
+  animation: burst-in 640ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.burst-strip {
+  display: grid;
+  justify-items: center;
+  will-change: transform;
+  animation: burst-step 1200ms 250ms steps(12, jump-none) both;
+}
+.burst-strip span {
+  padding-block: 52px;
+  line-height: 155px;
   background: linear-gradient(120deg, #8fb4ff 0%, #b18cff 45%, #ff8fc7 100%);
+  background-origin: content-box;
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 0 26px rgba(143, 180, 255, 0.4));
-  animation: burst-in 640ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
 }
+/* In with the 2 (the count's wait plus one step). */
 .burst-word {
   margin-block-start: 2px;
   font-size: 32px;
@@ -504,7 +537,7 @@ iframe {
   letter-spacing: 0.34em;
   text-transform: uppercase;
   color: #e8ecf4;
-  animation: burst-in 640ms 160ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation: burst-in 640ms 350ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
 }
 .burst-tongue {
   position: absolute;
@@ -528,6 +561,11 @@ iframe {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+@keyframes burst-step {
+  to {
+    transform: translateY(calc(-11 * 259px));
   }
 }
 @keyframes tongue-out {

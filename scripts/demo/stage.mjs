@@ -14,6 +14,8 @@ const LANG = params.get('lang') === 'tr' ? 'tr' : 'en';
 /** A page for one screenshot: no montage to load, and everything light or dark from the start. */
 const STILL = params.has('still');
 const DARK = params.get('appearance') === 'dark';
+// Capitals follow the language's own rules: in Turkish, dil is DİL, not DIL.
+document.documentElement.lang = LANG;
 
 const TEXT = {
   en: {
@@ -34,7 +36,7 @@ const TEXT = {
       pauses: 'Take the pauses out of a talk or a podcast',
       music: 'Add music: it steps back when someone speaks',
       overlay: 'Put a title or your logo on the video',
-      redact: 'Hide faces, number plates and marks',
+      redact: 'Hide faces, license plates, and marks',
       loudness: 'Even out the sound for a podcast or a video',
       alt: 'Alt opens the file actions',
       shelf: 'Share, copy, move, ZIP, or keep it on the shelf',
@@ -414,9 +416,10 @@ let saidAt = 0;
  *  read while watching what happens above it. */
 const holdFor = (text) => Math.min(4400, Math.max(2400, 1300 + 62 * text.length));
 
-/** Waits until the caption on screen has been up long enough to read. */
-async function settle() {
-  const wait = said ? holdFor(said) - (performance.now() - saidAt) : 0;
+/** Waits until the caption on screen has been up long enough to read, or until it needs only
+ *  `lead` more milliseconds. */
+async function settle(lead = 0) {
+  const wait = said ? holdFor(said) - (performance.now() - saidAt) - lead : 0;
   if (wait > 0) await sleep(wait);
 }
 
@@ -473,13 +476,17 @@ const endCard = element(
 const show = (node, on = true) => node.classList.toggle('is-shown', on);
 const inMain = (selector) => main.contentDocument.querySelector(selector);
 
-/** Points at something in the main window and clicks it. */
-async function clickMain(selector, ms = 600) {
+/** Points at something in the main window and clicks it; `settled`, once the caption on screen has
+ *  been up long enough, so the next caption comes in with what the click shows. */
+async function clickMain(selector, ms = 600, settled = false) {
   const target = typeof selector === 'string' ? inMain(selector) : selector;
   if (!target) throw new Error(`stage: nothing at ${selector}`);
+  // The pointer sets off so that it gets there as the caption has been up long enough.
+  if (settled) await settle(ms);
   const box = target.getBoundingClientRect();
   const frame = main.getBoundingClientRect();
   await pointer.to([frame.left + box.left + box.width / 2, frame.top + box.top + box.height / 2], ms, 0.06);
+  if (settled) await settle();
   await pointer.click();
   target.click();
 }
@@ -487,6 +494,34 @@ async function clickMain(selector, ms = 600) {
 /** Home, Library, Automation and Settings; the theme badge above Settings is not counted. */
 const railItem = (index) => main.contentDocument.querySelectorAll('.rail-item:not(.rail-theme)')[index];
 const store = async () => (await kento(main).store()).useApp;
+
+/** Lays a still of `node` over it while what is under it changes. The recorder gives the page
+ *  `demoSnap`, which takes the screen as it is; without it there is no still. The still is the
+ *  whole screen, shown through a window the size of `node`. */
+async function freeze(node) {
+  if (!window.demoSnap) return null;
+  const box = node.getBoundingClientRect();
+  const origin = stage.getBoundingClientRect();
+  const picture = new Image();
+  picture.src = await window.demoSnap();
+  await picture.decode();
+  const still = element('div', 'freeze');
+  Object.assign(still.style, {
+    insetInlineStart: `${box.left - origin.left}px`,
+    insetBlockStart: `${box.top - origin.top}px`,
+    inlineSize: `${box.width}px`,
+    blockSize: `${box.height}px`,
+  });
+  Object.assign(picture.style, { insetInlineStart: `${-box.left}px`, insetBlockStart: `${-box.top}px` });
+  still.append(picture);
+  stage.append(still);
+  return still;
+}
+/** Fades the still away into what is under it now. */
+function thaw(still) {
+  still.classList.add('is-leaving');
+  setTimeout(() => still.remove(), 400);
+}
 
 function darken(on) {
   stage.classList.toggle('is-dark', on);
@@ -635,18 +670,22 @@ async function video() {
   const app = await store();
   for (const [i, [tool, files, caption, prepare]] of EDITORS.entries()) {
     await settle();
-    // The window dips while the next editor loads its preview, so no loading frame shows.
-    if (i > 0) {
+    // A still of the editor before stays over the window while the next one loads its preview,
+    // then fades into it: no loading frame shows, and the window never blinks. Without a still
+    // (the page opened by hand), the window dips instead.
+    const before = i > 0 ? await freeze(mainWindow) : null;
+    if (i > 0 && !before) {
       show(mainWindow, false);
       await sleep(320);
-      app.getState().closePanel();
     }
+    if (i > 0) app.getState().closePanel();
     kento(main).openTool(tool, files());
     await until(() => inMain('.editor-side'), tool);
     if (files()[0] === VIDEO) await until(() => inMain('.editor-video')?.readyState >= 2, tool);
     await prepare?.();
     await sleep(tool === 'remove-pauses' ? 700 : 200);
-    show(mainWindow);
+    if (before) thaw(before);
+    else show(mainWindow);
     await say(TEXT.caption[caption]);
     await sleep(900);
   }
@@ -764,7 +803,7 @@ async function web() {
 }
 
 async function automation() {
-  await clickMain(railItem(2), 600);
+  await openPage(2);
   await say(TEXT.caption.rules);
   await sleep(1500);
   const content = inMain('.content');
@@ -777,9 +816,10 @@ async function automation() {
   await sleep(1300);
 }
 
-/** Opens a page from the rail, at its top (the pages share one scrolling area). */
+/** Opens a page from the rail, at its top (the pages share one scrolling area). The click waits for
+ *  the caption before, so the page and its caption change together. */
 async function openPage(index) {
-  await clickMain(railItem(index), 600);
+  await clickMain(railItem(index), 600, true);
   inMain('.content').scrollTo(0, 0);
 }
 
@@ -798,6 +838,8 @@ async function dark() {
   await clickMain(buttons[2], 600);
   darken(true);
   await sleep(1100);
+  // The languages begin with their burst, so the recording can tell where it starts.
+  await settle();
 }
 
 /** Every wheel of the montage opens out of sight with a tool under the pointer (Edit image, Mark
@@ -827,17 +869,17 @@ const TONGUES = [
 ];
 
 async function languages() {
-  await settle();
   for (const node of [mainWindow, folder]) {
     node.style.transition = 'none';
     node.style.opacity = '0';
   }
   // A burst: the number counts up to twelve while the languages fly out round it, with no pointer
-  // over it.
+  // over it. The count is a strip of the numbers that CSS moves a step at a time, so a busy page
+  // cannot make it skip one; the word comes in with the 2, so it never reads "1 languages".
   pointerNode.style.visibility = 'hidden';
   const burst = element('div', 'burst', stage);
-  const count = element('div', 'burst-count', burst);
-  count.textContent = '1';
+  const strip = element('div', 'burst-strip', element('div', 'burst-count', burst));
+  TONGUES.forEach((_, i) => (element('span', '', strip).textContent = String(i + 1)));
   element('div', 'burst-word', burst).textContent = TEXT.languages;
   TONGUES.forEach((name, i) => {
     const angle = (i / TONGUES.length) * Math.PI * 2 - Math.PI / 2;
@@ -850,8 +892,8 @@ async function languages() {
   void burst.offsetWidth;
   burst.classList.add('is-on');
   await say(TEXT.caption.languages);
-  await tween(900, (t) => (count.textContent = String(Math.max(1, Math.round(t * 12)))));
-  await sleep(1700);
+  // The count's 250 ms wait and twelve steps of 100 ms (stage.css), then the twelve stand.
+  await sleep(250 + 1200 + 1300);
   // Then the wheel itself in eight of them, right to left last.
   burst.classList.add('is-leaving');
   setTimeout(() => burst.remove(), 400);

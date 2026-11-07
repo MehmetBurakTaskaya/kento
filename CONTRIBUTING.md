@@ -55,7 +55,9 @@ wheel, the corner card, the shelf and the main window, each the app in a frame);
 core's part; `scripts/record-demo.mjs` plays the storyboard in headless Chromium, three times
 slower than life, and FFmpeg (on the PATH) turns the frames into GIFs. Each GIF is the tour
 followed by the themes reel: `scripts/demo/themes.mjs` draws every theme's wheel with the app's own
-Wheel in the app's page. Run it again after a visible change to the wheel, the pages or a theme;
+Wheel in the app's page. A take is recorded again, three times at most, when the computer falls
+behind in a part that moves on every frame (the count-ups), so close heavy programs first. Run it
+again after a visible change to the wheel, the pages or a theme;
 `--gif`, `--stills` and `--lang en` make only part of it, and `--themes` records the reel alone
 (its frames, for a video of its own).
 

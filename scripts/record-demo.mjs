@@ -56,6 +56,11 @@ const BAYER = 5;
  *  two frames kept. */
 const SLOW = 3;
 const STEP = 1 / 36;
+/** Parts where the picture changes on every frame (a scene's first seconds) and the longest gap
+ *  between two frames allowed there: a longer one means the computer fell behind, so the take is
+ *  taken again, three times at most. */
+const MOVING = { languages: 2, burst: 1.2 };
+const LONGEST_GAP = 0.06;
 
 /** Slows a page's clock by `slow`: its timers, its animation frames, Date.now and performance.now.
  *  Runs in every frame before the frame's own scripts. */
@@ -137,6 +142,13 @@ async function record(lang, reel = false) {
   mkdirSync(dir, { recursive: true });
   const page = await openStage(lang, false, false, 1, reel);
   const cdp = await page.context().newCDPSession(page);
+  // A still of the screen, for the stage to lay over a window while it changes. Taken whole: a
+  // clip makes the browser draw a frame at the clip's size, which the screencast would keep.
+  await page.exposeFunction('demoSnap', async () => {
+    const { data } = await cdp.send('Page.captureScreenshot', { format: 'png' });
+    return `data:image/png;base64,${data}`;
+  });
+  const { width, height } = page.viewportSize();
   // CSS animations, transitions and the Web Animations of every frame follow the slower clock.
   // (Without Animation.enable, which would keep every animation for the inspector.)
   await cdp.send('Animation.setPlaybackRate', { playbackRate: 1 / SLOW });
@@ -149,6 +161,12 @@ async function record(lang, reel = false) {
   };
   cdp.on('Page.screencastFrame', ({ data, metadata, sessionId }) => {
     void cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {});
+    // A frame of another size is not the stage (a still being taken); it is left out.
+    const head = Buffer.from(data.slice(0, 32), 'base64');
+    if (head.readUInt32BE(16) !== width || head.readUInt32BE(20) !== height) {
+      console.warn(`${lang}: left out a ${head.readUInt32BE(16)}×${head.readUInt32BE(20)} frame`);
+      return;
+    }
     const time = metadata.timestamp / SLOW;
     if (pending && (!frames.length || time - frames[frames.length - 1].time >= STEP)) keep(pending);
     pending = { data, time, arrived: Date.now() };
@@ -171,6 +189,32 @@ async function record(lang, reel = false) {
   // both end together, which ties the two.
   const offset = end - length;
   return { dir, frames, end, scenes: marks.map(([name, at]) => [name, offset + at]) };
+}
+
+/** The longest gap between two frames where the picture moves (MOVING), in the demo's seconds. */
+function longestGap({ frames, scenes }) {
+  let longest = 0;
+  for (const [name, at] of scenes) {
+    if (!MOVING[name]) continue;
+    const times = frames.map((frame) => frame.time).filter((time) => time >= at && time <= at + MOVING[name]);
+    for (let i = 1; i < times.length; i++) longest = Math.max(longest, times[i] - times[i - 1]);
+  }
+  return longest;
+}
+
+/** A take, taken again while the computer falls behind where the picture moves. */
+async function take(lang, reel = false) {
+  for (let attempt = 1; ; attempt++) {
+    const result = await record(lang, reel);
+    const gap = longestGap(result);
+    if (gap <= LONGEST_GAP) return result;
+    const what = `${lang}${reel ? ' themes' : ''}: frames ${gap.toFixed(3)} s apart where the picture moves`;
+    if (attempt === 3) {
+      console.warn(`${what}; kept after three takes`);
+      return result;
+    }
+    console.warn(`${what}; taking it again`);
+  }
 }
 
 /** Each frame with how long it stands: until the next one, the last until `end`. */
@@ -306,12 +350,12 @@ try {
     const suffix = lang === 'en' ? '' : `-${lang}`;
     if (!only || only === 'stills') await stills(lang);
     if (!only || only === 'gif') {
-      const tour = await record(lang);
-      const reel = await record(lang, true);
+      const tour = await take(lang);
+      const reel = await take(lang, true);
       gif(joined(lang, tour, reel), path.join(images, `kento-demo${suffix}.gif`));
     }
     // The reel alone, for the website's own video.
-    if (only === 'themes') await record(lang, true);
+    if (only === 'themes') await take(lang, true);
   }
 } finally {
   await browser.close();
