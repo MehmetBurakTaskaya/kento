@@ -80,6 +80,19 @@ body {
   text-align: center;
   animation: pop 240ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
 }
+.dial-sound {
+  position: absolute;
+  inset-block-start: 569px;
+  inset-inline-start: 60px;
+  inline-size: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 500;
+  animation: pop 240ms 120ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
 .pitch {
   position: absolute;
   z-index: 5;

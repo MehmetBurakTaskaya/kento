@@ -24,14 +24,14 @@ const TEXT = {
     headline: `${N} different<br>themes`,
     points: [
       'Pick the one you like',
-      'Each with its own motion and sounds',
+      'Its own motion, its own sounds',
       'Light or dark, every one',
       'Switch any time, in one click',
     ],
     together: 'Same wheel, its own moves',
-    band: `${N} themes. Which one is yours?`,
+    band: `${N} themes, ${N} sound sets. Which one is yours?`,
     where: 'Settings → Appearance → Theme',
-    end: ['Free and open source', `${N} themes`, 'Windows and macOS'],
+    end: ['Free and open source', `${N} themes, ${N} sound sets`, 'Windows and macOS'],
     cta: 'Download it free',
   },
   tr: {
@@ -39,28 +39,43 @@ const TEXT = {
     headline: `${N} farklı<br>tema`,
     points: [
       'Hangisini seversen onu seç',
-      'Her birinin kendi hareketi ve sesi',
+      'Kendi hareketi, kendi sesi',
       'Her biri açık ya da koyu',
       'İstediğin an, tek tıkla değiştir',
     ],
     together: 'Aynı çark, kendine has hareketler',
-    band: `${N} tema. Seninki hangisi?`,
+    band: `${N} tema, ${N} ses seti. Seninki hangisi?`,
     where: 'Ayarlar → Görünüm → Tema',
-    end: ['Ücretsiz ve açık kaynak', `${N} tema`, 'Windows ve macOS'],
+    end: ['Ücretsiz ve açık kaynak', `${N} tema, ${N} ses seti`, 'Windows ve macOS'],
     cta: 'Ücretsiz indir',
   },
 }[LANG];
 
 /** Six themes that each open, sweep and apply a slice in turn, big: the most different moves, each
- *  named as it plays. */
+ *  named as it plays, with what it sounds like (a GIF is silent, so the sound is written). */
 const ACTS = [
-  ['ebru-a', { en: 'a splash of paint', tr: 'boya sıçraması' }],
-  ['popart', { en: 'a comic-book boom', tr: 'çizgi roman patlaması' }],
-  ['nar', { en: 'seeds spill out', tr: 'taneler saçılır' }],
-  ['piksel', { en: 'pixels fly', tr: 'pikseller uçuşur' }],
-  ['memphis', { en: 'confetti', tr: 'konfeti yağar' }],
-  ['simya-a', { en: 'a glow of gold', tr: 'altın bir ışık' }],
+  [
+    'ebru-a',
+    { en: 'a splash of paint', tr: 'boya sıçraması' },
+    { en: 'a drop of paint lands', tr: 'boya damlası şapırdar' },
+  ],
+  [
+    'popart',
+    { en: 'a comic-book boom', tr: 'çizgi roman patlaması' },
+    { en: 'a cartoon BOOM', tr: 'çizgi film gibi BUM' },
+  ],
+  [
+    'nar',
+    { en: 'seeds spill out', tr: 'taneler saçılır' },
+    { en: 'seeds patter and roll', tr: 'taneler tıkır tıkır yuvarlanır' },
+  ],
+  ['piksel', { en: 'pixels fly', tr: 'pikseller uçuşur' }, { en: 'little chiptune bleeps', tr: 'küçük 8-bit bipler' }],
+  ['memphis', { en: 'confetti', tr: 'konfeti yağar' }, { en: 'a party popper', tr: 'konfeti patlangacı' }],
+  ['simya-a', { en: 'a glow of gold', tr: 'altın bir ışık' }, { en: 'a chime of gold', tr: 'altın bir çınlama' }],
 ];
+/** A small loudspeaker for the sound line under each act. */
+const SPEAKER =
+  '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
 /** Then more, at rest and quicker: light, then a theme a beat in dark, never more than three a
  *  second. Neighbours differ, so each change reads. The rest are in the line-up at the end. */
 const LIGHT = ['portakal', 'iznik', 'vitray', 'baklava', 'kilim', 'hologram', 'pusula', 'karpuz', 'lolipop', 'origami'];
@@ -220,7 +235,7 @@ async function intro() {
 async function acts(previous) {
   let shown = previous;
   points[1].classList.add('is-on');
-  for (const [i, [id, move]] of ACTS.entries()) {
+  for (const [i, [id, move, sound]] of ACTS.entries()) {
     const mode = i % 2 ? 'dark' : 'light';
     shown = next(shown, id, mode, 'live', true);
     await sleep(520);
@@ -234,6 +249,9 @@ async function acts(previous) {
     const named = element('div', 'dial-move', shown.scene);
     named.textContent = move[LANG];
     named.style.color = looks(loaded.get(id), mode).muted;
+    const heard = element('div', 'dial-sound', shown.scene, SPEAKER);
+    element('span', '', heard).textContent = sound[LANG];
+    heard.style.color = looks(loaded.get(id), mode).muted;
     await sleep((loaded.get(id).wheel?.timings.apply(false) ?? 640) + 260);
   }
   return shown;
