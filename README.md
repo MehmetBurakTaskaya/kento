@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/kento-demo.gif" width="960" alt="Kento in use. A photo dragged out of a folder opens the steel Convert wheel under the pointer when Shift is pressed; resting on JPG opens its picture qualities, and the drop throws the dial's bolts and writes sunrise.jpg beside the original. Ctrl opens the Tools wheel and the Crop editor, Alt the file actions and the shelf. Then a mixed selection, a document and slides, a pasted video link, folder rules and recipes, the Library, light and dark, and the wheel in eight languages.">
+  <img src="docs/images/kento-demo.gif" width="960" alt="Kento in use. A photo dragged out of a folder opens the steel Convert wheel under the pointer when Shift is pressed; resting on JPG opens its picture qualities, and the drop throws the dial's bolts and writes sunrise.jpg beside the original. Ctrl opens the Tools wheel and the Crop editor; a video is made vertical from the Tools wheel, and the editors take the pauses out of an interview and lay a song under a clip. Alt opens the file actions and the shelf. Then a mixed selection, a document and slides, a pasted video link, folder rules and recipes, the Library, light and dark, and the wheel in eight languages. Then the themes: the steel dial beside the words 51 different themes; Damla, Bom, Nar, Piksel, Konfeti and Varak each apply a slice with their own effect, its sound written under it; more themes follow quickly, six apply at once, all 51 stand side by side, and the end card says 51 themes, 51 sound sets and offers the free download.">
 </p>
 
 <p align="center">
@@ -137,7 +137,7 @@ and the command line runs it all from scripts.
 ## 51 themes
 
 <p align="center">
-  <img src="docs/images/kento-themes.gif" width="960" alt="Kento's themes. The steel dial, Kasa, opens beside the words 51 different themes. Damla, Bom, Nar, Piksel, Konfeti and Varak each open and apply a slice with their own effect, its sound written under it: a splash of paint as a drop of paint lands, a comic-book boom, seeds that patter and roll, pixels with chiptune bleeps, confetti with a party popper and a glow of gold with a chime. More themes follow quickly, each name popping in under its wheel, six more apply at once, all 51 stand side by side under 51 themes, 51 sound sets, and the end card offers the free download.">
+  <img src="docs/images/kento-themes.webp" width="960" alt="All 51 themes side by side, each wheel in its own colours and shapes, from the steel dial to a rotary phone, a halved orange, a pizza, a honeycomb and a stained-glass window">
 </p>
 
 Kasa, the steel dial, is the default. The other fifty change the wheel completely, with their own

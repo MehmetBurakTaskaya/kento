@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/kento-demo-tr.gif" width="960" alt="Kento kullanımda. Bir klasörden sürüklenen fotoğraf, Shift'e basılınca imlecin altında çelik Dönüştürme çarkını açıyor; JPG'de beklemek görsel kalitelerini açıyor, bırakınca kadranın sürgüleri dışarı çıkıyor ve orijinalin yanına balon.jpg yazılıyor. Ctrl Araçlar çarkını ve Kırp düzenleyicisini, Alt dosya işlemlerini ve rafı açıyor. Ardından karışık bir seçim, bir belge ve bir sunum, yapıştırılan bir video bağlantısı, klasör kuralları ve tarifler, Kütüphane, açık ve koyu görünüm ve sekiz dilde çark geliyor.">
+  <img src="docs/images/kento-demo-tr.gif" width="960" alt="Kento kullanımda. Bir klasörden sürüklenen fotoğraf, Shift'e basılınca imlecin altında çelik Dönüştürme çarkını açıyor; JPG'de beklemek görsel kalitelerini açıyor, bırakınca kadranın sürgüleri dışarı çıkıyor ve orijinalin yanına balon.jpg yazılıyor. Ctrl Araçlar çarkını ve Kırp düzenleyicisini açıyor; bir video Araçlar çarkından dikeye çevriliyor, düzenleyiciler bir röportajın duraklamalarını çıkarıyor ve bir klibin altına şarkı koyuyor. Alt dosya işlemlerini ve rafı açıyor. Ardından karışık bir seçim, bir belge ve bir sunum, yapıştırılan bir video bağlantısı, klasör kuralları ve tarifler, Kütüphane, açık ve koyu görünüm ve sekiz dilde çark geliyor. Sonra temalar: çelik kadran 51 farklı tema yazısının yanında; Damla, Bom, Nar, Piksel, Konfeti ve Varak birer dilimi kendi efektiyle uyguluyor, sesi de altında yazıyor; başka temalar hızla geliyor, altısı aynı anda uyguluyor, 51 tema yan yana duruyor ve son kart 51 tema, 51 ses seti diyerek ücretsiz indirmeye çağırıyor.">
 </p>
 
 <p align="center">
@@ -140,7 +140,7 @@ ad altında birleştirir, komut satırı da hepsini betiklerden çalıştırır.
 ## 51 tema
 
 <p align="center">
-  <img src="docs/images/kento-themes-tr.gif" width="960" alt="Kento'nun temaları. Çelik kadran Kasa, 51 farklı tema yazısının yanında açılır. Damla, Bom, Nar, Piksel, Konfeti ve Varak birer dilimi kendi efektiyle uygular, sesi de altında yazar: boya damlası şapırdarken boya sıçraması, çizgi roman patlaması, tıkır tıkır yuvarlanan taneler, 8-bit bipleriyle uçuşan pikseller, patlangaçla konfeti ve bir çınlamayla altın ışık. Ardından başka temalar hızla gelir, her birinin adı çarkının altında belirir; altı tema aynı anda uygular, 51 tema, 51 ses seti yazısının altında yan yana durur ve son kart ücretsiz indirmeye çağırır.">
+  <img src="docs/images/kento-themes-tr.webp" width="960" alt="51 temanın hepsi yan yana, her çark kendi renkleri ve biçimiyle: çelik kadrandan çevirmeli telefona, ikiye bölünmüş portakala, pizzaya, bal peteğine ve vitraya kadar">
 </p>
 
 Varsayılan tema çelik kadran Kasa. Diğer elli tema çarkı baştan değiştirir, kendi rengi, hareketi ve
