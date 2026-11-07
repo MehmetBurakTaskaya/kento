@@ -183,13 +183,13 @@ impl Job<'_, '_> {
             return Err(Error::Other("the colours would stay as they are".into()));
         }
         let probe = self.probe(input)?;
-        probe.video().ok_or_else(no_video)?;
+        let video = probe.video().ok_or_else(no_video)?;
         fs::write(self.run.temp.join(LUT), map.cube(LUT_SIDE))?;
         let recipe = Recipe {
             container: self.container(input, &probe)?,
             video: Video::Encode {
                 keep_codec: true,
-                filter: Some(format!("lut3d=file={LUT}:interp=tetrahedral")),
+                filter: Some(lut(&video.pixel_format)),
             },
             audio: Audio::Copy,
             subtitles: true,
@@ -247,6 +247,17 @@ impl Job<'_, '_> {
         self.encode(cmd, &probe, &recipe, &[], self.run.dest, write)?;
         Ok(self.dest())
     }
+}
+
+/// The LUT, and back to the source's own YUV layout after it: the LUT works in RGB, and an encoder
+/// that takes RGB as well (x265 does) would otherwise keep it, which few players show.
+fn lut(pixel_format: &str) -> String {
+    let back = if pixel_format.starts_with("yuv") {
+        pixel_format
+    } else {
+        "yuv420p"
+    };
+    format!("lut3d=file={LUT}:interp=tetrahedral,format={back}")
 }
 
 /// Make vertical's filters for a picture of `width` × `height` (as shown).
@@ -670,6 +681,16 @@ mod tests {
              [in][l0]overlay=x=5:y=-3:format=auto[o1];\
              [o1][l1]overlay=x=20:y=30:format=auto:enable='between(t,1.000,2.500)'"
         );
+    }
+
+    #[test]
+    fn colours_come_back_to_the_sources_layout() {
+        assert_eq!(
+            lut("yuv420p10le"),
+            "lut3d=file=look.cube:interp=tetrahedral,format=yuv420p10le"
+        );
+        assert!(lut("gbrp").ends_with(",format=yuv420p"));
+        assert!(lut("").ends_with(",format=yuv420p"));
     }
 
     #[test]

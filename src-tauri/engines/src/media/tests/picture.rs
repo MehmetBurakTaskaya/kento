@@ -809,6 +809,111 @@ fn boomerangs_and_repeats() {
     near(lab.probe(&out).info.duration, 20.0, 0.3);
 }
 
+/// Every video container joins its pieces as it is, with its own codecs.
+#[test]
+fn reverses_in_every_container() {
+    let Some(lab) = Lab::new() else { return };
+    let cases: [(&str, &[&str], &str, &str); 4] = [
+        (
+            "avi",
+            &["-c:v", "mpeg4", "-c:a", "libmp3lame"],
+            "mpeg4",
+            "mp3",
+        ),
+        ("wmv", &["-c:v", "wmv2", "-c:a", "wmav2"], "wmv2", "wmav2"),
+        (
+            "mkv",
+            &["-c:v", "libx264", "-preset", "ultrafast", "-c:a", "flac"],
+            "h264",
+            "flac",
+        ),
+        (
+            "mov",
+            &["-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac"],
+            "h264",
+            "aac",
+        ),
+    ];
+    for (ext, codecs, video, audio) in cases {
+        let mut args = vec![
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=160x90:r=25:d=2",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=f=440:r=44100:d=2",
+            "-ac",
+            "2",
+            "-pix_fmt",
+            "yuv420p",
+        ];
+        args.extend(codecs);
+        let source = lab.ffmpeg(&args, &lab.path(&format!("{NAME} source.{ext}")));
+        for mode in [LoopMode::Reverse, LoopMode::Boomerang] {
+            let out = run(
+                &lab,
+                Tool::LoopVideo { mode, count: 2 },
+                &source,
+                &format!("{mode:?}.{ext}"),
+            );
+            let probe = lab.probe(&out);
+            assert_eq!(video_of(&probe).codec, video, "{ext}");
+            let length = if mode == LoopMode::Reverse { 2.0 } else { 8.0 };
+            near(probe.info.duration, length, 0.2);
+            assert_eq!(
+                probe.info.audio.as_ref().map(|a| a.codec.as_str()),
+                (mode == LoopMode::Reverse).then_some(audio),
+                "{ext} {mode:?}"
+            );
+            assert_eq!(complaints(&lab, &out), "", "{ext} {mode:?}");
+        }
+    }
+}
+
+/// 10-bit HEVC stays 10-bit YUV through the colour map's RGB.
+#[test]
+fn colors_keep_ten_bit_video() {
+    let Some(lab) = Lab::new() else { return };
+    let hevc = lab.ffmpeg(
+        &[
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=128x72:r=25:d=0.5",
+            "-c:v",
+            "libx265",
+            "-preset",
+            "ultrafast",
+            "-pix_fmt",
+            "yuv420p10le",
+            "-x265-params",
+            "log-level=error",
+            "-tag:v",
+            "hvc1",
+        ],
+        &lab.path(&format!("{NAME} deep.mp4")),
+    );
+    let out = run(
+        &lab,
+        Tool::ColorVideo {
+            look: Look::Warm,
+            grade: Grade {
+                brightness: 0.0,
+                contrast: 0.0,
+                saturation: 0.0,
+                warmth: 0.0,
+            },
+        },
+        &hevc,
+        "deep warm.mp4",
+    );
+    let picture = video_of(&lab.probe(&out)).clone();
+    assert_eq!(picture.codec, "hevc");
+    assert_eq!(picture.pixel_format, "yuv420p10le");
+}
+
 #[test]
 fn cancelling_stops_between_pieces() {
     let Some(lab) = Lab::new() else { return };
