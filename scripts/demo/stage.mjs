@@ -30,6 +30,8 @@ const TEXT = {
       copy: 'Drop it: a new copy, next to the original',
       ctrl: 'Ctrl opens the tools',
       tools: 'Crop, mark up, compress, remove the background…',
+      video: 'Make a video vertical for shorts and stories',
+      sound: 'Take out the pauses, add music, even out the sound',
       alt: 'Alt opens the file actions',
       shelf: 'Share, copy, move, ZIP, or keep it on the shelf',
       mixed: 'A mixed selection? Pick the kind, then the format',
@@ -41,6 +43,8 @@ const TEXT = {
       dark: 'Light or dark',
       languages: 'Twelve languages, right to left too',
     },
+    title: 'Sunrise over the valley',
+    vertical: 'Make vertical',
     end: ['Free and open source', 'Works on your computer', 'Windows and macOS'],
   },
   tr: {
@@ -57,6 +61,8 @@ const TEXT = {
       copy: 'Bırak: orijinalin yanına yeni bir kopya',
       ctrl: 'Ctrl araçları açar',
       tools: 'Kırp, işaretle, sıkıştır, arka planı kaldır…',
+      video: 'Videoyu kısa videolar ve hikâyeler için dikey yap',
+      sound: 'Duraklamaları çıkar, müzik ekle, sesi dengele',
       alt: 'Alt dosya işlemlerini açar',
       shelf: 'Paylaş, kopyala, taşı, ZIP’le ya da rafa koy',
       mixed: 'Karışık seçim mi? Önce türü, sonra biçimi seç',
@@ -68,6 +74,8 @@ const TEXT = {
       dark: 'Açık ya da koyu',
       languages: 'On iki dil, sağdan sola yazılanlar dahil',
     },
+    title: 'Vadide gün doğumu',
+    vertical: 'Dikey video yap',
     end: ['Ücretsiz ve açık kaynak', 'Bilgisayarında çalışır', 'Windows ve macOS'],
   },
 }[LANG];
@@ -93,8 +101,9 @@ const FOLDER = 'C:\\Users\\me\\Documents\\Demo';
 const pathOf = (name) => `${FOLDER}\\${name}`;
 const [PHOTO, HARBOUR, DOC, SLIDES, SHEET, PDF, VIDEO] = TEXT.files.map(pathOf);
 const [JPG, MP4] = TEXT.made.map(pathOf);
-/** An interview for the audio editors' screenshots; it is not on the desk. */
+/** An interview and a song for the audio editors' screenshots; they are not on the desk. */
 const AUDIO = pathOf(LANG === 'tr' ? 'röportaj.mp3' : 'interview.mp3');
+const SONG = pathOf(LANG === 'tr' ? 'şarkı.mp3' : 'song.mp3');
 
 // ---------------------------------------------------------------- small tools
 
@@ -290,6 +299,16 @@ class FloatingWheel {
   /** The last session has ended (its wheel has played its close). */
   async closed() {
     await until(() => !this.doc.querySelector('.wheel'), 'the wheel to close');
+  }
+  /** The place of the slice named `label` in the ring on screen. */
+  async indexOf(label) {
+    await this.opened();
+    const items = [...this.doc.querySelectorAll('.wheel-face [role=menuitem]')];
+    // A long label breaks into lines, so spaces are not compared.
+    const bare = (text) => text.replace(/\s+/g, '');
+    const index = items.findIndex((item) => bare(item.textContent).includes(bare(label)));
+    if (index < 0) throw new Error(`stage: no slice ${label}`);
+    return index;
   }
   /** Where to point at the `index`-th slice of the ring on screen, on the stage: a little below and
    *  after its label, so the pointer does not hide it. */
@@ -560,6 +579,50 @@ async function tools() {
   setTimeout(() => app.getState().closePanel(), 300);
 }
 
+/** A video made vertical from the Tools wheel's ring, then the pauses of an interview and a song
+ *  under the clip in the main window's editors. */
+async function video() {
+  say(TEXT.caption.video);
+  await dragOut([VIDEO], 'tools', 'Ctrl', '⌘');
+  await sleep(200);
+  // Past Trim video to Make vertical, whose rest opens Crop the middle, Blurred background and
+  // Other…; the drop on Blurred background makes the video at once.
+  const vertical = await wheel.indexOf(TEXT.vertical);
+  await sweep(wheel, [
+    [vertical - 2, 380, 160],
+    [vertical, 300, 0],
+  ]);
+  await sleep(950);
+  await pointer.to(await wheel.slice(1), 420, 0.08);
+  await sleep(450);
+  wheel.drop();
+  letGo();
+  await applied();
+  const name = TEXT.files[6].replace('.mov', '');
+  kento(toast).toast(`${TEXT.vertical} · ${TEXT.files[6]}`, [
+    pathOf(`${name} - ${LANG === 'tr' ? 'dikey' : 'vertical'}.mp4`),
+  ]);
+  show(toast);
+  // Out of the way of the editors that follow.
+  await pointer.to([942, 530], 700);
+  await sleep(700);
+  show(toast, false);
+  // The editors in the main window.
+  kento(main).openTool('remove-pauses', [AUDIO]);
+  await sleep(120);
+  show(mainWindow);
+  say(TEXT.caption.sound);
+  await until(() => inMain('.editor-side'), 'Remove pauses');
+  await sleep(1700);
+  const app = await store();
+  app.getState().closePanel();
+  kento(main).openTool('add-music', [VIDEO, SONG]);
+  await until(() => inMain('.editor-video')?.readyState >= 2, 'Add music');
+  await sleep(1500);
+  show(mainWindow, false);
+  setTimeout(() => app.getState().closePanel(), 300);
+}
+
 async function actions() {
   say(TEXT.caption.alt);
   await dragOut([JPG], 'actions', 'Alt', '⌃');
@@ -716,6 +779,7 @@ const SCENES = [
   ],
   ['convert', convertPhoto],
   ['tools', tools],
+  ['video and audio', video],
   ['file actions', actions],
   ['mixed selection', mixed],
   ['documents', formats],
@@ -775,26 +839,68 @@ async function drawOn(overlay, [x0, y0, x1, y1]) {
   }
 }
 
-/** A media editor as the README shows it: Crop video at 9:16, the date stamp pixelated in Redact
- *  video, or the interview's loudness. */
+/** Types into a field the way a person would, so React hears it. */
+function typeInto(field, text) {
+  const view = main.contentWindow;
+  const proto = field instanceof view.HTMLTextAreaElement ? view.HTMLTextAreaElement : view.HTMLInputElement;
+  Object.getOwnPropertyDescriptor(proto.prototype, 'value').set.call(field, text);
+  field.dispatchEvent(new view.Event('input', { bubbles: true }));
+}
+
+/** The files each editor of the README opens. */
+const EDITOR_FILES = {
+  normalize: () => [AUDIO],
+  'remove-pauses': () => [AUDIO],
+  'add-music': () => [VIDEO, SONG],
+};
+
+/** A media editor as the README shows it: Crop video at 9:16, Make vertical over a blurred copy,
+ *  a title in Add text or logo, the date stamp pixelated in Redact video, the interview's pauses,
+ *  a song under the clip, or the interview's loudness. */
 async function editor(name) {
   // The editors want a taller window than the tour's; the recording gives them a taller page.
   stage.style.blockSize = `${innerHeight}px`;
   mainWindow.style.blockSize = `${innerHeight - 32}px`;
   main.style.blockSize = `${innerHeight - 64}px`;
-  kento(main).openTool(name, [name === 'normalize' ? AUDIO : VIDEO]);
+  const files = EDITOR_FILES[name]?.() ?? [VIDEO];
+  kento(main).openTool(name, files);
   await until(() => inMain('.editor-side'), 'the editor');
-  if (name === 'normalize') return;
-  await until(() => inMain('.editor-video')?.readyState >= 2, 'the sample video');
+  if (files[0] === VIDEO) await until(() => inMain('.editor-video')?.readyState >= 2, 'the sample video');
   const side = [...main.contentDocument.querySelectorAll('.editor-side .segmented')];
-  if (name === 'crop-video') {
-    [...side[0].querySelectorAll('button')].find((button) => button.textContent === '9:16').click();
-  } else {
-    side[0].querySelectorAll('button')[2].click();
-    // A pointer of our own has no capture to set.
-    main.contentWindow.Element.prototype.setPointerCapture = () => {};
-    await sleep(100);
-    await drawOn(inMain('.overlay'), [0.665, 0.875, 0.95, 0.955]);
+  const buttons = (index) => [...(side[index]?.querySelectorAll('button') ?? [])];
+  switch (name) {
+    case 'crop-video':
+      buttons(0)
+        .find((button) => button.textContent === '9:16')
+        .click();
+      break;
+    case 'make-vertical':
+      buttons(0)[1].click();
+      await until(() => inMain('.editor-side img'), 'the portrait preview');
+      break;
+    case 'add-overlay': {
+      inMain('.overlay-add button').click();
+      await until(() => inMain('.overlay-words'), 'the text layer');
+      typeInto(inMain('.overlay-words'), TEXT.title);
+      break;
+    }
+    case 'redact-video':
+      // Pixelate: in a still, Erase's preview still shows what it will take away.
+      buttons(0)[2].click();
+      // A pointer of our own has no capture to set.
+      main.contentWindow.Element.prototype.setPointerCapture = () => {};
+      await sleep(100);
+      await drawOn(inMain('.overlay'), [0.665, 0.875, 0.95, 0.955]);
+      break;
+    case 'add-music':
+      // The music steps back while someone speaks.
+      await sleep(600);
+      [...main.contentDocument.querySelectorAll('.editor-side input[type=checkbox]')].pop()?.click();
+      await sleep(600);
+      break;
+    default:
+      // Remove pauses waits for its search.
+      await sleep(1200);
   }
 }
 

@@ -404,15 +404,17 @@ export const DEMO_LINK = 'https://video.example.org/watch/sunrise-balloons';
  *  the media editors show a picture. Without it they show their calm placeholder. */
 const SAMPLE_VIDEO = '/artifacts/demo/sample.webm';
 
-/** Waveform peaks that read like speech: phrases of uneven syllables with short pauses between. */
+/** Waveform peaks that read like speech: phrases of uneven syllables with short pauses between,
+ *  and where the pauses lie (bucket ranges), so Remove pauses finds the gaps the waveform shows. */
 function speech(buckets) {
   let seed = 11;
   const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const peaks = [];
+  const pauses = [];
   while (peaks.length < buckets) {
     const phrase = 40 + Math.floor(random() * 120);
     const loud = 0.5 + random() * 0.45;
-    for (let done = 0; done < phrase;) {
+    for (let done = 0; done < phrase; ) {
       const length = 3 + Math.floor(random() * 9);
       const strength = 0.25 + 0.75 * random();
       for (let i = 0; i < length; i++)
@@ -422,10 +424,25 @@ function speech(buckets) {
       done += length;
     }
     const pause = 8 + Math.floor(random() * 30);
+    pauses.push([peaks.length, peaks.length + pause]);
     for (let i = 0; i < pause; i++) peaks.push(0.01 + 0.025 * random());
   }
-  return peaks.slice(0, buckets);
+  return { peaks: peaks.slice(0, buckets), pauses: pauses.filter(([, end]) => end <= buckets) };
 }
+
+/** Waveform peaks that read like a song: a steady beat under a slowly changing loudness. */
+function song(buckets) {
+  return Array.from({ length: buckets }, (_, i) => {
+    const swell = 0.42 + 0.22 * Math.sin(i / 140) + 0.08 * Math.sin(i / 23);
+    const beat = i % 12 < 2 ? 1 : 0.55 + 0.25 * Math.abs(Math.sin(i * 1.7));
+    return Math.min(1, swell * beat);
+  });
+}
+
+/** The editors read every waveform at this many buckets (src/editors/useMedia.ts). */
+const BUCKETS = 1600;
+const SONG = /song|şarkı/i;
+const lengthOf = (path) => (formatOf(path)?.category === 'audio' ? 184.2 : 95.4);
 
 // ---------------------------------------------------------------- hooks
 
@@ -461,8 +478,22 @@ export function demoStandIn(api) {
     pdfThumbnail: async (_path, _index, size) => toBlob(paintPage(size * 0.75, size)),
     imagePreview: (paths, _tool, size) =>
       toBlob(paintPhoto(size, size * 0.75, /harbou?r|liman/i.test(paths[0] ?? '') ? 'jpg' : 'heic')),
+    // A frame of the sample video: the painted dawn.
+    mediaFrame: async (_path, _at, size) => toBlob(paintPhoto(size, (size * 9) / 16, 'heic')),
     mediaPreview: async (path) => ({ url: formatOf(path)?.category === 'video' ? SAMPLE_VIDEO : '', proxy: false }),
-    mediaPeaks: async (_path, buckets) => speech(buckets),
+    mediaPeaks: async (path, buckets) => (SONG.test(path) ? song(buckets) : speech(buckets).peaks),
+    mediaProbe: async (path) =>
+      SONG.test(path)
+        ? { duration: 142.6, video: null, audio: { channels: 2, sampleRate: 44100, codec: 'mp3' } }
+        : base.mediaProbe(path),
+    // The pauses of the speech the waveform shows, by the editor's own settings.
+    mediaPauses: async (path, settings) => {
+      const seconds = lengthOf(path) / BUCKETS;
+      return speech(BUCKETS)
+        .pauses.map(([from, to]) => ({ start: from * seconds, end: to * seconds }))
+        .filter((pause) => pause.end - pause.start >= settings.minLength)
+        .map((pause) => ({ start: pause.start + settings.keep, end: pause.end - settings.keep }));
+    },
     libraryList: async () => library,
     libraryFind: async (paths) => paths.map(found),
     recipesList: async () => recipes(await base.recipesList()),

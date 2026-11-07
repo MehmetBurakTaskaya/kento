@@ -244,14 +244,17 @@ const STILLS = [
   'library-dark',
   'compress',
   'automation',
-  'crop-video',
+  'make-vertical',
+  'add-overlay',
+  'remove-pauses',
+  'add-music',
   'redact-video',
   'normalize',
 ];
 async function stills(lang) {
   const names = option('--names')?.split(',');
   for (const name of STILLS.filter((each) => !names || names.includes(each))) {
-    const tall = ['crop-video', 'redact-video', 'normalize'].includes(name);
+    const tall = !['wheel', 'tools-dark', 'home', 'library-dark', 'compress', 'automation'].includes(name);
     const page = await openStage(lang, true, name.endsWith('-dark'), 1, false, tall ? 720 : HEIGHT);
     const clip = await page.evaluate((which) => window.demo.still(which), name);
     const png = path.join(work, `${name}-${lang}.png`);
@@ -279,7 +282,7 @@ async function stills(lang) {
 try {
   mkdirSync(images, { recursive: true });
   mkdirSync(work, { recursive: true });
-  if (!only || only === 'stills') await sampleVideo();
+  if (only !== 'themes') await sampleVideo();
   for (const lang of languages) {
     const suffix = lang === 'en' ? '' : `-${lang}`;
     if (!only || only === 'stills') await stills(lang);
