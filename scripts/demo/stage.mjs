@@ -93,6 +93,8 @@ const FOLDER = 'C:\\Users\\me\\Documents\\Demo';
 const pathOf = (name) => `${FOLDER}\\${name}`;
 const [PHOTO, HARBOUR, DOC, SLIDES, SHEET, PDF, VIDEO] = TEXT.files.map(pathOf);
 const [JPG, MP4] = TEXT.made.map(pathOf);
+/** An interview for the audio editors' screenshots; it is not on the desk. */
+const AUDIO = pathOf(LANG === 'tr' ? 'röportaj.mp3' : 'interview.mp3');
 
 // ---------------------------------------------------------------- small tools
 
@@ -756,6 +758,46 @@ const regionOf = (node, margin, bottom) => {
 /** The scene above the caption band. */
 const SCENE = { x: 0, y: 0, width: 960, height: 528 };
 
+/** Draws a rectangle on an editor's picture, from and to fractions of it. The overlay takes the
+ *  pointer's events; between them React draws the draft. */
+async function drawOn(overlay, [x0, y0, x1, y1]) {
+  const view = main.contentWindow;
+  const box = overlay.getBoundingClientRect();
+  const at = ([x, y]) => ({ clientX: box.left + x * box.width, clientY: box.top + y * box.height });
+  for (const [type, point] of [
+    ['pointerdown', [x0, y0]],
+    ['pointermove', [(x0 + x1) / 2, (y0 + y1) / 2]],
+    ['pointermove', [x1, y1]],
+    ['pointerup', [x1, y1]],
+  ]) {
+    overlay.dispatchEvent(new view.PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, ...at(point) }));
+    await sleep(60);
+  }
+}
+
+/** A media editor as the README shows it: Crop video at 9:16, the date stamp pixelated in Redact
+ *  video, or the interview's loudness. */
+async function editor(name) {
+  // The editors want a taller window than the tour's; the recording gives them a taller page.
+  stage.style.blockSize = `${innerHeight}px`;
+  mainWindow.style.blockSize = `${innerHeight - 32}px`;
+  main.style.blockSize = `${innerHeight - 64}px`;
+  kento(main).openTool(name, [name === 'normalize' ? AUDIO : VIDEO]);
+  await until(() => inMain('.editor-side'), 'the editor');
+  if (name === 'normalize') return;
+  await until(() => inMain('.editor-video')?.readyState >= 2, 'the sample video');
+  const side = [...main.contentDocument.querySelectorAll('.editor-side .segmented')];
+  if (name === 'crop-video') {
+    [...side[0].querySelectorAll('button')].find((button) => button.textContent === '9:16').click();
+  } else {
+    side[0].querySelectorAll('button')[2].click();
+    // A pointer of our own has no capture to set.
+    main.contentWindow.Element.prototype.setPointerCapture = () => {};
+    await sleep(100);
+    await drawOn(inMain('.overlay'), [0.665, 0.875, 0.95, 0.955]);
+  }
+}
+
 /** Sets up one screenshot and says which part of the page to take. */
 async function still(name) {
   await ready;
@@ -797,11 +839,13 @@ async function still(name) {
     await app.getState().addFiles([PHOTO, VIDEO]);
     app.getState().openPanel('compress', [PHOTO, VIDEO]);
     await until(() => inMain('.compress-mode button'), 'Compress');
+  } else {
+    await editor(name);
   }
   await sleep(900);
   main.contentDocument.activeElement?.blur();
   await sleep(100);
-  return regionOf(mainWindow, 16, 600);
+  return regionOf(mainWindow, 16, innerHeight);
 }
 
 window.demo = { ready, play, still };

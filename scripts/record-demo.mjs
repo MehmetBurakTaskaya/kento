@@ -13,12 +13,13 @@
 //   npm run demo                      everything, in English and Turkish
 //   npm run demo -- --gif             only the GIFs: docs/images/kento-demo.gif and kento-demo-tr.gif
 //   npm run demo -- --stills          only the screenshots
+//   npm run demo -- --stills --names crop-video,normalize   only these screenshots
 //   npm run demo -- --themes          only the themes reel: docs/images/kento-themes.gif and -tr.gif
 //   npm run demo -- --lang tr         one language
 //   npm run demo -- --config file     another Vite config file
 //
-// Frames, screenshots at full size and the FFmpeg lists go to artifacts/demo (not committed). A
-// take lasts about three minutes.
+// Frames, screenshots at full size, the sample video of the editors' screenshots and the FFmpeg
+// lists go to artifacts/demo (not committed). A take lasts about three minutes.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -98,8 +99,8 @@ const errors = [];
 
 /** A stage with every window loaded. A window that failed to load (the dev server can drop a
  *  request on a busy computer) costs a fresh page, twice at most. */
-async function openStage(lang, still = false, dark = false, attempt = 1, reel = false) {
-  const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: still ? 2 : 1 });
+async function openStage(lang, still = false, dark = false, attempt = 1, reel = false, height = HEIGHT) {
+  const page = await browser.newPage({ viewport: { width: WIDTH, height }, deviceScaleFactor: still ? 2 : 1 });
   if (!still) await page.addInitScript(slowClock, SLOW);
   const problems = [];
   page.on('pageerror', (error) => problems.push(`${lang}: ${error.message}`));
@@ -120,7 +121,7 @@ async function openStage(lang, still = false, dark = false, attempt = 1, reel = 
     if (attempt === 3) throw new Error([error.message, ...problems].join('\n'), { cause: error });
     console.warn(`${lang}: the stage did not load (${error.message.split('\n')[0]}); trying again`);
     console.warn(problems.join('\n'));
-    return openStage(lang, still, dark, attempt + 1, reel);
+    return openStage(lang, still, dark, attempt + 1, reel, height);
   }
   page.on('close', () => errors.push(...problems));
   return page;
@@ -194,12 +195,64 @@ function gif(dir, out) {
   console.log(`${path.relative(root, out)}: ${(statSync(out).size / 1e6).toFixed(2)} MB`);
 }
 
+/** The video the media editors play in the screenshots (scripts/demo/stand-in.mjs): the demo's
+ *  painted dawn slowly closing in, with a camera's date stamp in the corner to redact. WebM,
+ *  because Playwright's Chromium plays no H.264. */
+async function sampleVideo() {
+  const page = await browser.newPage();
+  await page.goto(base);
+  const [photo, stamp] = await page.evaluate(async () => {
+    const { paintPhoto } = await import('/scripts/demo/stand-in.mjs');
+    const canvas = document.createElement('canvas');
+    canvas.width = 1920;
+    canvas.height = 1080;
+    const g = canvas.getContext('2d');
+    g.font = '600 46px Consolas, "Courier New", monospace';
+    g.textAlign = 'right';
+    g.shadowColor = 'rgba(0, 0, 0, 0.55)';
+    g.shadowBlur = 4;
+    g.fillStyle = '#ffb347';
+    g.fillText('2026-11-07  06:42', 1800, 1000);
+    return [paintPhoto(2880, 1620, 'heic').toDataURL('image/png'), canvas.toDataURL('image/png')];
+  });
+  await page.close();
+  const write = (name, url) => {
+    const file = path.join(work, name);
+    writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'));
+    return file;
+  };
+  const out = path.join(work, 'sample.webm');
+  // prettier-ignore
+  execFileSync('ffmpeg', [
+    '-v', 'error', '-y',
+    '-loop', '1', '-framerate', '30', '-t', '12', '-i', write('sample-photo.png', photo),
+    '-loop', '1', '-framerate', '30', '-t', '12', '-i', write('sample-stamp.png', stamp),
+    '-filter_complex',
+    "[0:v]zoompan=z='1+0.0004*on':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30[v];[v][1:v]overlay,format=yuv420p",
+    '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '36', '-deadline', 'good', '-cpu-used', '5', '-row-mt', '1',
+    out,
+  ]);
+  console.log(`${path.relative(root, out)}: ${Math.round(statSync(out).size / 1000)} kB`);
+}
+
 /** The README's screenshots, each from a fresh stage at twice the pixels, as WebP 1280 pixels
- *  wide. */
-const STILLS = ['wheel', 'tools-dark', 'home', 'library-dark', 'compress', 'automation'];
+ *  wide. The media editors get a taller stage, so their timeline shows whole. */
+const STILLS = [
+  'wheel',
+  'tools-dark',
+  'home',
+  'library-dark',
+  'compress',
+  'automation',
+  'crop-video',
+  'redact-video',
+  'normalize',
+];
 async function stills(lang) {
-  for (const name of STILLS) {
-    const page = await openStage(lang, true, name.endsWith('-dark'));
+  const names = option('--names')?.split(',');
+  for (const name of STILLS.filter((each) => !names || names.includes(each))) {
+    const tall = ['crop-video', 'redact-video', 'normalize'].includes(name);
+    const page = await openStage(lang, true, name.endsWith('-dark'), 1, false, tall ? 720 : HEIGHT);
     const clip = await page.evaluate((which) => window.demo.still(which), name);
     const png = path.join(work, `${name}-${lang}.png`);
     await page.screenshot({ path: png, clip });
@@ -226,6 +279,7 @@ async function stills(lang) {
 try {
   mkdirSync(images, { recursive: true });
   mkdirSync(work, { recursive: true });
+  if (!only || only === 'stills') await sampleVideo();
   for (const lang of languages) {
     const suffix = lang === 'en' ? '' : `-${lang}`;
     if (!only || only === 'stills') await stills(lang);

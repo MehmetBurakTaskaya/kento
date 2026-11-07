@@ -383,6 +383,33 @@ const LIBRARY = (
 
 export const DEMO_LINK = 'https://video.example.org/watch/sunrise-balloons';
 
+/** A short video of our own that the recording makes from the painted dawn (record-demo.mjs), so
+ *  the media editors show a picture. Without it they show their calm placeholder. */
+const SAMPLE_VIDEO = '/artifacts/demo/sample.webm';
+
+/** Waveform peaks that read like speech: phrases of uneven syllables with short pauses between. */
+function speech(buckets) {
+  let seed = 11;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const peaks = [];
+  while (peaks.length < buckets) {
+    const phrase = 40 + Math.floor(random() * 120);
+    const loud = 0.5 + random() * 0.45;
+    for (let done = 0; done < phrase;) {
+      const length = 3 + Math.floor(random() * 9);
+      const strength = 0.25 + 0.75 * random();
+      for (let i = 0; i < length; i++)
+        peaks.push(
+          loud * strength * (0.25 + 0.75 * Math.sin((Math.PI * (i + 0.5)) / length)) * (0.75 + 0.25 * random()),
+        );
+      done += length;
+    }
+    const pause = 8 + Math.floor(random() * 30);
+    for (let i = 0; i < pause; i++) peaks.push(0.01 + 0.025 * random());
+  }
+  return peaks.slice(0, buckets);
+}
+
 // ---------------------------------------------------------------- hooks
 
 /** Patches the stand-in `api` for the demo and gives the stage the core's events to send. */
@@ -417,6 +444,8 @@ export function demoStandIn(api) {
     pdfThumbnail: async (_path, _index, size) => toBlob(paintPage(size * 0.75, size)),
     imagePreview: (paths, _tool, size) =>
       toBlob(paintPhoto(size, size * 0.75, /harbou?r|liman/i.test(paths[0] ?? '') ? 'jpg' : 'heic')),
+    mediaPreview: async (path) => ({ url: formatOf(path)?.category === 'video' ? SAMPLE_VIDEO : '', proxy: false }),
+    mediaPeaks: async (_path, buckets) => speech(buckets),
     libraryList: async () => library,
     libraryFind: async (paths) => paths.map(found),
     recipesList: async () => recipes(await base.recipesList()),
