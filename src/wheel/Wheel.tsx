@@ -54,6 +54,7 @@ import { clampPage, PAGE_SIZE, pageCount, pageItems } from './paging';
 import { Arm, Bolts, DialIndex, DialScale, FixedRing, Glint, Handle, HubCap, hubLayout } from './parts';
 import { Menu } from './Menu';
 import { armWheelAudio, playVoice, playWheelSound, type SoundSettings, type WheelSound } from './sound';
+import type { ThemeVoice } from '../theme/host/contract';
 import { buildModel } from '../theme/host/model';
 import type { PackTheme } from '../theme/host/packs';
 import { SFX } from '../theme/host/sfx';
@@ -139,18 +140,20 @@ export interface WheelLook {
 
 type Phase = 'opening' | 'open' | 'applying' | 'applied' | 'closing' | 'closed';
 
-/** A theme's three voices stand for the wheel's five sounds: every click of the dial is its tick. */
-const THEME_VOICE: Record<WheelSound, 'open' | 'tick' | 'success'> = {
-  open: 'open',
-  tick: 'tick',
-  enter: 'tick',
-  leave: 'tick',
-  apply: 'success',
+/** A theme's voices for the wheel's five sounds. A ring's way in and back are the theme's own when
+ *  it has them, and its tick otherwise, like every other click of the dial. */
+const THEME_VOICE: Record<WheelSound, ThemeVoice[]> = {
+  open: ['open'],
+  tick: ['tick'],
+  enter: ['enter', 'tick'],
+  leave: ['leave', 'tick'],
+  apply: ['success'],
 };
 
 function playFor(pack: PackTheme | null, name: WheelSound, settings: SoundSettings): void {
   if (!pack) return playWheelSound(name, settings);
-  const voice = pack.concept.sounds?.[THEME_VOICE[name]];
+  const sounds = pack.concept.sounds;
+  const voice = THEME_VOICE[name].map((each) => sounds?.[each]).find(Boolean);
   if (voice) playVoice(name, settings, (ac, out, t) => voice(ac, out, t, SFX));
 }
 

@@ -90,6 +90,9 @@ export interface ThemeFonts {
   credits?: { family: string; license: string }[];
 }
 
+/** The sounds a theme can give its wheel. */
+export type ThemeVoice = 'open' | 'tick' | 'enter' | 'leave' | 'success';
+
 /** What a pack passes to Board.define(). Fields the app does not use are allowed and ignored. */
 export interface ThemeConcept {
   id: string;
@@ -101,7 +104,8 @@ export interface ThemeConcept {
   /** Overrides of the 24 x 24 stroke icons, by name. */
   icons?: Record<string, string>;
   wheel: ThemeWheel;
-  sounds?: Partial<Record<'open' | 'tick' | 'success', SoundVoice>>;
+  /** `enter` and `leave` (a ring of choices opens, going back from one) fall back to `tick`. */
+  sounds?: Partial<Record<ThemeVoice, SoundVoice>>;
   /** Contrast pairs [foreground, background, kind] that must pass WCAG AA. */
   contrast?: [string, string, 'text' | 'large' | 'ui'][];
 }
