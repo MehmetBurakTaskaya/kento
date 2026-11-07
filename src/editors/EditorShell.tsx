@@ -32,7 +32,8 @@ export interface ShellProps extends EditorProps {
   mark?: { label: string; run(): void } | null;
   /** The picture above the transport (video editors). */
   stage?: ReactNode;
-  timeline?: Pick<TimelineProps, 'markers' | 'spans' | 'parts'>;
+  /** Markers, spans and parts on the timeline; `peaks` gives a video editor its sound's waveform. */
+  timeline?: Pick<TimelineProps, 'markers' | 'spans' | 'parts' | 'peaks'>;
   children: ReactNode;
 }
 
