@@ -194,9 +194,14 @@ pub enum Position {
     Top,
 }
 
-/// The 13 media tools of SPEC 5.5, with their choices, and Burn in subtitles [+].
+/// The 13 media tools of SPEC 5.5, with their choices, and Burn in subtitles [+]. Their fields
+/// are camelCase in JSON, as the page writes them.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "tool", rename_all = "kebab-case")]
+#[serde(
+    tag = "tool",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
 pub enum Tool {
     /// Remove audio: a silent copy, the video stream untouched.
     Mute,
@@ -309,4 +314,28 @@ pub struct ToolRun<'a> {
 /// folder tools. Scratch files go to `run.temp` only.
 pub fn run_tool(run: &ToolRun) -> Result<Vec<PathBuf>> {
     tools::run(run)
+}
+
+#[cfg(test)]
+mod json {
+    use super::*;
+
+    /// The page writes every field in camelCase (src/ipc.ts).
+    #[test]
+    fn reads_tools_as_the_page_writes_them() {
+        let tool: Tool = serde_json::from_str(
+            r#"{"tool":"trim-audio","span":{"start":0,"end":1},"removeSilence":true}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            tool,
+            Tool::TrimAudio {
+                span: Span {
+                    start: 0.0,
+                    end: 1.0
+                },
+                remove_silence: true
+            }
+        );
+    }
 }
