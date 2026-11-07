@@ -304,8 +304,17 @@ fn three_clips_meet_with_each_kind() {
                     assert!(like(left, from, 24), "{kind:?} {at}: {left:?}");
                     assert!(like(right, to, 24), "{kind:?} {at}: {right:?}");
                 }
+                // Black falls at the middle; one FFmpeg lands a frame either side of it.
                 TransitionKind::FadeBlack => {
-                    assert!(left.iter().all(|c| *c < 90), "{kind:?} {at}: {left:?}");
+                    let darkest = [at - 0.08, at, at + 0.08]
+                        .map(|t| pixel(&lab, &out, t, x0, 45))
+                        .into_iter()
+                        .min_by_key(|p| p.iter().map(|c| u32::from(*c)).sum::<u32>())
+                        .unwrap();
+                    assert!(
+                        darkest.iter().all(|c| *c < 90),
+                        "{kind:?} {at}: {darkest:?}"
+                    );
                 }
                 _ => {
                     assert!(!like(left, from, 40) && !like(left, to, 40), "{left:?}");

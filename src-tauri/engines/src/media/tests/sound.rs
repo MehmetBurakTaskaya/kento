@@ -512,7 +512,10 @@ fn cuts_out_parts_of_video_and_audio() {
     let clicks = "highpass=f=4000,highpass=f=4000,highpass=f=4000";
     assert!(rms(&lab, &joint, 0.9, 0.2, clicks) < -60.0, "no click");
 
-    // Every audio format keeps its codec.
+    // Every audio format keeps its codec. Without libvorbis (Homebrew's FFmpeg) Vorbis falls
+    // back to FFmpeg's own experimental encoder, which can fail an assertion on short faded
+    // pieces, so OGG is checked where libvorbis is there.
+    let vorbis = has_encoder(&lab, "libvorbis");
     for (ext, codec) in [
         ("m4a", "aac"),
         ("mp3", "mp3"),
@@ -520,6 +523,9 @@ fn cuts_out_parts_of_video_and_audio() {
         ("ogg", "vorbis"),
         ("opus", "opus"),
     ] {
+        if ext == "ogg" && !vorbis {
+            continue;
+        }
         let converted = lab.convert(&wav, "wav", ext);
         let named = lab.path(&format!("{NAME}.{ext}"));
         fs::rename(&converted, &named).unwrap();
@@ -1224,12 +1230,14 @@ fn merges_audio_files() {
     );
     let out = merge("joined.opus", &[opus, flac.clone()], 0.2);
     assert_eq!(audio_of(&lab.probe(&out)).codec, "opus");
-    let ogg = lab.ffmpeg(
-        &["-i", wav.to_str().unwrap(), "-c:a", "libvorbis"],
-        &lab.path(&format!("{NAME}.ogg")),
-    );
-    let out = merge("joined.ogg", &[ogg, wav.clone()], 0.0);
-    assert_eq!(audio_of(&lab.probe(&out)).codec, "vorbis");
+    if has_encoder(&lab, "libvorbis") {
+        let ogg = lab.ffmpeg(
+            &["-i", wav.to_str().unwrap(), "-c:a", "libvorbis"],
+            &lab.path(&format!("{NAME}.ogg")),
+        );
+        let out = merge("joined.ogg", &[ogg, wav.clone()], 0.0);
+        assert_eq!(audio_of(&lab.probe(&out)).codec, "vorbis");
+    }
 
     assert!(lab
         .tool(
@@ -1310,4 +1318,20 @@ fn makes_ringtones() {
             &lab.out("nothing.m4r"),
         )
         .is_err());
+}
+
+/// Whether the FFmpeg the tests use has an encoder: Homebrew's has no libvorbis.
+fn has_encoder(lab: &Lab, name: &str) -> bool {
+    let Some(ffmpeg) = lab.tools.ffmpeg.as_ref() else {
+        return false;
+    };
+    Command::new(ffmpeg)
+        .args(["-hide_banner", "-encoders"])
+        .output()
+        .map(|out| {
+            String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .any(|line| line.split_whitespace().nth(1) == Some(name))
+        })
+        .unwrap_or(false)
 }
