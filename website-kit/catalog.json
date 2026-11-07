@@ -4373,9 +4373,9 @@
     "actions": 8,
     "coreInputs": 46,
     "formats": 54,
-    "ready": 377,
+    "ready": 390,
     "routes": 355,
-    "tools": 31
+    "tools": 44
   },
   "tools": [
     {
@@ -4674,6 +4674,93 @@
     },
     {
       "categories": [
+        "video",
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "cut-out",
+      "names": {
+        "en": "Cut out parts",
+        "tr": "Parça çıkar"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "crop",
+      "id": "make-vertical",
+      "names": {
+        "en": "Make vertical",
+        "tr": "Dikey video yap"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "add-music",
+      "names": {
+        "en": "Add music",
+        "tr": "Müzik ekle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "add-overlay",
+      "names": {
+        "en": "Add text or logo",
+        "tr": "Yazı ya da logo ekle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video",
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "remove-pauses",
+      "names": {
+        "en": "Remove pauses",
+        "tr": "Duraklamaları kaldır"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
         "video"
       ],
       "engine": "ffmpeg",
@@ -4776,6 +4863,110 @@
     },
     {
       "categories": [
+        "video",
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "fade",
+      "names": {
+        "en": "Fade and volume",
+        "tr": "Ses ve yumuşak geçiş"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video",
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "denoise",
+      "names": {
+        "en": "Remove noise",
+        "tr": "Gürültüyü azalt"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "rotate-video",
+      "names": {
+        "en": "Rotate video",
+        "tr": "Videoyu döndür"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "color-video",
+      "names": {
+        "en": "Color and look",
+        "tr": "Renk ve görünüm"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "loop-video",
+      "names": {
+        "en": "Reverse and loop",
+        "tr": "Ters oynat ve döngü"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "video",
+      "id": "stabilize",
+      "names": {
+        "en": "Stabilize video",
+        "tr": "Videoyu sabitle"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
         "audio"
       ],
       "engine": "ffmpeg",
@@ -4854,6 +5045,41 @@
       "names": {
         "en": "Audio to video",
         "tr": "Sesten video"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "audio"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "merge-audio",
+      "names": {
+        "en": "Merge audio",
+        "tr": "Sesleri birleştir"
+      },
+      "note": null,
+      "platforms": "both",
+      "status": "ready"
+    },
+    {
+      "categories": [
+        "audio",
+        "video"
+      ],
+      "engine": "ffmpeg",
+      "enhancement": false,
+      "group": "media",
+      "icon": "music",
+      "id": "ringtone",
+      "names": {
+        "en": "Make a ringtone",
+        "tr": "Zil sesi yap"
       },
       "note": null,
       "platforms": "both",

@@ -96,4 +96,7 @@ Progress against [SPEC.md](SPEC.md) section 9.
 - [ ] Modern Windows 11 context menu
 - [ ] Touch support and ARM64
 - [x] Fifty more themes, chosen in Settings → Appearance (SPEC 5.20)
+- [ ] Video and audio editing: Make vertical, Cut out parts, Remove pauses, Add music, Add text or logo, Erase in Redact video, Fade and volume, Remove noise (SPEC 5.5)
+- [ ] More video and audio tools: transitions in Merge videos, Rotate video, Reverse and loop, Color and look, Merge audio, Make a ringtone, Stabilize video (SPEC 5.5)
+- [ ] Automatic subtitles: speech recognised on the computer with an optional model download, written as SRT and optionally burned in
 - [ ] After v1.0 has users: apply to the SignPath Foundation's free code-signing program

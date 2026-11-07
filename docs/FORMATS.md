@@ -9,7 +9,7 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 | Formats | 54 |
 | Core input formats | 46 |
 | Conversion routes | 355 |
-| Tools | 31 |
+| Tools | 44 |
 | File actions | 8 |
 
 ## Image
@@ -149,17 +149,30 @@ Generated from the catalog in `src-tauri/src/catalog` by `npm run catalog:export
 | Extract archive | Archive | Core | ready |  |
 | Remove audio | Video | Media | ready |  |
 | Trim video | Video | Media | ready |  |
+| Cut out parts | Video, Audio | Media | ready |  |
+| Make vertical | Video | Media | ready |  |
+| Add music | Video | Media | ready |  |
+| Add text or logo | Video | Media | ready |  |
+| Remove pauses | Video, Audio | Media | ready |  |
 | Crop video area | Video | Media | ready |  |
 | Change video speed | Video | Media | ready |  |
 | Merge videos | Video | Media | ready |  |
 | Extract frames | Video | Media | ready |  |
 | Split video | Video | Media | ready |  |
 | Redact video | Video | Media | ready |  |
+| Fade and volume | Video, Audio | Media | ready |  |
+| Remove noise | Video, Audio | Media | ready |  |
+| Rotate video | Video | Media | ready |  |
+| Color and look | Video | Media | ready |  |
+| Reverse and loop | Video | Media | ready |  |
+| Stabilize video | Video | Media | ready |  |
 | Normalize loudness | Audio | Media | ready |  |
 | Trim audio | Audio | Media | ready |  |
 | Audio channels | Audio | Media | ready |  |
 | Redact audio | Audio | Media | ready |  |
 | Audio to video | Audio | Media | ready |  |
+| Merge audio | Audio | Media | ready |  |
+| Make a ringtone | Audio, Video | Media | ready |  |
 | Remove background [+] | Image | Extras | ready | permissively licensed models only |
 | Extract text [+] | Image, PDF | Core | ready | Windows OCR and Apple Vision |
 | Burn in subtitles [+] | Video, Subtitles | Media | ready |  |
