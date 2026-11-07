@@ -140,7 +140,7 @@ ad altında birleştirir, komut satırı da hepsini betiklerden çalıştırır.
 ## 51 tema
 
 <p align="center">
-  <img src="docs/images/kento-themes-tr.gif" width="960" alt="Kento'nun temaları. Çelik kadran Kasa, 51 farklı tema yazısının yanında açılır. Damla, Bom, Nar, Piksel, Konfeti ve Varak birer dilimi kendi efektiyle uygular: boya sıçraması, çizgi roman patlaması, saçılan taneler, uçuşan pikseller, konfeti ve altın bir ışık. Ardından başka temalar hızla gelir, her birinin adı çarkının altında belirir; altı tema aynı anda uygular, 51 tema seninki hangisi sorusunun altında yan yana durur ve son kart ücretsiz indirmeye çağırır.">
+  <img src="docs/images/kento-themes-tr.gif" width="960" alt="Kento'nun temaları. Çelik kadran Kasa, 51 farklı tema yazısının yanında açılır. Damla, Bom, Nar, Piksel, Konfeti ve Varak birer dilimi kendi efektiyle uygular, sesi de altında yazar: boya damlası şapırdarken boya sıçraması, çizgi roman patlaması, tıkır tıkır yuvarlanan taneler, 8-bit bipleriyle uçuşan pikseller, patlangaçla konfeti ve bir çınlamayla altın ışık. Ardından başka temalar hızla gelir, her birinin adı çarkının altında belirir; altı tema aynı anda uygular, 51 tema, 51 ses seti yazısının altında yan yana durur ve son kart ücretsiz indirmeye çağırır.">
 </p>
 
 Varsayılan tema çelik kadran Kasa. Diğer elli tema çarkı baştan değiştirir, kendi rengi, hareketi ve

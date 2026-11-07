@@ -137,7 +137,7 @@ and the command line runs it all from scripts.
 ## 51 themes
 
 <p align="center">
-  <img src="docs/images/kento-themes.gif" width="960" alt="Kento's themes. The steel dial, Kasa, opens beside the words 51 different themes. Damla, Bom, Nar, Piksel, Konfeti and Varak each open and apply a slice with their own effect: a splash of paint, a comic-book boom, spilling seeds, flying pixels, confetti and a glow of gold. More themes follow quickly, each name popping in under its wheel, six more apply at once, all 51 stand side by side under the question which one is yours, and the end card offers the free download.">
+  <img src="docs/images/kento-themes.gif" width="960" alt="Kento's themes. The steel dial, Kasa, opens beside the words 51 different themes. Damla, Bom, Nar, Piksel, Konfeti and Varak each open and apply a slice with their own effect, its sound written under it: a splash of paint as a drop of paint lands, a comic-book boom, seeds that patter and roll, pixels with chiptune bleeps, confetti with a party popper and a glow of gold with a chime. More themes follow quickly, each name popping in under its wheel, six more apply at once, all 51 stand side by side under 51 themes, 51 sound sets, and the end card offers the free download.">
 </p>
 
 Kasa, the steel dial, is the default. The other fifty change the wheel completely, with their own
