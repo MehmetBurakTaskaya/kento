@@ -4,7 +4,7 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.4] - 2026-11-14
 
 ### Fixed
 
@@ -184,6 +184,7 @@ download the links you ask for.
   Portuguese, Arabic (right to left), Korean, Italian and Russian. Kento follows the system
   language, and Settings → Language changes it at once in every window.
 
+[1.2.4]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.2.4
 [1.2.3]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.2.3
 [1.2.2]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.2.2
 [1.2.1]: https://github.com/MehmetBurakTaskaya/kento/releases/tag/v1.2.1
