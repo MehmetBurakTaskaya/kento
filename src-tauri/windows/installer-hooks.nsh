@@ -168,18 +168,63 @@ FunctionEnd
 
 ; The name the installed kento.exe was set aside under during this install, or empty.
 Var KentoAppAside
+; Why the check whether Kento runs stops the install or uninstall, or empty.
+Var KentoStop
 
-; The size of RM_PROCESS_INFO: a process id and its start time, two names, four numbers.
-!define KENTO_RM_PROCESS_INFO 668
+; The size of PROCESSENTRY32W in this 32-bit installer.
+!define KENTO_PROCESS_ENTRY 556
 
-; Waits until no running program uses the installed kento.exe, for up to 30 seconds, closing the
-; ones that can be closed, then sets kento.exe aside so that Tauri's check after this hook, which
-; gives up at once on a program it cannot close, finds nothing in the way. An update starts while
-; the Kento that started it is still ending, and Restart Manager can go on naming that Kento to
-; this installer after it has ended (1.2.1 to 1.2.2), so only the programs it names that are still
-; running count. kento.exe is set aside only when none is: Windows lets a program in use be
-; renamed, but not the files it has open. What the installer saw goes to logs\installer.log, for
-; when an update does not install. Uses $0 to $9 and $R3 to $R9.
+; Counts in $R9 the copies of Kento running from PATH, the installed kento.exe, never a copy
+; elsewhere. With KILL 1 it ends them. Notes each one in the log ($R5, when open) with the time
+; ($R7). Uses $0 to $8.
+!macro KentoFindApp PATH KILL
+  StrCpy $R9 0
+  System::Call 'kernel32::CreateToolhelp32Snapshot(i 2, i 0) p .r1'
+  ${If} $1 P<> -1
+    System::Alloc ${KENTO_PROCESS_ENTRY}
+    Pop $2
+    System::Call '*$2(i ${KENTO_PROCESS_ENTRY})'
+    System::Call 'kernel32::Process32FirstW(p r1, p r2) i .r3'
+    ${DoWhile} $3 <> 0
+      System::Call '*$2(i, i, i .r4, i, i, i, i, i, i, &w260 .r5)'
+      ${If} $5 == "${MAINBINARYNAME}.exe"
+        ; PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE
+        System::Call 'kernel32::OpenProcess(i 0x00101001, i 0, i r4) p .r6'
+        ${If} $6 P<> 0
+          StrCpy $7 ""
+          System::Call 'kernel32::QueryFullProcessImageNameW(p r6, i 0, w .r7, *i ${NSIS_MAX_STRLEN})'
+          ; WAIT_TIMEOUT: it has not ended.
+          System::Call 'kernel32::WaitForSingleObject(p r6, i 0) i .r8'
+          ${If} $7 == "${PATH}"
+          ${AndIf} $8 = 258
+            IntOp $R9 $R9 + 1
+            ${If} ${KILL} = 1
+              System::Call 'kernel32::TerminateProcess(p r6, i 1)'
+            ${EndIf}
+            ${If} $R5 != ""
+              FileWrite $R5 "$R7 ms: Kento $4 is running$\r$\n"
+            ${EndIf}
+          ${EndIf}
+          System::Call 'kernel32::CloseHandle(p r6)'
+        ${EndIf}
+      ${EndIf}
+      System::Call 'kernel32::Process32NextW(p r1, p r2) i .r3'
+    ${Loop}
+    System::Free $2
+    System::Call 'kernel32::CloseHandle(p r1)'
+  ${EndIf}
+!macroend
+
+; Frees the installed kento.exe for the new one, and sets it aside so that Tauri's check after this
+; hook, which asks Restart Manager about kento.exe and gives up at once on a program it cannot
+; close, finds nothing to ask about. Restart Manager cannot be relied on here: on a computer with a
+; virus scanner it took minutes to answer and named the scanner's service, which never ends
+; (1.2.2 to 1.2.3), and before that it named a Kento that had ended (1.2.1 to 1.2.2). So the hook
+; looks for the copies of Kento running from this folder itself: the one that started an update
+; ends at once, and one still running after 5 seconds (at once outside an update) is ended. Then
+; kento.exe is renamed to kento-app.<n>.old, which Windows allows for a program in use but not while
+; a scanner holds it without sharing, so it tries again for up to 30 seconds. What it found goes to
+; logs\installer.log, for when an install does not go through. Uses $0 to $8 and $R4 to $R9.
 !macro KentoFreeApp
   Push $0
   Push $1
@@ -190,8 +235,6 @@ Var KentoAppAside
   Push $6
   Push $7
   Push $8
-  Push $9
-  Push $R3
   Push $R4
   Push $R5
   Push $R6
@@ -208,95 +251,54 @@ Var KentoAppAside
   ${If} $R5 != ""
     FileWrite $R5 "Kento ${VERSION} installer: $CMDLINE$\r$\n"
   ${EndIf}
-  System::Call 'kernel32::GetCurrentProcessId() i .R6'
+  StrCpy $R6 0
+  ${If} $UpdateMode = 1
+    StrCpy $R6 5000
+  ${EndIf}
   System::Call 'kernel32::GetTickCount() i .R8'
   ${Do}
-    StrCpy $R4 0
-    StrCpy $R9 0
-    !insertmacro RestartManager_StartSession $R7
-    ${If} $R7 != ""
-      !insertmacro RestartManager_RegisterFile $R7 "$INSTDIR\${MAINBINARYNAME}.exe"
-      ${If} $0 = 0
-        StrCpy $2 0
-        System::Call 'RSTRTMGR::RmGetList(i R7, *i .r1, *i r2r2, p 0, *i .r3) i .r0'
-        ; ERROR_MORE_DATA: it names some programs, $1 of them.
-        ${If} $0 = 234
-        ${AndIf} $1 > 0
-          IntOp $5 $1 * ${KENTO_RM_PROCESS_INFO}
-          System::Alloc $5
-          Pop $6
-          StrCpy $2 $1
-          System::Call 'RSTRTMGR::RmGetList(i R7, *i .r1, *i r2r2, p r6, *i .r3) i .r0'
-          ${If} $0 = 0
-            StrCpy $R4 $2
-            System::Call 'kernel32::GetTickCount() i .r1'
-            IntOp $1 $1 - $R8
-            ${If} $R5 != ""
-              FileWrite $R5 "$1 ms:"
-            ${EndIf}
-            StrCpy $5 $6
-            ${ForEach} $4 1 $2 + 1
-              System::Call '*$5(i .r7, i, i, &w256 .R3)'
-              StrCpy $9 "ended"
-              ${If} $7 = $R6
-                StrCpy $9 "this installer"
-              ${Else}
-                ; SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION. A process that cannot be opened
-                ; is still running unless it is gone (ERROR_ACCESS_DENIED).
-                System::Call 'kernel32::OpenProcess(i 0x00101000, i 0, i r7) p .r8 ?e'
-                Pop $3
-                ${If} $8 P<> 0
-                  ; WAIT_TIMEOUT: not ended yet.
-                  System::Call 'kernel32::WaitForSingleObject(p r8, i 0) i .r3'
-                  System::Call 'kernel32::CloseHandle(p r8)'
-                  ${If} $3 = 258
-                    StrCpy $9 "running"
-                  ${EndIf}
-                ${ElseIf} $3 = 5
-                  StrCpy $9 "running"
-                ${EndIf}
-                ${If} $9 == "running"
-                  IntOp $R9 $R9 + 1
-                ${EndIf}
-              ${EndIf}
-              ${If} $R5 != ""
-                FileWrite $R5 " $7 $R3 ($9);"
-              ${EndIf}
-              IntPtrOp $5 $5 + ${KENTO_RM_PROCESS_INFO}
-            ${Next}
-            ${If} $R5 != ""
-              FileWrite $R5 "$\r$\n"
-            ${EndIf}
-          ${EndIf}
-          System::Free $6
-          ${If} $R9 > 0
-            System::Call 'RSTRTMGR::RmShutdown(i R7, i ${RmForceShutdown}, p 0) i .r4'
-          ${EndIf}
-        ${EndIf}
-      ${EndIf}
-      !insertmacro RestartManager_EndSession $R7
+    System::Call 'kernel32::GetTickCount() i .r0'
+    IntOp $R7 $0 - $R8
+    ${If} $R7 < $R6
+      !insertmacro KentoFindApp "$INSTDIR\${MAINBINARYNAME}.exe" 0
+    ${Else}
+      !insertmacro KentoFindApp "$INSTDIR\${MAINBINARYNAME}.exe" 1
     ${EndIf}
-    System::Call 'kernel32::GetTickCount() i .r1'
-    IntOp $1 $1 - $R8
     ${If} $R9 = 0
-    ${OrIf} $1 >= 30000
+    ${OrIf} $R7 >= 30000
       ${ExitDo}
     ${EndIf}
-    Sleep 250
+    Sleep 200
   ${Loop}
-  ; A copy left by an earlier install whose old Kento had not ended yet goes now.
+  ; A copy left by an earlier install whose Kento had not ended goes now.
   Delete "$INSTDIR\kento-app.*.old"
+  StrCpy $R4 0
+  StrCpy $2 0
   ${If} $R9 = 0
   ${AndIf} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
     System::Call 'kernel32::GetTickCount() i .r0'
-    ClearErrors
-    Rename "$INSTDIR\${MAINBINARYNAME}.exe" "$INSTDIR\kento-app.$0.old"
-    ${IfNot} ${Errors}
-      StrCpy $KentoAppAside "kento-app.$0.old"
-    ${EndIf}
+    StrCpy $R6 "kento-app.$0.old"
+    ${Do}
+      IntOp $R4 $R4 + 1
+      System::Call 'kernel32::MoveFileW(w "$INSTDIR\${MAINBINARYNAME}.exe", w "$INSTDIR\$R6") i .r1 ?e'
+      Pop $2
+      ${If} $1 <> 0
+        StrCpy $KentoAppAside $R6
+        StrCpy $2 0
+        ${ExitDo}
+      ${EndIf}
+      System::Call 'kernel32::GetTickCount() i .r1'
+      IntOp $1 $1 - $0
+      ${If} $1 >= 30000
+        ${ExitDo}
+      ${EndIf}
+      Sleep 250
+    ${Loop}
   ${EndIf}
   ${If} $R5 != ""
-    FileWrite $R5 "waited $1 ms; $R4 named on the last check, $R9 of them running; kento.exe set aside as [$KentoAppAside]$\r$\n"
+    System::Call 'kernel32::GetTickCount() i .r0'
+    IntOp $0 $0 - $R8
+    FileWrite $R5 "$0 ms: Kento running: $R9; kento.exe set aside as [$KentoAppAside] after $R4 tries (last error $2)$\r$\n"
     FileClose $R5
   ${EndIf}
   Pop $R9
@@ -305,8 +307,6 @@ Var KentoAppAside
   Pop $R6
   Pop $R5
   Pop $R4
-  Pop $R3
-  Pop $9
   Pop $8
   Pop $7
   Pop $6
@@ -316,6 +316,86 @@ Var KentoAppAside
   Pop $2
   Pop $1
   Pop $0
+!macroend
+
+; Tauri's own check whether Kento runs, before the files are copied and before they are removed,
+; asks Restart Manager too, which can take minutes on a computer with a virus scanner even for a
+; kento.exe that has been set aside. Tauri defines it before this file is read, so it is replaced
+; here by the same check on the running copies of Kento, with Tauri's messages: a quiet or passive
+; install or uninstall ends them, any other asks first; one that has not ended 10 seconds later
+; stops it.
+!ifmacrodef CheckIfAppIsRunning
+  !macroundef CheckIfAppIsRunning
+!endif
+!macro CheckIfAppIsRunning executablePath productName
+  Push $0
+  Push $1
+  Push $2
+  Push $3
+  Push $4
+  Push $5
+  Push $6
+  Push $7
+  Push $8
+  Push $R5
+  Push $R6
+  Push $R7
+  Push $R8
+  Push $R9
+  StrCpy $R5 ""
+  StrCpy $R7 0
+  !insertmacro KentoFindApp "${executablePath}" 0
+  StrCpy $R8 ""
+  ${If} $R9 > 0
+    ${IfNot} ${Silent}
+    ${AndIf} $PassiveMode <> 1
+      nsis_tauri_utils::StrReplace "$(appRunningOkKill)" "{{product_name}}" "${productName}"
+      Pop $0
+      MessageBox MB_OKCANCEL|MB_ICONINFORMATION "$0" IDOK +2
+      StrCpy $R8 "appRunning"
+    ${EndIf}
+    ${If} $R8 == ""
+      System::Call 'kernel32::GetTickCount() i .R6'
+      ${Do}
+        !insertmacro KentoFindApp "${executablePath}" 1
+        System::Call 'kernel32::GetTickCount() i .r0'
+        IntOp $0 $0 - $R6
+        ${If} $R9 = 0
+        ${OrIf} $0 >= 10000
+          ${ExitDo}
+        ${EndIf}
+        Sleep 200
+      ${Loop}
+      ${If} $R9 > 0
+        StrCpy $R8 "failedToKillApp"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+  StrCpy $KentoStop ""
+  ${If} $R8 == "appRunning"
+    nsis_tauri_utils::StrReplace "$(appRunning)" "{{product_name}}" "${productName}"
+    Pop $KentoStop
+  ${ElseIf} $R8 == "failedToKillApp"
+    nsis_tauri_utils::StrReplace "$(failedToKillApp)" "{{product_name}}" "${productName}"
+    Pop $KentoStop
+  ${EndIf}
+  Pop $R9
+  Pop $R8
+  Pop $R7
+  Pop $R6
+  Pop $R5
+  Pop $8
+  Pop $7
+  Pop $6
+  Pop $5
+  Pop $4
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+  ${If} $KentoStop != ""
+    Abort $KentoStop
+  ${EndIf}
 !macroend
 
 ; An install that failed puts back kento.exe and the command line the hooks below set aside (the

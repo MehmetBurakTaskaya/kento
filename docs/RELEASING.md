@@ -112,8 +112,8 @@ Download the draft's files: `gh release download v1.0.0 --dir kento-1.0.0`.
       and Explorer entries as they were. After publishing, a copy of the previous version finds
       the update by itself and installs it (SPEC 5.16); check that on Windows, in the portable
       copy and on a Mac. When a Windows update does not install, `%LOCALAPPDATA%\Kento\logs\installer.log`
-      says what the installer found using `kento.exe`, which of those still ran and how long it
-      waited, and `%LOCALAPPDATA%\Kento\update-attempt.json` names the version that did not install.
+      says which copies of Kento the installer waited for or ended, how long that took and whether
+      it could set `kento.exe` aside (with the last error when it could not), and `%LOCALAPPDATA%\Kento\update-attempt.json` names the version that did not install.
 
 ### 5. Publish
 

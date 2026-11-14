@@ -4,6 +4,16 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- On Windows the update from 1.2.2 to 1.2.3 could give up after several minutes without installing
+  where a virus scanner was reading Kento's files: the installer asked Windows which programs were
+  using Kento, which took minutes and named the scanner. The installer and the uninstaller now look
+  only for Kento itself, end a Kento that has not closed after a few seconds, and try again for up
+  to 30 seconds while a scanner holds the file.
+
 ## [1.2.3] - 2026-11-14
 
 ### Changed
