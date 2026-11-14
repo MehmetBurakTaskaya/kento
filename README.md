@@ -144,7 +144,8 @@ Kasa, the steel dial, is the default. The other fifty change the wheel completel
 colours, motion and sounds, and give the rest of the app their colours. Each sounds like what it
 shows: pointing at a slice of Karpuz takes a juicy bite, Damla drips paint, Plak crackles like a
 record, Tebeşir taps chalk on the board, and applying a choice plays the theme's own finale. 51
-themes, 51 sound sets. Choose one in Settings → Appearance → Theme; the change shows at once.
+themes, 51 sound sets. Choose one on the Themes page, which the theme at the foot of the side bar
+opens; the change shows at once.
 
 ## Screenshots
 
@@ -364,8 +365,9 @@ Drag one or more files, and while you drag, press a key:
 - The keys can be changed in Settings → Wheel.
 - **Themes.** The steel dial, Kasa, is one of 51 themes, each a wheel of its own with its own
   colours, motion and sounds: a rotary phone dial, a record player, a halved orange, an İznik tile
-  rosette, a stained-glass rose window and many more. Settings → Appearance → Theme shows them all
-  in light or dark with a wheel to try; the one you choose colours every window at once.
+  rosette, a stained-glass rose window and many more. The Themes page, opened from the theme at the
+  foot of the side bar or from Settings → Appearance, shows them all in light or dark with a wheel
+  to try; the one you choose colours every window at once.
 
 On Windows, a drag that starts in a program running as administrator cannot be seen by Kento,
 because Windows keeps the two apart. Please do not run Kento as administrator to get around it.

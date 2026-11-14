@@ -16,7 +16,7 @@ import { api, type Section } from './ipc';
 import { useApp } from './state/store';
 import { modeFor, showTheme } from './theme/registry';
 
-const SECTIONS: Section[] = ['home', 'library', 'automation', 'settings'];
+const SECTIONS: Section[] = ['home', 'library', 'automation', 'settings', 'themes'];
 // The floating wheel, the shelf and the corner card load this page in windows of their own.
 const SURFACES = { wheel: WheelSurface, shelf: ShelfSurface, toast: ToastSurface } as const;
 

@@ -181,6 +181,43 @@ describe('the drawing helpers', () => {
     delete (SVGElement.prototype as { getComputedTextLength?: unknown }).getComputedTextLength;
   });
 
+  it('fit a label at the size stepping down finds, with a few measurements', () => {
+    // Widths in proportion to the size, and widths that hinting rounds to whole units.
+    const shapes = [(size: number) => size * 7.3, (size: number) => Math.round(size * 5.1) + 3];
+    let measured = 0;
+    let shape = shapes[0]!;
+    Object.defineProperty(SVGElement.prototype, 'getComputedTextLength', {
+      configurable: true,
+      value(this: SVGElement) {
+        measured += 1;
+        return shape(Number(this.getAttribute('font-size')));
+      },
+    });
+    const stepping = (maxWidth: number, size: number, minSize: number) => {
+      let fs = size;
+      while (fs > minSize && shape(fs) > maxWidth) fs -= 0.5;
+      return fs;
+    };
+    const H = createHelpers();
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    let most = 0;
+    for (shape of shapes)
+      for (const size of [14, 13.5, 9.6, 8])
+        for (const minSize of [6, 7.3, 8])
+          for (let maxWidth = 20; maxWidth <= 120; maxWidth += 1.7) {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            svg.appendChild(text);
+            measured = 0;
+            const fs = H.fitWidth(text, maxWidth, size, minSize);
+            expect(fs).toBe(stepping(maxWidth, size, minSize));
+            expect(text.getAttribute('font-size')).toBe(String(fs));
+            most = Math.max(most, measured);
+          }
+    // Stepping down from 14 to 6 would measure up to 17 times.
+    expect(most).toBeLessThanOrEqual(4);
+    delete (SVGElement.prototype as { getComputedTextLength?: unknown }).getComputedTextLength;
+  });
+
   it('mark a slice that opens a ring with a shape pointing outwards, mirrored right to left', () => {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     const H = createHelpers();

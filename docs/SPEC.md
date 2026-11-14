@@ -583,7 +583,7 @@ Only the newest release stays on GitHub:
 
 ### 5.17 Settings (Ctrl+, / ⌘,)
 
-- Appearance: System / Light / Dark, and the theme (5.20): a card for every theme with its wheel, and the chosen theme's wheel to try.
+- Appearance: System / Light / Dark, and the theme in use with a button to the Themes page (5.20).
 - Language: "System language" (default) or one of the 12 languages (see 5.19).
 - Drag modifiers and key combinations.
 - Global shortcuts: selection wheel, download (Ctrl+Shift+D, on by default; while it is on, the browser's own Ctrl+Shift+D does not reach the browser), window layouts.
@@ -697,12 +697,12 @@ Rules for every theme:
 - Sounds are synthesized or CC0, low by default, and follow the sound setting. Each plays at a level
   measured for it, so every theme sounds as loud as every other.
 
-**The themes.** Kento has 51 themes, each with its own name, the same in every language, listed in `src/theme/catalog.json` in the order Settings shows them: Kasa (the steel dial, the default), Ayar, Beton, Titan, Varak, Obsidyen, Damla, Serpinti, Atlas, Girdap, Yörünge, Halka, Pusula, Tezgâh, Portakal, Karpuz, Nar, Fırın, Akide, Baklava, Gündöndü, Ayaz, Kütük, Petek, Helezon, Dalga, Çini, Kilim, Nazar, Sema, Telve, Hedef, Ahize, Plak, Radar, Frekans, Saniye, Jeton, Piksel, Kare, Konfeti, Yaldız, Bom, Fırça, Tebeşir, Ozalit, Revzen, Kıvrım, Sedef, Mozaik, Serap. Every theme but Kasa is a pack (`src/theme/packs/`): its wheel drawn from the slices the app shows, its light and dark palettes, its timings (open within 200 ms plus a short stagger, an apply effect of up to about 700 ms), its sounds (open, pointing, a ring's way in and back, and apply, each matching what its wheel shows at that moment, synthesised in the pack) and its typefaces. A saved theme that is no longer in the list falls back to Kasa.
+**The themes.** Kento has 51 themes, each with its own name, the same in every language, listed in `src/theme/catalog.json` in the order the Themes page shows them: Kasa (the steel dial, the default), Ayar, Beton, Titan, Varak, Obsidyen, Damla, Serpinti, Atlas, Girdap, Yörünge, Halka, Pusula, Tezgâh, Portakal, Karpuz, Nar, Fırın, Akide, Baklava, Gündöndü, Ayaz, Kütük, Petek, Helezon, Dalga, Çini, Kilim, Nazar, Sema, Telve, Hedef, Ahize, Plak, Radar, Frekans, Saniye, Jeton, Piksel, Kare, Konfeti, Yaldız, Bom, Fırça, Tebeşir, Ozalit, Revzen, Kıvrım, Sedef, Mozaik, Serap. Every theme but Kasa is a pack (`src/theme/packs/`): its wheel drawn from the slices the app shows, its light and dark palettes, its timings (open within 200 ms plus a short stagger, an apply effect of up to about 700 ms), its sounds (open, pointing, a ring's way in and back, and apply, each matching what its wheel shows at that moment, synthesised in the pack) and its typefaces. A saved theme that is no longer in the list falls back to Kasa.
 
 Choosing a theme:
 
-- Settings → Appearance → Theme shows every theme as a card with its wheel, small and at rest, in the light or dark the app shows; the cards are a radio group (arrow keys, Home, End, Space). Above them the chosen theme's wheel is live: pointing at a slice ticks, a click applies it with its effect and sound, and it opens again.
-- The choice applies at once, in Settings itself and in every window: the main window, the floating wheel, the shelf and the corner cards.
+- The Themes page, a page of its own so that Settings stays light to scroll, opens from the theme in use at the foot of the rail (its wheel, small, and its name) and from Settings → Appearance. It shows every theme as a card with its wheel, small and at rest, in the light or dark the app shows; the cards are a radio group (arrow keys, Home, End, Space). A card draws its wheel once it is near the screen and its turn has come, one card a frame, so scrolling never waits for the drawing. Above the cards the chosen theme's wheel is live: pointing at a slice ticks, a click applies it with its effect and sound, and it opens again.
+- The choice applies at once, on the Themes page itself and in every window: the main window, the floating wheel, the shelf and the corner cards.
 - A theme changes the wheel completely, and the colours of the rest of the app: its palette's page, surface, border, text, accent, focus and status colours replace the steel ones. The layout of Home, Library, Settings, the shelf and the cards and the interface typeface stay the same, so every theme reads the same way.
 - Everything the wheel does stays the app's: pointing, the keys, rings of choices, paging, the back control, the description bubble, drag and drop and the menu for screen readers. In Windows High Contrast the steel wheel is shown, since it draws itself in the system's colours.
 

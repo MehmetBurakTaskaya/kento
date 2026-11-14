@@ -140,14 +140,47 @@ export function arc(r: number, a0: number, a1: number): string {
 
 const length = (node: SVGTextContentElement) => node.getComputedTextLength();
 
-export function fitWidth(t: SVGTextElement, maxWidth: number, size: number, minSize: number): number {
-  let fs = size;
-  t.setAttribute('font-size', String(fs));
-  while (fs > minSize && length(t) > maxWidth) {
-    fs -= 0.5;
-    t.setAttribute('font-size', String(fs));
+/** The font size that stepping down from `size` by 0.5 finds: the first that fits maxWidth, or the
+ *  first at or below minSize. Every measurement lays the text out again, which a wheel of themed
+ *  labels pays for many times over, and text widens in step with its size: one measurement at
+ *  `size` guesses the step and one or two more confirm it, where stepping down measured each step. */
+function settle(
+  set: (fs: number) => void,
+  width: () => number,
+  maxWidth: number,
+  size: number,
+  minSize: number,
+): number {
+  set(size);
+  if (size <= minSize) return size;
+  const full = width();
+  if (full <= maxWidth) return size;
+  const at = (k: number) => size - k / 2;
+  const fits = (k: number) => {
+    set(at(k));
+    return width() <= maxWidth;
+  };
+  // The first step at or below minSize, where stepping down stops.
+  const last = Math.ceil((size - minSize) * 2);
+  let k = Math.min(last, Math.max(1, Math.ceil((size - (size * maxWidth) / full) * 2)));
+  if (fits(k)) {
+    while (k > 1 && fits(k - 1)) k -= 1;
+  } else if (k < last) {
+    do k += 1;
+    while (k < last && !fits(k));
   }
-  return fs;
+  set(at(k));
+  return at(k);
+}
+
+export function fitWidth(t: SVGTextElement, maxWidth: number, size: number, minSize: number): number {
+  return settle(
+    (fs) => t.setAttribute('font-size', String(fs)),
+    () => length(t),
+    maxWidth,
+    size,
+    minSize,
+  );
 }
 
 /** Shortens a line that is still too wide at the smallest size, keeping its start. The label keeps its
@@ -193,13 +226,8 @@ export function label(parent: Element, x: number, y: number, str: string, o: Lab
   }
   t.textContent = '';
   const spans = best!.lines.map((line) => s('tspan', { x, dy: 0, text: line }, t) as SVGTSpanElement);
-  let fs = size;
   const widest = () => Math.max(...spans.map(length));
-  t.setAttribute('font-size', String(fs));
-  while (fs > minSize && widest() > maxWidth) {
-    fs -= 0.5;
-    t.setAttribute('font-size', String(fs));
-  }
+  const fs = settle((value) => t.setAttribute('font-size', String(value)), widest, maxWidth, size, minSize);
   spans[0]!.setAttribute('dy', String(f2((-lh * fs) / 2)));
   spans[1]!.setAttribute('dy', String(f2(lh * fs)));
   if (fs <= one) {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-// The main window: a navigation rail (Home, Library, Automation, Settings) and the open page. It
-// follows the appearance and motion settings, listens to the core's events and shows the window
-// once painted.
+// The main window: a navigation rail (Home, Library, Automation, the theme in use, Settings) and
+// the open page. It follows the appearance and motion settings, listens to the core's events and
+// shows the window once painted.
 import { Fragment, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Automation } from '../automation/Automation';
@@ -19,6 +19,7 @@ import { Library } from './Library';
 import { Settings } from './Settings';
 import { Setup } from './Setup';
 import { ThemeThumb } from './ThemePicker';
+import { Themes } from './Themes';
 import { isUpdateShortcut } from './UpdateSettings';
 import { WheelHost } from './WheelHost';
 
@@ -29,16 +30,23 @@ const NAV: { section: Section; icon: IconName; key: string; shortcut: string }[]
   { section: 'settings', icon: 'settings', key: 'nav.settings', shortcut: ',' },
 ];
 
-/** The theme in use, at the foot of the rail: its wheel, small, and its name. It opens the theme picker. */
+/** The theme in use, at the foot of the rail: its wheel, small, and its name. It opens Themes. */
 function ThemeBadge() {
   const { t } = useTranslation();
-  const { settings, showThemes } = useApp();
+  const { settings, section, setSection } = useApp();
   const id = settings?.theme ?? DEFAULT_THEME;
   const { mode } = useLook(id, settings?.appearance ?? 'system');
   const name = themeEntry(id).name;
   const label = t('nav.theme', { name });
   return (
-    <button type="button" className="rail-item rail-theme" title={label} aria-label={label} onClick={showThemes}>
+    <button
+      type="button"
+      className="rail-item rail-theme"
+      title={label}
+      aria-label={label}
+      aria-current={section === 'themes' ? 'page' : undefined}
+      onClick={() => setSection('themes')}
+    >
       <span className="rail-theme-thumb" aria-hidden="true">
         <ThemeThumb id={id} mode={mode} />
       </span>
@@ -188,6 +196,7 @@ export function App() {
             {section === 'library' && <Library />}
             {section === 'automation' && <Automation />}
             {section === 'settings' && <Settings />}
+            {section === 'themes' && <Themes />}
           </>
         )}
       </main>

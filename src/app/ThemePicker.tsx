@@ -1,10 +1,20 @@
 // SPDX-License-Identifier: MIT
-// Settings › Appearance › Theme (SPEC 5.20): every theme as a card with its wheel, small and at rest,
-// drawn once the card comes into view, in the light or dark the app shows; the cards are one radio
-// group. Choosing a card applies the theme at once, here and in every other window. Above them the
-// chosen theme's wheel is live: pointing at a slice ticks, a click applies it with its sound and its
-// effect, and the wheel opens again.
-import { useEffect, useLayoutEffect, useRef, useState, type JSX, type KeyboardEvent, type RefObject } from 'react';
+// The theme picker on the Themes page (SPEC 5.20): every theme as a card with its wheel, small and at
+// rest, in the light or dark the app shows; the cards are one radio group. Choosing a card applies the
+// theme at once, here and in every other window. Above them the chosen theme's wheel is live: pointing
+// at a slice ticks, a click applies it with its sound and its effect, and the wheel opens again.
+// Drawing a wheel takes a while, so a card draws its own once it is near the screen and its turn has
+// come: one card a frame, those still near the screen first, and scrolling never waits for them.
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX,
+  type KeyboardEvent,
+  type RefObject,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon, type IconName } from '../components/Icon';
 import { isRtl } from '../i18n';
@@ -27,36 +37,63 @@ const SAMPLE = [
   'metadata',
 ];
 
+/** The same sample until the language changes: a card renders again whenever any theme loads, and new
+ *  slices would have its theme draw the whole wheel again each time. */
 function useSample(): { title: string; subtitle: string; slices: WheelSlice[] } {
   const { t } = useTranslation();
-  return {
-    title: t('wheel.tools'),
-    subtitle: t('settings.appearance.sample'),
-    slices: SAMPLE.map((id) => ({
-      id,
-      label: t(`tool.${id}`),
-      icon: (TOOL_ICONS[id] ?? 'sliders') as IconName,
-      dimmed: id === 'remove-background',
-      hint: id === 'remove-background' ? t('wheel.needs', { name: t('group.extras') }) : undefined,
-    })),
-  };
+  return useMemo(
+    () => ({
+      title: t('wheel.tools'),
+      subtitle: t('settings.appearance.sample'),
+      slices: SAMPLE.map((id) => ({
+        id,
+        label: t(`tool.${id}`),
+        icon: (TOOL_ICONS[id] ?? 'sliders') as IconName,
+        dimmed: id === 'remove-background',
+        hint: id === 'remove-background' ? t('wheel.needs', { name: t('group.extras') }) : undefined,
+      })),
+    }),
+    [t],
+  );
 }
 
-/** True once the element has come near the screen; it stays true. */
+/** The cards near the screen whose wheel is not drawn yet, in the order they came near it. */
+const waiting = new Set<() => void>();
+let pumping = 0;
+
+/** Draws the next waiting card, one a frame. */
+function pump(): void {
+  pumping = 0;
+  const next = waiting.values().next();
+  if (next.done) return;
+  waiting.delete(next.value);
+  next.value();
+  if (waiting.size) pumping = requestAnimationFrame(pump);
+}
+
+/** True once the element has come near the screen and its turn has come; it stays true. A card that
+ *  leaves before its turn gives it up. */
 function useSeen<T extends Element>(): [RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [seen, setSeen] = useState(() => typeof IntersectionObserver === 'undefined');
   useEffect(() => {
     const element = ref.current;
     if (seen || !element) return;
+    const go = () => setSeen(true);
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) setSeen(true);
+        if (entries.some((entry) => entry.isIntersecting)) {
+          waiting.add(go);
+          if (!pumping) pumping = requestAnimationFrame(pump);
+        } else waiting.delete(go);
       },
       { rootMargin: '240px 0px' },
     );
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      waiting.delete(go);
+    };
   }, [seen]);
   return [ref, seen];
 }
@@ -191,14 +228,6 @@ export function ThemePicker({
     themes.findIndex((theme) => theme.id === settings.theme),
   );
   const focusNext = useRef(false);
-  const revealTheme = useApp((state) => state.revealTheme);
-
-  // The theme in the rail brings the picker into view.
-  useEffect(() => {
-    if (!revealTheme) return;
-    document.getElementById(labelledBy)?.scrollIntoView({ block: 'start' });
-    useApp.setState({ revealTheme: false });
-  }, [revealTheme, labelledBy]);
 
   // Arrow keys move the choice, as in any radio group, and the focus follows it.
   useLayoutEffect(() => {

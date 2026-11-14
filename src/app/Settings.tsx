@@ -8,10 +8,9 @@ import { intlLocale, PSEUDO_LANGUAGES } from '../i18n';
 import { formatBytes } from '../i18n/format';
 import { api, type Settings as SettingsData, type ToolGroupStatus, type WheelKey } from '../ipc';
 import { useApp } from '../state/store';
-import { loadTheme } from '../theme/registry';
+import { loadTheme, themeEntry } from '../theme/registry';
 import { playFor } from '../wheel/voices';
 import { LayoutSettings } from './LayoutSettings';
-import { ThemePicker } from './ThemePicker';
 import { useToolStatus } from './Setup';
 import { UpdateSettings } from './UpdateSettings';
 
@@ -307,11 +306,12 @@ const WHEEL_KEYS: WheelKey[] = ['shift', 'control', 'alt', 'command'];
 
 export function Settings() {
   const { t } = useTranslation();
-  const { boot, settings, update, language } = useApp();
-  const ids = { language: useId(), theme: useId(), volume: useId(), jobs: useId(), keys: useId() };
+  const { boot, settings, update, language, setSection } = useApp();
+  const ids = { language: useId(), volume: useId(), jobs: useId(), keys: useId() };
   const hear = useHear(settings?.theme ?? 'steel');
   if (!boot || !settings) return null;
   const set = (patch: Partial<SettingsData>) => void update(patch);
+  const theme = themeEntry(settings.theme);
   const mac = boot.app.platform === 'macos';
   const systemName =
     boot.languages.find((lang) => boot.systemLocale?.toLowerCase().startsWith(lang.code.toLowerCase()))?.name ??
@@ -336,10 +336,16 @@ export function Settings() {
             ]}
           />
         </Row>
-        <h3 id={ids.theme} className="theme-heading">
-          {t('settings.appearance.theme')}
-        </h3>
-        <ThemePicker settings={settings} labelledBy={ids.theme} onChange={(theme) => set({ theme })} />
+        {/* The themes have a page of their own, which keeps this one light to scroll. */}
+        <Row label={t('settings.appearance.theme')}>
+          <span className="row-value">
+            {theme.pack === null ? t('settings.appearance.original', { name: theme.name }) : theme.name}
+          </span>
+          <button type="button" className="button small" onClick={() => setSection('themes')}>
+            <Icon name="palette" size={16} />
+            {t('settings.appearance.choose')}
+          </button>
+        </Row>
       </Group>
 
       <Group title={t('settings.language.title')}>

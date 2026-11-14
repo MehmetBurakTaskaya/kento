@@ -390,6 +390,11 @@ select {
   align-items: center;
   justify-content: flex-end;
 }
+/* What a row's button changes, beside it: the theme in use. */
+.row-value {
+  margin-inline-end: 10px;
+  color: var(--text-muted);
+}
 /* The volume's value stays the same width as it changes. */
 .volume {
   display: flex;

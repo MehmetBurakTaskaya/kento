@@ -6,8 +6,16 @@ All notable changes to Kento are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The themes have a page of their own: the theme at the foot of the side bar opens it, and so does
+  Choose a theme in Settings › Appearance. Settings, which showed every theme, now scrolls smoothly.
+
 ### Fixed
 
+- The theme cards no longer draw their wheels again whenever another theme loads, and a card draws
+  its wheel only once it is near the screen and its turn has come, so the Themes page scrolls
+  without stopping. Every wheel fits its labels with a fraction of the measuring it did.
 - On Windows the update from 1.2.1 to 1.2.2 did not install: the installer waited for a Kento that
   had already ended and gave up. It now waits only for programs that are still running and steps
   the old `kento.exe` aside before it copies the new one, and writes what it found to

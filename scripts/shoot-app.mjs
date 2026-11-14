@@ -22,6 +22,10 @@ const SHOTS = [
   ['home-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', section: 'home' }],
   ['settings-pseudo-rtl', { lang: 'ar-XB', appearance: 'dark', section: 'settings' }],
   ['settings-tools-light-tr', { lang: 'tr', appearance: 'light', section: 'settings', tools: 'ready' }],
+  // The Themes page, opened from the theme in the rail.
+  ['themes-light-tr', { lang: 'tr', appearance: 'light', section: 'themes' }],
+  ['themes-dark-en', { lang: 'en', appearance: 'dark', section: 'themes' }],
+  ['themes-pseudo-rtl', { lang: 'ar-XB', appearance: 'light', section: 'themes' }],
   // Home with files and the Library filled; the wheel and a tool panel opened from the keyboard.
   ['home-files-light-tr', { lang: 'tr', appearance: 'light', section: 'home', files: 'demo', library: 'demo' }],
   ['library-filled-light-tr', { lang: 'tr', appearance: 'light', section: 'library', library: 'demo' }],
@@ -405,7 +409,12 @@ const browser = await chromium.launch();
 const errors = [];
 const shots = SHOTS.filter(([name]) => !only || name.includes(only));
 for (const [name, params, action] of shots) {
-  const tall = params.section === 'settings' ? 2200 : params.section === 'automation' && !action ? 1250 : 680;
+  const tall =
+    params.section === 'settings' || params.section === 'themes'
+      ? 2200
+      : params.section === 'automation' && !action
+        ? 1250
+        : 680;
   const [width, height] = SIZES[params.surface] ?? [1000, tall];
   const page = await browser.newPage({ viewport: { width, height } });
   page.on('pageerror', (error) => errors.push(`${name}: ${error.message}`));
@@ -416,6 +425,16 @@ for (const [name, params, action] of shots) {
   );
   if (params.surface === 'wheel') await page.waitForTimeout(700);
   await page.evaluate(() => document.fonts.ready);
+  // The theme cards on screen draw their wheels one a frame.
+  if (params.section === 'themes')
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll('.theme-card')]
+          .filter((card) => card.getBoundingClientRect().top < innerHeight)
+          .every((card) => card.querySelector('.wheel-disc')),
+      null,
+      { timeout: 60000 },
+    );
   await act(page, action);
   await page.screenshot({ path: path.join(out, `${name}.png`) });
   await page.close();

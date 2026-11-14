@@ -1,10 +1,6 @@
 /* SPDX-License-Identifier: MIT */
-/* Settings › Appearance › Theme: the chosen theme's wheel to try, then every theme as a card with its
-   wheel at rest on its own desk. */
-.theme-heading {
-  margin: 4px 0 0;
-  font: var(--type-body);
-}
+/* The Themes page: the chosen theme's wheel to try, then every theme as a card with its wheel at rest
+   on its own desk. */
 .theme-picker {
   display: grid;
   gap: 14px;
@@ -43,6 +39,9 @@
   border-radius: var(--radius);
   background: var(--surface);
   cursor: pointer;
+  /* A card away from the screen is not drawn; it keeps the size it last had. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 192px;
 }
 .theme-card:hover {
   border-color: var(--border-strong);

@@ -107,7 +107,8 @@ export interface Saved {
   language: string;
 }
 
-export type Section = 'home' | 'library' | 'automation' | 'settings';
+/** The pages of the main window; Themes opens from the theme in the rail. */
+export type Section = 'home' | 'library' | 'automation' | 'settings' | 'themes';
 
 export type Category =
   'image' | 'video' | 'audio' | 'document' | 'spreadsheet' | 'presentation' | 'subtitle' | 'pdf' | 'archive';

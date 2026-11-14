@@ -7,26 +7,34 @@ import catalog from '../theme/catalog.json';
 import { loadTheme } from '../theme/registry';
 import { ThemePicker } from './ThemePicker';
 
-let inView: (() => void)[] = [];
+/** Says whether a card has come near the screen or left it. */
+let near = new Map<Element, (isIntersecting: boolean) => void>();
+let frames: FrameRequestCallback[] = [];
 
 beforeAll(async () => {
   await initI18n('en');
   await loadTheme('telefon');
+  await loadTheme('pikap');
 });
 
 beforeEach(() => {
-  inView = [];
-  // Cards draw their wheel only once they come into view.
+  near = new Map();
+  frames = [];
+  // Cards draw their wheel only once they come near the screen, one a frame.
   vi.stubGlobal(
     'IntersectionObserver',
     class {
       constructor(private readonly callback: IntersectionObserverCallback) {}
-      observe() {
-        inView.push(() => this.callback([{ isIntersecting: true } as IntersectionObserverEntry], this as never));
+      observe(element: Element) {
+        near.set(element, (isIntersecting) =>
+          this.callback([{ isIntersecting } as IntersectionObserverEntry], this as never),
+        );
       }
       disconnect() {}
     },
   );
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback));
+  vi.stubGlobal('cancelAnimationFrame', () => {});
   Object.defineProperty(SVGElement.prototype, 'getComputedTextLength', {
     configurable: true,
     value: () => 20,
@@ -83,17 +91,33 @@ describe('the theme picker', () => {
     expect(onChange).toHaveBeenLastCalledWith(catalog[catalog.length - 1]!.id);
   });
 
-  it('shows the chosen theme’s wheel to try, and a card’s wheel once the card is in view', async () => {
+  it('shows the chosen theme’s wheel to try, and a card’s wheel near the screen, one card a frame', async () => {
     show('telefon');
     const preview = document.querySelector('.theme-preview')!;
     expect(preview.querySelector('[data-look="telefon"]')).not.toBeNull();
     expect(within(preview as HTMLElement).getAllByRole('menuitem')).toHaveLength(8);
-    const card = screen.getByRole('radio', { name: 'Ahize' });
-    expect(card.querySelector('.wheel-disc')).toBeNull();
-    await act(async () => inView.forEach((show) => show()));
-    await act(async () => {});
-    expect(card.querySelector('.wheel-disc')).not.toBeNull();
+    const [ahize, plak, kasa] = ['Ahize', 'Plak', 'Kasa (original)'].map((name) => screen.getByRole('radio', { name }));
+    const drawn = () => [ahize, plak, kasa].map((card) => card!.querySelector('.wheel-disc') !== null);
+    const frame = () =>
+      act(async () => {
+        const now = frames;
+        frames = [];
+        now.forEach((callback) => callback(0));
+      });
+    expect(drawn()).toEqual([false, false, false]);
+    // Kasa leaves before its turn and gives it up.
+    await act(async () => [ahize, plak, kasa].forEach((card) => near.get(card!)!(true)));
+    await act(async () => near.get(kasa!)!(false));
+    await frame();
+    expect(drawn()).toEqual([true, false, false]);
+    await frame();
+    expect(drawn()).toEqual([true, true, false]);
+    await frame();
+    expect(drawn()).toEqual([true, true, false]);
+    await act(async () => near.get(kasa!)!(true));
+    await frame();
+    expect(drawn()).toEqual([true, true, true]);
     // The picture is decoration: inert, and out of the tab order.
-    expect(card.querySelector('[inert]')).not.toBeNull();
+    expect(ahize!.querySelector('[inert]')).not.toBeNull();
   });
 });

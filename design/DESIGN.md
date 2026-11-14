@@ -157,7 +157,7 @@ Anatomy, outside in (radii in the 400-unit space):
 
 ### Main window (Home, Library)
 
-- Fluent structure: 32 px title bar with native controls, 72 px navigation rail (Home, Library, Settings at the bottom), content on `bg`, cards on `surface` with a 1 px `border`.
+- Fluent structure: 32 px title bar with native controls, 72 px navigation rail (Home, Library, Automation; at the bottom the theme in use, which opens the Themes page, and Settings), content on `bg`, cards on `surface` with a 1 px `border`.
 - Corners: `radius` 6 px for cards, buttons and inputs; `radius-sm` 4 px for keycaps and chips.
 - **Drop zone:** a dashed `border-strong` outline with a steel deposit slot and a blue arrow; title in `type-subtitle`; the primary button "Choose files" and the paste hint (`Ctrl`+`V` as keycaps).
 - **Recently done:** four cards in a row (thumbnail with the target type, result name, source name with an arrow, time).
