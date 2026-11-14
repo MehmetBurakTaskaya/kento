@@ -27,7 +27,7 @@ libc = "0.2.191"
 # Compress: palette PNGs (NeuQuant, which the `color_quant` feature above lets image's dithering
 # use) and deflated TIFFs, which image's own encoders do not write. All three were already in the
 # tree through `image`.
-color_quant = "1.1.0"
+color_quant = "2.0.0"
 png = "0.18.1"
 tiff = { version = "0.11.3", default-features = false, features = ["deflate"] }
 
@@ -35,14 +35,14 @@ tiff = { version = "0.11.3", default-features = false, features = ["deflate"] }
 # The API features match the bundled PDFium (pdfium-binaries chromium/8125); thread_safe
 # serialises every PDFium call, since several jobs run at once.
 pdfium-render = { version = "0.9.5", default-features = false, features = ["pdfium_8125", "thread_safe"] }
-lopdf = { version = "0.46.0", default-features = false, features = ["rayon"] }
+lopdf = { version = "0.47.0", default-features = false, features = ["rayon"] }
 
 # Archives
 # Reading also takes the methods other tools write (Deflate64 from Windows, BZIP2 and LZMA).
 zip = { version = "9.2.1", default-features = false, features = ["deflate", "deflate64", "bzip2", "lzma"] }
 tar = "0.4.46"
 flate2 = "1.1.10"
-sevenz-rust2 = "0.24.2"
+sevenz-rust2 = "0.25.0"
 # The UnRAR library itself (the `unrar` crate's sys layer): its test mode streams each entry to a
 # callback, so the library never writes files or links of its own.
 unrar_sys = "0.5.8"
