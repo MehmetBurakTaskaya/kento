@@ -190,7 +190,7 @@ This package also includes third-party software. See the licenses/ directory for
 
 ### Theme sounds
 
-The themes' sounds are cut from 189 recordings published on [Freesound](https://freesound.org)
+The themes' sounds are cut from 190 recordings published on [Freesound](https://freesound.org)
 under CC0 1.0 (<https://creativecommons.org/publicdomain/zero/1.0/>), which waives every right to
 them and asks for no credit. They are listed with their authors all the same, with the themes that
 use them.
@@ -337,6 +337,7 @@ use them.
 - "Ankara-110-Amin - Ney.wav" by aliaref, <https://freesound.org/s/580759/>: Sema
 - "Metal Flap Magnet.flac" by Slivinson, <https://freesound.org/s/582620/>: Titan
 - "Rock Splash" by Fission9, <https://freesound.org/s/583348/>: Dalga
+- "watermelon_bites.wav" by Leemuffin, <https://freesound.org/s/585439/>: Karpuz
 - "GoStoneSounds.ogg" by billhails2, <https://freesound.org/s/588317/>: Sedef
 - "Bee recorded individually | Johanna" by felix.blume, <https://freesound.org/s/588533/>: Petek
 - "Putting magnets on a fridge Added a low shelf.wav" by GH0STY_XD, <https://freesound.org/s/594451/>: Titan

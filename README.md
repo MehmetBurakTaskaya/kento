@@ -142,7 +142,7 @@ and the command line runs it all from scripts.
 
 Kasa, the steel dial, is the default. The other fifty change the wheel completely, with their own
 colours, motion and sounds, and give the rest of the app their colours. Each sounds like what it
-shows, from real recordings: pointing at a slice of Karpuz crunches watermelon, Hedef's darts thud
+shows, from real recordings: pointing at a slice of Karpuz takes a juicy bite, Hedef's darts thud
 into the board, Ahize's dial is pulled round and runs back, Radar pings like a submarine's sonar,
 Tebeşir taps chalk on the board, and applying a choice plays the theme's own finale. 51 themes, 51
 sound sets. Choose one on the Themes page, which the theme at the foot of the side bar

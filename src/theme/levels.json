@@ -106,10 +106,10 @@
   },
   "karpuz": {
     "open": -5,
-    "tick": -3.8,
+    "tick": -7.5,
     "enter": -5,
     "leave": -6.9,
-    "success": 1
+    "success": 1.3
   },
   "nar": {
     "open": -0.1,

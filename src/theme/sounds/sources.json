@@ -994,6 +994,13 @@
       "preview": "https://cdn.freesound.org/previews/583/583348_9395330-hq.mp3",
       "license": "CC0-1.0"
     },
+    "585439": {
+      "title": "watermelon_bites.wav",
+      "author": "Leemuffin",
+      "page": "https://freesound.org/s/585439/",
+      "preview": "https://cdn.freesound.org/previews/585/585439_1611954-hq.mp3",
+      "license": "CC0-1.0"
+    },
     "588317": {
       "title": "GoStoneSounds.ogg",
       "author": "billhails2",
@@ -2691,7 +2698,7 @@
       ]
     },
     "karpuz": {
-      "about": "A round slice of watermelon: striped green rind, pink-red flesh, black seeds on the borders between slices. Applying takes a bite out of the slice in two chomps (at 40 and 130 ms); crumbs fly and the border seeds hop. Sounds: open: The melon falls open on the board: a crack of the rind, then the half lands with a wet, hollow thud.; tick: A small crisp bite into watermelon flesh.; enter: A knife cracks into the ripe melon: a crisp rip with a juicy tail.; leave: The slice set back down: a soft, dull, wet thump.; success: The big juicy bite: two quick chomps through the flesh, then a last crack as the seeds settle.",
+      "about": "A round slice of watermelon: striped green rind, pink-red flesh, black seeds on the borders between slices. Applying takes a bite out of the slice in two chomps (at 40 and 130 ms); crumbs fly and the border seeds hop. Sounds: open: The melon falls open on the board: a crack of the rind, then the half lands with a wet, hollow thud.; tick: A small juicy bite into watermelon, wet and smacking.; enter: A knife cracks into the ripe melon: a crisp rip with a juicy tail.; leave: The slice set back down: a soft, dull, wet thump.; success: The big juicy bite: a mouthful of crunching flesh and juice.",
       "open": [
         {
           "from": 443468,
@@ -2706,9 +2713,19 @@
       ],
       "tick": [
         {
-          "from": 697398,
-          "start": 4.847,
-          "end": 4.947,
+          "from": 585439,
+          "start": 8.553,
+          "end": 8.69,
+          "fadein": 0.002,
+          "fadeout": 0.04,
+          "hp": 90,
+          "lp": 0,
+          "rate": 1
+        },
+        {
+          "from": 585439,
+          "start": 11.625,
+          "end": 11.735,
           "fadein": 0.002,
           "fadeout": 0.035,
           "hp": 90,
@@ -2716,41 +2733,31 @@
           "rate": 1
         },
         {
-          "from": 697398,
-          "start": 19.705,
-          "end": 19.805,
+          "from": 585439,
+          "start": 7.108,
+          "end": 7.235,
           "fadein": 0.002,
-          "fadeout": 0.035,
+          "fadeout": 0.04,
           "hp": 90,
           "lp": 0,
           "rate": 1
         },
         {
-          "from": 697398,
-          "start": 21.555,
-          "end": 21.655,
+          "from": 585439,
+          "start": 16.835,
+          "end": 16.975,
           "fadein": 0.002,
-          "fadeout": 0.035,
+          "fadeout": 0.04,
           "hp": 90,
           "lp": 0,
           "rate": 1
         },
         {
-          "from": 697398,
-          "start": 16.288,
-          "end": 16.388,
+          "from": 585439,
+          "start": 18.525,
+          "end": 18.67,
           "fadein": 0.002,
-          "fadeout": 0.035,
-          "hp": 90,
-          "lp": 0,
-          "rate": 1
-        },
-        {
-          "from": 697398,
-          "start": 3.719,
-          "end": 3.819,
-          "fadein": 0.002,
-          "fadeout": 0.035,
+          "fadeout": 0.04,
           "hp": 90,
           "lp": 0,
           "rate": 1
@@ -2782,9 +2789,9 @@
       ],
       "success": [
         {
-          "from": 697398,
-          "start": 16.561,
-          "end": 17.1,
+          "from": 585439,
+          "start": 0.76,
+          "end": 1.46,
           "fadein": 0.002,
           "fadeout": 0.09,
           "hp": 70,
