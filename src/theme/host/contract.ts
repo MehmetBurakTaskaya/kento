@@ -71,7 +71,7 @@ export interface ThemeWheel {
   onSelect?(root: SVGGElement, model: WheelModel, i: number, H: Helpers, t?: number): void;
 }
 
-export type SoundVoice = (ac: AudioContext, out: AudioNode, t: number, X: Sfx) => void;
+export type SoundVoice = (ac: BaseAudioContext, out: AudioNode, t: number, X: Sfx) => void;
 
 export interface ThemeMotion {
   open: number;

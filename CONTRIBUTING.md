@@ -61,6 +61,10 @@ again after a visible change to the wheel, the pages or a theme;
 `--gif`, `--stills` and `--lang en` make only part of it, and `--themes` records the reel alone
 (its frames, for a video of its own).
 
+`npm run theme:levels` measures every sound of every theme and writes the gain that brings each to
+its level into `src/theme/levels.json`, so all themes are equally loud. Run it after changing a
+theme's sounds and commit the table with them; `-- --check` tells whether it is up to date.
+
 A bundled build (`npm run tauri build` with the installer or the disk image) also signs the update
 files and needs `TAURI_SIGNING_PRIVATE_KEY`. For a local test, make a throwaway key with
 `npx tauri signer generate`; releases are signed by CI only (see [docs/RELEASING.md](docs/RELEASING.md)

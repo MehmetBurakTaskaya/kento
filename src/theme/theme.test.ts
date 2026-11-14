@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import catalog from './catalog.json';
+import levels from './levels.json';
 import { layoutSlices, offsetFor } from '../wheel/geometry';
 import { DEFAULT_PAIRS, NEED } from './host/board';
 import { PALETTE_TOKENS } from './host/contract';
@@ -114,6 +115,16 @@ describe('the theme packs', () => {
       expect(pack!.concept.fonts.brand).toBeTruthy();
     }
   }, 60_000);
+
+  it('each have a level for every voice they have, and only for those (npm run theme:levels)', async () => {
+    const table = levels as Record<string, Record<string, number>>;
+    expect(Object.keys(table).sort()).toEqual(catalog.map((theme) => theme.id).sort());
+    expect(Object.keys(table.steel!).sort()).toEqual(['enter', 'leave', 'open', 'success', 'tick']);
+    for (const theme of catalog.slice(1)) {
+      const sounds = (await loadPack(theme.pack!)).get(theme.id)!.concept.sounds ?? {};
+      expect(Object.keys(table[theme.id]!).sort(), theme.id).toEqual(Object.keys(sounds).sort());
+    }
+  });
 
   it('pass the contrast pairs of their wheels (WCAG AA)', async () => {
     const failures: string[] = [];

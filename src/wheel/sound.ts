@@ -2,6 +2,9 @@
 // The wheel's sounds (design/DESIGN.md, section 7), synthesized with WebAudio: nothing is recorded or
 // downloaded. Browsers only start audio after a user gesture, so the AudioContext is created on the
 // first one, and a sound asked for before it is skipped. Sound never carries meaning on its own.
+// Every voice plays at its measured level (src/theme/levels.json, from `npm run theme:levels`), so
+// all themes sound equally loud, and a limiter after the volume keeps sounds that meet from clipping.
+import LEVELS from '../theme/levels.json';
 
 export type WheelSound = 'open' | 'tick' | 'enter' | 'leave' | 'apply';
 
@@ -9,6 +12,16 @@ export interface SoundSettings {
   enabled: boolean;
   /** Master gain, 0 to 1. */
   volume: number;
+}
+
+/** Draws one sound into `out`, starting at `t`. */
+export type Voice = (ac: BaseAudioContext, out: AudioNode, t: number) => void;
+
+/** The gain that brings a theme's voice to its level: decibels from levels.json, 1 for a voice it
+ *  does not list. */
+export function voiceGain(theme: string, voice: string): number {
+  const db = (LEVELS as Record<string, Record<string, number>>)[theme]?.[voice];
+  return db === undefined ? 1 : 10 ** (db / 20);
 }
 
 /** Slice clicks are at least this far apart, so a fast sweep does not buzz. */
@@ -40,7 +53,7 @@ let noiseBuffer: AudioBuffer | null = null;
 
 class Synth {
   constructor(
-    private readonly ac: AudioContext,
+    private readonly ac: BaseAudioContext,
     private readonly out: AudioNode,
   ) {}
 
@@ -145,6 +158,11 @@ const VOICES: Record<WheelSound, (s: Synth, t: number) => void> = {
   },
 };
 
+/** The steel wheel's own voice for a sound. */
+export function steelVoice(name: WheelSound): Voice {
+  return (ac, out, t) => VOICES[name](new Synth(ac, out), t);
+}
+
 let audio: { ac: AudioContext; master: GainNode } | null = null;
 let lastTick: number | null = null;
 
@@ -156,7 +174,14 @@ function createAudio() {
   try {
     const ac = new Context();
     const master = ac.createGain();
-    master.connect(ac.destination);
+    // A limiter: the voices peak below full scale at full volume, but a click can meet an apply.
+    const limiter = ac.createDynamicsCompressor();
+    limiter.threshold.value = -3;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.001;
+    limiter.release.value = 0.08;
+    master.connect(limiter).connect(ac.destination);
     audio = { ac, master };
   } catch {
     audio = null;
@@ -188,16 +213,17 @@ export function armWheelAudio(): () => void {
 }
 
 export function playWheelSound(name: WheelSound, settings: SoundSettings, now = performance.now()): void {
-  playVoice(name, settings, (ac, out, t) => VOICES[name](new Synth(ac, out), t), now);
+  playVoice(name, settings, steelVoice(name), now, voiceGain('steel', name === 'apply' ? 'success' : name));
 }
 
 /** Schedules a sound of the wheel through the shared AudioContext at the settings' volume: the steel
- *  wheel's own, or a theme's voice for it. */
+ *  wheel's own, or a theme's voice for it, raised or lowered by `gain` to its level. */
 export function playVoice(
   name: WheelSound,
   settings: SoundSettings,
-  voice: (ac: AudioContext, out: AudioNode, t: number) => void,
+  voice: Voice,
   now = performance.now(),
+  gain = 1,
 ): void {
   if (!settings.enabled || !(settings.volume > 0)) return;
   if (name === 'tick') {
@@ -209,9 +235,14 @@ export function playVoice(
   const { ac, master } = current;
   if (ac.state === 'suspended') void ac.resume();
   master.gain.value = Math.min(1, settings.volume);
+  const level = ac.createGain();
+  level.gain.value = gain;
+  level.connect(master);
   try {
-    voice(ac, master, ac.currentTime + 0.01);
+    voice(ac, level, ac.currentTime + 0.01);
   } catch {
     // A sound that cannot play is skipped; the wheel works the same muted.
   }
+  // The longest voice lasts under two seconds.
+  setTimeout(() => level.disconnect(), 4000);
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Settings (SPEC 5.17).
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import mark from '../../src-tauri/icons/128x128.png';
 import { Icon } from '../components/Icon';
@@ -8,6 +8,8 @@ import { intlLocale, PSEUDO_LANGUAGES } from '../i18n';
 import { formatBytes } from '../i18n/format';
 import { api, type Settings as SettingsData, type ToolGroupStatus, type WheelKey } from '../ipc';
 import { useApp } from '../state/store';
+import { loadTheme } from '../theme/registry';
+import { playFor } from '../wheel/voices';
 import { LayoutSettings } from './LayoutSettings';
 import { ThemePicker } from './ThemePicker';
 import { useToolStatus } from './Setup';
@@ -257,6 +259,49 @@ function ToolSettings() {
   );
 }
 
+/** Plays the theme's apply sound at `sound`'s volume a moment after the last change, so the level is
+ *  heard where it is set. */
+function useHear(theme: string) {
+  const timer = useRef<number | undefined>(undefined);
+  return (sound: SettingsData['sound']) => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      void loadTheme(theme).then((definition) => playFor(definition.wheel, 'apply', sound));
+    }, 250);
+  };
+}
+
+/** The volume slider with its value beside it. */
+function Volume({
+  id,
+  sound,
+  locale,
+  onChange,
+}: {
+  id: string;
+  sound: SettingsData['sound'];
+  locale: string;
+  onChange: (volume: number) => void;
+}) {
+  return (
+    <div className="volume">
+      <input
+        id={id}
+        type="range"
+        min={0}
+        max={1}
+        step={0.05}
+        disabled={!sound.enabled}
+        value={sound.volume}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+      <output htmlFor={id} className="muted">
+        {new Intl.NumberFormat(locale, { style: 'percent' }).format(sound.volume)}
+      </output>
+    </div>
+  );
+}
+
 const WHEEL_KINDS = ['convert', 'tools', 'actions'] as const;
 const WHEEL_KEYS: WheelKey[] = ['shift', 'control', 'alt', 'command'];
 
@@ -264,6 +309,7 @@ export function Settings() {
   const { t } = useTranslation();
   const { boot, settings, update, language } = useApp();
   const ids = { language: useId(), theme: useId(), volume: useId(), jobs: useId(), keys: useId() };
+  const hear = useHear(settings?.theme ?? 'steel');
   if (!boot || !settings) return null;
   const set = (patch: Partial<SettingsData>) => void update(patch);
   const mac = boot.app.platform === 'macos';
@@ -403,19 +449,23 @@ export function Settings() {
           <Switch
             label={t('settings.feedback.sound')}
             checked={settings.sound.enabled}
-            onChange={(enabled) => set({ sound: { ...settings.sound, enabled } })}
+            onChange={(enabled) => {
+              const sound = { ...settings.sound, enabled };
+              set({ sound });
+              hear(sound);
+            }}
           />
         </Row>
         <Row label={t('settings.feedback.volume')} htmlFor={ids.volume}>
-          <input
+          <Volume
             id={ids.volume}
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            disabled={!settings.sound.enabled}
-            value={settings.sound.volume}
-            onChange={(e) => set({ sound: { ...settings.sound, volume: Number(e.target.value) } })}
+            sound={settings.sound}
+            locale={intlLocale(language)}
+            onChange={(volume) => {
+              const sound = { ...settings.sound, volume };
+              set({ sound });
+              hear(sound);
+            }}
           />
         </Row>
         {mac && (

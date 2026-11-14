@@ -207,7 +207,12 @@ Every sound is synthesized (WebAudio in the wheel window); nothing is recorded o
 | Back a ring | a lighter detent, the dial lifting out: a faint release, then a higher, quieter click with a small body | about 45 ms |
 | Job done (apply) | the handle ratchet (five ticks), a heavy bolt throw (a low thud with a ring of steel), a small latch click | about 450 ms |
 
-- On by default at a low level (master gain 30 %); Settings has an on/off switch and a level slider.
+- On by default at a low level (volume 30 %); Settings has an on/off switch and a volume slider that
+  shows its value and plays the theme's apply sound at the new level.
+- Every voice plays at a level measured for it (`src/theme/levels.json`, written by
+  `npm run theme:levels`): its loudest 30 ms reach the same level in every theme at full volume
+  (the clicks a little below the opening and the ring's way in, the apply above them), with its peak
+  kept under full scale. A limiter after the volume keeps sounds that meet from clipping.
 - Slice clicks are limited to one per 30 ms, so a fast sweep does not buzz.
 - A denied apply makes no sound; the shake is enough.
 - Sound never replaces a visual state; everything works muted.

@@ -390,6 +390,17 @@ select {
   align-items: center;
   justify-content: flex-end;
 }
+/* The volume's value stays the same width as it changes. */
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.volume output {
+  min-inline-size: 4.5ch;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
 .segmented {
   display: inline-flex;
   flex-wrap: wrap;

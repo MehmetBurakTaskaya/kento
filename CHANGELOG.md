@@ -4,6 +4,15 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Sound effects were hard to hear, and some themes much quieter than others: every sound of every
+  theme now plays at a level measured for it, so all 51 themes are equally loud, and louder than
+  before at the same volume. Settings shows the volume as a percentage and plays the theme's sound
+  when you change it.
+
 ## [1.2.0] - 2026-11-07
 
 ### Added

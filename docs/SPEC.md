@@ -588,7 +588,8 @@ Only the newest release stays on GitHub:
 - Global shortcuts: selection wheel, download (Ctrl+Shift+D, on by default; while it is on, the browser's own Ctrl+Shift+D does not reach the browser), window layouts.
 - Output: default output location and naming suffixes.
 - Feedback:
-  - Sound effects: on and low by default, with a level slider.
+  - Sound effects: on and low by default, with a volume slider that shows its value and plays the
+    theme's sound at the new level.
   - Haptic feedback (macOS).
   - Reduced motion.
 - System:
@@ -692,7 +693,8 @@ Rules for every theme:
 
 - The wheel still appears within 100 ms: textures and particle fields are pre-rendered or cached, never computed per frame.
 - WCAG AA contrast in light and dark, reduced-motion support, right-to-left mirroring and the 12 languages, like the default theme.
-- Sounds are synthesized or CC0, low by default, and follow the sound setting.
+- Sounds are synthesized or CC0, low by default, and follow the sound setting. Each plays at a level
+  measured for it, so every theme sounds as loud as every other.
 
 **The themes.** Kento has 51 themes, each with its own name, the same in every language, listed in `src/theme/catalog.json` in the order Settings shows them: Kasa (the steel dial, the default), Ayar, Beton, Titan, Varak, Obsidyen, Damla, Serpinti, Atlas, Girdap, Yörünge, Halka, Pusula, Tezgâh, Portakal, Karpuz, Nar, Fırın, Akide, Baklava, Gündöndü, Ayaz, Kütük, Petek, Helezon, Dalga, Çini, Kilim, Nazar, Sema, Telve, Hedef, Ahize, Plak, Radar, Frekans, Saniye, Jeton, Piksel, Kare, Konfeti, Yaldız, Bom, Fırça, Tebeşir, Ozalit, Revzen, Kıvrım, Sedef, Mozaik, Serap. Every theme but Kasa is a pack (`src/theme/packs/`): its wheel drawn from the slices the app shows, its light and dark palettes, its timings (open within 200 ms plus a short stagger, an apply effect of up to about 700 ms), its sounds (open, pointing, a ring's way in and back, and apply, each matching what its wheel shows at that moment, synthesised in the pack) and its typefaces. A saved theme that is no longer in the list falls back to Kasa.
 

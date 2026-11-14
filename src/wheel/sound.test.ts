@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { armWheelAudio, playWheelSound, TICK_GAP, tickAllowed, type WheelSound } from './sound';
+import LEVELS from '../theme/levels.json';
+import type { PackTheme } from '../theme/host/packs';
+import { armWheelAudio, playWheelSound, TICK_GAP, tickAllowed, voiceGain, type WheelSound } from './sound';
 
 describe('wheel sounds', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -40,6 +42,7 @@ describe('wheel sounds', () => {
     });
     const node = (into?: number[]) => ({
       connect: (next: unknown) => next,
+      disconnect: () => {},
       start: () => {},
       stop: () => {},
       frequency: param(into),
@@ -54,6 +57,14 @@ describe('wheel sounds', () => {
         sampleRate = 8000;
         destination = {};
         createGain = () => node();
+        createDynamicsCompressor = () => ({
+          ...node(),
+          threshold: param(),
+          knee: param(),
+          ratio: param(),
+          attack: param(),
+          release: param(),
+        });
         createOscillator = () => node(started.tones);
         createBiquadFilter = () => node(started.clicks);
         createBufferSource = () => node();
@@ -85,5 +96,54 @@ describe('wheel sounds', () => {
     expect(Math.min(...leave.tones)).toBeGreaterThan(Math.min(...enter.tones));
     expect(play('enter', false)).toEqual({ tones: [], clicks: [] });
     expect(play('leave', false)).toEqual({ tones: [], clicks: [] });
+  });
+
+  it('brings each voice to its measured level, and leaves unlisted ones as they are', () => {
+    expect(voiceGain('steel', 'tick')).toBeCloseTo(10 ** (LEVELS.steel.tick / 20));
+    expect(voiceGain('steel', 'success')).toBeGreaterThan(1);
+    expect(voiceGain('no-such-theme', 'tick')).toBe(1);
+  });
+
+  it('plays a theme voice through a gain at its level, a ring falling back to the tick', async () => {
+    // Where each voice drew.
+    const drawn: { voice: string; out: unknown }[] = [];
+    const node = () => ({ connect: (next: unknown) => next, disconnect: () => {} });
+    const param = () => ({ value: 0 });
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        state = 'running';
+        currentTime = 0;
+        destination = {};
+        createGain = () => ({ ...node(), gain: param() });
+        createDynamicsCompressor = () => ({
+          ...node(),
+          threshold: param(),
+          knee: param(),
+          ratio: param(),
+          attack: param(),
+          release: param(),
+        });
+        resume = () => Promise.resolve();
+      },
+    );
+    // A fresh player, so its audio is made with this context.
+    vi.resetModules();
+    const sound = await import('./sound');
+    const { playFor } = await import('./voices');
+    const stop = sound.armWheelAudio();
+    window.dispatchEvent(new Event('pointerdown'));
+    stop();
+    const voice = (name: string) => (_ac: unknown, out: unknown) => drawn.push({ voice: name, out });
+    const pack = { id: 'nar', concept: { sounds: { tick: voice('tick'), success: voice('success') } } };
+    playFor(pack as unknown as PackTheme, 'enter', { enabled: true, volume: 0.5 });
+    playFor(pack as unknown as PackTheme, 'apply', { enabled: true, volume: 0.5 });
+    expect(drawn.map((each) => each.voice)).toEqual(['tick', 'success']);
+    // Each voice draws into a gain of its own, set to its theme's level.
+    expect(drawn[0]!.out).toMatchObject({ gain: { value: voiceGain('nar', 'tick') } });
+    expect(drawn[1]!.out).toMatchObject({ gain: { value: voiceGain('nar', 'success') } });
+    // A theme without a voice for a sound plays nothing for it.
+    playFor(pack as unknown as PackTheme, 'open', { enabled: true, volume: 0.5 });
+    expect(drawn).toHaveLength(2);
   });
 });

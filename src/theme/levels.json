@@ -1,0 +1,359 @@
+{
+  "steel": {
+    "open": 28.2,
+    "tick": 18.8,
+    "enter": 11.7,
+    "leave": 19.9,
+    "success": 7.7
+  },
+  "kadran-a": {
+    "open": 21.5,
+    "tick": 19.9,
+    "enter": 20.5,
+    "leave": 20.4,
+    "success": 15.6
+  },
+  "kadran-b": {
+    "open": 15.5,
+    "tick": 13.6,
+    "enter": 14.5,
+    "leave": 14.7,
+    "success": 15.6
+  },
+  "kadran-c": {
+    "open": 22.2,
+    "tick": 15.5,
+    "enter": 16.2,
+    "leave": 15.9,
+    "success": 16.6
+  },
+  "simya-a": {
+    "open": 16.7,
+    "tick": 14,
+    "enter": 14.8,
+    "leave": 17.8,
+    "success": 9.7
+  },
+  "simya-c": {
+    "open": 17.7,
+    "tick": 17.4,
+    "enter": 17.8,
+    "leave": 18.1,
+    "success": 13.4
+  },
+  "ebru-a": {
+    "open": 7.1,
+    "tick": 13.4,
+    "enter": 13.5,
+    "leave": 13.6,
+    "success": 9.5
+  },
+  "ebru-b": {
+    "open": 16.9,
+    "tick": 18.9,
+    "enter": 20.6,
+    "leave": 18.3,
+    "success": 21.2
+  },
+  "astro-a": {
+    "open": 17.5,
+    "tick": 15.9,
+    "enter": 18.8,
+    "leave": 16.8,
+    "success": 12.3
+  },
+  "astro-b": {
+    "open": 11.2,
+    "tick": 11.8,
+    "enter": 14.8,
+    "leave": 13.9,
+    "success": 17
+  },
+  "astro-c": {
+    "open": 23.2,
+    "tick": 17.2,
+    "enter": 17.7,
+    "leave": 17.2,
+    "success": 14.9
+  },
+  "minimal": {
+    "open": 10.6,
+    "tick": 10,
+    "enter": 14.1,
+    "leave": 12.9,
+    "success": 12.5
+  },
+  "pusula": {
+    "open": 18.3,
+    "tick": 14,
+    "enter": 16.3,
+    "leave": 15.6,
+    "success": 8.6
+  },
+  "tezgah": {
+    "open": 10.1,
+    "tick": 19.1,
+    "enter": 19.9,
+    "leave": 19.9,
+    "success": 12.9
+  },
+  "portakal": {
+    "open": 13,
+    "tick": 12.6,
+    "enter": 13.3,
+    "leave": 11.4,
+    "success": 17.2
+  },
+  "karpuz": {
+    "open": 4.3,
+    "tick": 22.1,
+    "enter": 26.9,
+    "leave": 19,
+    "success": 12.3
+  },
+  "nar": {
+    "open": 13.5,
+    "tick": 13.1,
+    "enter": 18.7,
+    "leave": 14.5,
+    "success": 22.5
+  },
+  "pizza": {
+    "open": 16,
+    "tick": 14.8,
+    "enter": 18.5,
+    "leave": 17.1,
+    "success": 18.1
+  },
+  "lolipop": {
+    "open": 14,
+    "tick": 17.2,
+    "enter": 18.3,
+    "leave": 17.1,
+    "success": 15.7
+  },
+  "baklava": {
+    "open": 11.9,
+    "tick": 16.8,
+    "enter": 21.5,
+    "leave": 17.3,
+    "success": 19.8
+  },
+  "aycicegi": {
+    "open": 16.6,
+    "tick": 22.7,
+    "enter": 25,
+    "leave": 23.1,
+    "success": 14.6
+  },
+  "kartanesi": {
+    "open": 13.8,
+    "tick": 17.7,
+    "enter": 20.9,
+    "leave": 18.5,
+    "success": 16.1
+  },
+  "agachalkasi": {
+    "open": 10.4,
+    "tick": 23.6,
+    "enter": 26,
+    "leave": 24.2,
+    "success": 8.3
+  },
+  "balpetegi": {
+    "open": 20.8,
+    "tick": 15.5,
+    "enter": 20,
+    "leave": 19.8,
+    "success": 20.9
+  },
+  "denizkabugu": {
+    "open": 22.9,
+    "tick": 19.9,
+    "enter": 21,
+    "leave": 19,
+    "success": 16.2
+  },
+  "dalga": {
+    "open": 18.2,
+    "tick": 20.6,
+    "enter": 19.8,
+    "leave": 18.2,
+    "success": 13.7
+  },
+  "iznik": {
+    "open": 11.2,
+    "tick": 18.5,
+    "enter": 19.7,
+    "leave": 17.6,
+    "success": 10.7
+  },
+  "kilim": {
+    "open": 13.3,
+    "tick": 15.4,
+    "enter": 17.6,
+    "leave": 14.1,
+    "success": 16.1
+  },
+  "nazar": {
+    "open": 14.2,
+    "tick": 18.5,
+    "enter": 19.6,
+    "leave": 16.8,
+    "success": 11.3
+  },
+  "sema": {
+    "open": 21.1,
+    "tick": 13.9,
+    "enter": 18.9,
+    "leave": 16.9,
+    "success": 12.1
+  },
+  "kahve": {
+    "open": 14.6,
+    "tick": 21.1,
+    "enter": 22.4,
+    "leave": 19.7,
+    "success": 21.1
+  },
+  "dart": {
+    "open": 14.8,
+    "tick": 20.5,
+    "enter": 19.2,
+    "leave": 22.3,
+    "success": 12.9
+  },
+  "telefon": {
+    "open": 13.5,
+    "tick": 17.2,
+    "enter": 17.9,
+    "leave": 17,
+    "success": 20.8
+  },
+  "pikap": {
+    "open": 14.1,
+    "tick": 19.3,
+    "enter": 18.6,
+    "leave": 17.4,
+    "success": 16.2
+  },
+  "radar": {
+    "open": 13.4,
+    "tick": 16,
+    "enter": 19.9,
+    "leave": 17.8,
+    "success": 9.6
+  },
+  "radyo": {
+    "open": 15.8,
+    "tick": 20.2,
+    "enter": 20.9,
+    "leave": 19.4,
+    "success": 16.4
+  },
+  "kronograf": {
+    "open": 22.6,
+    "tick": 21.4,
+    "enter": 20,
+    "leave": 19.7,
+    "success": 22
+  },
+  "arcade": {
+    "open": 19.8,
+    "tick": 17.2,
+    "enter": 20.8,
+    "leave": 18.7,
+    "success": 22.7
+  },
+  "piksel": {
+    "open": 15.7,
+    "tick": 24.7,
+    "enter": 27.1,
+    "leave": 25.8,
+    "success": 19.2
+  },
+  "bauhaus": {
+    "open": 8.5,
+    "tick": 18.8,
+    "enter": 21.1,
+    "leave": 19.9,
+    "success": 8.9
+  },
+  "memphis": {
+    "open": 13.2,
+    "tick": 16.4,
+    "enter": 21.6,
+    "leave": 20.2,
+    "success": 10.3
+  },
+  "artdeco": {
+    "open": 13.1,
+    "tick": 15.9,
+    "enter": 19.1,
+    "leave": 17.7,
+    "success": 11.5
+  },
+  "popart": {
+    "open": 16.2,
+    "tick": 15.6,
+    "enter": 18.5,
+    "leave": 17.9,
+    "success": 11.7
+  },
+  "suluboya": {
+    "open": 20.8,
+    "tick": 24.2,
+    "enter": 25.6,
+    "leave": 24.9,
+    "success": 15.9
+  },
+  "karatahta": {
+    "open": 19,
+    "tick": 19.7,
+    "enter": 21.9,
+    "leave": 19.3,
+    "success": 23.9
+  },
+  "blueprint": {
+    "open": 16.4,
+    "tick": 15.5,
+    "enter": 20.9,
+    "leave": 16.7,
+    "success": 21
+  },
+  "vitray": {
+    "open": 13.3,
+    "tick": 14.4,
+    "enter": 17.9,
+    "leave": 16.6,
+    "success": 8.1
+  },
+  "origami": {
+    "open": 22,
+    "tick": 23.4,
+    "enter": 23.5,
+    "leave": 23.8,
+    "success": 18.5
+  },
+  "kakma": {
+    "open": 14.9,
+    "tick": 14.8,
+    "enter": 18.7,
+    "leave": 16.1,
+    "success": 14.4
+  },
+  "terrazzo": {
+    "open": 17.3,
+    "tick": 30.5,
+    "enter": 32.2,
+    "leave": 31.3,
+    "success": 21.3
+  },
+  "hologram": {
+    "open": 17,
+    "tick": 24.5,
+    "enter": 28.9,
+    "leave": 26.9,
+    "success": 18.4
+  }
+}
