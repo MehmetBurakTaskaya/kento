@@ -166,10 +166,81 @@ FunctionEnd
   Pop $0
 !macroend
 
+; Waits until no program uses the installed kento.exe, for up to 30 seconds, closing the ones that
+; can be closed as Tauri's check after this hook does. That check gives up at once on a program it
+; cannot close, and an update starts while the Kento that started it is still ending, which
+; cannot be closed until it has; a virus scanner reading the file is another. Uses $0 to $4 and
+; $R7, $R8.
+!macro KentoWaitForApp
+  Push $0
+  Push $1
+  Push $2
+  Push $3
+  Push $4
+  Push $R7
+  Push $R8
+  System::Call 'kernel32::GetTickCount() i .R8'
+  ${Do}
+    StrCpy $0 1
+    !insertmacro RestartManager_StartSession $R7
+    ${If} $R7 != ""
+      !insertmacro RestartManager_RegisterFile $R7 "$INSTDIR\${MAINBINARYNAME}.exe"
+      ${If} $0 = 0
+        System::Call 'RSTRTMGR::RmGetList(i R7, *i .r1, *i .r2, p 0, *i .r3) i .r0'
+        ; ERROR_MORE_DATA: some program uses it.
+        ${If} $0 = 234
+          System::Call 'RSTRTMGR::RmShutdown(i R7, i ${RmForceShutdown}, p 0) i .r4'
+        ${EndIf}
+      ${EndIf}
+      !insertmacro RestartManager_EndSession $R7
+    ${EndIf}
+    System::Call 'kernel32::GetTickCount() i .r1'
+    IntOp $1 $1 - $R8
+    ${If} $0 <> 234
+    ${OrIf} $1 >= 30000
+      ${ExitDo}
+    ${EndIf}
+    Sleep 250
+  ${Loop}
+  Pop $R8
+  Pop $R7
+  Pop $4
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+!macroend
+
+; An install that failed puts back the command line the hook below set aside (the next install
+; would delete it). A quiet one, an update's, then starts the Kento that is still there again when
+; it was asked to start Kento (/R), so the user is never left without it; that Kento sees that the
+; update did not happen and does not try it again by itself. Tauri reads this file before it
+; defines the program's name, its own variables and its plugin, hence the names written out and
+; Exec, which runs Kento as the user this per-user installer runs as.
+Function .onInstFailed
+  ${IfNot} ${FileExists} "$INSTDIR\kento.com"
+    FindFirst $R1 $R2 "$INSTDIR\kento-cli.*.old"
+    ${If} $R2 != ""
+      Rename "$INSTDIR\$R2" "$INSTDIR\kento.com"
+    ${EndIf}
+    FindClose $R1
+  ${EndIf}
+  ${If} ${Silent}
+    ClearErrors
+    ${GetOptions} $CMDLINE "/R" $R0
+    ${IfNot} ${Errors}
+    ${AndIf} ${FileExists} "$INSTDIR\kento.exe"
+      ${GetOptions} $CMDLINE "/ARGS" $R0
+      Exec '"$INSTDIR\kento.exe" $R0'
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
 ; The command line ships as kento.com beside kento.exe (SPEC 5.2): Windows tries .com before .exe,
 ; so `kento` in a terminal runs the console program. Tauri packs it under Cargo's name,
 ; kento-cli.exe, which takes its place after the files are copied.
 !macro NSIS_HOOK_PREINSTALL
+  !insertmacro KentoWaitForApp
   ; A command line still running from a script holds kento.com: Windows lets it be renamed but not
   ; replaced, so it is set aside and goes once it has ended (here, or at the next install).
   Delete "$INSTDIR\kento-cli.*.old"
