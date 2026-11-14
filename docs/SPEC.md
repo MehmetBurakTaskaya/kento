@@ -552,6 +552,7 @@ Updates are mandatory:
 - Once it is downloaded, no new job can start. Running and queued jobs finish, then the app restarts after a short notice and installs it. A job started meanwhile is refused with a message that says why; folder automation keeps the files that arrive and handles them after the restart. A dialog in Kento's window that holds the user's work puts the restart off until it closes, and Settings › Updates says what the update waits for.
 - A Mac app that macOS runs translocated asks to be moved to Applications; one in a folder Kento may not change installs only on "Update and restart", since macOS then asks for an administrator's password. Development builds never install; their Updates section links to the release page.
 - Offline, the app keeps working (local first) and updates at the first check after the connection returns.
+- An update that could not install leaves the version that was there running: on Windows the installer starts it again, and that version says the update did not install and tries the same version again only on Check now or when a newer one is out, so a failing install never closes Kento at every start.
 
 Infrastructure:
 

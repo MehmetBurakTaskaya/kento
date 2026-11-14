@@ -4,6 +4,17 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- On Windows an update could close Kento without installing, and Kento then tried again at every
+  start and closed itself shortly after (from 1.2.0 to 1.2.1 on some computers). The installer now
+  waits for the Kento that started it to end before replacing it, an update that still fails starts
+  the old Kento again, and Kento says the update did not install and tries that version again only
+  when you choose Check now in Settings › Updates or when a newer version is out.
+- A failed install no longer removes the `kento` command line.
+
 ## [1.2.1] - 2026-11-14
 
 ### Fixed

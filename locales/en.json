@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "Kento {version} is downloaded and verified.",
   "settings.updates.status.waiting": "Kento {version} is downloaded and verified. New jobs can start again after the restart that installs it.",
   "settings.updates.status.restarting": "Kento restarts in a few seconds to install version {version}.",
+  "settings.updates.status.missed": "Kento {version} could not be installed, so this version keeps working. Choose Check now to try again, or download it from the release page.",
   "settings.updates.waiting.jobs": "{count, plural, one {Waiting for # job to finish.} other {Waiting for # jobs to finish.}}",
   "settings.updates.waiting.paused": "Jobs are paused: resume them so the update can install.",
   "settings.updates.waiting.editing": "Waiting for the open panel in Kento’s window to close, so nothing you are working on is lost.",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "Kento restarts in a few seconds to install version {version}.",
   "updates.notice.confirm": "Kento {version} is ready to install. Choose Update and restart in Settings › Updates.",
   "updates.notice.updated": "Kento is updated to version {version}. Open Kento to see what changed.",
+  "updates.notice.missed": "Kento {version} could not be installed, so this version keeps working. Settings › Updates can try again.",
   "home.news.title": "What’s new in Kento {version}"
 }

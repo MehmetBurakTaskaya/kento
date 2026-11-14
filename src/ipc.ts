@@ -716,6 +716,8 @@ export type UpdateStatus =
   | { state: 'confirm'; version: string }
   | { state: 'waiting'; version: string; jobs: number; paused: boolean; editing: boolean; installs: boolean }
   | { state: 'restarting'; version: string }
+  /** Installing it closed Kento but did not put it in place; Check now tries again. */
+  | { state: 'missed'; version: string }
   | { state: 'failed'; reason: UpdateReason };
 
 export interface UpdateView {
@@ -1493,6 +1495,7 @@ function demoUpdate(params: URLSearchParams): UpdateView {
     confirm: { state: 'confirm', version },
     waiting: { state: 'waiting', version, jobs: 2, paused: false, editing: true, installs: false },
     restarting: { state: 'restarting', version },
+    missed: { state: 'missed', version },
     failed: { state: 'failed', reason: 'offline' },
   };
   const state = params.get('update') as UpdateStatus['state'] | null;

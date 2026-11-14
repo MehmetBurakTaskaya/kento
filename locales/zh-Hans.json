@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "Kento {version} 已下载并通过验证。",
   "settings.updates.status.waiting": "Kento {version} 已下载并通过验证。安装它所需的重启完成后，即可再次开始新任务。",
   "settings.updates.status.restarting": "Kento 将在几秒钟后重启，以安装 {version} 版本。",
+  "settings.updates.status.missed": "无法安装 Kento {version}；当前版本可继续使用。选择“立即检查”重试，或从发布页面下载。",
   "settings.updates.waiting.jobs": "{count, plural, other {正在等待 # 个任务完成。}}",
   "settings.updates.waiting.paused": "任务已暂停：请继续运行任务，以便安装更新。",
   "settings.updates.waiting.editing": "正在等待 Kento 窗口中打开的面板关闭，以免丢失你正在处理的内容。",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "Kento 将在几秒钟后重启，以安装 {version} 版本。",
   "updates.notice.confirm": "Kento {version} 已可安装。请在“设置 › 更新”中选择“更新并重启”。",
   "updates.notice.updated": "Kento 已更新到 {version} 版本。打开 Kento 查看新变化。",
+  "updates.notice.missed": "无法安装 Kento {version}；当前版本可继续使用。可在 设置 › 更新 中重试。",
   "home.news.title": "Kento {version} 的新功能"
 }

@@ -38,6 +38,8 @@ export function updateLines(view: UpdateView, t: TFunction): string[] {
       ];
     case 'restarting':
       return [t('settings.updates.status.restarting', { version: status.version })];
+    case 'missed':
+      return [t('settings.updates.status.missed', { version: status.version })];
     case 'failed':
       return [t(`settings.updates.failed.${status.reason}`)];
   }
@@ -124,7 +126,7 @@ export function UpdateSettings() {
             {t('settings.updates.install')}
           </button>
         )}
-        {view.kind === 'development' && (
+        {(view.kind === 'development' || status.state === 'missed') && (
           <button type="button" className="button" onClick={() => void api.openLink('releases')}>
             {t('settings.updates.releases')}
           </button>

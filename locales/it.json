@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "Kento {version} è stato scaricato e verificato.",
   "settings.updates.status.waiting": "Kento {version} è stato scaricato e verificato. Potrai avviare nuove operazioni dopo il riavvio che lo installa.",
   "settings.updates.status.restarting": "Kento si riavvia tra pochi secondi per installare la versione {version}.",
+  "settings.updates.status.missed": "Non è stato possibile installare Kento {version}; questa versione continua a funzionare. Scegli Controlla ora per riprovare, oppure scaricalo dalla pagina delle versioni.",
   "settings.updates.waiting.jobs": "{count, plural, one {In attesa che finisca # operazione.} many {In attesa che finiscano # di operazioni.} other {In attesa che finiscano # operazioni.}}",
   "settings.updates.waiting.paused": "Le operazioni sono in pausa: riprendile per installare l’aggiornamento.",
   "settings.updates.waiting.editing": "In attesa che si chiuda il pannello aperto nella finestra di Kento, così non perdi il lavoro in corso.",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "Kento si riavvia tra pochi secondi per installare la versione {version}.",
   "updates.notice.confirm": "Kento {version} è pronto per l’installazione. Scegli «Aggiorna e riavvia» in Preferenze › Aggiornamenti.",
   "updates.notice.updated": "Kento è aggiornato alla versione {version}. Apri Kento per vedere le novità.",
+  "updates.notice.missed": "Non è stato possibile installare Kento {version}; questa versione continua a funzionare. Puoi riprovare in Preferenze › Aggiornamenti.",
   "home.news.title": "Novità di Kento {version}"
 }

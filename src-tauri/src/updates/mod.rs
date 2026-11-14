@@ -12,8 +12,11 @@
 //! How it installs depends on the copy (`kind`, decision 46): the installer runs quietly and
 //! starts Kento again, the portable copy swaps its own files (`portable`), a Mac app bundle
 //! replaces itself and restarts. The notes of the version being installed wait for its first
-//! start (`notes`). The page has no updater permission; it sees the state through `View`.
+//! start (`notes`). The page has no updater permission; it sees the state through `View`. The
+//! version being installed is remembered too (`attempt`): a start that still runs the old version
+//! knows the install did not happen and waits to be asked before trying that version again.
 
+mod attempt;
 mod kind;
 mod notes;
 #[cfg_attr(not(windows), allow(dead_code))]
@@ -91,6 +94,11 @@ pub enum Status {
     Restarting {
         version: String,
     },
+    /// Installing this version closed Kento but did not put it in place; Kento waits for Check now
+    /// or a newer version before trying again.
+    Missed {
+        version: String,
+    },
     Failed {
         reason: Reason,
     },
@@ -141,6 +149,8 @@ pub struct Updates {
     confirmed: AtomicBool,
     /// The notes of the version this start installed, until the main window takes them.
     news: Mutex<Option<Notes>>,
+    /// The version an earlier start was installing when it did not install.
+    missed: Mutex<Option<String>>,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -167,6 +177,7 @@ impl Updates {
             editing: AtomicBool::new(false),
             confirmed: AtomicBool::new(false),
             news: Mutex::default(),
+            missed: Mutex::default(),
         }
     }
 
@@ -273,6 +284,21 @@ pub fn start(app: &AppHandle, window_shown: bool) {
         }
         *lock(&updates.news) = Some(news);
     }
+    if let Some(missed) = attempt::missed(&updates.data, &version) {
+        tracing::warn!("the update to {missed} did not install; Kento {version} goes on");
+        let lang = app.state::<AppState>().lang();
+        toast::note(
+            app,
+            i18n::text(&lang, "updates.notice.missed").replace("{version}", &missed),
+        );
+        set(
+            app,
+            Status::Missed {
+                version: missed.clone(),
+            },
+        );
+        *lock(&updates.missed) = Some(missed);
+    }
     let app = app.clone();
     let spawned = std::thread::Builder::new()
         .name("kento-updates".into())
@@ -287,13 +313,16 @@ fn run(app: &AppHandle) {
     let mut schedule = Schedule::starting(Instant::now());
     let mut tidied = false;
     loop {
-        updates.wait(Some(schedule.due), |signal| signal.check);
+        // A check the user asked for, rather than one that came due.
+        let asked = updates
+            .wait(Some(schedule.due), |signal| signal.check)
+            .check;
         if !tidied {
             // The program an earlier update set aside has stopped by now.
             tidied = true;
             tidy(&updates);
         }
-        let looked = look(app);
+        let looked = look(app, asked);
         schedule.checked(looked.is_ok(), Instant::now());
         let ready = match looked {
             Ok(Some(ready)) => ready,
@@ -323,8 +352,9 @@ fn tidy(updates: &Updates) {
     }
 }
 
-/// One check, and for a copy that installs, the download of what it found.
-fn look(app: &AppHandle) -> std::result::Result<Option<Ready>, Reason> {
+/// One check, and for a copy that installs, the download of what it found; a version that did not
+/// install before downloads only when the user asked (`asked`).
+fn look(app: &AppHandle, asked: bool) -> std::result::Result<Option<Ready>, Reason> {
     let updates = app.state::<Updates>();
     set(app, Status::Checking);
     let found =
@@ -349,6 +379,10 @@ fn look(app: &AppHandle) -> std::result::Result<Option<Ready>, Reason> {
     tracing::info!("Kento {version} is available");
     if !updates.kind.installs() {
         set(app, Status::Available { version });
+        return Ok(None);
+    }
+    if !asked && lock(&updates.missed).as_deref() == Some(version.as_str()) {
+        set(app, Status::Missed { version });
         return Ok(None);
     }
     update.timeout = Some(DOWNLOAD_TIMEOUT);
@@ -516,6 +550,9 @@ fn install(app: &AppHandle, ready: &Ready) -> std::result::Result<(), Reason> {
     let update = &ready.update;
     if let Err(err) = notes::keep(&updates.data, &update.version, update.body.as_deref()) {
         tracing::warn!("the release notes were not kept: {err}");
+    }
+    if let Err(err) = attempt::remember(&updates.data, &update.version) {
+        tracing::warn!("the update being installed was not recorded: {err}");
     }
     tracing::info!("installing Kento {}", update.version);
     let installed = match updates.kind {
@@ -744,6 +781,12 @@ mod tests {
         let json = |status: Status| serde_json::to_value(status).unwrap();
         assert_eq!(json(Status::Idle), json!({ "state": "idle" }));
         assert_eq!(json(Status::UpToDate), json!({ "state": "upToDate" }));
+        assert_eq!(
+            json(Status::Missed {
+                version: "1.2.1".into()
+            }),
+            json!({ "state": "missed", "version": "1.2.1" })
+        );
         assert_eq!(
             json(Status::Downloading {
                 version: "1.2.0".into(),

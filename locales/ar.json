@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "تم تنزيل Kento {version} والتحقق منه.",
   "settings.updates.status.waiting": "تم تنزيل Kento {version} والتحقق منه. يمكن بدء مهام جديدة مرة أخرى بعد إعادة التشغيل التي تثبّته.",
   "settings.updates.status.restarting": "يُعاد تشغيل Kento خلال ثوانٍ لتثبيت الإصدار {version}.",
+  "settings.updates.status.missed": "تعذّر تثبيت Kento {version}؛ يستمر هذا الإصدار في العمل. اختر «التحقق الآن» للمحاولة مرة أخرى، أو نزّله من صفحة الإصدارات.",
   "settings.updates.waiting.jobs": "{count, plural, zero {في انتظار انتهاء المهام.} one {في انتظار انتهاء مهمة واحدة.} two {في انتظار انتهاء مهمتين.} few {في انتظار انتهاء # مهام.} many {في انتظار انتهاء # مهمةً.} other {في انتظار انتهاء # مهمة.}}",
   "settings.updates.waiting.paused": "المهام متوقفة مؤقتًا: استأنفها ليتمكن التحديث من التثبيت.",
   "settings.updates.waiting.editing": "في انتظار إغلاق اللوحة المفتوحة في نافذة Kento، حتى لا يضيع شيء تعمل عليه.",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "يُعاد تشغيل Kento خلال ثوانٍ لتثبيت الإصدار {version}.",
   "updates.notice.confirm": "Kento {version} جاهز للتثبيت. اختر «التحديث وإعادة التشغيل» في الإعدادات › التحديثات.",
   "updates.notice.updated": "تم تحديث Kento إلى الإصدار {version}. افتح Kento لترى ما الجديد.",
+  "updates.notice.missed": "تعذّر تثبيت Kento {version}؛ يستمر هذا الإصدار في العمل. يمكنك المحاولة مرة أخرى من الإعدادات › التحديثات.",
   "home.news.title": "الجديد في Kento {version}"
 }

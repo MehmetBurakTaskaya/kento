@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "Kento {version} indirildi ve doğrulandı.",
   "settings.updates.status.waiting": "Kento {version} indirildi ve doğrulandı. Yeni işler, onu kuracak yeniden başlatmadan sonra yine başlayabilir.",
   "settings.updates.status.restarting": "Kento, {version} sürümünü kurmak için birkaç saniye içinde yeniden başlayacak.",
+  "settings.updates.status.missed": "Kento {version} kurulamadı; bu sürüm çalışmayı sürdürüyor. Yeniden denemek için Şimdi denetle’yi seçin ya da sürümü sürümler sayfasından indirin.",
   "settings.updates.waiting.jobs": "{count, plural, one {# işin bitmesi bekleniyor.} other {# işin bitmesi bekleniyor.}}",
   "settings.updates.waiting.paused": "İşler duraklatıldı: güncellemenin kurulabilmesi için işleri sürdürün.",
   "settings.updates.waiting.editing": "Üzerinde çalıştığınız hiçbir şey kaybolmasın diye Kento penceresindeki açık panelin kapanması bekleniyor.",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "Kento, {version} sürümünü kurmak için birkaç saniye içinde yeniden başlayacak.",
   "updates.notice.confirm": "Kento {version} kurulmaya hazır. Ayarlar › Güncellemeler’de Güncelle ve yeniden başlat’ı seçin.",
   "updates.notice.updated": "Kento, {version} sürümüne güncellendi. Nelerin değiştiğini görmek için Kento’yu açın.",
+  "updates.notice.missed": "Kento {version} kurulamadı; bu sürüm çalışmayı sürdürüyor. Ayarlar › Güncellemeler’den yeniden deneyebilirsiniz.",
   "home.news.title": "Kento {version} sürümünde neler yeni"
 }

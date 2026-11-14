@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "Kento {version} загружен и проверен.",
   "settings.updates.status.waiting": "Kento {version} загружен и проверен. Новые задания можно будет запускать после перезапуска, который установит обновление.",
   "settings.updates.status.restarting": "Через несколько секунд Kento перезапустится, чтобы установить версию {version}.",
+  "settings.updates.status.missed": "Не удалось установить Kento {version}; текущая версия продолжает работать. Нажмите «Проверить сейчас», чтобы повторить попытку, или скачайте его со страницы выпусков.",
   "settings.updates.waiting.jobs": "{count, plural, one {Ожидание завершения # задания.} few {Ожидание завершения # заданий.} many {Ожидание завершения # заданий.} other {Ожидание завершения # задания.}}",
   "settings.updates.waiting.paused": "Задания приостановлены: возобновите их, чтобы обновление установилось.",
   "settings.updates.waiting.editing": "Ожидание закрытия открытой панели в окне Kento, чтобы ничего из вашей работы не потерялось.",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "Через несколько секунд Kento перезапустится, чтобы установить версию {version}.",
   "updates.notice.confirm": "Kento {version} готов к установке. Выберите «Обновить и перезапустить» в разделе «Настройки › Обновления».",
   "updates.notice.updated": "Kento обновлён до версии {version}. Откройте Kento, чтобы узнать, что изменилось.",
+  "updates.notice.missed": "Не удалось установить Kento {version}; текущая версия продолжает работать. Повторить попытку можно в разделе Настройки › Обновления.",
   "home.news.title": "Что нового в Kento {version}"
 }

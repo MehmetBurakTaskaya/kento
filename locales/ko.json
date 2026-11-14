@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "Kento {version} 버전을 다운로드하고 확인했습니다.",
   "settings.updates.status.waiting": "Kento {version} 버전을 다운로드하고 확인했습니다. 설치를 위해 다시 시작한 후에 새 작업을 시작할 수 있습니다.",
   "settings.updates.status.restarting": "몇 초 후 Kento가 다시 시작되어 {version} 버전을 설치합니다.",
+  "settings.updates.status.missed": "Kento {version}을(를) 설치하지 못했습니다. 현재 버전은 계속 작동합니다. 다시 시도하려면 지금 확인을 선택하거나 릴리스 페이지에서 내려받으세요.",
   "settings.updates.waiting.jobs": "{count, plural, other {작업 #개가 끝나기를 기다리는 중입니다.}}",
   "settings.updates.waiting.paused": "작업이 일시 중지되어 있습니다. 업데이트를 설치하려면 작업을 다시 시작하세요.",
   "settings.updates.waiting.editing": "작업 중인 내용이 사라지지 않도록 Kento 창에 열린 패널이 닫히기를 기다리는 중입니다.",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "몇 초 후 Kento가 다시 시작되어 {version} 버전을 설치합니다.",
   "updates.notice.confirm": "Kento {version} 버전을 설치할 준비가 되었습니다. 설정 › 업데이트에서 업데이트 후 다시 시작을 선택하세요.",
   "updates.notice.updated": "Kento가 {version} 버전으로 업데이트되었습니다. Kento를 열어 바뀐 내용을 확인하세요.",
+  "updates.notice.missed": "Kento {version}을(를) 설치하지 못했습니다. 현재 버전은 계속 작동합니다. 설정 › 업데이트에서 다시 시도할 수 있습니다.",
   "home.news.title": "Kento {version}의 새로운 기능"
 }

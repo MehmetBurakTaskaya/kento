@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "Kento {version} をダウンロードし、検証しました。",
   "settings.updates.status.waiting": "Kento {version} をダウンロードし、検証しました。新しいジョブは、インストールのための再起動の後で再び開始できます。",
   "settings.updates.status.restarting": "バージョン {version} をインストールするため、Kento は数秒後に再起動します。",
+  "settings.updates.status.missed": "Kento {version} をインストールできませんでした。このバージョンは引き続き使えます。「今すぐ確認」でもう一度試すか、リリースページからダウンロードしてください。",
   "settings.updates.waiting.jobs": "{count, plural, other {# 件のジョブが終わるのを待っています。}}",
   "settings.updates.waiting.paused": "ジョブが一時停止しています。更新をインストールできるよう、ジョブを再開してください。",
   "settings.updates.waiting.editing": "作業中の内容が失われないよう、Kento のウィンドウで開いているパネルが閉じるのを待っています。",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "バージョン {version} をインストールするため、Kento は数秒後に再起動します。",
   "updates.notice.confirm": "Kento {version} をインストールする準備ができました。設定 › 更新 で「更新して再起動」を選んでください。",
   "updates.notice.updated": "Kento をバージョン {version} に更新しました。Kento を開いて変更点を確認してください。",
+  "updates.notice.missed": "Kento {version} をインストールできませんでした。このバージョンは引き続き使えます。設定 › 更新 からもう一度試せます。",
   "home.news.title": "Kento {version} の新機能"
 }

@@ -71,6 +71,7 @@
   "settings.updates.status.confirm": "O Kento {version} foi baixado e verificado.",
   "settings.updates.status.waiting": "O Kento {version} foi baixado e verificado. Novas tarefas poderão começar de novo depois da reinicialização que o instala.",
   "settings.updates.status.restarting": "O Kento será reiniciado em alguns segundos para instalar a versão {version}.",
+  "settings.updates.status.missed": "Não foi possível instalar o Kento {version}; esta versão continua funcionando. Escolha Verificar agora para tentar de novo, ou baixe-o na página de versões.",
   "settings.updates.waiting.jobs": "{count, plural, one {Aguardando # tarefa terminar.} many {Aguardando # de tarefas terminarem.} other {Aguardando # tarefas terminarem.}}",
   "settings.updates.waiting.paused": "As tarefas estão pausadas: retome-as para que a atualização possa ser instalada.",
   "settings.updates.waiting.editing": "Aguardando o painel aberto na janela do Kento ser fechado, para que nada em que você esteja trabalhando se perca.",
@@ -1337,5 +1338,6 @@
   "updates.notice.restarting": "O Kento será reiniciado em alguns segundos para instalar a versão {version}.",
   "updates.notice.confirm": "O Kento {version} está pronto para instalar. Escolha “Atualizar e reiniciar” em Ajustes › Atualizações.",
   "updates.notice.updated": "O Kento foi atualizado para a versão {version}. Abra o Kento para ver o que mudou.",
+  "updates.notice.missed": "Não foi possível instalar o Kento {version}; esta versão continua funcionando. Você pode tentar de novo em Ajustes › Atualizações.",
   "home.news.title": "Novidades do Kento {version}"
 }

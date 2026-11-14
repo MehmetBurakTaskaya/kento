@@ -79,6 +79,17 @@ describe('Settings › Updates', () => {
     expect(open).toHaveBeenCalledWith('releases');
   });
 
+  it('says when an update closed Kento but did not install, and offers to try again', async () => {
+    const check = vi.spyOn(api, 'updatesCheck').mockResolvedValue();
+    const open = vi.spyOn(api, 'openLink').mockResolvedValue();
+    await show(view({ state: 'missed', version: '1.2.1' }));
+    expect(screen.getByText(/Kento 1.2.1 could not be installed, so this version keeps working/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
+    expect(check).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Open the release page' }));
+    expect(open).toHaveBeenCalledWith('releases');
+  });
+
   it('shows the download as it goes', async () => {
     await show(view({ state: 'downloading', version: '1.1.0', received: 25, total: 100 }));
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('25');
