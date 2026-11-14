@@ -4,6 +4,15 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- On Windows the update from 1.2.1 to 1.2.2 did not install: the installer waited for a Kento that
+  had already ended and gave up. It now waits only for programs that are still running and steps
+  the old `kento.exe` aside before it copies the new one, and writes what it found to
+  `logs\installer.log` in Kento's folder.
+
 ## [1.2.2] - 2026-11-14
 
 ### Fixed

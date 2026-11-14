@@ -166,44 +166,151 @@ FunctionEnd
   Pop $0
 !macroend
 
-; Waits until no program uses the installed kento.exe, for up to 30 seconds, closing the ones that
-; can be closed as Tauri's check after this hook does. That check gives up at once on a program it
-; cannot close, and an update starts while the Kento that started it is still ending, which
-; cannot be closed until it has; a virus scanner reading the file is another. Uses $0 to $4 and
-; $R7, $R8.
-!macro KentoWaitForApp
+; The name the installed kento.exe was set aside under during this install, or empty.
+Var KentoAppAside
+
+; The size of RM_PROCESS_INFO: a process id and its start time, two names, four numbers.
+!define KENTO_RM_PROCESS_INFO 668
+
+; Waits until no running program uses the installed kento.exe, for up to 30 seconds, closing the
+; ones that can be closed, then sets kento.exe aside so that Tauri's check after this hook, which
+; gives up at once on a program it cannot close, finds nothing in the way. An update starts while
+; the Kento that started it is still ending, and Restart Manager can go on naming that Kento to
+; this installer after it has ended (1.2.1 to 1.2.2), so only the programs it names that are still
+; running count. kento.exe is set aside only when none is: Windows lets a program in use be
+; renamed, but not the files it has open. What the installer saw goes to logs\installer.log, for
+; when an update does not install. Uses $0 to $9 and $R3 to $R9.
+!macro KentoFreeApp
   Push $0
   Push $1
   Push $2
   Push $3
   Push $4
+  Push $5
+  Push $6
+  Push $7
+  Push $8
+  Push $9
+  Push $R3
+  Push $R4
+  Push $R5
+  Push $R6
   Push $R7
   Push $R8
+  Push $R9
+  StrCpy $KentoAppAside ""
+  CreateDirectory "$INSTDIR\logs"
+  ClearErrors
+  FileOpen $R5 "$INSTDIR\logs\installer.log" w
+  ${If} ${Errors}
+    StrCpy $R5 ""
+  ${EndIf}
+  ${If} $R5 != ""
+    FileWrite $R5 "Kento ${VERSION} installer: $CMDLINE$\r$\n"
+  ${EndIf}
+  System::Call 'kernel32::GetCurrentProcessId() i .R6'
   System::Call 'kernel32::GetTickCount() i .R8'
   ${Do}
-    StrCpy $0 1
+    StrCpy $R4 0
+    StrCpy $R9 0
     !insertmacro RestartManager_StartSession $R7
     ${If} $R7 != ""
       !insertmacro RestartManager_RegisterFile $R7 "$INSTDIR\${MAINBINARYNAME}.exe"
       ${If} $0 = 0
-        System::Call 'RSTRTMGR::RmGetList(i R7, *i .r1, *i .r2, p 0, *i .r3) i .r0'
-        ; ERROR_MORE_DATA: some program uses it.
+        StrCpy $2 0
+        System::Call 'RSTRTMGR::RmGetList(i R7, *i .r1, *i r2r2, p 0, *i .r3) i .r0'
+        ; ERROR_MORE_DATA: it names some programs, $1 of them.
         ${If} $0 = 234
-          System::Call 'RSTRTMGR::RmShutdown(i R7, i ${RmForceShutdown}, p 0) i .r4'
+        ${AndIf} $1 > 0
+          IntOp $5 $1 * ${KENTO_RM_PROCESS_INFO}
+          System::Alloc $5
+          Pop $6
+          StrCpy $2 $1
+          System::Call 'RSTRTMGR::RmGetList(i R7, *i .r1, *i r2r2, p r6, *i .r3) i .r0'
+          ${If} $0 = 0
+            StrCpy $R4 $2
+            System::Call 'kernel32::GetTickCount() i .r1'
+            IntOp $1 $1 - $R8
+            ${If} $R5 != ""
+              FileWrite $R5 "$1 ms:"
+            ${EndIf}
+            StrCpy $5 $6
+            ${ForEach} $4 1 $2 + 1
+              System::Call '*$5(i .r7, i, i, &w256 .R3)'
+              StrCpy $9 "ended"
+              ${If} $7 = $R6
+                StrCpy $9 "this installer"
+              ${Else}
+                ; SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION. A process that cannot be opened
+                ; is still running unless it is gone (ERROR_ACCESS_DENIED).
+                System::Call 'kernel32::OpenProcess(i 0x00101000, i 0, i r7) p .r8 ?e'
+                Pop $3
+                ${If} $8 P<> 0
+                  ; WAIT_TIMEOUT: not ended yet.
+                  System::Call 'kernel32::WaitForSingleObject(p r8, i 0) i .r3'
+                  System::Call 'kernel32::CloseHandle(p r8)'
+                  ${If} $3 = 258
+                    StrCpy $9 "running"
+                  ${EndIf}
+                ${ElseIf} $3 = 5
+                  StrCpy $9 "running"
+                ${EndIf}
+                ${If} $9 == "running"
+                  IntOp $R9 $R9 + 1
+                ${EndIf}
+              ${EndIf}
+              ${If} $R5 != ""
+                FileWrite $R5 " $7 $R3 ($9);"
+              ${EndIf}
+              IntPtrOp $5 $5 + ${KENTO_RM_PROCESS_INFO}
+            ${Next}
+            ${If} $R5 != ""
+              FileWrite $R5 "$\r$\n"
+            ${EndIf}
+          ${EndIf}
+          System::Free $6
+          ${If} $R9 > 0
+            System::Call 'RSTRTMGR::RmShutdown(i R7, i ${RmForceShutdown}, p 0) i .r4'
+          ${EndIf}
         ${EndIf}
       ${EndIf}
       !insertmacro RestartManager_EndSession $R7
     ${EndIf}
     System::Call 'kernel32::GetTickCount() i .r1'
     IntOp $1 $1 - $R8
-    ${If} $0 <> 234
+    ${If} $R9 = 0
     ${OrIf} $1 >= 30000
       ${ExitDo}
     ${EndIf}
     Sleep 250
   ${Loop}
+  ; A copy left by an earlier install whose old Kento had not ended yet goes now.
+  Delete "$INSTDIR\kento-app.*.old"
+  ${If} $R9 = 0
+  ${AndIf} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
+    System::Call 'kernel32::GetTickCount() i .r0'
+    ClearErrors
+    Rename "$INSTDIR\${MAINBINARYNAME}.exe" "$INSTDIR\kento-app.$0.old"
+    ${IfNot} ${Errors}
+      StrCpy $KentoAppAside "kento-app.$0.old"
+    ${EndIf}
+  ${EndIf}
+  ${If} $R5 != ""
+    FileWrite $R5 "waited $1 ms; $R4 named on the last check, $R9 of them running; kento.exe set aside as [$KentoAppAside]$\r$\n"
+    FileClose $R5
+  ${EndIf}
+  Pop $R9
   Pop $R8
   Pop $R7
+  Pop $R6
+  Pop $R5
+  Pop $R4
+  Pop $R3
+  Pop $9
+  Pop $8
+  Pop $7
+  Pop $6
+  Pop $5
   Pop $4
   Pop $3
   Pop $2
@@ -211,13 +318,17 @@ FunctionEnd
   Pop $0
 !macroend
 
-; An install that failed puts back the command line the hook below set aside (the next install
-; would delete it). A quiet one, an update's, then starts the Kento that is still there again when
-; it was asked to start Kento (/R), so the user is never left without it; that Kento sees that the
-; update did not happen and does not try it again by itself. Tauri reads this file before it
-; defines the program's name, its own variables and its plugin, hence the names written out and
-; Exec, which runs Kento as the user this per-user installer runs as.
+; An install that failed puts back kento.exe and the command line the hooks below set aside (the
+; next install would delete them). A quiet one, an update's, then starts the Kento that is still
+; there again when it was asked to start Kento (/R), so the user is never left without it; that
+; Kento sees that the update did not happen and does not try it again by itself. Tauri reads this
+; file before it defines the program's name, its own variables and its plugin, hence the names
+; written out and Exec, which runs Kento as the user this per-user installer runs as.
 Function .onInstFailed
+  ${IfNot} ${FileExists} "$INSTDIR\kento.exe"
+  ${AndIf} $KentoAppAside != ""
+    Rename "$INSTDIR\$KentoAppAside" "$INSTDIR\kento.exe"
+  ${EndIf}
   ${IfNot} ${FileExists} "$INSTDIR\kento.com"
     FindFirst $R1 $R2 "$INSTDIR\kento-cli.*.old"
     ${If} $R2 != ""
@@ -240,7 +351,7 @@ FunctionEnd
 ; so `kento` in a terminal runs the console program. Tauri packs it under Cargo's name,
 ; kento-cli.exe, which takes its place after the files are copied.
 !macro NSIS_HOOK_PREINSTALL
-  !insertmacro KentoWaitForApp
+  !insertmacro KentoFreeApp
   ; A command line still running from a script holds kento.com: Windows lets it be renamed but not
   ; replaced, so it is set aside and goes once it has ended (here, or at the next install).
   Delete "$INSTDIR\kento-cli.*.old"
@@ -258,6 +369,7 @@ FunctionEnd
     Rename "$INSTDIR\kento-cli.exe" "$INSTDIR\kento.com"
   ${EndIf}
   Delete "$INSTDIR\kento-cli.*.old"
+  Delete "$INSTDIR\kento-app.*.old"
   ; Updates keep the Path as the user left it.
   ${If} $UpdateMode <> 1
     !insertmacro KentoPath ADD
@@ -277,6 +389,7 @@ FunctionEnd
 !macro NSIS_HOOK_POSTUNINSTALL
   Delete "$INSTDIR\kento.com"
   Delete "$INSTDIR\kento-cli.*.old"
+  Delete "$INSTDIR\kento-app.*.old"
   ; Tauri removed the folder while kento.com was still in it.
   RMDir "$INSTDIR"
   ReadEnvStr $R0 KENTO_REINSTALL
