@@ -10,6 +10,12 @@ import { Wheel, type WheelControl, type WheelProps, type WheelSlice } from './Wh
 
 // The sounds a wheel asks for, without audio.
 vi.mock('./sound', async (original) => ({ ...(await original<typeof import('./sound')>()), playWheelSound: vi.fn() }));
+// The steel wheel's sounds drawn in code, which these tests listen for, as for a theme without recordings.
+vi.mock('../theme/host/recorded', () => ({
+  hasRecorded: () => false,
+  loadRecorded: () => Promise.resolve(),
+  recordedVoice: () => null,
+}));
 
 const FORMATS: WheelSlice[] = ['jpg', 'png', 'webp', 'avif', 'gif', 'tiff', 'bmp', 'ico', 'pdf'].map((id) => ({
   id,

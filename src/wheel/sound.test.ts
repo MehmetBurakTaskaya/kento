@@ -5,7 +5,10 @@ import type { PackTheme } from '../theme/host/packs';
 import { armWheelAudio, playWheelSound, TICK_GAP, tickAllowed, voiceGain, type WheelSound } from './sound';
 
 describe('wheel sounds', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.doUnmock('../theme/host/recorded');
+  });
 
   it('allows at most one slice click per 30 ms', () => {
     expect(TICK_GAP).toBe(30);
@@ -127,8 +130,14 @@ describe('wheel sounds', () => {
         resume = () => Promise.resolve();
       },
     );
-    // A fresh player, so its audio is made with this context.
+    // A fresh player, so its audio is made with this context; the voices drawn in code, as for a
+    // theme without recordings.
     vi.resetModules();
+    vi.doMock('../theme/host/recorded', () => ({
+      hasRecorded: () => false,
+      loadRecorded: () => Promise.resolve(),
+      recordedVoice: () => null,
+    }));
     const sound = await import('./sound');
     const { playFor } = await import('./voices');
     const stop = sound.armWheelAudio();
@@ -145,5 +154,55 @@ describe('wheel sounds', () => {
     // A theme without a voice for a sound plays nothing for it.
     playFor(pack as unknown as PackTheme, 'open', { enabled: true, volume: 0.5 });
     expect(drawn).toHaveLength(2);
+  });
+
+  it('plays a theme’s recording at its level, and nothing in its place while it decodes', async () => {
+    const drawn: { voice: string; out: unknown }[] = [];
+    const node = () => ({ connect: (next: unknown) => next, disconnect: () => {} });
+    const param = () => ({ value: 0 });
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        state = 'running';
+        currentTime = 0;
+        destination = {};
+        createGain = () => ({ ...node(), gain: param() });
+        createDynamicsCompressor = () => ({
+          ...node(),
+          threshold: param(),
+          knee: param(),
+          ratio: param(),
+          attack: param(),
+          release: param(),
+        });
+        resume = () => Promise.resolve();
+      },
+    );
+    let decoded = false;
+    const loading: string[] = [];
+    vi.resetModules();
+    vi.doMock('../theme/host/recorded', () => ({
+      hasRecorded: (theme: string, voice?: string) => theme === 'steel' && voice !== 'leave',
+      loadRecorded: (theme: string) => (loading.push(theme), Promise.resolve()),
+      recordedVoice: (_theme: string, voice: string) =>
+        decoded ? (_ac: unknown, out: unknown) => drawn.push({ voice: `recorded ${voice}`, out }) : null,
+    }));
+    const sound = await import('./sound');
+    const { playFor } = await import('./voices');
+    const stop = sound.armWheelAudio();
+    window.dispatchEvent(new Event('pointerdown'));
+    stop();
+    const settings = { enabled: true, volume: 0.5 };
+    // Still decoding: silence, not the voice drawn in code.
+    playFor(null, 'apply', settings);
+    expect(drawn).toEqual([]);
+    expect(loading).toEqual(['steel']);
+    decoded = true;
+    playFor(null, 'apply', settings);
+    // A ring's way back without a recording of its own takes the recorded tick.
+    playFor(null, 'leave', settings);
+    expect(drawn.map((each) => each.voice)).toEqual(['recorded success', 'recorded tick']);
+    expect(drawn[0]!.out).toMatchObject({ gain: { value: voiceGain('steel', 'success') } });
+    expect(drawn[1]!.out).toMatchObject({ gain: { value: voiceGain('steel', 'tick') } });
   });
 });

@@ -328,6 +328,41 @@ const unrar = rust.find((c) => c.name === 'unrar_sys');
 const webp = rust.find((c) => c.name === 'libwebp-sys');
 const webview = rust.find((c) => c.name === 'webview2-com-sys');
 const fonts = npm.filter((p) => p.name.startsWith('@fontsource'));
+
+// The themes' recorded sounds: CC0 recordings from Freesound, cut by scripts/theme-sounds.mjs. CC0
+// asks for no credit; each is named with its author all the same.
+const soundSources = existsSync(path.join(root, 'src', 'theme', 'sounds', 'sources.json'))
+  ? JSON.parse(read('src', 'theme', 'sounds', 'sources.json'))
+  : null;
+const themeNames = Object.fromEntries(JSON.parse(read('src', 'theme', 'catalog.json')).map((e) => [e.id, e.name]));
+const themeSounds = soundSources
+  ? (() => {
+      const users = new Map();
+      for (const [theme, voices] of Object.entries(soundSources.themes))
+        for (const clips of Object.values(voices).filter(Array.isArray))
+          for (const clip of clips) {
+            const names = users.get(String(clip.from)) ?? new Set();
+            names.add(themeNames[theme] ?? theme);
+            users.set(String(clip.from), names);
+          }
+      const ids = [...users.keys()].sort((a, b) => Number(a) - Number(b));
+      return `### Theme sounds
+
+The themes' sounds are cut from ${ids.length} recordings published on [Freesound](https://freesound.org)
+under CC0 1.0 (<https://creativecommons.org/publicdomain/zero/1.0/>), which waives every right to
+them and asks for no credit. They are listed with their authors all the same, with the themes that
+use them.
+
+${ids
+  .map((id) => {
+    const r = soundSources.recordings[id];
+    return `- "${r.title}" by ${r.author}, <${r.page}>: ${[...users.get(id)].sort(byText).join(', ')}`;
+  })
+  .join('\n')}
+
+`;
+    })()
+  : '';
 const toolRows = [...new Map(tools.map((t) => [t.name, t])).values()];
 
 const textSections = [...groups.values()]
@@ -384,7 +419,7 @@ beside the library and Kento installs with it. The build's own licence:
 
 ${fence(pdfiumLicence)}
 
-### Code from other projects built into Kento
+${themeSounds}### Code from other projects built into Kento
 
 Some crates compile another project's code into Kento. Their texts are under
 [Licence texts](#licence-texts) too.

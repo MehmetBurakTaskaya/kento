@@ -197,15 +197,15 @@ Anatomy, outside in (radii in the 400-unit space):
 
 ## 7. Sound
 
-Every sound is synthesized (WebAudio in the wheel window); nothing is recorded or downloaded.
+Every theme's sounds, the steel wheel's too, are real recordings of what it shows: CC0 recordings from Freesound, cut into short clips that ship inside Kento (`src/theme/sounds`, made by `npm run theme:sounds` from `sources.json`); nothing is downloaded while Kento runs. The steel wheel's voices drawn in code stay for a sound without a recording.
 
 | Event | Sound | Length |
 | --- | --- | --- |
-| Wheel opens | a fast run of about ten fine dial ticks, slowing into a last click | about 150 ms |
-| Slice changes | one crisp combination click: a dry tick, a thin ring of steel, a small body | about 30 ms |
-| Into a ring | a deeper detent, the dial dropping into a stop: a lower click with a heavier body and a short ring of steel, then the spring settling | about 50 ms |
-| Back a ring | a lighter detent, the dial lifting out: a faint release, then a higher, quieter click with a small body | about 45 ms |
-| Job done (apply) | the handle ratchet (five ticks), a heavy bolt throw (a low thud with a ring of steel), a small latch click | about 450 ms |
+| Wheel opens | the end of a vault dial's spin: clicks slowing into a last click, with a ring of steel | about 500 ms |
+| Slice changes | one click of the same dial (four takes, one at random) | about 50 ms |
+| Into a ring | a bolt going home: a click, then a clunk | about 170 ms |
+| Back a ring | the same bolt drawn back, with a lighter click | about 170 ms |
+| Job done (apply) | a bolt slide, a heavy clunk and a long ring of steel | about 750 ms |
 
 - On by default at a low level (volume 30 %); Settings has an on/off switch and a volume slider that
   shows its value and plays the theme's apply sound at the new level.

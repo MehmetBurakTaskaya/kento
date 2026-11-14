@@ -22,8 +22,8 @@ they stay that way:
   Developer, FFmpeg, LibreOffice, yt-dlp.
 - Do not use or imitate another app's name, logo, icons, illustrations, colour palette, marketing
   copy or screenshots. The brand and the default theme use no fruit motifs.
-- Fonts are openly licensed (OFL or similar) and embedded; sounds are synthesised in code or
-  CC0-licensed; icons and artwork are drawn for Kento.
+- Fonts are openly licensed (OFL or similar) and embedded; sounds are CC0 recordings (listed in
+  `src/theme/sounds/sources.json`) or synthesised in code; icons and artwork are drawn for Kento.
 - Texts make no "first", "only" or "we invented" claims.
 
 A pull request that does not follow these rules cannot be merged, however good it is otherwise.
@@ -60,6 +60,12 @@ behind in a part that moves on every frame (the count-ups), so close heavy progr
 again after a visible change to the wheel, the pages or a theme;
 `--gif`, `--stills` and `--lang en` make only part of it, and `--themes` records the reel alone
 (its frames, for a video of its own).
+
+A theme's sounds are clips of CC0 recordings from Freesound, listed in `src/theme/sounds/sources.json`
+(the recording, the stretch of it and how it is filtered); `npm run theme:sounds` downloads each
+recording's preview once into `artifacts/` and cuts the MP3s in `src/theme/sounds/<theme>/`, and
+`npm run theme:sounds -- --check` tells whether every clip has its file. Only CC0 recordings go in;
+`npm run third-party` lists them with their authors in THIRD-PARTY-NOTICES.md.
 
 `npm run theme:levels` measures every sound of every theme and writes the gain that brings each to
 its level into `src/theme/levels.json`, so all themes are equally loud. Run it after changing a

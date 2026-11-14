@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import catalog from './catalog.json';
 import { loadedPackTheme, loadPackTheme, type PackTheme } from './host/packs';
+import { loadRecorded } from './host/recorded';
 import { steel } from './steel';
 
 export type Tokens = Record<string, string>;
@@ -122,6 +123,8 @@ let loadedCount = 0;
 /** Loads a theme's pack and faces. A pack that fails to load leaves the theme drawn in steel. */
 export async function loadTheme(id: string): Promise<ThemeDefinition> {
   const entry = themeEntry(id);
+  // Its recorded voices decode meanwhile; the wheel does not wait for them.
+  void loadRecorded(entry.id).catch(() => {});
   if (entry.pack && !loadedPackTheme(entry.id)) {
     await loadPackTheme(entry.pack, entry.id);
     loadedCount++;
@@ -177,6 +180,7 @@ const wanted = new WeakMap<HTMLElement, string>();
  *  has, so a change never flashes the default one. A pack that fails to load gives the default theme. */
 export function showTheme(element: HTMLElement, id: string, mode: Mode): Promise<void> {
   wanted.set(element, id);
+  void loadRecorded(themeEntry(id).id).catch(() => {});
   if (themeReady(id)) {
     applyTheme(element, getTheme(id), mode);
     return Promise.resolve();

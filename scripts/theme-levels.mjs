@@ -3,7 +3,8 @@
 // headless Chromium, the app's own code through Vite, and measured; the table holds the gain, in
 // decibels, that brings it to the level its sound should have at full volume. So every theme is as
 // loud as every other, and a theme whose clicks were drawn quietly is not lost under the others.
-// Run it again after changing a theme's sounds:
+// A theme's recorded voices (src/theme/sounds) are measured take by take, its voices drawn in code
+// only where it has no recording. Run it again after changing a theme's sounds:
 //   npm run theme:levels             write the table
 //   npm run theme:levels -- --check  fail if the table is not the one the voices give
 //
@@ -80,6 +81,19 @@ try {
       };
       const { SFX } = await import('/src/theme/host/sfx.ts');
       const { steelVoice } = await import('/src/wheel/sound.ts');
+      const recorded = await import('/src/theme/host/recorded.ts');
+      // A recorded voice: every take, the median loudness and the highest peak.
+      const renderTakes = async (theme, voice) => {
+        await recorded.loadRecorded(theme);
+        const runs = [];
+        for (let k = 0; k < recorded.recordedTakes(theme, voice); k++) {
+          const ac = new OfflineAudioContext(1, 3 * RATE, RATE);
+          recorded.recordedVoice(theme, voice, k)(ac, ac.destination, 0.01, SFX);
+          runs.push(measure((await ac.startRendering()).getChannelData(0)));
+        }
+        const rms = runs.map((run) => run.rms).sort((a, b) => a - b)[Math.floor(runs.length / 2)];
+        return { rms, peak: Math.max(...runs.map((run) => run.peak)) };
+      };
       const catalog = (await import('/src/theme/catalog.json')).default;
       const out = { steel: {} };
       for (const [voice, sound] of [
@@ -89,7 +103,9 @@ try {
         ['leave', 'leave'],
         ['success', 'apply'],
       ])
-        out.steel[voice] = await render(steelVoice(sound));
+        out.steel[voice] = recorded.hasRecorded('steel', voice)
+          ? await renderTakes('steel', voice)
+          : await render(steelVoice(sound));
       const packs = new Map();
       for (const entry of catalog) {
         if (!entry.pack) continue;
@@ -102,7 +118,8 @@ try {
         const sounds = packs.get(entry.pack).find((concept) => concept.id === entry.id)?.sounds ?? {};
         out[entry.id] = {};
         for (const voice of ['open', 'tick', 'enter', 'leave', 'success'])
-          if (sounds[voice]) out[entry.id][voice] = await render((ac, dest, t) => sounds[voice](ac, dest, t, SFX));
+          if (recorded.hasRecorded(entry.id, voice)) out[entry.id][voice] = await renderTakes(entry.id, voice);
+          else if (sounds[voice]) out[entry.id][voice] = await render((ac, dest, t) => sounds[voice](ac, dest, t, SFX));
       }
       return out;
     },

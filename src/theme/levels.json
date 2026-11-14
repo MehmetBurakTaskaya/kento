@@ -1,359 +1,359 @@
 {
   "steel": {
-    "open": 28.2,
-    "tick": 18.8,
-    "enter": 11.7,
-    "leave": 19.9,
-    "success": 7.7
+    "open": -2.8,
+    "tick": -3,
+    "enter": -4.1,
+    "leave": -6.5,
+    "success": 0.8
   },
   "kadran-a": {
-    "open": 21.5,
-    "tick": 19.9,
-    "enter": 20.5,
-    "leave": 20.4,
-    "success": 15.6
+    "open": -0.2,
+    "tick": -3.5,
+    "enter": 0.4,
+    "leave": -2.3,
+    "success": 2
   },
   "kadran-b": {
-    "open": 15.5,
-    "tick": 13.6,
-    "enter": 14.5,
-    "leave": 14.7,
-    "success": 15.6
+    "open": -5.2,
+    "tick": -7.5,
+    "enter": -5.4,
+    "leave": -7.4,
+    "success": 0.5
   },
   "kadran-c": {
-    "open": 22.2,
-    "tick": 15.5,
-    "enter": 16.2,
-    "leave": 15.9,
-    "success": 16.6
+    "open": -5.4,
+    "tick": -2.8,
+    "enter": -5.1,
+    "leave": -7.2,
+    "success": 0.5
   },
   "simya-a": {
-    "open": 16.7,
-    "tick": 14,
-    "enter": 14.8,
-    "leave": 17.8,
-    "success": 9.7
+    "open": -4.4,
+    "tick": -6.4,
+    "enter": -5.5,
+    "leave": -7.4,
+    "success": 0.5
   },
   "simya-c": {
-    "open": 17.7,
-    "tick": 17.4,
-    "enter": 17.8,
-    "leave": 18.1,
-    "success": 13.4
+    "open": -4.5,
+    "tick": -6.9,
+    "enter": -5.5,
+    "leave": -7.5,
+    "success": 2.3
   },
   "ebru-a": {
-    "open": 7.1,
-    "tick": 13.4,
-    "enter": 13.5,
-    "leave": 13.6,
-    "success": 9.5
+    "open": -5.3,
+    "tick": -7.5,
+    "enter": -5.5,
+    "leave": -7.4,
+    "success": 0.6
   },
   "ebru-b": {
-    "open": 16.9,
-    "tick": 18.9,
-    "enter": 20.6,
-    "leave": 18.3,
-    "success": 21.2
+    "open": -3.7,
+    "tick": -4.6,
+    "enter": -5.3,
+    "leave": -6.9,
+    "success": 0.7
   },
   "astro-a": {
-    "open": 17.5,
-    "tick": 15.9,
-    "enter": 18.8,
-    "leave": 16.8,
-    "success": 12.3
+    "open": -3,
+    "tick": -6,
+    "enter": -3.9,
+    "leave": -6.3,
+    "success": 2.8
   },
   "astro-b": {
-    "open": 11.2,
-    "tick": 11.8,
-    "enter": 14.8,
-    "leave": 13.9,
-    "success": 17
+    "open": -5.4,
+    "tick": -7.5,
+    "enter": -5.5,
+    "leave": -7.3,
+    "success": 0.5
   },
   "astro-c": {
-    "open": 23.2,
-    "tick": 17.2,
-    "enter": 17.7,
-    "leave": 17.2,
-    "success": 14.9
+    "open": -1.1,
+    "tick": -7.3,
+    "enter": -0.1,
+    "leave": -2.9,
+    "success": 0.9
   },
   "minimal": {
-    "open": 10.6,
-    "tick": 10,
-    "enter": 14.1,
-    "leave": 12.9,
-    "success": 12.5
+    "open": -5.4,
+    "tick": -7.5,
+    "enter": -5.1,
+    "leave": -7.3,
+    "success": 0.6
   },
   "pusula": {
-    "open": 18.3,
-    "tick": 14,
-    "enter": 16.3,
-    "leave": 15.6,
-    "success": 8.6
+    "open": 1.4,
+    "tick": -7.5,
+    "enter": -3.7,
+    "leave": -5.7,
+    "success": 1.7
   },
   "tezgah": {
-    "open": 10.1,
-    "tick": 19.1,
-    "enter": 19.9,
-    "leave": 19.9,
-    "success": 12.9
+    "open": -5.4,
+    "tick": -4,
+    "enter": -4.5,
+    "leave": -2.7,
+    "success": 3.1
   },
   "portakal": {
-    "open": 13,
-    "tick": 12.6,
-    "enter": 13.3,
-    "leave": 11.4,
-    "success": 17.2
+    "open": -1,
+    "tick": -1.8,
+    "enter": -1.5,
+    "leave": -4.8,
+    "success": 1.8
   },
   "karpuz": {
-    "open": 4.3,
-    "tick": 22.1,
-    "enter": 26.9,
-    "leave": 19,
-    "success": 12.3
+    "open": -5,
+    "tick": -3.8,
+    "enter": -5,
+    "leave": -6.9,
+    "success": 1
   },
   "nar": {
-    "open": 13.5,
-    "tick": 13.1,
-    "enter": 18.7,
-    "leave": 14.5,
-    "success": 22.5
+    "open": -0.1,
+    "tick": 0.4,
+    "enter": -0.1,
+    "leave": 2.5,
+    "success": 0.8
   },
   "pizza": {
-    "open": 16,
-    "tick": 14.8,
-    "enter": 18.5,
-    "leave": 17.1,
-    "success": 18.1
+    "open": -5.4,
+    "tick": -3.9,
+    "enter": -5.3,
+    "leave": -7.4,
+    "success": 0.6
   },
   "lolipop": {
-    "open": 14,
-    "tick": 17.2,
-    "enter": 18.3,
-    "leave": 17.1,
-    "success": 15.7
+    "open": -3.9,
+    "tick": -1.5,
+    "enter": -1.7,
+    "leave": -3,
+    "success": 0.8
   },
   "baklava": {
-    "open": 11.9,
-    "tick": 16.8,
-    "enter": 21.5,
-    "leave": 17.3,
-    "success": 19.8
+    "open": -5.5,
+    "tick": -6.1,
+    "enter": 2.5,
+    "leave": 1.9,
+    "success": 2.1
   },
   "aycicegi": {
-    "open": 16.6,
-    "tick": 22.7,
-    "enter": 25,
-    "leave": 23.1,
-    "success": 14.6
+    "open": -4.8,
+    "tick": -2.8,
+    "enter": -5,
+    "leave": -4.4,
+    "success": 2.1
   },
   "kartanesi": {
-    "open": 13.8,
-    "tick": 17.7,
-    "enter": 20.9,
-    "leave": 18.5,
-    "success": 16.1
+    "open": -0.2,
+    "tick": -4.5,
+    "enter": -4,
+    "leave": -6.7,
+    "success": 1.5
   },
   "agachalkasi": {
-    "open": 10.4,
-    "tick": 23.6,
-    "enter": 26,
-    "leave": 24.2,
-    "success": 8.3
+    "open": -5.5,
+    "tick": -3.5,
+    "enter": -5.5,
+    "leave": -7.5,
+    "success": 1.6
   },
   "balpetegi": {
-    "open": 20.8,
-    "tick": 15.5,
-    "enter": 20,
-    "leave": 19.8,
-    "success": 20.9
+    "open": -5.5,
+    "tick": -7.5,
+    "enter": -5.4,
+    "leave": -7.5,
+    "success": 0.5
   },
   "denizkabugu": {
-    "open": 22.9,
-    "tick": 19.9,
-    "enter": 21,
-    "leave": 19,
-    "success": 16.2
+    "open": 1,
+    "tick": -1.9,
+    "enter": -4.7,
+    "leave": -5.4,
+    "success": 1.1
   },
   "dalga": {
-    "open": 18.2,
-    "tick": 20.6,
-    "enter": 19.8,
-    "leave": 18.2,
-    "success": 13.7
+    "open": -5,
+    "tick": -3.8,
+    "enter": -4.8,
+    "leave": -7.3,
+    "success": 1
   },
   "iznik": {
-    "open": 11.2,
-    "tick": 18.5,
-    "enter": 19.7,
-    "leave": 17.6,
-    "success": 10.7
+    "open": -4.7,
+    "tick": -7.3,
+    "enter": -5.4,
+    "leave": -7.3,
+    "success": 0.6
   },
   "kilim": {
-    "open": 13.3,
-    "tick": 15.4,
-    "enter": 17.6,
-    "leave": 14.1,
-    "success": 16.1
+    "open": -5.4,
+    "tick": -6.4,
+    "enter": -5.4,
+    "leave": -7.5,
+    "success": 0.5
   },
   "nazar": {
-    "open": 14.2,
-    "tick": 18.5,
-    "enter": 19.6,
-    "leave": 16.8,
-    "success": 11.3
+    "open": -5.1,
+    "tick": -5.5,
+    "enter": -5.4,
+    "leave": -6.5,
+    "success": 2.5
   },
   "sema": {
-    "open": 21.1,
-    "tick": 13.9,
-    "enter": 18.9,
-    "leave": 16.9,
-    "success": 12.1
+    "open": -4.9,
+    "tick": -7.4,
+    "enter": -5.5,
+    "leave": -7.5,
+    "success": 0.6
   },
   "kahve": {
-    "open": 14.6,
-    "tick": 21.1,
-    "enter": 22.4,
-    "leave": 19.7,
-    "success": 21.1
+    "open": -5.4,
+    "tick": -7.3,
+    "enter": -4.7,
+    "leave": -6.9,
+    "success": 1.6
   },
   "dart": {
-    "open": 14.8,
-    "tick": 20.5,
-    "enter": 19.2,
-    "leave": 22.3,
-    "success": 12.9
+    "open": -5.4,
+    "tick": -7.5,
+    "enter": -2.1,
+    "leave": -7.4,
+    "success": 0.5
   },
   "telefon": {
-    "open": 13.5,
-    "tick": 17.2,
-    "enter": 17.9,
-    "leave": 17,
-    "success": 20.8
+    "open": -0.4,
+    "tick": -4.3,
+    "enter": -3.4,
+    "leave": -6.9,
+    "success": 0.9
   },
   "pikap": {
-    "open": 14.1,
-    "tick": 19.3,
-    "enter": 18.6,
-    "leave": 17.4,
-    "success": 16.2
+    "open": -4.8,
+    "tick": 0.9,
+    "enter": -0.8,
+    "leave": -7.6,
+    "success": 0.9
   },
   "radar": {
-    "open": 13.4,
-    "tick": 16,
-    "enter": 19.9,
-    "leave": 17.8,
-    "success": 9.6
+    "open": -5.5,
+    "tick": -7.5,
+    "enter": -5.4,
+    "leave": -7.5,
+    "success": 0.6
   },
   "radyo": {
-    "open": 15.8,
-    "tick": 20.2,
-    "enter": 20.9,
-    "leave": 19.4,
-    "success": 16.4
+    "open": -5.5,
+    "tick": -7.3,
+    "enter": -5.3,
+    "leave": -7.4,
+    "success": 0.6
   },
   "kronograf": {
-    "open": 22.6,
-    "tick": 21.4,
-    "enter": 20,
-    "leave": 19.7,
-    "success": 22
+    "open": 2.6,
+    "tick": -3.9,
+    "enter": 0.6,
+    "leave": -1.5,
+    "success": 1.8
   },
   "arcade": {
-    "open": 19.8,
-    "tick": 17.2,
-    "enter": 20.8,
-    "leave": 18.7,
-    "success": 22.7
+    "open": 0.7,
+    "tick": -2.9,
+    "enter": -5.5,
+    "leave": -4.4,
+    "success": 1
   },
   "piksel": {
-    "open": 15.7,
-    "tick": 24.7,
-    "enter": 27.1,
-    "leave": 25.8,
-    "success": 19.2
+    "open": -5.4,
+    "tick": -7.4,
+    "enter": -5.1,
+    "leave": -7.3,
+    "success": 0.5
   },
   "bauhaus": {
-    "open": 8.5,
-    "tick": 18.8,
-    "enter": 21.1,
-    "leave": 19.9,
-    "success": 8.9
+    "open": -5.3,
+    "tick": -7.4,
+    "enter": -5.5,
+    "leave": -7.5,
+    "success": 1.8
   },
   "memphis": {
-    "open": 13.2,
-    "tick": 16.4,
-    "enter": 21.6,
-    "leave": 20.2,
-    "success": 10.3
+    "open": -5,
+    "tick": -1.7,
+    "enter": -5.5,
+    "leave": -7.5,
+    "success": 0.8
   },
   "artdeco": {
-    "open": 13.1,
-    "tick": 15.9,
-    "enter": 19.1,
-    "leave": 17.7,
-    "success": 11.5
+    "open": -5.1,
+    "tick": -6.8,
+    "enter": -3.4,
+    "leave": -3.5,
+    "success": 1.1
   },
   "popart": {
-    "open": 16.2,
-    "tick": 15.6,
-    "enter": 18.5,
-    "leave": 17.9,
-    "success": 11.7
+    "open": -5.5,
+    "tick": -5.9,
+    "enter": -5.5,
+    "leave": -7.5,
+    "success": 0.7
   },
   "suluboya": {
-    "open": 20.8,
-    "tick": 24.2,
-    "enter": 25.6,
-    "leave": 24.9,
-    "success": 15.9
+    "open": -5,
+    "tick": -1,
+    "enter": -5.5,
+    "leave": -7.5,
+    "success": 0.5
   },
   "karatahta": {
-    "open": 19,
-    "tick": 19.7,
-    "enter": 21.9,
-    "leave": 19.3,
-    "success": 23.9
+    "open": 0.7,
+    "tick": -1,
+    "enter": 0.7,
+    "leave": -5.8,
+    "success": 1
   },
   "blueprint": {
-    "open": 16.4,
-    "tick": 15.5,
-    "enter": 20.9,
-    "leave": 16.7,
-    "success": 21
+    "open": -4,
+    "tick": -5.1,
+    "enter": -5.5,
+    "leave": -6.9,
+    "success": 2.1
   },
   "vitray": {
-    "open": 13.3,
-    "tick": 14.4,
-    "enter": 17.9,
-    "leave": 16.6,
-    "success": 8.1
+    "open": -5,
+    "tick": -7,
+    "enter": -5.2,
+    "leave": -7.1,
+    "success": 0.5
   },
   "origami": {
-    "open": 22,
-    "tick": 23.4,
-    "enter": 23.5,
-    "leave": 23.8,
-    "success": 18.5
+    "open": -5.5,
+    "tick": -6.9,
+    "enter": -5.4,
+    "leave": -7.3,
+    "success": 0.9
   },
   "kakma": {
-    "open": 14.9,
-    "tick": 14.8,
-    "enter": 18.7,
-    "leave": 16.1,
-    "success": 14.4
+    "open": -5.2,
+    "tick": -3.2,
+    "enter": -5.3,
+    "leave": -7.3,
+    "success": 1
   },
   "terrazzo": {
-    "open": 17.3,
-    "tick": 30.5,
-    "enter": 32.2,
-    "leave": 31.3,
-    "success": 21.3
+    "open": -2.6,
+    "tick": -2.1,
+    "enter": -3.5,
+    "leave": -2.8,
+    "success": 1.3
   },
   "hologram": {
-    "open": 17,
-    "tick": 24.5,
-    "enter": 28.9,
-    "leave": 26.9,
-    "success": 18.4
+    "open": -5.5,
+    "tick": -7.1,
+    "enter": -5.2,
+    "leave": -7,
+    "success": 0.8
   }
 }

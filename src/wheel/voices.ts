@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-// Which voice plays each of the wheel's sounds: the steel wheel's own, or the theme's, at the level
-// measured for it (src/theme/levels.json).
+// Which voice plays each of the wheel's sounds: the theme's recording, the steel wheel's own or the
+// theme's voice drawn in code, at the level measured for it (src/theme/levels.json).
 import type { ThemeVoice } from '../theme/host/contract';
 import type { PackTheme } from '../theme/host/packs';
+import { hasRecorded, loadRecorded, recordedVoice } from '../theme/host/recorded';
 import { SFX } from '../theme/host/sfx';
 import { playVoice, playWheelSound, voiceGain, type SoundSettings, type WheelSound } from './sound';
 
@@ -16,8 +17,18 @@ const THEME_VOICE: Record<WheelSound, ThemeVoice[]> = {
   apply: ['success'],
 };
 
-/** Plays a sound of the wheel in the theme of `pack` (the steel wheel's when there is none). */
+/** Plays a sound of the wheel in the theme of `pack` (the steel wheel's when there is none). A theme's
+ *  recorded voices come first; one still decoding plays nothing rather than another sound, and a voice
+ *  without a recording keeps the voice drawn in code. */
 export function playFor(pack: PackTheme | null, name: WheelSound, settings: SoundSettings): void {
+  const id = pack?.id ?? 'steel';
+  const recorded = THEME_VOICE[name].find((each) => hasRecorded(id, each));
+  if (recorded) {
+    void loadRecorded(id);
+    const voice = recordedVoice(id, recorded);
+    if (voice) playVoice(name, settings, (ac, out, t) => voice(ac, out, t, SFX), undefined, voiceGain(id, recorded));
+    return;
+  }
   if (!pack) return playWheelSound(name, settings);
   const sounds = pack.concept.sounds;
   const which = THEME_VOICE[name].find((each) => sounds?.[each]);

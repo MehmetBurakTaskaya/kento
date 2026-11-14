@@ -4,6 +4,16 @@ All notable changes to Kento are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Every theme now sounds like what it shows, with real recordings instead of sounds made in code:
+  pointing at a slice of Karpuz crunches watermelon, Hedef's darts thud into the board, Ahize's dial
+  is pulled round and runs back, Radar pings like a submarine's sonar, Kasa's dial clicks and its
+  bolts slide home. Each theme's five sounds are cut from recordings that are free for any use
+  (CC0), and THIRD-PARTY-NOTICES.md names each with its author.
+
 ## [1.2.4] - 2026-11-14
 
 ### Fixed

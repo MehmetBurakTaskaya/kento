@@ -188,6 +188,203 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 This package also includes third-party software. See the licenses/ directory for their respective licenses.
 ```
 
+### Theme sounds
+
+The themes' sounds are cut from 189 recordings published on [Freesound](https://freesound.org)
+under CC0 1.0 (<https://creativecommons.org/publicdomain/zero/1.0/>), which waives every right to
+them and asks for no credit. They are listed with their authors all the same, with the themes that
+use them.
+
+- "Sonar_pings.ogg" by Peter_Gross, <https://freesound.org/s/12677/>: Radar
+- "clothxtra foley flap.wav" by martian, <https://freesound.org/s/19290/>: Sema
+- "partypopper.flac" by Streety, <https://freesound.org/s/26349/>: Konfeti
+- "old-radio-noise-switchon-ukw.wav" by DrNI, <https://freesound.org/s/27512/>: Frekans
+- "Gong_Center_Clear.wav" by Q.K., <https://freesound.org/s/56240/>: Girdap
+- "Gong_Center_Mute.wav" by Q.K., <https://freesound.org/s/56241/>: Girdap
+- "NeedleDrop03.wav" by transitking, <https://freesound.org/s/59287/>: Plak
+- "wrenches_thrown_or_dropped.wav" by vibe_crc, <https://freesound.org/s/59323/>: Tezgâh
+- "0005_Crystal Lamp with Swing Front.wav" by Andreas.Mustola, <https://freesound.org/s/84526/>: Obsidyen
+- "Lemon,Juicy,Squeeze,Fruit.wav" by Filipe Chagas, <https://freesound.org/s/91915/>: Portakal
+- "Lemon,Squeeze,Squishy,Fruit.wav" by Filipe Chagas, <https://freesound.org/s/91916/>: Portakal
+- "bushhit.wav" by j1987, <https://freesound.org/s/106113/>: Gündöndü
+- "clickselect.wav" by j1987, <https://freesound.org/s/106123/>: Gündöndü
+- "clickselect2.wav" by j1987, <https://freesound.org/s/106124/>: Gündöndü
+- "clickselect3.wav" by j1987, <https://freesound.org/s/106125/>: Gündöndü
+- "Penciltap.aif" by kbnevel, <https://freesound.org/s/119848/>: Ozalit
+- "Rolled paper,slapping 9.wav" by nahmandub, <https://freesound.org/s/131358/>: Ozalit
+- "Coffee cup in shaking hand – then put on table.wav" by jakobhandersen, <https://freesound.org/s/133826/>: Telve
+- "RecordPlayer-Antique-Switches.wav" by jessepash, <https://freesound.org/s/139963/>: Plak
+- "tinkling_brass_bells.wav" by mannhawks, <https://freesound.org/s/147898/>: Varak
+- "Crystal bowl nail E4 1.wav" by caiogracco, <https://freesound.org/s/150456/>: Nazar
+- "ARP Odyssey chirps and blips" by eon_polyphonic, <https://freesound.org/s/152318/>: Serap
+- "cig_extinguish.wav" by the_semen_incident, <https://freesound.org/s/155660/>: Kütük
+- "Water drop" by Elfman-Rox, <https://freesound.org/s/156907/>: Fırça
+- "clock / music-box spring mechanism wind-up" by OrbitalChiller, <https://freesound.org/s/171233/>: Yörünge
+- "Single Water Drop" by paespedro, <https://freesound.org/s/174718/>: Fırça
+- "Wine Glass" by studio_panorama, <https://freesound.org/s/176588/>: Yaldız
+- "pencil_check_mark_1.wav" by jakobhandersen, <https://freesound.org/s/181052/>: Ozalit
+- "stirring coffee.wav" by keweldog, <https://freesound.org/s/181716/>: Telve
+- "ANI - Wine Glass - Hard" by ani_music, <https://freesound.org/s/198401/>: Nazar
+- "Hammering_Wood.wav" by CapsLok, <https://freesound.org/s/204946/>: Tezgâh
+- "Ceramic Tink" by OwlStorm, <https://freesound.org/s/209014/>: Çini
+- "20131209_writing on a blackboard_OlympusLS10_xy.wav" by Soundscape_Leuphana, <https://freesound.org/s/210319/>: Tebeşir
+- "ceramicCups7.wav" by kikuchiyo, <https://freesound.org/s/214193/>: Çini
+- "Bubble wrap" by Macif, <https://freesound.org/s/214675/>: Konfeti
+- "Unfolding and crumbling paper" by Runey, <https://freesound.org/s/234886/>: Pusula
+- "gong hit soft close .wav" by thma, <https://freesound.org/s/245876/>: Girdap
+- "crispbread.wav" by monotraum, <https://freesound.org/s/257443/>: Fırın
+- "AM Tuning.wav" by NobodyYouKnowOf, <https://freesound.org/s/261873/>: Frekans
+- "Ice Crack 1" by j_p_higgins, <https://freesound.org/s/262635/>: Ayaz
+- "ICICLES breaking series.wav" by RMSound, <https://freesound.org/s/264420/>: Ayaz
+- "Chalk on chalkboard.wav" by fattirewhitey, <https://freesound.org/s/264944/>: Tebeşir
+- "Ping12.wav" by n_audioman, <https://freesound.org/s/266742/>: Piksel
+- "two large cobblestone blocks" by jobel0092, <https://freesound.org/s/268055/>: Beton
+- "singing bowl strike sound" by inoshirodesign, <https://freesound.org/s/271370/>: Varak
+- "bread slice serrated knife cut and rip" by spanrucker, <https://freesound.org/s/272223/>: Fırın
+- "Closing a Paper Fan.wav" by ryanharding95, <https://freesound.org/s/272428/>: Yaldız
+- "Opening a Paper Fan.wav" by ryanharding95, <https://freesound.org/s/272431/>: Yaldız
+- "Ticking Stopwatch (dry)" by DavidJGurney, <https://freesound.org/s/275802/>: Saniye
+- "Paper Sketchbook Page Flips 2" by OwlStorm, <https://freesound.org/s/320149/>: Kıvrım
+- "Bush Cut.wav" by Kreastricon62, <https://freesound.org/s/327894/>: Gündöndü
+- "Onion Sounds" by PureAudioNinja, <https://freesound.org/s/336013/>: Nar
+- "Ice cracking" by timbreknight, <https://freesound.org/s/342546/>: Ayaz
+- "Metal Bearing rolling spinning Start to Stop continuous Slow down scraping.wav" by breiti, <https://freesound.org/s/342978/>: Titan
+- "Paper Flap" by amholma, <https://freesound.org/s/344356/>: Kıvrım
+- "rotary phone" by seth-m, <https://freesound.org/s/344459/>: Ahize
+- "Bright Tibetan Bell Ding B Note - cleaner" by steaq, <https://freesound.org/s/346328/>: Revzen
+- "cutting_croissant_ST.wav" by wilhelmsqueek, <https://freesound.org/s/347384/>: Baklava
+- "Triangle_Open_04" by cabled_mess, <https://freesound.org/s/349504/>: Kare
+- "Analog Stopwatch Winding" by Kinoton, <https://freesound.org/s/353108/>: Saniye
+- "Ship Bell Single Ring" by Sojan, <https://freesound.org/s/353233/>: Yörünge
+- "slot machine payout.wav" by jack126guy, <https://freesound.org/s/361346/>: Jeton
+- "Stamp" by kermite607, <https://freesound.org/s/362622/>: Bom
+- "Stamp" by kermite607, <https://freesound.org/s/362623/>: Bom
+- "Stamp" by kermite607, <https://freesound.org/s/362624/>: Bom
+- "Small Gong_Soft Hit_RAW" by cabled_mess, <https://freesound.org/s/369428/>: Girdap
+- "Marimba - F#3 (Marimba_hit_Outrigger_G2_loud_01.wav)" by sgossner, <https://freesound.org/s/373585/>: Kare
+- "Xylophone - F#5 (Xylo_Medium_G5_ff_01_far.wav)" by sgossner, <https://freesound.org/s/374705/>: Halka
+- "Stick Against Dead Log - Zoom H6.wav" by lunchmoney, <https://freesound.org/s/380208/>: Kütük
+- "TIZ BENDIR.wav" by bassdream, <https://freesound.org/s/381444/>: Sema
+- "Ceramic Plate Set Down.wav" by bbrocer, <https://freesound.org/s/382643/>: Çini
+- "Plate Topple Spin.wav" by bbrocer, <https://freesound.org/s/382652/>: Çini
+- "Sonar pings assorted.wav" by sirplus, <https://freesound.org/s/383405/>: Radar
+- "Long Wet Pepper Crunch with Rip.wav" by minituffy, <https://freesound.org/s/385965/>: Nar
+- "Bathtub_Wave_1.wav" by SilentStrikeZ, <https://freesound.org/s/389621/>: Dalga
+- "Hard Candy / Bone Crunch" by clif_creates, <https://freesound.org/s/392883/>: Akide
+- "Swish Single 4" by deleted_user_6479820, <https://freesound.org/s/393811/>: Girdap
+- "Swish Single 3" by deleted_user_6479820, <https://freesound.org/s/393812/>: Girdap
+- "Wine Glass Ringing/Singing" by BJCurlee, <https://freesound.org/s/396293/>: Nazar
+- "Stopwatch.wav" by Rafinci, <https://freesound.org/s/397243/>: Saniye
+- "paper - folding 01.wav" by Anthousai, <https://freesound.org/s/398896/>: Kıvrım
+- "glass beads 01.wav" by Anthousai, <https://freesound.org/s/399002/>: Nazar
+- "glass beads 02.wav" by Anthousai, <https://freesound.org/s/399006/>: Nazar
+- "8bit Jump" by plasterbrain, <https://freesound.org/s/399095/>: Piksel
+- "Retro video game sfx - Bonus" by OwlStorm, <https://freesound.org/s/404770/>: Piksel
+- "Pincel en lienzo" by Pipe98x, <https://freesound.org/s/409608/>: Fırça
+- "singing bowl - single strike 5" by s-light, <https://freesound.org/s/411487/>: Varak
+- "Nikon FM2 dial a.wav" by hmilleo, <https://freesound.org/s/412546/>: Ayar
+- "ticking of the clock 01.wav" by blukotek, <https://freesound.org/s/412751/>: Yörünge
+- "Darts.WAV" by 14FPanskaBubik_Lukas, <https://freesound.org/s/418530/>: Hedef
+- "Toy Glockenspiel" by mooncubedesign, <https://freesound.org/s/420501/>: Atlas
+- "Tibetan bowl_center hit.wav" by dersinnsspace, <https://freesound.org/s/421829/>: Varak
+- "Short Whoosh, 13x" by Kinoton, <https://freesound.org/s/427979/>: Bom
+- "Canvas Dropcloth Snap 2" by zembacraftworks, <https://freesound.org/s/428336/>: Kilim
+- "8-Bit Text Blip - Medium Pitch" by SomeGuy22, <https://freesound.org/s/431326/>: Piksel
+- "8-Bit Text Blip - High Pitch" by SomeGuy22, <https://freesound.org/s/431328/>: Piksel
+- "Radio FM search tuning whistling pulsating" by Nimlos, <https://freesound.org/s/432812/>: Frekans
+- "Bank vault.wav" by Eyewer, <https://freesound.org/s/435768/>: Kasa
+- "ney-01.wav" by avnonsen, <https://freesound.org/s/440816/>: Sema
+- "Watermelon Slicing 1.m4a" by Yin_Yang_Jake007, <https://freesound.org/s/443468/>: Karpuz
+- "Sliding Envelope.wav" by MTJohnson, <https://freesound.org/s/444431/>: Pusula
+- "Bolt lock.WAV" by DDT197, <https://freesound.org/s/445774/>: Kasa
+- "Metallic Bolt Lock 3" by LordForklift, <https://freesound.org/s/448400/>: Kasa
+- "concrete cinder block drop on gravel.wav" by kyles, <https://freesound.org/s/452579/>: Beton
+- "tv channel change static blips (scanner CB radio tuning static blips +static sharp +scanner CB radio blips on+off good2).flac" by kyles, <https://freesound.org/s/454259/>: Frekans
+- "Vinyl  Needle Lift 01.wav" by Stratocube, <https://freesound.org/s/456280/>: Plak
+- "Tea cup set down 2.mp3" by TheHiraHira, <https://freesound.org/s/460241/>: Telve
+- "MetalFoodTray-10.wav" by luke_harris_01, <https://freesound.org/s/462659/>: Baklava
+- "PaperSlide.wav" by eyesonlegs, <https://freesound.org/s/464302/>: Pusula
+- "Arcade UI Cancel" by plasterbrain, <https://freesound.org/s/464912/>: Piksel
+- "Watersnaps.wav" by Sheyvan, <https://freesound.org/s/470081/>: Serpinti
+- "Opening a Candy Wrapper" by danlucaz, <https://freesound.org/s/477369/>: Akide
+- "glass_hit_bowls.wav" by JonnyRuss01, <https://freesound.org/s/478203/>: Obsidyen
+- "R20-20-Pay Phone in Phone Booth.wav" by craigsmith, <https://freesound.org/s/483338/>: Ahize
+- "paisaje-sonoro-uem-borrador.WAV" by maggiemadu, <https://freesound.org/s/485510/>: Tebeşir
+- "Submarine Sonar" by Breviceps, <https://freesound.org/s/493162/>: Radar
+- "Five Bar Chimes Samples.wav" by tosha73, <https://freesound.org/s/495327/>: Atlas
+- "Rainstick moving up down" by koutino, <https://freesound.org/s/501167/>: Gündöndü
+- "navette de métier à tisser.wav" by Naïma, <https://freesound.org/s/510266/>: Kilim
+- "Office stamp" by whammy, <https://freesound.org/s/514486/>: Pusula
+- "Old SLR film camera film advance lever and shutter button click" by khenshom, <https://freesound.org/s/516486/>: Ayar
+- "SLIDE WHISTLE - 1" by SamuelGremaud, <https://freesound.org/s/517633/>: Konfeti
+- "CHIMES - 6" by SamuelGremaud, <https://freesound.org/s/517659/>: Atlas
+- "Wine Glass Toast Clink" by BennettFilmTeacher, <https://freesound.org/s/518598/>: Yaldız
+- "CROTALES - 1" by SamuelGremaud, <https://freesound.org/s/518710/>: Varak
+- "arrow_.hits_target.wav" by cyoung510, <https://freesound.org/s/521242/>: Hedef
+- "Game Start" by CasperThePancake, <https://freesound.org/s/521939/>: Piksel
+- "log-wood-timber-knock-hit.wav" by LeavidenceDesign, <https://freesound.org/s/522111/>: Kütük
+- "Small wood Block.wav" by Noted451, <https://freesound.org/s/530437/>: Kare
+- "cinderblock scrape 6 and a thud.wav" by patchytherat, <https://freesound.org/s/530989/>: Beton
+- "Darts.wav" by aidansamuel, <https://freesound.org/s/540132/>: Hedef
+- "CANDY IN DISH.wav" by miwilson, <https://freesound.org/s/546608/>: Akide
+- "Paper Unfolding Quickly" by coolernow123, <https://freesound.org/s/547980/>: Kıvrım
+- "Record Player Needle is dropped & Vinyl crackling" by Breviceps, <https://freesound.org/s/556722/>: Plak
+- "Deep Whoosh #5" by Kinoton, <https://freesound.org/s/558827/>: Girdap
+- "Cup and Saucer 2.wav" by bowlingballout, <https://freesound.org/s/568758/>: Çini
+- "Record vinyl needle drop start scratches crackle.flac" by TRP, <https://freesound.org/s/572533/>: Plak
+- "Throwing logs" by zeteny_zpx, <https://freesound.org/s/575904/>: Kütük
+- "tap finger on small plastic bottle.wav" by itinerantmonk108, <https://freesound.org/s/578868/>: Halka
+- "Ankara-110-Amin - Ney.wav" by aliaref, <https://freesound.org/s/580759/>: Sema
+- "Metal Flap Magnet.flac" by Slivinson, <https://freesound.org/s/582620/>: Titan
+- "Rock Splash" by Fission9, <https://freesound.org/s/583348/>: Dalga
+- "GoStoneSounds.ogg" by billhails2, <https://freesound.org/s/588317/>: Sedef
+- "Bee recorded individually | Johanna" by felix.blume, <https://freesound.org/s/588533/>: Petek
+- "Putting magnets on a fridge Added a low shelf.wav" by GH0STY_XD, <https://freesound.org/s/594451/>: Titan
+- "Firecracker Explosion" by unfa, <https://freesound.org/s/609588/>: Bom
+- "Phone, old wired handset, pick up hang up, cu then medium (2012).wav" by TRP, <https://freesound.org/s/616840/>: Ahize
+- "TV, CRT, turning on off, static, click (2012).wav" by TRP, <https://freesound.org/s/616850/>: Serap
+- "Xylophone C4.wav" by kutalkilic, <https://freesound.org/s/617324/>: Halka
+- "Bottle xylophone" by Nita6, <https://freesound.org/s/620187/>: Revzen
+- "Ice_Bending_01.flac" by wwstudioswastaken, <https://freesound.org/s/621138/>: Ayaz
+- "dh quick slide.wav" by MinecraftM153, <https://freesound.org/s/634176/>: Ozalit
+- "fire small in antique iron stove in log cabin open metal door get log off pile and put in oven.flac" by kyles, <https://freesound.org/s/635540/>: Fırın
+- "pouring oil onto pan" by nataliegonzalez19, <https://freesound.org/s/636150/>: Baklava
+- "coin in jukebox slot +fall1.flac" by kyles, <https://freesound.org/s/637369/>: Jeton
+- "water splashes big hand slaps spray and wave.flac" by kyles, <https://freesound.org/s/637974/>: Dalga
+- "compass.wav" by Ches_Bar, <https://freesound.org/s/650360/>: Ozalit
+- "Jammed seashells" by MBPL, <https://freesound.org/s/667184/>: Helezon
+- "shellchimes3.wav" by noisymichael, <https://freesound.org/s/671122/>: Sedef
+- "S28-02 Arrow being pulled out of wood.wav" by craigsmith, <https://freesound.org/s/675818/>: Hedef
+- "S24-24 Comedy cartoon cork pop.wav" by craigsmith, <https://freesound.org/s/676000/>: Bom
+- "Water Slapping (fast)" by adviseme333, <https://freesound.org/s/679390/>: Dalga
+- "Watermelon Ripping" by CJspellsfish, <https://freesound.org/s/697398/>: Karpuz
+- "wooden crokinole disc piece placed on board.wav" by 5ro4, <https://freesound.org/s/701279/>: Sedef
+- "TOONTwang_door stopper twangs_Funky Audio_FASS.wav" by Funky_Audio, <https://freesound.org/s/702997/>: Konfeti
+- "230806 Unpeeling orange, like ripping tearing flesh, R-07 VideoNTG, Stratford" by TRP, <https://freesound.org/s/717910/>: Portakal
+- "dry crackle" by cognito perceptu, <https://freesound.org/s/723851/>: Fırın
+- "Stone - Throwing pebbles" by Vrymaa, <https://freesound.org/s/734669/>: Mozaik
+- "Arcade button presses" by Sadiquecat, <https://freesound.org/s/737421/>: Jeton
+- "Cutting Ripe Watermelon" by qubodup, <https://freesound.org/s/752214/>: Karpuz
+- "Chess Pieces Drop" by IENBA, <https://freesound.org/s/755250/>: Sedef
+- "Ripping a grapefruit" by greenlinker, <https://freesound.org/s/757513/>: Portakal
+- "Squeezing Grapefruit" by greenlinker, <https://freesound.org/s/757516/>: Portakal
+- "Spanners clanging together" by DariusOW, <https://freesound.org/s/766417/>: Tezgâh
+- "dropping fabric onto floor" by Wigglesworth, <https://freesound.org/s/768130/>: Kilim
+- "rolling_bead" by loganzsound, <https://freesound.org/s/774258/>: Helezon
+- "Water Dripping onto Paper" by SoundsCoolio, <https://freesound.org/s/784087/>: Fırça
+- "Dartsboard" by Ultra-Edward, <https://freesound.org/s/792080/>: Hedef
+- "Flicking a glass bowl" by richwise, <https://freesound.org/s/795707/>: Titan
+- "Mark Tree Fast Down Scale" by mbthetd, <https://freesound.org/s/796546/>: Atlas
+- "Muddy Drips and Pops" by JelloApocalypse, <https://freesound.org/s/802607/>: Petek
+- "AAD WATER DRIPPING INTO WATER" by AwenAudio, <https://freesound.org/s/815419/>: Damla
+- "dry bush 04" by _sinny_, <https://freesound.org/s/825425/>: Gündöndü
+- "Shellphone" by tarane468, <https://freesound.org/s/827396/>: Helezon
+- "Dropping handful of seeds / pills / beads into palm and onto table top- picking up" by Wigglesworth, <https://freesound.org/s/833732/>: Nar
+- "Tapping and handling paper" by IENBA, <https://freesound.org/s/834340/>: Pusula
+- "Ice cube falling in glass 5" by Valerie-Vivegnis, <https://freesound.org/s/837694/>: Yaldız
+- "Temple Blocks (5pcs) - Hard Wood Mallets" by sazanami12, <https://freesound.org/s/863784/>: Kare
+- "Classic Arcade Button with Cherry Game Switch - Multiple Presses" by reolbox, <https://freesound.org/s/869751/>: Jeton
+
 ### Code from other projects built into Kento
 
 Some crates compile another project's code into Kento. Their texts are under
