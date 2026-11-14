@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import catalog from './catalog.json';
 import { hasRecorded, recordedTakes, trimLead } from './host/recorded';
+import list from './sounds/sources.json';
 
 const VOICES = ['open', 'tick', 'enter', 'leave', 'success'] as const;
-const dir = path.join(__dirname, 'sounds');
-const sources = JSON.parse(readFileSync(path.join(dir, 'sources.json'), 'utf8')) as {
+const sources = list as unknown as {
   recordings: Record<string, { title: string; author: string; page: string; preview: string; license: string }>;
   themes: Record<string, Record<string, unknown>>;
 };
+/** The sound files in the repository, as `<theme>/<file>`. */
+const files = new Set(Object.keys(import.meta.glob('./sounds/*/*.mp3')).map((key) => key.slice('./sounds/'.length)));
 type Clip = { from: number; start: number; end: number; rate?: number };
 const clips = (theme: string, voice: string) => (sources.themes[theme]?.[voice] ?? []) as Clip[];
 
@@ -22,12 +22,12 @@ describe('the themes’ recorded voices', () => {
         expect(hasRecorded(id, voice), `${id} ${voice}`).toBe(true);
         expect(recordedTakes(id, voice)).toBe(clips(id, voice).length);
         clips(id, voice).forEach((_, k) =>
-          expect(existsSync(path.join(dir, id, `${voice}-${k + 1}.mp3`)), `${id}/${voice}-${k + 1}.mp3`).toBe(true),
+          expect(files.has(`${id}/${voice}-${k + 1}.mp3`), `${id}/${voice}-${k + 1}.mp3`).toBe(true),
         );
       }
       expect(clips(id, 'tick').length, `${id} tick takes`).toBeGreaterThanOrEqual(3);
-      const files = readdirSync(path.join(dir, id));
-      expect(files.length, `${id}: files no clip names`).toBe(VOICES.reduce((n, v) => n + clips(id, v).length, 0));
+      const own = [...files].filter((file) => file.startsWith(`${id}/`));
+      expect(own.length, `${id}: files no clip names`).toBe(VOICES.reduce((n, v) => n + clips(id, v).length, 0));
     }
   });
 
